@@ -95,6 +95,7 @@ document.addEventListener('alpine:init', () => {
     archiveNumber: 100001,
     isLocked: false,
     selectedCategory: 'all',
+    attachmentViewMode: 'album',
     todayDate: '',
 
     // Modals
@@ -315,6 +316,15 @@ document.addEventListener('alpine:init', () => {
       const fundLoan = Number(this.form.fund_loan_amount) || 0;
       const decileLoan = Number(this.form.decile_loan_amount) || 0;
       this.form.applicant_equity = Math.max(0, baseCost - (fundLoan + decileLoan));
+    },
+
+    getFilteredAttachments() {
+      if (!this.selectedCategory || this.selectedCategory === 'all') return this.attachments;
+      if (this.selectedCategory === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID');
+      if (this.selectedCategory === 'bank') return this.attachments.filter(a => a.type === 'BANK_BOOKLET' || a.type === 'BANK_LETTER');
+      if (this.selectedCategory === 'deed') return this.attachments.filter(a => a.type === 'TITLE_DEED' || a.type === 'UNIT_SELECTION');
+      if (this.selectedCategory === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK');
+      return this.attachments;
     },
 
     // Stage 9: Send SMS simulation
