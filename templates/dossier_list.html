@@ -135,7 +135,7 @@
                         <th style="padding: 1rem 1rem; width: 220px;">مرحله جاری</th>
                         <th style="padding: 1rem 1rem; width: 160px;">مسئول اقدام</th>
                         <th style="padding: 1rem 1rem; width: 160px;">آورده متقاضی (ریال)</th>
-                        <th style="padding: 1rem 1.25rem; width: 130px; text-align: center;">عملیات</th>
+                        <th style="padding: 1rem 1.25rem; width: 160px; text-align: center; white-space: nowrap;">عملیات</th>
                     </tr>
                 </thead>
                 <tbody id="dossier-table-body">
@@ -186,10 +186,12 @@
                             </td>
 
                             <!-- Action Button -->
-                            <td style="padding: 1rem 1.25rem; text-align: center;">
-                                <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="btn btn-outline" style="padding: 0.4rem 0.9rem; font-size: 0.8rem; font-weight: 700;">
+                            <td style="padding: 0.85rem 1.25rem; text-align: center; white-space: nowrap;">
+                                <a href="{% url 'dossier_detail' pk=d.archive_number %}" 
+                                   class="btn-open-dossier" 
+                                   title="مشاهده و ارزیابی پرونده {{ d.archive_number }}">
                                     <span>ورود به پرونده</span>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow-icon">
                                         <polyline points="15 18 9 12 15 6"></polyline>
                                     </svg>
                                 </a>
