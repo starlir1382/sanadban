@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.db import transaction, models
@@ -7,9 +8,73 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, Site, Project
 
+def normalize_digits(text: str, to_type="ascii") -> str:
+    """Converts numerals between Persian/Arabic and ASCII digits, and normalizes Arabic Yeh/Kaf."""
+    if not text:
+        return ""
+    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+    arabic_digits = "٠١٢٣٤٥٦٧٨٩"
+    ascii_digits = "0123456789"
+    if to_type == "ascii":
+        trans = str.maketrans(persian_digits + arabic_digits + "ييكك", ascii_digits + ascii_digits + "یییک")
+    else:
+        trans = str.maketrans(ascii_digits + "ييكك", persian_digits + "یییک")
+    return text.translate(trans)
+
+def get_token_search_condition(token: str):
+    """Builds a comprehensive Q-filter for a search token matching any dossier field."""
+    clean = token.replace("#", "").strip()
+    if not clean:
+        return models.Q()
+    
+    t_ascii = normalize_digits(clean, "ascii")
+    t_fa = normalize_digits(clean, "persian")
+    
+    # Check if token matches any stage by number, title, or role
+    matched_stages = set()
+    for stg_num, (unit, role, title) in HousingDossier.STAGE_ROLES.items():
+        stg_str = str(stg_num)
+        stg_fa = normalize_digits(stg_str, "persian")
+        if t_ascii == stg_str or clean == stg_fa or f"مرحله {stg_str}" in t_ascii or f"مرحله {stg_fa}" in clean:
+            matched_stages.add(stg_num)
+        if any(w in title.lower() or w in role.lower() or w in unit.lower() for w in [clean.lower(), t_ascii.lower()] if len(w) >= 2):
+            matched_stages.add(stg_num)
+            
+    cond = models.Q()
+    for term in {clean, t_ascii, t_fa}:
+        if not term:
+            continue
+        cond |= (
+            models.Q(national_id__icontains=term) |
+            models.Q(archive_number__icontains=term) |
+            models.Q(full_name__icontains=term) |
+            models.Q(father_name__icontains=term) |
+            models.Q(spouse_full_name__icontains=term) |
+            models.Q(spouse_national_id__icontains=term) |
+            models.Q(project__icontains=term) |
+            models.Q(site__icontains=term) |
+            models.Q(block_name__icontains=term) |
+            models.Q(bank_letter_number__icontains=term) |
+            models.Q(registration_section__icontains=term)
+        )
+    
+    digits = re.sub(r"\D", "", t_ascii)
+    if digits:
+        num = int(digits)
+        cond |= models.Q(archive_number=num)
+        if 1 <= num <= 24:
+            cond |= models.Q(current_stage=num)
+        
+    if matched_stages:
+        cond |= models.Q(current_stage__in=matched_stages)
+        
+    return cond
+
 def dossier_list_view(request):
     """
-    Dashboard list view showing all housing dossiers with filtering by stage and quick search.
+    Dashboard list view showing all housing dossiers with multi-field search and stage filtering.
+    Searches across: archive_number, national_id, full_name, father_name, spouse,
+    project, site, current_stage number, and stage title/role.
     """
     query = request.GET.get('q', '').strip()
     stage_filter = request.GET.get('stage', '')
@@ -17,11 +82,19 @@ def dossier_list_view(request):
     dossiers = HousingDossier.objects.all()
 
     if query:
-        dossiers = dossiers.filter(
-            models.Q(national_id__icontains=query) |
-            models.Q(archive_number__icontains=query) |
-            models.Q(full_name__icontains=query)
-        )
+        whole_cond = get_token_search_condition(query)
+        tokens = [t for t in query.split() if t.strip()]
+        meaningful_tokens = [t for t in tokens if t != "مرحله"]
+        
+        if len(meaningful_tokens) > 1:
+            token_cond = models.Q()
+            for t in meaningful_tokens:
+                token_cond &= get_token_search_condition(t)
+            combined = token_cond
+        else:
+            combined = whole_cond
+            
+        dossiers = dossiers.filter(combined).distinct()
 
     if stage_filter != '':
         try:

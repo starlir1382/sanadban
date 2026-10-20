@@ -42,16 +42,24 @@
                 </div>
             </a>
 
-            <!-- Global Search Bar (National ID / Archive No) -->
-            <div class="header-search">
+            <!-- Global Multi-Field Search Bar (Archive, National ID, Name, Project, Site, Stage) -->
+            <form method="GET" action="{% url 'dossier_list' %}" class="header-search" style="margin: 0;">
                 <div class="search-input-group">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input type="text" placeholder="جستجوی پرونده با کدملی (۱۰ رقم) یا شماره بایگانی (مثلاً 100001)..." class="fa-num">
+                    <button type="submit" style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; color: #93c5fd;" title="جستجو">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </button>
+                    <input type="text" name="q" value="{{ query|default:'' }}" 
+                           placeholder="جستجوی همه‌جانبه: شماره بایگانی، کدملی، نام متقاضی، پروژه، سایت، مرحله..." 
+                           class="fa-num"
+                           style="border: none; outline: none; background: transparent; color: inherit; width: 100%;">
+                    {% if query %}
+                    <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: #cbd5e1; font-size: 0.82rem; padding: 0 0.35rem; display: flex; align-items: center;" title="پاکسازی جستجو">✕</a>
+                    {% endif %}
                 </div>
-            </div>
+            </form>
 
             <!-- Meta & User Role Information -->
             <div class="header-meta">
