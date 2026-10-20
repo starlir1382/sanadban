@@ -1,211 +1,361 @@
 <!-- Full-Width Digital Document Album & Scan Archive -->
-<div class="attachments-card" style="background: #ffffff; border-radius: 16px; border: 1.5px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
+<div class="attachments-card" style="background: #ffffff; border-radius: 16px; border: 1.5px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);">
     
     <!-- Album Top Bar -->
-    <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; padding: 1.25rem 1.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; padding: 1.35rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem;">
         
         <!-- Title & Counter -->
-        <div style="display: flex; align-items: center; gap: 0.85rem;">
-            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; justify-content: center;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                     <circle cx="8.5" cy="8.5" r="1.5"></circle>
                     <polyline points="21 15 16 10 5 21"></polyline>
                 </svg>
             </div>
             <div>
-                <div style="display: flex; align-items: center; gap: 0.6rem;">
-                    <h3 style="font-size: 1.15rem; font-weight: 800; margin: 0; color: #ffffff;">آلبوم دیجیتال و بایگانی اسناد اسکن‌شده پرونده</h3>
-                    <span class="fa-num" style="background: #0284c7; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 12px;" x-text="attachments.length + ' سند'"></span>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.3px;">آلبوم دیجیتال و بایگانی اسناد اسکن‌شده پرونده</h3>
+                    <span class="fa-num" style="background: #0284c7; color: #ffffff; font-size: 0.78rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25);" x-text="attachments.length + ' سند'"></span>
                 </div>
-                <div style="font-size: 0.78rem; color: #93c5fd; margin-top: 2px;">
-                    آرشیو رسمی تصاویر اسکن‌شده با استعلام اصالت دیجیتال و هش امنیتی SHA-256
+                <div style="font-size: 0.8rem; color: #93c5fd; margin-top: 3px;">
+                    آرشیو رسمی تصاویر اسکن‌شده با استعلام اصالت دیجیتال و رمزنگاری امنیتی SHA-256
                 </div>
             </div>
         </div>
 
         <!-- Controls: View Switcher & Upload Button -->
-        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
             
             <!-- View Mode Switcher: Album vs Table -->
-            <div style="display: flex; background: rgba(255, 255, 255, 0.12); padding: 3px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">
+            <div style="display: flex; background: rgba(255, 255, 255, 0.12); padding: 3px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.22);">
                 <button type="button" 
-                        style="padding: 0.35rem 0.75rem; font-size: 0.78rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                        :style="attachmentViewMode === 'album' ? 'background: #ffffff; color: #0f2744; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : 'background: transparent; color: #cbd5e1;'"
+                        style="padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.35rem;"
+                        :style="attachmentViewMode === 'album' ? 'background: #ffffff; color: #0f2744; box-shadow: 0 2px 6px rgba(0,0,0,0.15);' : 'background: transparent; color: #cbd5e1;'"
                         @click="attachmentViewMode = 'album'">
-                    🎴 آلبوم تصویری
+                    <span>🎴</span>
+                    <span>آلبوم تصویری</span>
                 </button>
                 <button type="button" 
-                        style="padding: 0.35rem 0.75rem; font-size: 0.78rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                        :style="attachmentViewMode === 'table' ? 'background: #ffffff; color: #0f2744; box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : 'background: transparent; color: #cbd5e1;'"
+                        style="padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.35rem;"
+                        :style="attachmentViewMode === 'table' ? 'background: #ffffff; color: #0f2744; box-shadow: 0 2px 6px rgba(0,0,0,0.15);' : 'background: transparent; color: #cbd5e1;'"
                         @click="attachmentViewMode = 'table'">
-                    📋 جدول رسمی
+                    <span>📋</span>
+                    <span>جدول رسمی</span>
                 </button>
             </div>
 
             <!-- Upload New Document Button -->
-            <button type="button" class="btn btn-primary" style="padding: 0.55rem 1.2rem; font-size: 0.85rem; font-weight: 800; background: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.35);" @click="openUploadScanModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                <span>+ بارگذاری / اسکن سند جدید</span>
+            <button type="button" class="btn btn-primary" style="padding: 0.6rem 1.25rem; font-size: 0.86rem; font-weight: 800; background: #2563eb; border: 1px solid #60a5fa; box-shadow: 0 4px 14px rgba(37,99,235,0.4);" @click="openUploadScanModal()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>+ بارگذاری / اسکن مدرک جدید</span>
             </button>
         </div>
     </div>
 
     <!-- Album Sub-Header: Filter Chips & Security Rule -->
-    <div style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.75rem 1.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.85rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
         
-        <!-- Category Filter Pills -->
-        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+        <!-- Category Filter Pills with Dynamic Count Badges -->
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'all' ? 'active' : ''"
-                    style="padding: 0.3rem 0.75rem; font-size: 0.78rem;" 
+                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'all'">
-                همه اسناد (<span class="fa-num" x-text="attachments.length"></span>)
+                <span>همه اسناد</span>
+                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('all')"></span>
             </button>
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'identity' ? 'active' : ''"
-                    style="padding: 0.3rem 0.75rem; font-size: 0.78rem;" 
+                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'identity'">
-                🪪 هویتی (متقاضی و همسر)
+                <span>🪪 هویتی (متقاضی و همسر)</span>
+                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('identity')"></span>
             </button>
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'bank' ? 'active' : ''"
-                    style="padding: 0.3rem 0.75rem; font-size: 0.78rem;" 
+                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'bank'">
-                🏦 بانکی و دفترچه قسط
+                <span>🏦 بانکی و دفترچه قسط</span>
+                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('bank')"></span>
             </button>
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'deed' ? 'active' : ''"
-                    style="padding: 0.3rem 0.75rem; font-size: 0.78rem;" 
+                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'deed'">
-                📜 سند مالکیت و انتخاب واحد
+                <span>📜 سند مالکیت و انتخاب واحد</span>
+                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('deed')"></span>
             </button>
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'checks' ? 'active' : ''"
-                    style="padding: 0.3rem 0.75rem; font-size: 0.78rem;" 
+                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'checks'">
-                💳 چک‌های صیادی و تضامین
+                <span>💳 چک‌های صیادی و تضامین</span>
+                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('checks')"></span>
             </button>
         </div>
 
         <!-- Strict Stage-Ownership Lock Rule -->
-        <span class="lock-pill strict-rule" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.35rem;" title="مدارک بارگذاری شده توسط سایر مراحل قابل حذف نمی‌باشد">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            <span>حفاظت سندی: عدم امکان حذف فرامرحله‌ای مدارک</span>
+        <span class="lock-pill strict-rule" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.76rem; padding: 0.3rem 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 0.4rem;" title="مدارک بارگذاری شده توسط سایر مراحل قابل حذف نمی‌باشد">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>حفاظت سندی: عدم امکان حذف مدارک مراحل پیشین</span>
         </span>
     </div>
 
-    <!-- Empty State when no scans uploaded yet -->
-    <div x-show="getFilteredAttachments().length === 0" style="text-align: center; padding: 3.5rem 1.5rem; background: #ffffff;">
-        <div style="width: 64px; height: 64px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.85rem auto; color: #94a3b8;">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+    <!-- Empty State when no scans uploaded yet in selected category -->
+    <div x-show="getFilteredAttachments().length === 0" style="text-align: center; padding: 4rem 1.5rem; background: #ffffff;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; color: #94a3b8; border: 1px dashed #cbd5e1;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                 <polyline points="14 2 14 8 20 8"></polyline>
                 <line x1="12" y1="18" x2="12" y2="12"></line>
                 <line x1="9" y1="15" x2="15" y2="15"></line>
             </svg>
         </div>
-        <div style="font-weight: 800; font-size: 1rem; color: #1e293b;">هیچ سندی در این دسته‌بندی یافت نشد</div>
-        <div style="font-size: 0.82rem; color: #64748b; margin-top: 0.4rem; margin-bottom: 1.25rem;">می‌توانید با کلیک روی دکمه زیر، سند جدیدی را اسکن یا بارگذاری فرمایید.</div>
-        <button type="button" class="btn btn-primary" style="padding: 0.55rem 1.4rem; font-size: 0.85rem;" @click="openUploadScanModal()">
+        <div style="font-weight: 800; font-size: 1.05rem; color: #1e293b;">هیچ مدرکی در این دسته‌بندی ثبت نگردیده است</div>
+        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.4rem; margin-bottom: 1.5rem;">برای افزودن مدرک هویتی، بانکی یا ثبتی، روی دکمه زیر کلیک فرمایید.</div>
+        <button type="button" class="btn btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.88rem;" @click="openUploadScanModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span>بارگذاری مدرک در این بخش</span>
         </button>
     </div>
 
     <!-- VIEW A: Modern Visual Document Album (Grid Mode) -->
-    <div x-show="attachmentViewMode === 'album' && getFilteredAttachments().length > 0" style="padding: 1.75rem;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1.25rem;">
+    <div x-show="attachmentViewMode === 'album' && getFilteredAttachments().length > 0" style="padding: 2rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
             
             <template x-for="item in getFilteredAttachments()" :key="item.id">
-                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;"
-                     @mouseenter="$el.style.transform = 'translateY(-3px)'; $el.style.boxShadow = '0 12px 24px -6px rgba(0,0,0,0.12)'; $el.style.borderColor = '#93c5fd';"
-                     @mouseleave="$el.style.transform = 'translateY(0)'; $el.style.boxShadow = 'none'; $el.style.borderColor = '#e2e8f0';">
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 2px 8px rgba(0,0,0,0.04);"
+                     @mouseenter="$el.style.transform = 'translateY(-4px)'; $el.style.boxShadow = '0 14px 30px -8px rgba(15,23,42,0.12)'; $el.style.borderColor = '#93c5fd';"
+                     @mouseleave="$el.style.transform = 'translateY(0)'; $el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; $el.style.borderColor = '#e2e8f0';">
                     
                     <!-- Card Top Header Badge -->
-                    <div style="background: #f8fafc; border-bottom: 1px solid #f1f5f9; padding: 0.65rem 0.85rem; display: flex; justify-content: space-between; align-items: center;">
-                        <span class="fa-num" style="font-size: 0.72rem; font-weight: 700; color: #1e40af; background: #dbeafe; padding: 0.2rem 0.5rem; border-radius: 6px;"
-                              x-text="'مرحله ' + item.stage"></span>
+                    <div style="background: #f8fafc; border-bottom: 1px solid #f1f5f9; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <!-- Stage Tag -->
+                            <span class="fa-num" style="font-size: 0.74rem; font-weight: 800; color: #1e40af; background: #dbeafe; padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid #bfdbfe;"
+                                  x-text="'مرحله ' + item.stage"></span>
+                            
+                            <!-- Category Badge -->
+                            <span style="font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 6px;"
+                                  :style="item.type === 'NATIONAL_ID' || item.type === 'SPOUSE_ID' ? 'background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;' : (item.type === 'BANK_BOOKLET' || item.type === 'BANK_LETTER' ? 'background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;' : (item.type === 'TITLE_DEED' || item.type === 'UNIT_SELECTION' ? 'background: #fffbeb; color: #b45309; border: 1px solid #fde68a;' : 'background: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff;'))"
+                                  x-text="item.type === 'NATIONAL_ID' || item.type === 'SPOUSE_ID' ? 'هویتی' : (item.type === 'BANK_BOOKLET' || item.type === 'BANK_LETTER' ? 'بانکی' : (item.type === 'TITLE_DEED' ? 'سند کاداستری' : (item.type === 'LOAN_CHECK' ? 'چک صیادی' : 'انتخاب واحد')))"></span>
+                        </div>
                         
-                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
                             <!-- Stage Lock Icon -->
-                            <span x-show="currentStage !== item.stage" title="این سند در مرحله دیگری بارگذاری شده و قفل است" style="color: #64748b; font-size: 0.72rem; display: flex; align-items: center; gap: 2px;">
+                            <span x-show="currentStage !== item.stage" title="این سند در مرحله دیگری بارگذاری شده و قفل است" style="color: #64748b; font-size: 0.72rem; display: flex; align-items: center; gap: 3px; background: #f1f5f9; padding: 0.2rem 0.45rem; border-radius: 6px;">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                                 <span>قفل مرحله‌ای</span>
                             </span>
 
                             <!-- Delete Button (Only active for stage owner) -->
-                            <button type="button" x-show="currentStage === item.stage" 
+                            <button type="button" x-show="currentStage === item.stage && !isLocked" 
                                     @click="attachments = attachments.filter(a => a.id !== item.id); triggerToast('مدرک با موفقیت حذف گردید.', 'warning');"
-                                    style="background: #fee2e2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.2rem 0.45rem; font-size: 0.72rem; font-weight: 700; cursor: pointer;"
-                                    title="حذف مدرک">
-                                ✕
+                                    style="background: #fee2e2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: background 0.15s;"
+                                    title="حذف مدرک (فقط در مرحله جاری مجاز است)">
+                                ✕ حذف
                             </button>
                         </div>
                     </div>
 
-                    <!-- Visual Document Preview Container -->
-                    <div style="height: 165px; background: #f8fafc; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #e2e8f0;"
+                    <!-- Visual Document Realistic Preview Stage (200px Height) -->
+                    <div style="height: 195px; background: #0f172a; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center;"
                          @click="openScanViewer(item)">
                         
-                        <!-- If real preview image exists -->
+                        <!-- 1. Real Preview Image (if uploaded file has preview URL) -->
                         <template x-if="item.preview_url && item.preview_url.length > 0">
-                            <img :src="item.preview_url" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s;"
-                                 @mouseenter="$el.style.transform = 'scale(1.05)'"
+                            <img :src="item.preview_url" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;"
+                                 @mouseenter="$el.style.transform = 'scale(1.06)'"
                                  @mouseleave="$el.style.transform = 'scale(1)'">
                         </template>
 
-                        <!-- High-End Document Mock Cover -->
+                        <!-- 2. Realistic Simulated Document Renderings (When no uploaded image) -->
                         <template x-if="!item.preview_url || item.preview_url.length === 0">
-                            <div style="width: 82%; height: 85%; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); padding: 0.75rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
-                                <div style="display: flex; justify-content: space-between; border-bottom: 1.5px solid #0284c7; padding-bottom: 0.25rem;">
-                                    <span style="font-weight: 800; font-size: 0.75rem; color: #0369a1;" x-text="item.type === 'NATIONAL_ID' || item.type === 'SPOUSE_ID' ? 'کارت شناسایی' : (item.type === 'TITLE_DEED' ? 'سند کاداستری' : (item.type === 'BANK_BOOKLET' ? 'دفترچه اقساط' : 'سند رسمی'))"></span>
-                                    <span style="font-size: 0.65rem; color: #64748b;">جمهوری اسلامی ایران</span>
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0.75rem;">
+                                
+                                <!-- A. National ID / Spouse ID Smart Card -->
+                                <div x-show="item.type === 'NATIONAL_ID' || item.type === 'SPOUSE_ID'" 
+                                     style="width: 92%; height: 90%; background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 50%, #eff6ff 100%); border: 1.5px solid #93c5fd; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); padding: 0.65rem 0.85rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+                                    <!-- Flag stripe -->
+                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(to right, #16a34a 33.3%, #ffffff 33.3%, #ffffff 66.6%, #dc2626 66.6%);"></div>
+                                    <!-- Top Row -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(37,99,235,0.2); padding-bottom: 0.25rem;">
+                                        <span style="font-weight: 800; font-size: 0.72rem; color: #1e3a8a;">کارت هوشمند ملی</span>
+                                        <span style="font-size: 0.62rem; color: #475569;">جمهوری اسلامی ایران</span>
+                                    </div>
+                                    <!-- Middle with Chip & Silhouette -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                                        <!-- Gold Chip -->
+                                        <div style="width: 32px; height: 26px; background: linear-gradient(135deg, #fde047 0%, #eab308 100%); border: 1px solid #ca8a04; border-radius: 4px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.6); display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 2px;">
+                                            <div style="background: rgba(161,98,7,0.3); border-radius: 1px;"></div>
+                                            <div style="background: rgba(161,98,7,0.3); border-radius: 1px;"></div>
+                                            <div style="background: rgba(161,98,7,0.3); border-radius: 1px;"></div>
+                                            <div style="background: rgba(161,98,7,0.3); border-radius: 1px;"></div>
+                                        </div>
+                                        <!-- Text info -->
+                                        <div style="flex: 1; text-align: right; padding-right: 0.4rem;">
+                                            <div style="font-size: 0.76rem; font-weight: 800; color: #0f172a;" x-text="item.type === 'SPOUSE_ID' ? (form.spouse_full_name || 'همسر متقاضی') : (form.full_name || 'متقاضی مسکن')"></div>
+                                            <div class="fa-num" style="font-size: 0.72rem; font-family: monospace; color: #1d4ed8; font-weight: 700; letter-spacing: 1px;" x-text="item.type === 'SPOUSE_ID' ? (form.spouse_national_id || '0029876543') : form.national_id"></div>
+                                        </div>
+                                        <!-- Silhouette -->
+                                        <div style="width: 36px; height: 44px; background: #cbd5e1; border-radius: 4px; border: 1px solid #94a3b8; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                        </div>
+                                    </div>
+                                    <!-- Bottom Bar -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.64rem; color: #059669; border-top: 1px dashed #93c5fd; padding-top: 0.2rem;">
+                                        <span class="fa-num" x-text="item.uploadDate"></span>
+                                        <span style="font-weight: 800; color: #0284c7;">سازمان ثبت احوال ✓</span>
+                                    </div>
                                 </div>
-                                <div style="text-align: center; color: #334155; font-size: 0.78rem; font-weight: 700; padding: 0.5rem 0;" x-text="item.title"></div>
-                                <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: #059669; border-top: 1px dashed #cbd5e1; padding-top: 0.25rem;">
-                                    <span class="fa-num" x-text="item.uploadDate"></span>
-                                    <span style="font-weight: bold;">تایید اصالت ✓</span>
+
+                                <!-- B. Cadastral Single-Sheet Title Deed -->
+                                <div x-show="item.type === 'TITLE_DEED'" 
+                                     style="width: 90%; height: 90%; background: #fdfbf7; border: 2px solid #065f46; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); padding: 0.65rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                                    <div style="text-align: center; border-bottom: 1px solid #065f46; padding-bottom: 0.2rem;">
+                                        <div style="font-weight: 800; font-size: 0.72rem; color: #065f46;">سند مالکیت کاداستری تک‌برگ</div>
+                                        <div style="font-size: 0.6rem; color: #047857;">سازمان ثبت اسناد و املاک کشور</div>
+                                    </div>
+                                    <!-- Cadastral Grid Sketch -->
+                                    <div style="border: 1px dashed #059669; background: #f0fdf4; border-radius: 4px; padding: 0.35rem 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="font-size: 0.68rem; color: #166534; font-weight: 700; line-height: 1.4;">
+                                            <div>پلاک ثبتی: <span class="fa-num" x-text="form.land_plot_number || '۲۴۰۵'"></span></div>
+                                            <div>عرصه: <span class="fa-num" x-text="(form.land_area || '۱۸۵۰') + ' م²'"></span></div>
+                                        </div>
+                                        <!-- Red wax seal simulator -->
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #dc2626; background: rgba(220,38,38,0.08); display: flex; align-items: center; justify-content: center; color: #dc2626; font-size: 0.55rem; font-weight: 800; transform: rotate(-12deg);">
+                                            مهر ثبت
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.62rem; color: #065f46; border-top: 1px solid #a7f3d0; padding-top: 0.2rem;">
+                                        <span class="fa-num" x-text="form.cadastre_code ? 'شناسه: ' + form.cadastre_code : 'کاداستر تایید شده'"></span>
+                                        <span style="font-weight: 800;">رسمی و لازم‌الاجرا</span>
+                                    </div>
                                 </div>
+
+                                <!-- C. Bank Installment Booklet & Bank Letter -->
+                                <div x-show="item.type === 'BANK_BOOKLET' || item.type === 'BANK_LETTER'" 
+                                     style="width: 90%; height: 90%; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); padding: 0.65rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(to right, #ea580c, #0284c7);"></div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                            <div style="width: 14px; height: 14px; background: #ea580c; border-radius: 3px;"></div>
+                                            <span style="font-weight: 800; font-size: 0.72rem; color: #0f172a;">بانک مسکن ایران</span>
+                                        </div>
+                                        <span style="font-size: 0.62rem; color: #0284c7; font-weight: 700;">دفترچه اقساط</span>
+                                    </div>
+                                    <!-- Installment Mock Rows -->
+                                    <div style="display: flex; flex-direction: column; gap: 3px; font-size: 0.65rem; color: #475569; background: #f8fafc; padding: 0.35rem; border-radius: 4px;">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span>مبلغ کل تسهیلات:</span>
+                                            <strong class="fa-num" style="color: #0f2744;" x-text="formatNumber(form.bank_loan_amount || '5500000000') + ' ریال'"></strong>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <span>شماره نامه بانک:</span>
+                                            <strong class="fa-num" style="color: #1e40af;" x-text="form.bank_letter_number || '۹۸/ب/۴۴۰۲'"></strong>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.62rem; color: #059669; border-top: 1px dashed #cbd5e1; padding-top: 0.2rem;">
+                                        <span class="fa-num" x-text="item.uploadDate"></span>
+                                        <span style="font-weight: 800;">تأیید شعبه مرکزی ✓</span>
+                                    </div>
+                                </div>
+
+                                <!-- D. Sayad Cheque (Purple Cheque) -->
+                                <div x-show="item.type === 'LOAN_CHECK' || item.type === 'PREP_CHECK'" 
+                                     style="width: 94%; height: 90%; background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1.5px solid #c4b5fd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); padding: 0.65rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd6fe; padding-bottom: 0.25rem;">
+                                        <span style="font-weight: 800; font-size: 0.72rem; color: #6b21a8;">چک صیادی بنفش</span>
+                                        <span class="fa-num" style="font-size: 0.65rem; color: #7c3aed; font-family: monospace; font-weight: 700;">شناسه صیاد: ۷۰۴۱...</span>
+                                    </div>
+                                    <!-- Cheque Body -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.7); padding: 0.35rem 0.5rem; border-radius: 4px; border: 1px dashed #c4b5fd;">
+                                        <div style="font-size: 0.65rem; color: #581c87;">
+                                            <div>در وجه: سازمان ملی زمین و مسکن</div>
+                                            <div>تعداد چک: <strong class="fa-num" x-text="form.check_count || '۴ فقره'"></strong></div>
+                                        </div>
+                                        <div style="font-size: 0.72rem; font-weight: 800; color: #6b21a8; background: #f3e8ff; padding: 0.2rem 0.4rem; border-radius: 4px;">ریال</div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.62rem; color: #6b21a8; border-top: 1px solid #ddd6fe; padding-top: 0.2rem;">
+                                        <span>تضمین تسهیلات دهک</span>
+                                        <span style="font-weight: 800;">ثبت صیادی ✓</span>
+                                    </div>
+                                </div>
+
+                                <!-- E. Unit Selection Sheet & General Documents -->
+                                <div x-show="!['NATIONAL_ID','SPOUSE_ID','TITLE_DEED','BANK_BOOKLET','BANK_LETTER','LOAN_CHECK','PREP_CHECK'].includes(item.type)" 
+                                     style="width: 88%; height: 90%; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); padding: 0.65rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                                    <div style="text-align: center; border-bottom: 1.5px solid #0284c7; padding-bottom: 0.25rem;">
+                                        <span style="font-weight: 800; font-size: 0.72rem; color: #0369a1;">سامانه نهضت ملی مسکن</span>
+                                        <div style="font-size: 0.6rem; color: #64748b;">تاییدیه انتخاب واحد و پیشنویس قرارداد</div>
+                                    </div>
+                                    <div style="text-align: center; color: #1e293b; font-size: 0.78rem; font-weight: 800; padding: 0.25rem 0;" x-text="item.title"></div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.62rem; color: #059669; border-top: 1px dashed #cbd5e1; padding-top: 0.2rem;">
+                                        <span class="fa-num" x-text="item.uploadDate"></span>
+                                        <span style="font-weight: 800;">معتبر و تاییدشده ✓</span>
+                                    </div>
+                                </div>
+
                             </div>
                         </template>
 
-                        <!-- Hover Overlay -->
-                        <div style="position: absolute; inset: 0; background: rgba(15, 39, 68, 0.75); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem; opacity: 0; transition: opacity 0.2s;"
+                        <!-- High-Tech Interactive Hover Overlay -->
+                        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(15, 39, 68, 0.9) 0%, rgba(15, 39, 68, 0.7) 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; opacity: 0; transition: all 0.25s ease;"
                              @mouseenter="$el.style.opacity = '1'"
                              @mouseleave="$el.style.opacity = '0'">
-                            <div style="width: 40px; height: 40px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; color: #2563eb;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                            
+                            <div style="width: 44px; height: 44px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; color: #2563eb; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transform: scale(0.9); transition: transform 0.2s;"
+                                 @mouseenter="$el.style.transform = 'scale(1.1)'"
+                                 @mouseleave="$el.style.transform = 'scale(0.9)'">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
                             </div>
-                            <span style="color: #ffffff; font-size: 0.78rem; font-weight: 700;">مشاهده با کیفیت اصلی</span>
+                            
+                            <span style="color: #ffffff; font-size: 0.82rem; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">مشاهده در اندازه واقعی (لایت‌باکس)</span>
+                            <span style="color: #93c5fd; font-size: 0.7rem;">بزرگ‌نمایی • چرخش • چاپ سند</span>
                         </div>
                     </div>
 
                     <!-- Card Body Meta Details -->
-                    <div style="padding: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem; flex: 1; justify-content: space-between;">
+                    <div style="padding: 1rem 1.15rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; justify-content: space-between;">
                         <div>
-                            <div style="font-weight: 800; font-size: 0.88rem; color: #0f172a; margin-bottom: 0.2rem; cursor: pointer;" 
-                                 @click="openScanViewer(item)" x-text="item.title"></div>
-                            <div style="font-size: 0.72rem; color: #64748b; font-family: monospace; direction: ltr; text-align: right;" x-text="item.fileName || 'scan_document.pdf'"></div>
+                            <div style="font-weight: 800; font-size: 0.92rem; color: #0f172a; margin-bottom: 0.25rem; cursor: pointer; transition: color 0.15s;" 
+                                 @click="openScanViewer(item)" 
+                                 @mouseenter="$el.style.color = '#2563eb'" 
+                                 @mouseleave="$el.style.color = '#0f172a'" 
+                                 x-text="item.title"></div>
+                            
+                            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                <span style="background: #f1f5f9; color: #475569; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 800;">PDF / IMG</span>
+                                <span style="font-size: 0.74rem; color: #64748b; font-family: monospace; direction: ltr; text-align: right;" x-text="item.fileName || 'scan_document.pdf'"></span>
+                            </div>
                         </div>
 
-                        <div style="border-top: 1px solid #f1f5f9; padding-top: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+                        <div style="border-top: 1px solid #f1f5f9; padding-top: 0.55rem; display: flex; flex-direction: column; gap: 0.4rem;">
                             <!-- Uploader & Date -->
-                            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #475569;">
-                                <span x-text="item.uploader || 'کارشناس ثبت'"></span>
-                                <span class="fa-num" x-text="item.uploadDate"></span>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: #475569;">
+                                <span style="display: flex; align-items: center; gap: 0.3rem;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    <span x-text="item.uploader || 'کارشناس ثبت'"></span>
+                                </span>
+                                <span class="fa-num" style="font-weight: 600;" x-text="item.uploadDate"></span>
                             </div>
 
                             <!-- SHA-256 Hash Badge -->
-                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.25rem 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.65rem; color: #166534; font-weight: 700;">اصالت سندی:</span>
-                                <span class="fa-num" style="font-size: 0.65rem; color: #059669; font-family: monospace; direction: ltr;" x-text="(item.sha256 || 'SHA256: 7f83...').substring(0, 16) + '...'"></span>
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.3rem 0.6rem; display: flex; justify-content: space-between; align-items: center;" title="هش یکتای رمزنگاری‌شده جهت اثبات عدم دستکاری سند">
+                                <span style="font-size: 0.68rem; color: #166534; font-weight: 800; display: flex; align-items: center; gap: 3px;">
+                                    <span>✓</span>
+                                    <span>اصالت دیجیتال:</span>
+                                </span>
+                                <span class="fa-num" style="font-size: 0.68rem; color: #059669; font-family: monospace; direction: ltr;" x-text="(item.sha256 || 'SHA256: 7f83b165...').substring(0, 18) + '...'"></span>
                             </div>
                         </div>
 
-                        <!-- Click-to-View Button -->
-                        <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; padding: 0.45rem; font-size: 0.78rem; margin-top: 0.4rem;" @click="openScanViewer(item)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>مشاهده در اندازه کامل</span>
+                        <!-- Click-to-View Action Button -->
+                        <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 700; margin-top: 0.4rem; border-color: #cbd5e1; background: #ffffff; color: #1e3a8a;" 
+                                @click="openScanViewer(item)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <span>مشاهده در اندازه کامل و چاپ</span>
                         </button>
                     </div>
 
@@ -213,32 +363,34 @@
             </template>
 
             <!-- Quick Add Card at the end of the Album -->
-            <div style="border: 2px dashed #93c5fd; border-radius: 12px; background: #f8fafc; min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; padding: 1.5rem; text-align: center;"
+            <div style="border: 2px dashed #93c5fd; border-radius: 14px; background: #f8fafc; min-height: 310px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s; padding: 1.75rem; text-align: center;"
                  @click="openUploadScanModal()"
-                 @mouseenter="$el.style.background = '#eff6ff'; $el.style.borderColor = '#2563eb';"
-                 @mouseleave="$el.style.background = '#f8fafc'; $el.style.borderColor = '#93c5fd';">
+                 @mouseenter="$el.style.background = '#eff6ff'; $el.style.borderColor = '#2563eb'; $el.style.transform = 'translateY(-3px)';"
+                 @mouseleave="$el.style.background = '#f8fafc'; $el.style.borderColor = '#93c5fd'; $el.style.transform = 'translateY(0)';">
                 
-                <div style="width: 52px; height: 52px; border-radius: 50%; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <div style="width: 56px; height: 56px; border-radius: 50%; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; margin-bottom: 0.85rem; box-shadow: 0 4px 12px rgba(37,99,235,0.15);">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </div>
-                <div style="font-weight: 800; font-size: 0.95rem; color: #1e3a8a; margin-bottom: 0.25rem;">+ اسکن یا بارگذاری سند جدید</div>
-                <div style="font-size: 0.75rem; color: #64748b; line-height: 1.5;">الصاق خودکار به مرحله جاری (<span class="fa-num" x-text="currentStage"></span>)</div>
+                <div style="font-weight: 800; font-size: 1rem; color: #1e3a8a; margin-bottom: 0.35rem;">+ اسکن یا بارگذاری سند جدید</div>
+                <div style="font-size: 0.78rem; color: #64748b; line-height: 1.6; max-width: 220px;">
+                    الصاق خودکار با شناسه امنیتی به مرحله جاری (<span class="fa-num" style="font-weight: 800; color: #2563eb;" x-text="'مرحله ' + currentStage"></span>)
+                </div>
             </div>
 
         </div>
     </div>
 
     <!-- VIEW B: Formal Enterprise Data Table (100% Full-Width) -->
-    <div x-show="attachmentViewMode === 'table' && getFilteredAttachments().length > 0" style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: right;">
+    <div x-show="attachmentViewMode === 'table' && getFilteredAttachments().length > 0" style="overflow-x: auto; padding: 0.5rem 0;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.86rem; text-align: right;">
             <thead>
-                <tr style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; color: #475569; font-weight: 700; font-size: 0.78rem;">
-                    <th style="padding: 0.85rem 1.25rem; width: 60px; text-align: center;">ردیف</th>
-                    <th style="padding: 0.85rem 1rem;">نوع و عنوان کامل مدرک</th>
-                    <th style="padding: 0.85rem 1rem; width: 140px;">مرحله بارگذاری</th>
-                    <th style="padding: 0.85rem 1rem; width: 170px;">اقدام‌کننده</th>
-                    <th style="padding: 0.85rem 1rem; width: 180px;">تاریخ و هش امنیتی SHA-256</th>
-                    <th style="padding: 0.85rem 1.25rem; width: 160px; text-align: center;">عملیات</th>
+                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 800; font-size: 0.8rem;">
+                    <th style="padding: 1rem 1.25rem; width: 60px; text-align: center;">ردیف</th>
+                    <th style="padding: 1rem 1.25rem;">پیش‌نمایش و عنوان کامل مدرک</th>
+                    <th style="padding: 1rem 1rem; width: 150px;">مرحله بارگذاری</th>
+                    <th style="padding: 1rem 1rem; width: 170px;">اقدام‌کننده</th>
+                    <th style="padding: 1rem 1.25rem; width: 200px;">تاریخ و هش امنیتی SHA-256</th>
+                    <th style="padding: 1rem 1.25rem; width: 180px; text-align: center;">عملیات</th>
                 </tr>
             </thead>
             <tbody>
@@ -248,12 +400,13 @@
                         @mouseleave="$el.style.background = 'transparent'">
                         
                         <!-- Index -->
-                        <td style="padding: 0.95rem 1.25rem; text-align: center; color: #94a3b8; font-weight: bold;" class="fa-num" x-text="idx + 1"></td>
+                        <td style="padding: 1rem 1.25rem; text-align: center; color: #94a3b8; font-weight: bold;" class="fa-num" x-text="idx + 1"></td>
 
-                        <!-- Title & Type -->
-                        <td style="padding: 0.95rem 1rem;">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div style="width: 36px; height: 36px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+                        <!-- Title & Type with mini thumb -->
+                        <td style="padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                <div style="width: 40px; height: 40px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; border: 1px solid #bfdbfe; cursor: pointer;"
+                                     @click="openScanViewer(item)">
                                     <span x-show="item.type === 'NATIONAL_ID' || item.type === 'SPOUSE_ID'">🪪</span>
                                     <span x-show="item.type === 'UNIT_SELECTION'">📑</span>
                                     <span x-show="item.type === 'BANK_BOOKLET' || item.type === 'BANK_LETTER'">🏦</span>
@@ -262,51 +415,55 @@
                                     <span x-show="!['NATIONAL_ID','SPOUSE_ID','UNIT_SELECTION','BANK_BOOKLET','BANK_LETTER','TITLE_DEED','LOAN_CHECK','PREP_CHECK'].includes(item.type)">📄</span>
                                 </div>
                                 <div>
-                                    <div style="font-weight: 800; color: #0f172a; cursor: pointer;" @click="openScanViewer(item)" x-text="item.title"></div>
+                                    <div style="font-weight: 800; color: #0f172a; cursor: pointer; transition: color 0.15s;" 
+                                         @click="openScanViewer(item)" 
+                                         @mouseenter="$el.style.color = '#2563eb'" 
+                                         @mouseleave="$el.style.color = '#0f172a'" 
+                                         x-text="item.title"></div>
                                     <div style="font-size: 0.72rem; color: #64748b; font-family: monospace; direction: ltr; text-align: right;" x-text="item.fileName || 'scan_document.pdf'"></div>
                                 </div>
                             </div>
                         </td>
 
                         <!-- Stage -->
-                        <td style="padding: 0.95rem 1rem;">
-                            <span class="role-pill fa-num" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;"
+                        <td style="padding: 1rem 1rem;">
+                            <span class="role-pill fa-num" style="font-size: 0.74rem; padding: 0.25rem 0.65rem;"
                                   :class="item.stage <= 4 || [6,9,10,11,12,20,21].includes(item.stage) ? 'brokerage' : 'directorate'"
                                   x-text="'مرحله ' + item.stage"></span>
                         </td>
 
                         <!-- Uploader -->
-                        <td style="padding: 0.95rem 1rem; color: #334155;">
-                            <div style="font-weight: 600; font-size: 0.82rem;" x-text="item.uploader || 'کارشناس سامانه'"></div>
+                        <td style="padding: 1rem 1rem; color: #334155;">
+                            <div style="font-weight: 700; font-size: 0.84rem;" x-text="item.uploader || 'کارشناس سامانه'"></div>
                         </td>
 
                         <!-- Date & SHA256 -->
-                        <td style="padding: 0.95rem 1rem;">
-                            <div class="fa-num" style="font-size: 0.78rem; color: #475569;" x-text="item.uploadDate"></div>
-                            <div style="font-size: 0.68rem; color: #059669; font-weight: 600; font-family: monospace; direction: ltr; text-align: right;" 
+                        <td style="padding: 1rem 1.25rem;">
+                            <div class="fa-num" style="font-size: 0.8rem; color: #475569; font-weight: 600;" x-text="item.uploadDate"></div>
+                            <div style="font-size: 0.7rem; color: #059669; font-weight: 700; font-family: monospace; direction: ltr; text-align: right; margin-top: 2px;" 
                                  x-text="(item.sha256 || 'SHA256: 7f83b165...').substring(0, 18) + '...'"></div>
                         </td>
 
                         <!-- Actions -->
-                        <td style="padding: 0.95rem 1.25rem; text-align: center;">
+                        <td style="padding: 1rem 1.25rem; text-align: center;">
                             <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                 <!-- View Lightbox -->
-                                <button type="button" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-color: #cbd5e1;" 
+                                <button type="button" class="btn btn-outline" style="padding: 0.4rem 0.85rem; font-size: 0.78rem; border-color: #cbd5e1; font-weight: 700;" 
                                         @click="openScanViewer(item)" title="مشاهده اسکن با کیفیت کامل">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                     <span>مشاهده</span>
                                 </button>
 
                                 <!-- Stage-Gated Delete -->
-                                <button type="button" x-show="currentStage === item.stage" 
+                                <button type="button" x-show="currentStage === item.stage && !isLocked" 
                                         @click="attachments = attachments.filter(a => a.id !== item.id); triggerToast('مدرک با موفقیت حذف گردید.', 'warning');"
-                                        style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.35rem 0.6rem; cursor: pointer;" 
+                                        style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.4rem 0.65rem; cursor: pointer; transition: background 0.15s;" 
                                         title="حذف مدرک (فقط در مرحله جاری مجاز است)">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
 
-                                <span x-show="currentStage !== item.stage" title="سند در مراحل قبلی ثبت شده و طبق ضوابط قابل حذف نیست" style="color: #94a3b8; font-size: 0.72rem; display: flex; align-items: center; gap: 2px;">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                <span x-show="currentStage !== item.stage" title="سند در مراحل قبلی ثبت شده و طبق ضوابط قابل حذف نیست" style="color: #94a3b8; font-size: 0.74rem; display: flex; align-items: center; gap: 3px;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                                 </span>
                             </div>
                         </td>

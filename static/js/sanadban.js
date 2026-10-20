@@ -327,6 +327,16 @@ document.addEventListener('alpine:init', () => {
       return this.attachments;
     },
 
+    getCategoryCount(cat) {
+      if (!this.attachments) return 0;
+      if (cat === 'all') return this.attachments.length;
+      if (cat === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID').length;
+      if (cat === 'bank') return this.attachments.filter(a => a.type === 'BANK_BOOKLET' || a.type === 'BANK_LETTER').length;
+      if (cat === 'deed') return this.attachments.filter(a => a.type === 'TITLE_DEED' || a.type === 'UNIT_SELECTION').length;
+      if (cat === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK').length;
+      return 0;
+    },
+
     // Stage 9: Send SMS simulation
     sendEquitySMS() {
       this.form.is_sms_sent = true;
