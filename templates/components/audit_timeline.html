@@ -1,0 +1,65 @@
+<!-- Audit Trail & Digital Signature Timeline -->
+<div class="form-card">
+    <div class="panel-header">
+        <div class="panel-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>تاریخچه گردش کار و امضاهای الکترونیکی</span>
+        </div>
+        <span class="text-xs text-slate-500 fa-num" x-text="auditLogs.length + ' رخداد ثبت‌شده'"></span>
+    </div>
+
+    <div class="audit-timeline-container">
+        <div class="timeline-list">
+            <template x-for="(log, idx) in auditLogs" :key="idx">
+                <div class="timeline-item">
+                    <!-- State Dot Indicator -->
+                    <div class="timeline-dot" 
+                         :class="{
+                             'signed': log.action === 'SIGN',
+                             'returned': log.action === 'RETURN',
+                             'archived': log.action === 'ARCHIVE'
+                         }">
+                    </div>
+
+                    <div class="timeline-content-card">
+                        <div class="timeline-header-row">
+                            <span class="actor-name" x-text="log.actor"></span>
+                            <span class="action-badge" 
+                                  :class="{
+                                      'sign': log.action === 'SIGN',
+                                      'return': log.action === 'RETURN',
+                                      'submit': log.action === 'SUBMIT',
+                                      'archive': log.action === 'ARCHIVE'
+                                  }"
+                                  x-text="log.actionLabel">
+                            </span>
+                        </div>
+
+                        <div class="timeline-role-time">
+                            <span x-text="log.role"></span>
+                            <span> • </span>
+                            <span class="fa-num" x-text="log.timestamp"></span>
+                        </div>
+
+                        <div style="font-size: 0.78rem; color: #475569; margin-bottom: 0.25rem;">
+                            <span>انتقال: </span>
+                            <strong x-text="log.toStage"></strong>
+                        </div>
+
+                        <!-- Explanatory Notes if any -->
+                        <div class="timeline-notes" x-show="log.notes">
+                            <span style="font-weight: 600;">توضیحات اقدام: </span>
+                            <span x-text="log.notes"></span>
+                        </div>
+
+                        <!-- Cryptographic Integrity Stamp -->
+                        <div class="hash-stamp" x-text="log.hash" title="هش اصالت امنیتی رخداد"></div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>

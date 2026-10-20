@@ -1,0 +1,451 @@
+<!-- Merged 24-Stage Workflow Form Sections -->
+<div class="form-sections-wrapper">
+
+    <!-- Stage 1 Auto-Lookup Fast Query Banner -->
+    <div class="stage0-lookup-box" x-show="currentStage === 1">
+        <div class="lookup-text">
+            <h4>واکشی خودکار اطلاعات متقاضی، همسر و انتخاب واحد (مرحله ۱)</h4>
+            <p>با ورود کدملی ۱۰ رقمی متقاضی، مشخصات سجلی متقاضی و همسر، سایت، پروژه و واحد مسکونی بارگذاری می‌گردد.</p>
+        </div>
+        <button type="button" class="btn-lookup" @click="fetchPreSelectedUnit()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <span>استعلام انتخاب واحد و مشخصات همسر</span>
+        </button>
+    </div>
+
+    <!-- Section 1: متقاضی، همسر و واحد مسکونی (مرحله ۱) -->
+    <div class="form-card">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>بخش ۱: اطلاعات متقاضی، همسر، واحد و پروژه (مرحله ۱)</span>
+            </div>
+            <div class="section-stage-badge" :class="isFieldEditable('full_name') ? 'editable' : 'locked'">
+                <span x-text="isFieldEditable('full_name') ? 'قابل ویرایش کارگزاری' : 'قفل شده'"></span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <!-- 1. national_id -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('national_id')}">
+                    <label class="field-label">
+                        <span><span class="required-mark">*</span>کد ملی متقاضی (شماره پیشنویس)</span>
+                        <span class="helper-badge">شناسه ۱۰ رقمی</span>
+                    </label>
+                    <input type="text" maxlength="10" class="input-control fa-num" 
+                           x-model="form.national_id" 
+                           :readonly="!isFieldEditable('national_id')"
+                           placeholder="0012345678">
+                </div>
+
+                <!-- 2. full_name -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('full_name')}">
+                    <label class="field-label"><span><span class="required-mark">*</span>نام و نام خانوادگی متقاضی</span></label>
+                    <input type="text" class="input-control" x-model="form.full_name" :readonly="!isFieldEditable('full_name')">
+                </div>
+
+                <!-- 3. father_name -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('father_name')}">
+                    <label class="field-label"><span><span class="required-mark">*</span>نام پدر</span></label>
+                    <input type="text" class="input-control" x-model="form.father_name" :readonly="!isFieldEditable('father_name')">
+                </div>
+
+                <!-- 4. birth_date -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('birth_date')}">
+                    <label class="field-label"><span>تاریخ تولد متقاضی</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.birth_date" :readonly="!isFieldEditable('birth_date')">
+                </div>
+
+                <!-- 5. spouse_full_name -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('spouse_full_name')}">
+                    <label class="field-label">
+                        <span>نام و نام خانوادگی همسر</span>
+                        <span class="helper-badge text-blue-700">فرم جیم</span>
+                    </label>
+                    <input type="text" class="input-control" x-model="form.spouse_full_name" :readonly="!isFieldEditable('spouse_full_name')" placeholder="نام همسر...">
+                </div>
+
+                <!-- 6. spouse_national_id -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('spouse_national_id')}">
+                    <label class="field-label"><span>کد ملی همسر</span></label>
+                    <input type="text" maxlength="10" class="input-control fa-num" x-model="form.spouse_national_id" :readonly="!isFieldEditable('spouse_national_id')" placeholder="0029876543">
+                </div>
+
+                <!-- 7. decile -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('decile')}">
+                    <label class="field-label"><span>دهک درآمدی</span></label>
+                    <select class="input-control fa-num" x-model="form.decile" :disabled="!isFieldEditable('decile')">
+                        <option value="1">دهک ۱</option>
+                        <option value="2">دهک ۲</option>
+                        <option value="3">دهک ۳</option>
+                        <option value="4">دهک ۴</option>
+                        <option value="5">دهک ۵</option>
+                        <option value="6">دهک ۶</option>
+                        <option value="7">دهک ۷</option>
+                        <option value="8">دهک ۸</option>
+                        <option value="9">دهک ۹</option>
+                        <option value="10">دهک ۱۰</option>
+                    </select>
+                </div>
+
+                <!-- 8. site -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('site')}">
+                    <label class="field-label"><span>نام سایت</span></label>
+                    <select class="input-control" x-model="form.site" :disabled="!isFieldEditable('site')">
+                        <option value="شهید رئیسی">سایت شهید رئیسی</option>
+                        <option value="27 هکتاری">سایت ۲۷ هکتاری</option>
+                        <option value="قنوات">سایت قنوات</option>
+                        <option value="پرنیان">سایت پرنیان</option>
+                        <option value="جعفریه">سایت جعفریه</option>
+                    </select>
+                </div>
+
+                <!-- 9. project -->
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('project')}">
+                    <label class="field-label"><span>نام پروژه</span></label>
+                    <input type="text" class="input-control" x-model="form.project" :readonly="!isFieldEditable('project')">
+                </div>
+
+                <!-- Unit details -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('construction_type')}">
+                    <label class="field-label"><span>نوع ساخت</span></label>
+                    <select class="input-control" x-model="form.construction_type" :disabled="!isFieldEditable('construction_type')">
+                        <option value="آپارتمانی">آپارتمانی</option>
+                        <option value="ویلایی">ویلایی</option>
+                    </select>
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('block_name')}">
+                    <label class="field-label"><span>بلوک</span></label>
+                    <input type="text" class="input-control" x-model="form.block_name" :readonly="!isFieldEditable('block_name')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('floor_number')}">
+                    <label class="field-label"><span>طبقه</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.floor_number" :readonly="!isFieldEditable('floor_number')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('unit_number')}">
+                    <label class="field-label"><span>شماره واحد</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.unit_number" :readonly="!isFieldEditable('unit_number')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('unit_area')}">
+                    <label class="field-label"><span>مساحت واحد (م²)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.unit_area" :readonly="!isFieldEditable('unit_area')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('storage_number')}">
+                    <label class="field-label"><span>انباری / پارکینگ</span></label>
+                    <input type="text" class="input-control fa-num" :value="'انبار ' + form.storage_number + ' / پارک ' + form.parking_number" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: اطلاعات ثبتی عرصه و پلاک (مرحله ۲ و ۱۸) -->
+    <div class="form-card">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                </svg>
+                <span>بخش ۲: ورود اطلاعات ثبتی عرصه و پلاک (مراحل ۲ و ۱۸ فنی و مهندسی)</span>
+            </div>
+            <div class="section-stage-badge" :class="isFieldEditable('registration_section') ? 'editable' : 'locked'">
+                <span x-text="currentStage === 2 ? 'مرحله ۲: کارگزاری' : (currentStage === 18 ? 'مرحله ۱۸: کارشناس فنی اداره کل' : 'قفل شده')"></span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('registration_section')}">
+                    <label class="field-label"><span>بخش ثبتی</span></label>
+                    <input type="text" class="input-control" x-model="form.registration_section" :readonly="!isFieldEditable('registration_section')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('main_plaque')}">
+                    <label class="field-label"><span>پلاک اصلی</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.main_plaque" :readonly="!isFieldEditable('main_plaque')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('separated_plaque')}">
+                    <label class="field-label"><span>پلاک مفروز</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.separated_plaque" :readonly="!isFieldEditable('separated_plaque')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('sub_plaque')}">
+                    <label class="field-label"><span>فرعی از</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.sub_plaque" :readonly="!isFieldEditable('sub_plaque')">
+                </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('plot_number')}">
+                    <label class="field-label"><span>شماره قطعه</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.plot_number" :readonly="!isFieldEditable('plot_number')">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: مبلغ تمام‌شده بدون وام ۶۵۰ میلیونی (مرحله ۳) -->
+    <div class="form-card">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span>بخش ۳: مبلغ تمام‌شده بدون وام ۶۵۰ میلیون تومانی (مرحله ۳)</span>
+            </div>
+            <div class="section-stage-badge" :class="isFieldEditable('base_cost_without_loan') ? 'editable' : 'locked'">
+                <span x-text="currentStage === 3 ? 'مرحله ۳: ورود مالی کارگزاری' : 'قفل شده'"></span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <div class="field-group col-12" :class="{'field-locked': !isFieldEditable('base_cost_without_loan')}">
+                    <label class="field-label">
+                        <span><span class="required-mark">*</span>قیمت تمام شده واحد بدون وام ۶۵۰ میلیون تومانی (ریال)</span>
+                    </label>
+                    <div class="currency-input-wrapper">
+                        <input type="number" class="input-control fa-num" 
+                               x-model="form.base_cost_without_loan" 
+                               @input="recalculateEquity()"
+                               :readonly="!isFieldEditable('base_cost_without_loan')">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
+                    <div class="currency-word-display" x-show="form.base_cost_without_loan">
+                        <span>مبلغ به حروف: </span>
+                        <strong x-text="toWords(form.base_cost_without_loan)"></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: تسهیلات و مبالغ پیمانکار (مراحل ۶، ۷ و ۸) -->
+    <div class="form-card">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <span>بخش ۴: وام صندوق، نامه پیمانکار و وام دهک (مراحل ۶، ۷ و ۸)</span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <!-- Stage 6: fund_loan_amount -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('fund_loan_amount')}">
+                    <label class="field-label">
+                        <span>مبلغ وام صندوق (مرحله ۶)</span>
+                        <span class="helper-badge text-blue-700">وام صندوق مسکن</span>
+                    </label>
+                    <div class="currency-input-wrapper">
+                        <input type="number" class="input-control fa-num" 
+                               x-model="form.fund_loan_amount" 
+                               @input="recalculateEquity()"
+                               :readonly="!isFieldEditable('fund_loan_amount')">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
+                </div>
+
+                <!-- Stage 7: contractor_letter_amount -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('contractor_letter_amount')}">
+                    <label class="field-label">
+                        <span>مبلغ نامه پیمانکار (مرحله ۷)</span>
+                        <span class="helper-badge text-emerald-700">تایید اداره کل</span>
+                    </label>
+                    <div class="currency-input-wrapper">
+                        <input type="number" class="input-control fa-num" 
+                               x-model="form.contractor_letter_amount" 
+                               :readonly="!isFieldEditable('contractor_letter_amount')">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
+                </div>
+
+                <!-- Stage 8: decile_loan_amount -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile_loan_amount')}">
+                    <label class="field-label">
+                        <span>مبلغ وام دهک (مرحله ۸)</span>
+                        <span class="helper-badge text-purple-700">تسهیلات دهک درآمدی</span>
+                    </label>
+                    <div class="currency-input-wrapper">
+                        <input type="number" class="input-control fa-num" 
+                               x-model="form.decile_loan_amount" 
+                               @input="recalculateEquity()"
+                               :readonly="!isFieldEditable('decile_loan_amount')">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: تعیین آورده نقدی متقاضی و ارسال پیامک (مراحل ۹ و ۱۰) -->
+    <div class="form-card" style="border: 2px solid #bbf7d0;">
+        <div class="form-section-header" style="background: #f0fdf4;">
+            <div class="section-title" style="color: #166534;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <span>بخش ۵: تعیین مبلغ آورده نقدی و ارسال پیامک (مراحل ۹ و ۱۰)</span>
+            </div>
+            <div class="section-stage-badge" style="background: #dcfce7; color: #15803d;">
+                <span>محاسبه سیستمی و تایید واریز</span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <div class="field-group col-6 field-locked">
+                    <label class="field-label">
+                        <span><span class="required-mark">⚡</span>مبلغ آورده نقدی متقاضی (محاسبه خودکار)</span>
+                        <span class="helper-badge">قیمت تمام‌شده منهای وام صندوق و دهک</span>
+                    </label>
+                    <div class="currency-input-wrapper">
+                        <input type="text" class="input-control fa-num calculated-field" 
+                               :value="formatNumber(form.applicant_equity)" readonly>
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
+                    <div class="currency-word-display" x-show="form.applicant_equity">
+                        <span>مبلغ آورده به حروف: </span>
+                        <strong x-text="toWords(form.applicant_equity)"></strong>
+                    </div>
+                </div>
+
+                <!-- Stage 9: SMS Trigger -->
+                <div class="field-group col-6">
+                    <label class="field-label"><span>اقدام مرحله ۹: ابلاغ پیامکی به متقاضی</span></label>
+                    <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 0.82rem; font-weight: bold; color: #0f172a;" x-text="form.is_sms_sent ? 'پیامک ارسال گردید ✓' : 'پیامک هنوز ارسال نشده'"></div>
+                            <div style="font-size: 0.72rem; color: #64748b;" x-text="form.is_sms_sent ? 'زمان ارسال: ' + form.sms_sent_at : 'ارسال به شماره همراه متقاضی'"></div>
+                        </div>
+                        <button type="button" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;" 
+                                @click="sendEquitySMS()" :disabled="form.is_sms_sent">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            <span>ارسال پیامک تعیین آورده</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stage 10: Confirmation of funding -->
+                <div class="field-group col-12" style="margin-top: 0.5rem;">
+                    <div class="confirmation-toggle-card" :class="{'confirmed': form.is_equity_funded}">
+                        <label>
+                            <input type="checkbox" x-model="form.is_equity_funded" @change="confirmEquityFunding()">
+                            <span>تأیید تأمین و واریز کامل مبلغ آورده نقدی متقاضی به حساب مسدودی (مرحله ۱۰)</span>
+                        </label>
+                        <span style="font-size: 0.8rem; font-weight: bold;" :class="form.is_equity_funded ? 'text-emerald-700' : 'text-slate-400'" 
+                              x-text="form.is_equity_funded ? 'تأمین آورده تأیید شد ✓' : 'در انتظار تأمین آورده'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 6: امور بانکی و اسکن دفترچه قسط (مراحل ۱۱ و ۱۲) -->
+    <div class="form-card">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                </svg>
+                <span>بخش ۶: ارسال و درج شماره نامه بانک و اسکن دفترچه قسط (مراحل ۱۱ و ۱۲)</span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_number')}">
+                    <label class="field-label"><span>شماره نامه بانک (مرحله ۱۱)</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.bank_letter_number" :readonly="!isFieldEditable('bank_letter_number')">
+                </div>
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_date')}">
+                    <label class="field-label"><span>تاریخ نامه بانک (شمسی)</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.bank_letter_date" :readonly="!isFieldEditable('bank_letter_date')">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 7: ارزیابی اجاره و آماده‌سازی (مرحله ۱۹) -->
+    <div class="form-card">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                </svg>
+                <span>بخش ۷: کارشناس ارزیابی - تعیین اجاره و آماده‌سازی (مرحله ۱۹)</span>
+            </div>
+            <div class="section-stage-badge" :class="currentStage === 19 ? 'editable' : 'locked'">
+                <span x-text="currentStage === 19 ? 'ویرایش ارزیابی اداره کل' : 'مخصوص مرحله ۱۹'"></span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('total_land_share')}">
+                    <label class="field-label"><span>جمع کل قدرالسهم (م² )</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.total_land_share" :readonly="!isFieldEditable('total_land_share')">
+                </div>
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('past_years_rent')}">
+                    <label class="field-label"><span>اجاره سنوات تا پایان سال جاری (ریال)</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.past_years_rent" :readonly="!isFieldEditable('past_years_rent')">
+                </div>
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('current_year_rent')}">
+                    <label class="field-label"><span>مبلغ اجاره سال جاری (ریال)</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.current_year_rent" :readonly="!isFieldEditable('current_year_rent')">
+                </div>
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('land_lease_year')}">
+                    <label class="field-label"><span>سال اجاره عرصه</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.land_lease_year" :readonly="!isFieldEditable('land_lease_year')">
+                </div>
+                <div class="field-group col-8" :class="{'field-locked': !isFieldEditable('preparation_cost')}">
+                    <label class="field-label"><span>مبلغ آماده‌سازی (ریال)</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.preparation_cost" :readonly="!isFieldEditable('preparation_cost')">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 8: چک‌های وام دهک و نقد و اقساط (مراحل ۲۰ و ۲۲) -->
+    <div class="form-card">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                <span>بخش ۸: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مراحل ۲۰ و ۲۲)</span>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('cash_preparation_amount')}">
+                    <label class="field-label"><span>مبلغ نقدی آماده‌سازی (ریال)</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.cash_preparation_amount" :readonly="!isFieldEditable('cash_preparation_amount')">
+                </div>
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
+                    <label class="field-label"><span>مبلغ غیرنقدی آماده‌سازی (اقساط - ریال)</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.non_cash_preparation_amount" :readonly="!isFieldEditable('non_cash_preparation_amount')">
+                </div>
+                <div class="col-6">
+                    <div class="confirmation-toggle-card" :class="{'confirmed': form.is_cash_rent_confirmed}">
+                        <label>
+                            <input type="checkbox" x-model="form.is_cash_rent_confirmed" :disabled="!isFieldEditable('is_cash_rent_confirmed')">
+                            <span>تایید وصول نقدی اجاره عرصه</span>
+                        </label>
+                        <span class="fa-num" x-text="form.is_cash_rent_confirmed ? 'تایید شد ✓' : 'در انتظار'"></span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="confirmation-toggle-card" :class="{'confirmed': form.is_decile_loan_confirmed}">
+                        <label>
+                            <input type="checkbox" x-model="form.is_decile_loan_confirmed" :disabled="!isFieldEditable('is_decile_loan_confirmed')">
+                            <span>تایید دریافت چک‌های وام دهک (مرحله ۲۰)</span>
+                        </label>
+                        <span class="fa-num" x-text="form.is_decile_loan_confirmed ? 'تایید شد ✓' : 'در انتظار'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

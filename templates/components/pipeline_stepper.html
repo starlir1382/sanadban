@@ -1,0 +1,55 @@
+<!-- 24-Stage Pipeline Stepper Component (Stages 1 to 24) -->
+<section class="pipeline-card">
+    <div class="pipeline-header">
+        <div class="pipeline-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>فرآیند گردش پرونده (۲۴ مرحله خط لوله تاییدات قرارداد اجاره و انتقال)</span>
+        </div>
+        <div class="pipeline-legend">
+            <div class="legend-item"><span class="legend-dot completed"></span><span>تکمیل‌شده</span></div>
+            <div class="legend-item"><span class="legend-dot active"></span><span>مرحله فعال</span></div>
+            <div class="legend-item"><span class="legend-dot locked"></span><span>مراحل آتی</span></div>
+        </div>
+    </div>
+
+    <!-- Stepper Progress Bar -->
+    <div class="stepper-progress-wrapper fa-num">
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #475569;">
+            <span>
+                مرحله فعال: <strong style="color: #1e40af;" x-text="'مرحله ' + currentStage + ' از ۲۴: ' + stages[currentStage - 1].title"></strong>
+            </span>
+            <span style="font-weight: 700; color: #059669;" x-text="Math.round((currentStage / 24) * 100) + '٪ پیشرفت پرونده'"></span>
+        </div>
+        <div class="stepper-progress-bar">
+            <div class="stepper-progress-fill" :style="`width: ${(currentStage / 24) * 100}%;`"></div>
+        </div>
+    </div>
+
+    <!-- 24-Stage Scrollable Track -->
+    <div class="pipeline-track" style="min-width: 1800px;">
+        <template x-for="stg in stages" :key="stg.id">
+            <div class="stage-step" 
+                 :class="{
+                     'completed': stg.id < currentStage,
+                     'active': stg.id === currentStage,
+                     'locked': stg.id > currentStage
+                 }"
+                 @click="selectStage(stg.id)"
+                 :title="stg.title + ' (' + stg.role + ')'">
+                
+                <div class="stage-unit-tag" :class="stg.unit" x-text="stg.unit === 'brokerage' ? 'کارگزاری' : 'اداره کل'"></div>
+                
+                <div class="step-circle fa-num">
+                    <span x-show="stg.id >= currentStage" x-text="stg.id"></span>
+                    <svg x-show="stg.id < currentStage" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+
+                <div class="step-label" x-text="stg.title"></div>
+            </div>
+        </template>
+    </div>
+</section>
