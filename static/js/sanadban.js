@@ -74,14 +74,14 @@ const STAGES_24 = [
   { id: 12, unit: 'brokerage', role: 'کارشناس اسکن و بایگانی کارگزاری', title: 'اسکن مدارک و دفترچه قسط', category: 'امور بانکی و اسکن' },
   { id: 13, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن', title: 'کارشناس نهضت ملی مسکن', category: 'تاییدات اداره کل' },
   { id: 14, unit: 'directorate', role: 'کارشناس ثبت فرم ج', title: 'کارشناس ثبت فرم ج', category: 'تاییدات اداره کل' },
-  { id: 15, unit: 'directorate', role: 'کارشناس حقوقی', title: 'کارشناس حقوقی', category: 'تاییدات اداره کل' },
+  { id: 15, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'کارشناس فنی و مهندسی (پلاک و نقشه)', category: 'تاییدات اداره کل' },
   { id: 16, unit: 'directorate', role: 'کارشناس املاک', title: 'کارشناس املاک (اسکن سند مالکیت)', category: 'تاییدات اداره کل' },
   { id: 17, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'کارشناس بانک زمین', category: 'تاییدات اداره کل' },
-  { id: 18, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'کارشناس فنی و مهندسی (پلاک و نقشه)', category: 'تاییدات اداره کل' },
+  { id: 18, unit: 'directorate', role: 'کارشناس حقوقی', title: 'کارشناس حقوقی', category: 'تاییدات اداره کل' },
   { id: 19, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'کارشناس ارزیابی (اجاره و آماده‌سازی)', category: 'ارزیابی و وصول' },
   { id: 20, unit: 'brokerage', role: 'کارشناس وصول کارگزاری', title: 'دریافت چک‌های وام دهک', category: 'ارزیابی و وصول' },
-  { id: 21, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'کارشناس تسویه با پیمانکار سازنده', category: 'تسویه و خاتمه' },
-  { id: 22, unit: 'brokerage', role: 'کارشناس مالی کارگزاری', title: 'دریافت نقد و اقساط آماده‌سازی و اجاره', category: 'تسویه و خاتمه' },
+  { id: 21, unit: 'brokerage', role: 'کارشناس مالی کارگزاری', title: 'دریافت نقد و اقساط آماده‌سازی و اجاره', category: 'ارزیابی و وصول' },
+  { id: 22, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'کارشناس تسویه با پیمانکار سازنده', category: 'تسویه و خاتمه' },
   { id: 23, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'چاپ فرم مراحل و نامه محضر', category: 'صدور و بایگانی' },
   { id: 24, unit: 'directorate', role: 'کارشناس بایگانی اداره کل', title: 'بایگانی نهایی پرونده', category: 'صدور و بایگانی' }
 ];
@@ -527,9 +527,9 @@ document.addEventListener('alpine:init', () => {
       const stage1Fields = ['full_name', 'father_name', 'national_id', 'birth_date', 'spouse_full_name', 'spouse_national_id', 'decile', 'site', 'project', 'construction_type', 'block_name', 'floor_number', 'unit_number', 'unit_area', 'storage_number', 'storage_area', 'parking_number', 'parking_area'];
       if (stage1Fields.includes(fieldName)) return stage <= 4;
 
-      // Stage 2 & 18: Plot and Registry
+      // Stage 2 & 15: Plot and Registry (Editable in Stage 2 and Stage 15 by Technical Expert)
       const plotFields = ['registration_section', 'main_plaque', 'separated_plaque', 'sub_plaque', 'plot_number'];
-      if (plotFields.includes(fieldName)) return stage === 2 || stage === 18;
+      if (plotFields.includes(fieldName)) return stage === 2 || stage === 15;
 
       // Stage 3: Base cost
       if (fieldName === 'base_cost_without_loan') return stage <= 4;
@@ -550,9 +550,9 @@ document.addEventListener('alpine:init', () => {
       const stage19Fields = ['total_land_share', 'past_years_rent', 'current_year_rent', 'land_lease_year', 'preparation_cost'];
       if (stage19Fields.includes(fieldName)) return stage === 19;
 
-      // Stage 22: Cash & Non-cash prep & rent
-      const stage22Fields = ['cash_preparation_amount', 'non_cash_preparation_amount', 'is_cash_rent_confirmed', 'is_decile_loan_confirmed'];
-      if (stage22Fields.includes(fieldName)) return stage === 22;
+      // Stage 21: Cash & Non-cash prep & rent
+      const stage21Fields = ['cash_preparation_amount', 'non_cash_preparation_amount', 'is_cash_rent_confirmed', 'is_decile_loan_confirmed'];
+      if (stage21Fields.includes(fieldName)) return stage === 21;
 
       return false;
     },
