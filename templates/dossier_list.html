@@ -132,7 +132,7 @@
                         <th style="padding: 1rem 1rem; width: 150px;">کدملی (پیش‌نویس)</th>
                         <th style="padding: 1rem 1rem;">نام متقاضی</th>
                         <th style="padding: 1rem 1rem;">پروژه و سایت</th>
-                        <th style="padding: 1rem 1rem; width: 220px;">مرحله جاری</th>
+                        <th style="padding: 1rem 1rem; width: 270px; white-space: nowrap;">مرحله جاری</th>
                         <th style="padding: 1rem 1rem; width: 160px;">مسئول اقدام</th>
                         <th style="padding: 1rem 1rem; width: 175px; white-space: nowrap;">آورده متقاضی</th>
                         <th style="padding: 1rem 1.25rem; width: 160px; text-align: center; white-space: nowrap;">عملیات</th>
@@ -167,12 +167,13 @@
                                 <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">سایت {{ d.site }}</div>
                             </td>
 
-                            <!-- Current Stage -->
-                            <td style="padding: 1rem 1rem;">
-                                <span class="role-pill fa-num" style="padding: 0.25rem 0.65rem; font-size: 0.76rem;"
-                                      :class="[1,2,3,4,6,9,10,11,12,20,21].includes({{ d.current_stage }}) ? 'brokerage' : 'directorate'">
-                                    مرحله {{ d.current_stage }}: {{ d.current_stage_title }}
-                                </span>
+                            <!-- Current Stage (Unified Lookalike Badges) -->
+                            <td style="padding: 0.85rem 1rem; vertical-align: middle;">
+                                <div class="stage-badge-cell {% if d.current_stage == 24 %}stage-completed{% elif d.current_unit == 'کارگزاری' %}stage-brokerage{% else %}stage-directorate{% endif %}"
+                                     title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }} ({{ d.current_role }})">
+                                    <span class="stage-tag fa-num">مرحله {{ d.current_stage }}</span>
+                                    <span class="stage-title-text">{{ d.current_stage_title }}</span>
+                                </div>
                             </td>
 
                             <!-- Role -->

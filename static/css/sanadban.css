@@ -234,15 +234,95 @@ body {
 }
 
 .role-pill.brokerage {
-  background: #312e81;
-  color: #c7d2fe;
-  border: 1px solid #4f46e5;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
 }
 
 .role-pill.directorate {
-  background: #064e3b;
-  color: #a7f3d0;
-  border: 1px solid #059669;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+/* In dark header */
+.sanadban-header .role-pill.brokerage,
+.sanadban-header .role-pill.directorate,
+.sanadban-header .role-pill {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Unified Dashboard Stage Badges */
+.stage-badge-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem 0.3rem 0.35rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 290px;
+  box-sizing: border-box;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+}
+
+.stage-badge-cell .stage-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.74rem;
+  flex-shrink: 0;
+}
+
+.stage-badge-cell .stage-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: inherit;
+}
+
+/* Stage 24: Completed / Final Archived */
+.stage-badge-cell.stage-completed {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1.5px solid #bbf7d0;
+}
+.stage-badge-cell.stage-completed .stage-tag {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+/* Brokerage Stages */
+.stage-badge-cell.stage-brokerage {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1.5px solid #bfdbfe;
+}
+.stage-badge-cell.stage-brokerage .stage-tag {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
+/* Directorate Stages */
+.stage-badge-cell.stage-directorate {
+  background: #f0fdfa;
+  color: #0f766e;
+  border: 1.5px solid #99f6e4;
+}
+.stage-badge-cell.stage-directorate .stage-tag {
+  background: #ccfbf1;
+  color: #0d9488;
+  border: 1px solid #5eead4;
 }
 
 .user-profile-badge {
