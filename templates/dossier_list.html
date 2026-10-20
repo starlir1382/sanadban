@@ -134,7 +134,7 @@
                         <th style="padding: 1rem 1rem;">پروژه و سایت</th>
                         <th style="padding: 1rem 1rem; width: 220px;">مرحله جاری</th>
                         <th style="padding: 1rem 1rem; width: 160px;">مسئول اقدام</th>
-                        <th style="padding: 1rem 1rem; width: 160px;">آورده متقاضی (ریال)</th>
+                        <th style="padding: 1rem 1rem; width: 175px; white-space: nowrap;">آورده متقاضی</th>
                         <th style="padding: 1rem 1.25rem; width: 160px; text-align: center; white-space: nowrap;">عملیات</th>
                     </tr>
                 </thead>
@@ -180,9 +180,10 @@
                                 {{ d.current_role }}
                             </td>
 
-                            <!-- Applicant Equity -->
-                            <td style="padding: 1rem 1rem; font-weight: 700; color: #047857;" class="fa-num">
-                                {{ d.applicant_equity|default:d.base_cost_without_loan }}
+                            <!-- Applicant Equity with Comma Separators and Rial at End -->
+                            <td style="padding: 1rem 1rem; font-weight: 700; color: #047857; white-space: nowrap; direction: rtl;" class="fa-num">
+                                <span>{{ d.formatted_equity }}</span>
+                                <span style="font-size: 0.78rem; font-weight: 700; color: #065f46; margin-right: 4px;">ریال</span>
                             </td>
 
                             <!-- Action Button -->
@@ -242,7 +243,7 @@ function normalizeDossierQuery(str) {
         res = res.replaceAll(faDigits[i], i.toString());
         res = res.replaceAll(arDigits[i], i.toString());
     }
-    return res.replaceAll('ي', 'ی').replaceAll('ك', 'ک').replaceAll('#', '');
+    return res.replaceAll('ي', 'ی').replaceAll('ك', 'ک').replaceAll('#', '').replaceAll(',', '').replaceAll('،', '');
 }
 
 function filterDossierTable(term) {

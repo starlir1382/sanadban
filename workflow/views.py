@@ -23,7 +23,7 @@ def normalize_digits(text: str, to_type="ascii") -> str:
 
 def get_token_search_condition(token: str):
     """Builds a comprehensive Q-filter for a search token matching any dossier field."""
-    clean = token.replace("#", "").strip()
+    clean = token.replace("#", "").replace(",", "").replace("،", "").strip()
     if not clean:
         return models.Q()
     

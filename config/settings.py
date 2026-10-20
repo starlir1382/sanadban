@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     
     # SanadBan Workflow App
     'workflow.apps.WorkflowConfig',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [

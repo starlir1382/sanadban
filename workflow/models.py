@@ -204,6 +204,13 @@ class HousingDossier(models.Model):
     def current_stage_title(self):
         return self.STAGE_ROLES.get(self.current_stage, ("-", "-", "-"))[2]
 
+    @property
+    def formatted_equity(self):
+        val = self.applicant_equity if self.applicant_equity is not None else self.base_cost_without_loan
+        if val is None:
+            return "0"
+        return f"{val:,}"
+
     def __str__(self):
         return f"{self.full_name} (#{self.archive_number} - کد: {self.national_id})"
 
