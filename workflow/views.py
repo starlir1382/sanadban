@@ -768,12 +768,32 @@ def upload_scan_attachment_view(request, pk):
     """
     Handles uploading or scanning a new document attachment for the dossier.
     Saves document physically into the root 'uploads/<national_id>/' folder.
-    Validates stage-ownership and generates SHA-256 integrity hash.
+    Validates stage-ownership, allowed stages, and generates SHA-256 integrity hash.
     """
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
 
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
+
+    # 1. Dossier lock verification
+    if dossier.is_locked:
+        return JsonResponse({"status": "error", "message": "این پرونده نهایی و بایگانی شده است و امکان بارگذاری مدارک جدید وجود ندارد."}, status=400)
+
+    # 2. User authorization & role check
+    profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
+    is_chief_or_admin = request.user.is_superuser or (profile and profile.is_housing_chief)
+    user_can_action = is_chief_or_admin or (profile and profile.can_action_stage(dossier.current_stage))
+
+    if not user_can_action:
+        return JsonResponse({"status": "error", "message": "عدم دسترسی اقدام: شما مجوز بارگذاری یا تغییر اسناد در مرحله جاری را ندارید."}, status=403)
+
+    # 3. Stage-gated upload check: only Stages 0, 1, 9, 13, 18 are designated scanning stages
+    ALLOWED_STAGES = [0, 1, 9, 13, 18]
+    if not is_chief_or_admin and dossier.current_stage not in ALLOWED_STAGES:
+        return JsonResponse({
+            "status": "error",
+            "message": f"بارگذاری مدارک در مرحله {dossier.current_stage} مجاز نمی‌باشد. بارگذاری اسناد صرفاً در مراحل ۰، ۱، ۹، ۱۳ و ۱۸ امکان‌پذیر است."
+        }, status=400)
     
     title = request.POST.get("title", "").strip() or "مدرک بارگذاری‌شده"
     doc_type = request.POST.get("doc_type", "OTHER")

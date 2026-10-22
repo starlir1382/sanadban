@@ -131,6 +131,12 @@
         <!-- Modal Body -->
         <div class="modal-body" style="padding: 1.75rem; background: #ffffff;">
             
+            <!-- Warning Banner if not allowed -->
+            <div x-show="!isUploadAllowed()" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>توجه: بارگذاری مدرک در مرحله جاری مجاز نمی‌باشد یا پرونده قفل است. ثبت سند غیرمجاز است.</span>
+            </div>
+
             <!-- Quick Preset Chips -->
             <div style="margin-bottom: 1.25rem;">
                 <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
@@ -263,7 +269,7 @@
         <!-- Modal Footer -->
         <div class="modal-footer" style="padding: 1.25rem 1.75rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 0.78rem; color: #64748b;" class="fa-num">
-                شناسه یکتای امنیتی پرونده: <strong>#100001</strong>
+                شناسه یکتای امنیتی پرونده: <strong>#<span x-text="archiveNumber"></span></strong>
             </div>
 
             <div style="display: flex; gap: 0.75rem; align-items: center;">
@@ -271,7 +277,7 @@
                     انصراف
                 </button>
                 <button type="button" class="btn btn-success" style="padding: 0.65rem 1.75rem; font-size: 0.9rem; font-weight: 700; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);" 
-                        @click="submitScanUpload()" :disabled="!uploadForm.title">
+                        @click="submitScanUpload()" :disabled="!uploadForm.title || !isUploadAllowed()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>

@@ -412,21 +412,56 @@ document.addEventListener('alpine:init', () => {
       this.showScanViewerModal = false;
     },
 
+    // Helper methods for Document Album & File types
+    isPdfFile(item) {
+      if (!item) return false;
+      const url = (item.preview_url || '').toLowerCase();
+      const name = (item.fileName || item.file_name || '').toLowerCase();
+      return url.endsWith('.pdf') || name.endsWith('.pdf') || url.includes('.pdf?');
+    },
+
+    isImageFile(item) {
+      if (!item) return false;
+      const url = (item.preview_url || '').toLowerCase();
+      const name = (item.fileName || item.file_name || '').toLowerCase();
+      const isImg = url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.endsWith('.webp') || url.endsWith('.jfif') ||
+                    name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp') || name.endsWith('.jfif');
+      return isImg || url.startsWith('data:image');
+    },
+
+    isUploadAllowed() {
+      if (this.isLocked) return false;
+      if (!this.userCanAction && !this.isChief) return false;
+      // Stages dedicated to scanning/uploading in the 22-stage workflow:
+      // Stage 0: Applicant & Spouse ID, Unit Selection
+      // Stage 1: Plot verification & Applicant data
+      // Stage 9: Bank Installment booklet & facility letter
+      // Stage 13: Cadastral Title Deed
+      // Stage 18: Decile Checks & Preparation
+      const ALLOWED = [0, 1, 9, 13, 18];
+      return this.isChief || ALLOWED.includes(Number(this.currentStage));
+    },
+
     // Upload & Scanner Controller Methods
     openUploadScanModal() {
+      if (!this.isUploadAllowed()) {
+        this.triggerToast('بارگذاری مدارک صرفاً در مراحل ۰، ۹، ۱۳ و ۱۸ و توسط کارشناس مجاز امکان‌پذیر است.', 'warning');
+        return;
+      }
+
       let defaultTitle = 'مدرک پیوست مرحله ' + this.currentStage;
       let defaultType = 'OTHER';
 
-      if (this.currentStage <= 4) {
+      if (this.currentStage <= 1) {
         defaultTitle = 'اسکن کارت ملی و مدارک سجلی';
         defaultType = 'NATIONAL_ID';
-      } else if (this.currentStage === 12) {
+      } else if (this.currentStage === 9) {
         defaultTitle = 'اسکن دفترچه اقساط تسهیلات بانک مسکن';
         defaultType = 'BANK_BOOKLET';
-      } else if (this.currentStage === 16) {
+      } else if (this.currentStage === 13) {
         defaultTitle = 'اسکن سند مالکیت تک‌برگ عرصه و اعیان';
         defaultType = 'TITLE_DEED';
-      } else if (this.currentStage === 20) {
+      } else if (this.currentStage === 18) {
         defaultTitle = 'اسکن چک صیادی تسهیلات دهک';
         defaultType = 'LOAN_CHECK';
       }
@@ -481,6 +516,11 @@ document.addEventListener('alpine:init', () => {
         return;
       }
 
+      if (!this.isUploadAllowed()) {
+        this.triggerToast('بارگذاری مدرک در مرحله جاری یا برای حساب شما مجاز نمی‌باشد.', 'error');
+        return;
+      }
+
       const hashStr = 'SHA256: ' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
       const nowStr = '۱۴۰۳/۰۵/۲۲ ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 
@@ -503,36 +543,38 @@ document.addEventListener('alpine:init', () => {
           body: formData
         });
 
-        if (response.ok) {
-          const resData = await response.json();
+        const resData = await response.json();
+
+        if (response.ok && resData.status === 'success') {
           if (resData.attachment) {
             this.attachments.unshift({
               ...resData.attachment,
-              preview_url: this.uploadForm.preview_url || resData.attachment.preview_url
+              preview_url: resData.attachment.preview_url || this.uploadForm.preview_url
             });
           }
+
+          this.auditLogs.unshift({
+            step: this.currentStage,
+            fromStage: `مرحله ${this.currentStage}`,
+            toStage: `مرحله ${this.currentStage}`,
+            actor: resData.attachment ? resData.attachment.uploader : 'کارشناس بارگذاری اسناد',
+            role: this.getStage(this.currentStage).role,
+            action: 'SUBMIT',
+            actionLabel: `بارگذاری سند: ${this.uploadForm.title}`,
+            timestamp: nowStr,
+            hash: resData.attachment ? resData.attachment.sha256 : hashStr,
+            notes: `مدرک «${this.uploadForm.title}» با موفقیت اسکن و در مرحله ${this.currentStage} ثبت گردید.`
+          });
+
+          this.triggerToast(`مدرک «${this.uploadForm.title}» با موفقیت بارگذاری و الصاق شد.`, 'success');
+          this.showUploadModal = false;
         } else {
-          this.appendScanClientSide(hashStr, nowStr);
+          this.triggerToast(resData.message || 'خطا در بارگذاری مدرک. بارگذاری در این مرحله مجاز نمی‌باشد.', 'error');
         }
       } catch (err) {
-        this.appendScanClientSide(hashStr, nowStr);
+        console.error('Upload error:', err);
+        this.triggerToast('خطای ارتباط با سرور در هنگام بارگذاری مدرک.', 'error');
       }
-
-      this.auditLogs.unshift({
-        step: this.currentStage,
-        fromStage: `مرحله ${this.currentStage}`,
-        toStage: `مرحله ${this.currentStage}`,
-        actor: 'کارشناس بارگذاری اسناد',
-        role: this.getStage(this.currentStage).role,
-        action: 'SUBMIT',
-        actionLabel: `بارگذاری سند: ${this.uploadForm.title}`,
-        timestamp: nowStr,
-        hash: hashStr,
-        notes: `مدرک «${this.uploadForm.title}» با موفقیت اسکن و در مرحله ${this.currentStage} ثبت گردید.`
-      });
-
-      this.triggerToast(`مدرک «${this.uploadForm.title}» با موفقیت بارگذاری و الصاق شد.`, 'success');
-      this.showUploadModal = false;
     },
 
     appendScanClientSide(hashStr, nowStr) {

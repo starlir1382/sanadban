@@ -57,11 +57,35 @@
             
             <div class="scan-security-watermark">سامانه جامع سندبان - نهضت ملی مسکن</div>
 
-            <!-- 0. REAL UPLOADED IMAGE PREVIEW (IF USER UPLOADED A CUSTOM FILE) -->
-            <template x-if="activeScan.preview_url">
+            <!-- 0A. REAL UPLOADED PDF VIEWER (IF USER UPLOADED A PDF FILE) -->
+            <template x-if="activeScan.preview_url && isPdfFile(activeScan)">
+                <div style="width: 100%; min-height: 580px; display: flex; flex-direction: column; align-items: center; background: #0f172a; border-radius: 10px; overflow: hidden; padding: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <iframe :src="activeScan.preview_url" style="width: 100%; height: 540px; border: none; border-radius: 6px; background: #ffffff;"></iframe>
+                    <div style="display: flex; gap: 0.85rem; margin-top: 0.75rem; align-items: center; justify-content: center; flex-wrap: wrap;">
+                        <a :href="activeScan.preview_url" target="_blank" download class="toolbar-btn" style="background: #2563eb; color: #ffffff; text-decoration: none; padding: 0.45rem 1.15rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>دانلود فایل اصلی PDF مدرک</span>
+                        </a>
+                        <a :href="activeScan.preview_url" target="_blank" class="toolbar-btn" style="background: rgba(255,255,255,0.15); color: #ffffff; text-decoration: none; padding: 0.45rem 1.15rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid rgba(255,255,255,0.25);">
+                            <span>مشاهده در تب مجزا ↗</span>
+                        </a>
+                    </div>
+                </div>
+            </template>
+
+            <!-- 0B. REAL UPLOADED IMAGE PREVIEW (IF USER UPLOADED AN IMAGE FILE) -->
+            <template x-if="activeScan.preview_url && !isPdfFile(activeScan)">
                 <div style="text-align: center; padding: 1rem;">
-                    <img :src="activeScan.preview_url" style="max-width: 100%; max-height: 580px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); object-fit: contain;">
-                    <div style="margin-top: 1rem; font-size: 0.85rem; color: #475569;" class="fa-num">
+                    <img :src="activeScan.preview_url" 
+                         style="max-width: 100%; max-height: 580px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); object-fit: contain;"
+                         @error="$el.style.display='none'; if ($el.nextElementSibling) $el.nextElementSibling.style.display='block'">
+                    <!-- Error fallback -->
+                    <div style="display: none; padding: 2.5rem; background: #1e293b; border-radius: 8px; color: #f87171; border: 1px solid #334155; margin: 1rem auto; max-width: 500px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+                        <div style="font-weight: 800; font-size: 1rem; color: #ffffff;">خطا در دریافت فایل تصویر</div>
+                        <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 0.4rem;">فایل مدرک در سرور یافت نشد یا در دسترس نمی‌باشد.</div>
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.85rem; color: #cbd5e1;" class="fa-num">
                         <strong x-text="activeScan.title"></strong> (بارگذاری‌شده توسط <span x-text="activeScan.uploader"></span>)
                     </div>
                 </div>
