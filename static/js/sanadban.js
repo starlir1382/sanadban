@@ -473,10 +473,16 @@ document.addEventListener('alpine:init', () => {
       prepayment_code: '',
       non_cash_preparation_amount: 200000000,
       preparation_service_fee: 2000000,
+      preparation_check_count: 1,
+      total_preparation_check_amount: 0,
+      preparation_check_entries: [
+        { row_number: 1, cash_date: '', check_amount: 0, check_sayadi_code: '', bank_name: 'بانک مسکن' }
+      ],
       rah_letter: '',
       rah_letter_date: '',
       is_cash_rent_confirmed: false,
-      is_decile_loan_confirmed: false
+      is_decile_loan_confirmed: false,
+      is_preparation_checks_confirmed: false
     },
 
     // Scanned Documents (populated dynamically from database without ghost record flicker)
@@ -517,6 +523,13 @@ document.addEventListener('alpine:init', () => {
       count: 4,
       startDate: '',
       interval: '1year'
+    },
+
+    // Preparation Check Generator State (tashilatCheck intelligent 6-month installment generation)
+    prepCheckGenerator: {
+      count: 3,
+      startDate: '',
+      interval: '6months'
     },
 
     // Interactive Persian Date Picker Modal State
@@ -603,6 +616,21 @@ document.addEventListener('alpine:init', () => {
       this.checkGenerator.startDate = firstCheckDate || this.addYearsToJalali(this.getTodayJalali(), 1);
       if (this.form.check_entries && this.form.check_entries.length > 0) {
         this.checkGenerator.count = this.form.check_entries.length;
+      }
+
+      // Initialize Preparation Check entries for tashilatCheck (آماده‌سازی)
+      if (!this.form.preparation_check_entries || !Array.isArray(this.form.preparation_check_entries) || this.form.preparation_check_entries.length === 0) {
+        this.form.preparation_check_entries = [
+          { row_number: 1, cash_date: '', check_amount: 0, check_sayadi_code: '', bank_name: 'بانک مسکن' }
+        ];
+      }
+      this.recalculatePrepChecks();
+
+      // Initialize Preparation Check Generator defaults (+6 months from today, or first prep check date)
+      const firstPrepDate = (this.form.preparation_check_entries && this.form.preparation_check_entries[0] && this.form.preparation_check_entries[0].cash_date) ? this.form.preparation_check_entries[0].cash_date : '';
+      this.prepCheckGenerator.startDate = firstPrepDate || this.addSixMonthsCustomJalali(this.getTodayJalali());
+      if (this.form.preparation_check_entries && this.form.preparation_check_entries.length > 0) {
+        this.prepCheckGenerator.count = this.form.preparation_check_entries.length;
       }
     },
 
@@ -711,6 +739,31 @@ document.addEventListener('alpine:init', () => {
         return this.formatJalaliDate(newYear, newMonth, day);
       }
       return this.addYearsToJalali(startDateStr, index);
+    },
+
+    addSixMonthsCustomJalali(dateStr) {
+      const parsed = this.parseJalaliDate(dateStr) || this.parseJalaliDate(this.getTodayJalali());
+      let year = parsed.year;
+      let month = parsed.month + 6;
+      let day = parsed.day;
+
+      if (month > 12) {
+        month -= 12;
+        year += 1;
+      }
+
+      // Rule from tashilatCheck: Month 12 (Esfand) is avoided for installment checks -> cap to 11/30 (Bahman 30)
+      if (month === 12) {
+        month = 11;
+        day = 30;
+      } else if (month >= 7 && month <= 11) {
+        if (day > 30) day = 30;
+      } else {
+        const maxD = this.getDaysInJalaliMonth(year, month);
+        if (day > maxD) day = maxD;
+      }
+
+      return this.formatJalaliDate(year, month, day);
     },
 
     // Workflow stage is sticky - arbitrary jumping is prevented
@@ -1271,7 +1324,14 @@ document.addEventListener('alpine:init', () => {
         this.datePickerModal.day
       );
       const field = this.datePickerModal.targetField;
-      if (field.startsWith('check_')) {
+      if (field.startsWith('prep_check_')) {
+        const idx = parseInt(field.split('_')[2], 10);
+        if (this.form.preparation_check_entries && this.form.preparation_check_entries[idx]) {
+          this.form.preparation_check_entries[idx].cash_date = formatted;
+        }
+      } else if (field === 'prepCheckGenerator.startDate') {
+        this.prepCheckGenerator.startDate = formatted;
+      } else if (field.startsWith('check_')) {
         const idx = parseInt(field.split('_')[1], 10);
         if (this.form.check_entries && this.form.check_entries[idx]) {
           this.form.check_entries[idx].cash_date = formatted;
@@ -1287,7 +1347,14 @@ document.addEventListener('alpine:init', () => {
 
     clearDatePickerField() {
       const field = this.datePickerModal.targetField;
-      if (field.startsWith('check_')) {
+      if (field.startsWith('prep_check_')) {
+        const idx = parseInt(field.split('_')[2], 10);
+        if (this.form.preparation_check_entries && this.form.preparation_check_entries[idx]) {
+          this.form.preparation_check_entries[idx].cash_date = '';
+        }
+      } else if (field === 'prepCheckGenerator.startDate') {
+        this.prepCheckGenerator.startDate = '';
+      } else if (field.startsWith('check_')) {
         const idx = parseInt(field.split('_')[1], 10);
         if (this.form.check_entries && this.form.check_entries[idx]) {
           this.form.check_entries[idx].cash_date = '';
@@ -1299,6 +1366,107 @@ document.addEventListener('alpine:init', () => {
       }
       this.datePickerModal.isOpen = false;
       this.triggerToast('تاریخ پاک شد.', 'info');
+    },
+
+    // --------------------------------------------------------------------------
+    // tashilatCheck: Preparation Installment Checks Dynamic Helpers (آماده‌سازی)
+    // --------------------------------------------------------------------------
+    generatePrepChecksAuto() {
+      const count = Math.max(1, Math.min(10, Number(this.prepCheckGenerator.count) || 3));
+      const totalAmount = Number(this.form.non_cash_preparation_amount) || Number(this.form.total_preparation_check_amount) || 0;
+      let startDate = this.prepCheckGenerator.startDate;
+      if (!startDate) {
+        startDate = this.addSixMonthsCustomJalali(this.getTodayJalali());
+        this.prepCheckGenerator.startDate = startDate;
+      }
+
+      // 10M floor rounding rule (from tashilatCheck / BankCheckTracker)
+      const ROUNDING_UNIT = 10000000;
+      let baseCheck = 0;
+      let lastCheck = 0;
+
+      if (totalAmount > 0) {
+        baseCheck = Math.floor(totalAmount / count / ROUNDING_UNIT) * ROUNDING_UNIT;
+        lastCheck = totalAmount - (baseCheck * (count - 1));
+        if (baseCheck <= 0 || lastCheck <= 0) {
+          baseCheck = Math.floor(totalAmount / count);
+          lastCheck = totalAmount - (baseCheck * (count - 1));
+        }
+      }
+
+      const newEntries = [];
+      let curDate = startDate;
+      for (let i = 0; i < count; i++) {
+        const dueDate = (i === 0) ? startDate : this.addSixMonthsCustomJalali(curDate);
+        curDate = dueDate;
+        const amt = (i === count - 1) ? lastCheck : baseCheck;
+        const existingSayadi = (this.form.preparation_check_entries && this.form.preparation_check_entries[i]) ? (this.form.preparation_check_entries[i].check_sayadi_code || '') : '';
+        newEntries.push({
+          row_number: i + 1,
+          cash_date: dueDate,
+          check_amount: amt,
+          check_sayadi_code: existingSayadi,
+          bank_name: 'بانک مسکن'
+        });
+      }
+
+      this.form.preparation_check_entries = newEntries;
+      this.recalculatePrepChecks();
+      this.triggerToast(`تعداد ${count} فقره چک اقساط آماده‌سازی با سررسیدهای ۶ ماهه ایجاد گردید.`, 'success');
+    },
+
+    addPrepCheckEntry() {
+      if (!this.form.preparation_check_entries) this.form.preparation_check_entries = [];
+      const count = this.form.preparation_check_entries.length;
+      const lastEntry = count > 0 ? this.form.preparation_check_entries[count - 1] : null;
+
+      let nextDate = '';
+      if (lastEntry && lastEntry.cash_date) {
+        nextDate = this.addSixMonthsCustomJalali(lastEntry.cash_date);
+      } else {
+        nextDate = this.addSixMonthsCustomJalali(this.getTodayJalali());
+      }
+
+      const nextAmount = lastEntry ? (lastEntry.check_amount || 0) : 0;
+      const nextBank = (lastEntry && lastEntry.bank_name) ? lastEntry.bank_name : 'بانک مسکن';
+
+      this.form.preparation_check_entries.push({
+        row_number: count + 1,
+        cash_date: nextDate,
+        check_amount: nextAmount,
+        check_sayadi_code: '',
+        bank_name: nextBank
+      });
+      this.recalculatePrepChecks();
+      this.triggerToast(`چک آماده‌سازی ردیف ${count + 1} با سررسید خودکار (${nextDate}) اضافه گردید.`, 'info');
+    },
+
+    removePrepCheckEntry(idx) {
+      if (!this.form.preparation_check_entries) return;
+      if (this.form.preparation_check_entries.length > 1) {
+        this.form.preparation_check_entries.splice(idx, 1);
+      } else {
+        this.form.preparation_check_entries[0] = {
+          row_number: 1,
+          cash_date: '',
+          check_amount: 0,
+          check_sayadi_code: '',
+          bank_name: 'بانک مسکن'
+        };
+      }
+      this.form.preparation_check_entries.forEach((c, i) => c.row_number = i + 1);
+      this.recalculatePrepChecks();
+    },
+
+    recalculatePrepChecks() {
+      if (!this.form.preparation_check_entries || !Array.isArray(this.form.preparation_check_entries)) return;
+      let total = 0;
+      this.form.preparation_check_entries.forEach(c => {
+        const val = Number(c.check_amount) || 0;
+        total += val;
+      });
+      this.form.total_preparation_check_amount = total;
+      this.form.preparation_check_count = this.form.preparation_check_entries.length;
     },
 
     getAppraisalCash() {
@@ -1324,7 +1492,8 @@ document.addEventListener('alpine:init', () => {
 
     applyAppraisalInstallment() {
       this.form.non_cash_preparation_amount = this.getAppraisalInstallment();
-      this.triggerToast('مبلغ ۸۰٪ اقساط ارزیابی آماده‌سازی اعمال گردید.', 'info');
+      this.generatePrepChecksAuto();
+      this.triggerToast('مبلغ ۸۰٪ اقساط ارزیابی آماده‌سازی اعمال و اقلام چک‌ها تولید گردید.', 'info');
     },
 
     applyAppraisalRent() {

@@ -257,10 +257,14 @@ class HousingDossier(models.Model):
     prepayment_code = models.CharField(max_length=50, blank=True, default="", verbose_name="کد پیگیری فیش پیش‌پرداخت آماده‌سازی")
     non_cash_preparation_amount = models.BigIntegerField(default=0, verbose_name="مبلغ غیرنقدی آماده سازی (۸۰٪ اقساط)")
     preparation_service_fee = models.BigIntegerField(default=2000000, blank=True, verbose_name="کارمزد خدمات آماده‌سازی (ریال)")
+    preparation_check_count = models.PositiveSmallIntegerField(default=0, blank=True, verbose_name="تعداد چک‌های آماده‌سازی")
+    total_preparation_check_amount = models.BigIntegerField(default=0, blank=True, verbose_name="مجموع مبلغ چک‌های آماده‌سازی (ریال)")
+    preparation_check_entries_json = models.TextField(default="[]", blank=True, verbose_name="اطلاعات اقلام چک‌های آماده‌سازی (JSON)")
     rah_letter = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره نامه راه و شهرسازی")
     rah_letter_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ نامه راه و شهرسازی (شمسی)")
     is_cash_rent_confirmed = models.BooleanField(default=False, verbose_name="تایید مبلغ نقدی اجاره")
     is_decile_loan_confirmed = models.BooleanField(default=False, verbose_name="تایید چک‌های وام دهک")
+    is_preparation_checks_confirmed = models.BooleanField(default=False, verbose_name="تایید دریافت چک‌های اقساط آماده‌سازی")
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ تشکیل پرونده")
@@ -336,9 +340,14 @@ class HousingDossier(models.Model):
 
 class DossierCheck(models.Model):
     """
-    Individual promissory / sayadi checks received for decile loans (from BankCheckTracker).
+    Individual promissory / sayadi checks for decile loans (BankCheckTracker) & preparation installments (tashilatCheck).
     """
+    CHECK_TYPE_CHOICES = [
+        ("LOAN", "تسهیلات وام دهک"),
+        ("PREPARATION", "اقساط آماده‌سازی"),
+    ]
     dossier = models.ForeignKey(HousingDossier, on_delete=models.CASCADE, related_name='check_items', verbose_name="پرونده")
+    check_type = models.CharField(max_length=20, choices=CHECK_TYPE_CHOICES, default="LOAN", db_index=True, verbose_name="نوع چک")
     row_number = models.PositiveSmallIntegerField(default=1, verbose_name="شماره ردیف چک")
     cash_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ سررسید (شمسی)")
     check_amount = models.BigIntegerField(default=0, verbose_name="مبلغ چک (ریال)")
@@ -347,12 +356,13 @@ class DossierCheck(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
 
     class Meta:
-        ordering = ["row_number", "id"]
-        verbose_name = "چک صیادی تسهیلات دهک"
-        verbose_name_plural = "چک‌های صیادی تسهیلات دهک"
+        ordering = ["check_type", "row_number", "id"]
+        verbose_name = "چک صیادی پرونده مسکن"
+        verbose_name_plural = "چک‌های صیادی پرونده‌های مسکن"
 
     def __str__(self):
-        return f"چک {self.row_number} پرونده #{self.dossier.archive_number} - {self.check_amount:,} ریال"
+        type_lbl = "دهک" if self.check_type == "LOAN" else "آماده‌سازی"
+        return f"چک {type_lbl} {self.row_number} پرونده #{self.dossier.archive_number} - {self.check_amount:,} ریال"
 
 
 class DossierAttachment(models.Model):

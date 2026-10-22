@@ -92,6 +92,9 @@ DOSSIER_FIELD_LABELS = {
     "tenant_code": "کد رهگیری فیش اجاره عرصه",
     "prepayment_code": "کد رهگیری فیش پیش‌پرداخت آماده‌سازی",
     "preparation_service_fee": "کارمزد خدمات آماده‌سازی (ریال)",
+    "preparation_check_count": "تعداد چک‌های اقساط آماده‌سازی",
+    "total_preparation_check_amount": "مجموع مبلغ چک‌های آماده‌سازی (ریال)",
+    "is_preparation_checks_confirmed": "تایید چک‌های اقساط آماده‌سازی",
     "rah_letter": "شماره نامه راه و شهرسازی",
     "rah_letter_date": "تاریخ نامه راه و شهرسازی",
 }
@@ -316,9 +319,9 @@ def dossier_detail_view(request, pk):
         for log in audit_logs
     ]
 
-    # Check entries for BankCheckTracker
+    # 1. Check entries for BankCheckTracker (تسهیلات وام دهک)
     check_items_list = []
-    for item in dossier.check_items.all().order_by("row_number", "id"):
+    for item in dossier.check_items.filter(check_type="LOAN").order_by("row_number", "id"):
         check_items_list.append({
             "id": item.id,
             "row_number": item.row_number,
@@ -334,6 +337,27 @@ def dossier_detail_view(request, pk):
             pass
     if not check_items_list:
         check_items_list = [
+            {"row_number": 1, "cash_date": "", "check_amount": 0, "check_sayadi_code": "", "bank_name": "بانک مسکن"}
+        ]
+
+    # 2. Preparation Check entries for tashilatCheck (اقساط آماده‌سازی)
+    prep_check_items_list = []
+    for item in dossier.check_items.filter(check_type="PREPARATION").order_by("row_number", "id"):
+        prep_check_items_list.append({
+            "id": item.id,
+            "row_number": item.row_number,
+            "cash_date": item.cash_date,
+            "check_amount": item.check_amount,
+            "check_sayadi_code": item.check_sayadi_code,
+            "bank_name": item.bank_name,
+        })
+    if not prep_check_items_list and dossier.preparation_check_entries_json and dossier.preparation_check_entries_json.strip() not in ("[]", ""):
+        try:
+            prep_check_items_list = json.loads(dossier.preparation_check_entries_json)
+        except Exception:
+            pass
+    if not prep_check_items_list:
+        prep_check_items_list = [
             {"row_number": 1, "cash_date": "", "check_amount": 0, "check_sayadi_code": "", "bank_name": "بانک مسکن"}
         ]
 
@@ -430,6 +454,10 @@ def dossier_detail_view(request, pk):
             "tenant_code": dossier.tenant_code or "",
             "prepayment_code": dossier.prepayment_code or "",
             "preparation_service_fee": dossier.preparation_service_fee or 2000000,
+            "preparation_check_entries": prep_check_items_list,
+            "preparation_check_count": dossier.preparation_check_count or len(prep_check_items_list),
+            "total_preparation_check_amount": dossier.total_preparation_check_amount or sum(c.get("check_amount", 0) for c in prep_check_items_list),
+            "is_preparation_checks_confirmed": dossier.is_preparation_checks_confirmed,
             "rah_letter": dossier.rah_letter or "",
             "rah_letter_date": dossier.rah_letter_date or "",
         },
@@ -636,7 +664,7 @@ def save_dossier_draft_view(request, pk):
                     pass
 
     # Boolean fields
-    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed"]:
+    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed"]:
         if field in data:
             val = data[field]
             parsed_updates[field] = bool(val) if not isinstance(val, str) else val.lower() in ("true", "1")
@@ -677,11 +705,52 @@ def save_dossier_draft_view(request, pk):
         dossier.check_service_fee = calculated_fee
         parsed_updates["check_service_fee"] = calculated_fee
 
-        # Sync relational DossierCheck table
-        dossier.check_items.all().delete()
+        # Sync relational DossierCheck table for LOAN checks
+        dossier.check_items.filter(check_type="LOAN").delete()
         for item in cleaned_entries:
             DossierCheck.objects.create(
                 dossier=dossier,
+                check_type="LOAN",
+                row_number=item["row_number"],
+                cash_date=item["cash_date"],
+                check_amount=item["check_amount"],
+                check_sayadi_code=item["check_sayadi_code"],
+                bank_name=item["bank_name"],
+            )
+
+    # Sync and persist Preparation Check entries list from tashilatCheck
+    if "preparation_check_entries" in data and isinstance(data["preparation_check_entries"], list):
+        prep_entries_data = data["preparation_check_entries"]
+        cleaned_prep_entries = []
+        prep_total_sum = 0
+        for idx, entry in enumerate(prep_entries_data):
+            c_date = str(entry.get("cash_date") or "").strip()
+            c_sayadi = str(entry.get("check_sayadi_code") or "").strip()
+            c_bank = str(entry.get("bank_name") or "").strip()
+            try:
+                c_amount = int(entry.get("check_amount") or 0)
+            except (ValueError, TypeError):
+                c_amount = 0
+            prep_total_sum += c_amount
+            cleaned_prep_entries.append({
+                "row_number": idx + 1,
+                "cash_date": c_date,
+                "check_amount": c_amount,
+                "check_sayadi_code": c_sayadi,
+                "bank_name": c_bank,
+            })
+        dossier.preparation_check_entries_json = json.dumps(cleaned_prep_entries, ensure_ascii=False)
+        dossier.preparation_check_count = len(cleaned_prep_entries)
+        dossier.total_preparation_check_amount = prep_total_sum
+        parsed_updates["total_preparation_check_amount"] = prep_total_sum
+        parsed_updates["preparation_check_count"] = len(cleaned_prep_entries)
+
+        # Sync relational DossierCheck table for PREPARATION checks
+        dossier.check_items.filter(check_type="PREPARATION").delete()
+        for item in cleaned_prep_entries:
+            DossierCheck.objects.create(
+                dossier=dossier,
+                check_type="PREPARATION",
                 row_number=item["row_number"],
                 cash_date=item["cash_date"],
                 check_amount=item["check_amount"],
@@ -760,6 +829,8 @@ def save_dossier_draft_view(request, pk):
         "applicant_equity": dossier.applicant_equity,
         "check_service_fee": dossier.check_service_fee,
         "total_check_amount": dossier.total_check_amount,
+        "total_preparation_check_amount": dossier.total_preparation_check_amount,
+        "preparation_check_count": dossier.preparation_check_count,
         "new_changes": recent_changes
     })
 
