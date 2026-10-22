@@ -14,6 +14,8 @@ urlpatterns = [
     path("dossier/<int:pk>/print/notary-letter/", views.notary_letter_print_view, name="notary_letter_print"),
     path("dossier/<int:pk>/print/summary/", views.dossier_summary_print_view, name="dossier_summary_print"),
     path("dossier/<int:pk>/print/rejection-letter/", views.red_rejection_letter_print_view, name="red_rejection_letter_print"),
+    path("dossier/<int:pk>/print/checks/", views.dossier_print_checks_view, name="dossier_print_checks"),
+    path("dossier/<int:pk>/checks/archive-receipt/", views.archive_check_receipt_api, name="archive_check_receipt_api"),
     path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="dossier_upload_scan"),
     path("api/lookup-unit/", views.lookup_preselected_unit_api, name="lookup_unit_api"),
 

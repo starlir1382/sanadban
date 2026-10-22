@@ -810,8 +810,15 @@
                         <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
-                <div class="section-stage-badge editable">
+                <div class="section-stage-badge editable" style="display: flex; align-items: center; gap: 0.5rem;">
                     <span>سامانه جامع چک‌های صیادی و اقساط آماده‌سازی</span>
+                    <button type="button" 
+                            @click="printChecksReceipt('loan')" 
+                            class="btn btn-xs" 
+                            style="background: #ffffff; color: #0f2744; border: 1px solid #cbd5e1; font-weight: 800; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;"
+                            title="چاپ فوری رسید چک‌های صیادی">
+                        <span>🖨️ چاپ رسید چک‌ها</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1153,6 +1160,18 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- دکمه چاپ رسید و برگه چک‌های وام دهک (BankCheckTracker) -->
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 0.85rem;">
+                <button type="button"
+                        @click="printChecksReceipt('loan')"
+                        class="btn btn-primary"
+                        style="background: #ea580c; border-color: #c2410c; padding: 0.5rem 1.25rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);"
+                        title="چاپ برگه و رسید چک‌های وام دهک همراه با مشخصات دریافت‌کنندگان و افزودن خودکار به اسناد اسکن‌شده">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>🖨️ چاپ رسید و برگ چک‌های وام دهک (با امضای دریافت‌کنندگان)</span>
+                </button>
             </div>
 
             <!-- کارت تاییدیه دریافت چک‌های صیادی وام دهک -->
@@ -1562,6 +1581,18 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- دکمه چاپ رسید و برگه چک‌های آماده‌سازی (tashilatCheck) -->
+                <div style="display: flex; justify-content: flex-end; margin-top: 0.85rem; margin-bottom: 0.5rem;">
+                    <button type="button"
+                            @click="printChecksReceipt('prep')"
+                            class="btn btn-primary"
+                            style="background: #15803d; border-color: #166534; padding: 0.5rem 1.25rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);"
+                            title="چاپ برگه و رسید چک‌های اقساط آماده‌سازی همراه با مشخصات دریافت‌کنندگان و افزودن خودکار به اسناد اسکن‌شده">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        <span>🖨️ چاپ رسید و برگ چک‌های آماده‌سازی (با امضای دریافت‌کنندگان)</span>
+                    </button>
                 </div>
 
                 <!-- کارت تاییدیه دریافت چک‌های اقساط آماده‌سازی -->

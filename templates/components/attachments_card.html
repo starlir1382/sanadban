@@ -202,8 +202,36 @@
                             </div>
                         </template>
 
+                        <!-- 1B. Dedicated HTML Print Receipt Preview (for check receipts and printable reports) -->
+                        <template x-if="isHtmlDoc(item)">
+                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; position: relative;">
+                                <!-- Top Purple Pill -->
+                                <div style="position: absolute; top: 10px; right: 10px; background: #7c3aed; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 4px; box-shadow: 0 2px 6px rgba(124,58,237,0.4); display: flex; align-items: center; gap: 3px;">
+                                    <span>رسید چاپی صیاد</span>
+                                    <span>💳</span>
+                                </div>
+
+                                <!-- Receipt Icon -->
+                                <div style="width: 54px; height: 54px; border-radius: 12px; background: rgba(167, 139, 250, 0.2); border: 1.5px solid rgba(167, 139, 250, 0.4); display: flex; align-items: center; justify-content: center; margin-bottom: 0.6rem; color: #c4b5fd;">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                        <rect x="6" y="14" width="12" height="8"></rect>
+                                    </svg>
+                                </div>
+
+                                <div style="color: #ffffff; font-weight: 800; font-size: 0.82rem; text-align: center; max-width: 90%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" x-text="item.title"></div>
+                                <div style="color: #a5b4fc; font-size: 0.68rem; font-family: monospace; direction: ltr; margin-top: 2px;" x-text="item.fileName || 'check_receipt.html'"></div>
+
+                                <div style="margin-top: 0.65rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 0.2rem 0.6rem; color: #c4b5fd; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <span>مشاهده و چاپ مجدد سند</span>
+                                </div>
+                            </div>
+                        </template>
+
                         <!-- 2. Real Binary Image Preview (JPG / PNG / JFIF / WEBP) with Graceful Error Fallback -->
-                        <template x-if="!isPdfFile(item) && item.preview_url && item.preview_url.length > 0">
+                        <template x-if="!isPdfFile(item) && !isHtmlDoc(item) && item.preview_url && item.preview_url.length > 0">
                             <div style="width: 100%; height: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
                                 <img :src="item.preview_url" 
                                      style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;"
@@ -221,7 +249,7 @@
                         </template>
 
                         <!-- 3. Realistic Simulated Document Renderings (When no uploaded image) -->
-                        <template x-if="!isPdfFile(item) && (!item.preview_url || item.preview_url.length === 0)">
+                        <template x-if="!isPdfFile(item) && !isHtmlDoc(item) && (!item.preview_url || item.preview_url.length === 0)">
                             <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0.75rem;">
                                 
                                 <!-- A. National ID / Spouse ID Smart Card -->

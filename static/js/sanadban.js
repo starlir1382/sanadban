@@ -831,7 +831,7 @@ document.addEventListener('alpine:init', () => {
       if (this.selectedCategory === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID');
       if (this.selectedCategory === 'bank') return this.attachments.filter(a => a.type === 'BANK_BOOKLET' || a.type === 'BANK_LETTER');
       if (this.selectedCategory === 'deed') return this.attachments.filter(a => a.type === 'TITLE_DEED' || a.type === 'UNIT_SELECTION');
-      if (this.selectedCategory === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK');
+      if (this.selectedCategory === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK' || a.type === 'CHECK_RECEIPT');
       return this.attachments;
     },
 
@@ -841,7 +841,7 @@ document.addEventListener('alpine:init', () => {
       if (cat === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID').length;
       if (cat === 'bank') return this.attachments.filter(a => a.type === 'BANK_BOOKLET' || a.type === 'BANK_LETTER').length;
       if (cat === 'deed') return this.attachments.filter(a => a.type === 'TITLE_DEED' || a.type === 'UNIT_SELECTION').length;
-      if (cat === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK').length;
+      if (cat === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK' || a.type === 'CHECK_RECEIPT').length;
       return 0;
     },
 
@@ -913,6 +913,39 @@ document.addEventListener('alpine:init', () => {
       const url = (item.preview_url || '').toLowerCase();
       const name = (item.fileName || item.file_name || '').toLowerCase();
       return url.endsWith('.pdf') || name.endsWith('.pdf') || url.includes('.pdf?');
+    },
+
+    isHtmlDoc(item) {
+      if (!item) return false;
+      const url = (item.preview_url || '').toLowerCase();
+      const name = (item.fileName || item.file_name || '').toLowerCase();
+      return url.includes('/print/') || url.endsWith('.html') || name.endsWith('.html');
+    },
+
+    async printChecksReceipt(type = 'loan') {
+      const typeLabel = type === 'prep' ? 'اقساط آماده‌سازی' : 'تسهیلات وام دهک';
+      try {
+        const res = await fetch(`/dossier/${this.archiveNumber}/checks/archive-receipt/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCSRFToken()
+          },
+          body: JSON.stringify({ type: type })
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.attachment) {
+          const exists = this.attachments.some(a => a.id === data.attachment.id);
+          if (!exists) {
+            this.attachments.unshift(data.attachment);
+          }
+          this.triggerToast(`رسید رسمی چک‌های ${typeLabel} با موفقیت صادر و به آلبوم اسناد اسکن‌شده افزوده شد ✓`, 'success');
+        }
+      } catch (err) {
+        console.error('Error auto-archiving check receipt:', err);
+      }
+      const printUrl = `/dossier/${this.archiveNumber}/print/checks/?type=${type}&auto_archive=0&auto_print=1`;
+      window.open(printUrl, '_blank');
     },
 
     isImageFile(item) {

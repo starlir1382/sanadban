@@ -1,0 +1,552 @@
+{% load static humanize %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رسید و برگه رسمی تحویل چک‌های صیادی - پرونده {{ dossier.archive_number }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+    <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.5">
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f1f5f9;
+            font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            background: #ffffff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            padding: 12mm 15mm 10mm 15mm;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 2px solid #0f2744;
+            page-break-after: always;
+        }
+        .page:last-child {
+            page-break-after: auto;
+        }
+        @media print {
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+            }
+            .page {
+                box-shadow: none !important;
+                border: 2px solid #000 !important;
+                width: 100% !important;
+                min-height: 100vh !important;
+                padding: 8mm 12mm !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* Top Action Bar (Non-Print) */
+        .no-print-toolbar {
+            position: fixed;
+            top: 1rem;
+            right: 2rem;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(15, 39, 68, 0.95);
+            padding: 0.5rem 0.85rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+            backdrop-filter: blur(8px);
+        }
+        .btn-print-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s ease;
+        }
+
+        /* Top 2-Row Centered Overlay Box (Exact print.ts layout) */
+        .overlay {
+            width: 100%;
+            background: #ffffff;
+            padding: 10px 18px;
+            border: 2px solid #0f2744;
+            border-radius: 8px;
+            color: #0f172a;
+            direction: rtl;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(15, 39, 68, 0.05);
+        }
+        .overlay-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+        .overlay-row .info-item:not(:last-child) {
+            border-left: 1.5px dashed #94a3b8;
+            padding-left: 12px;
+        }
+        .label {
+            font-size: 8.5pt;
+            font-weight: 700;
+            color: #475569;
+        }
+        .value {
+            font-size: 9.5pt;
+            font-weight: 900;
+            color: #0f172a;
+        }
+        .code {
+            font-family: monospace;
+            font-size: 10pt;
+            letter-spacing: 0.5px;
+            direction: ltr;
+        }
+        .date {
+            font-size: 9pt;
+            font-weight: 800;
+        }
+
+        /* Title Header Banner */
+        .receipt-header-banner {
+            text-align: center;
+            border-bottom: 2px solid #0f2744;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+        }
+        .receipt-header-banner h1 {
+            font-size: 13pt;
+            font-weight: 900;
+            color: #0f2744;
+            margin: 0 0 2px 0;
+        }
+        .receipt-header-banner h2 {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #475569;
+            margin: 0;
+        }
+
+        /* Official Checks Table */
+        .checks-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.5pt;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .checks-table th {
+            background: #0f2744;
+            color: #ffffff;
+            border: 1px solid #0f2744;
+            padding: 6px 4px;
+            font-weight: 800;
+            font-size: 8.5pt;
+        }
+        .checks-table td {
+            border: 1px solid #334155;
+            padding: 5px 6px;
+            vertical-align: middle;
+        }
+        .checks-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .checks-table .amount-cell {
+            font-weight: 900;
+            color: #0f2744;
+            text-align: left;
+            direction: ltr;
+            font-size: 9.5pt;
+        }
+        .checks-table .sayadi-code {
+            font-family: monospace;
+            font-weight: 800;
+            letter-spacing: 1px;
+            direction: ltr;
+            font-size: 9pt;
+            color: #1e3a8a;
+        }
+
+        /* Financial Summary Box (Exact print.ts layout) */
+        .amount-summary-box {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border: 2px solid #0f2744;
+            border-radius: 8px;
+            background-color: #f8fafc;
+            padding: 8px 14px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .summary-divider {
+            width: 2px;
+            height: 24px;
+            background-color: #94a3b8;
+            border-radius: 1px;
+        }
+        .amount-label {
+            font-size: 8.5pt;
+            font-weight: 800;
+            color: #334155;
+        }
+        .amount-value {
+            font-size: 10.5pt;
+            font-weight: 900;
+            color: #0f2744;
+        }
+
+        /* Official Signatures Box (Exact print.ts layout with recipients) */
+        .signatures-box {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            border: 2px solid #0f2744;
+            border-radius: 8px;
+            background-color: #ffffff;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            box-sizing: border-box;
+        }
+        .signature-item {
+            flex: 1;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 90px;
+            padding: 2px 4px;
+        }
+        .signature-item:not(:last-child) {
+            border-left: 1.5px dashed #94a3b8;
+        }
+        .sig-title {
+            font-size: 9pt;
+            font-weight: 900;
+            color: #0f2744;
+            margin-bottom: 4px;
+        }
+        .sig-subtitle {
+            font-size: 7.2pt;
+            color: #64748b;
+            margin-bottom: 35px;
+        }
+        .sig-space {
+            width: 80%;
+            height: 1.5px;
+            background-color: #cbd5e1;
+        }
+
+        /* Document Footer Legal Note */
+        .page-footer-legal {
+            font-size: 7.2pt;
+            color: #64748b;
+            text-align: justify;
+            line-height: 1.5;
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="fa-num">
+
+    <!-- Non-Print Controls Toolbar -->
+    <div class="no-print-toolbar no-print">
+        <button type="button" onclick="window.print()" class="btn-print-action" style="background: #2563eb; color: #fff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>چاپ سند رسمی (Ctrl + P)</span>
+        </button>
+
+        {% if check_type == 'loan' %}
+            <a href="?type=prep&auto_archive=0" class="btn-print-action" style="background: #15803d; color: #fff; text-decoration: none;">
+                <span>چک‌های آماده‌سازی ↗</span>
+            </a>
+        {% elif check_type == 'prep' %}
+            <a href="?type=loan&auto_archive=0" class="btn-print-action" style="background: #ea580c; color: #fff; text-decoration: none;">
+                <span>چک‌های وام دهک ↗</span>
+            </a>
+        {% endif %}
+
+        <button type="button" onclick="window.close()" class="btn-print-action" style="background: #475569; color: #fff;">
+            <span>✕ بستن</span>
+        </button>
+    </div>
+
+    <!-- Official A4 Print Document Page -->
+    <div class="page">
+        <div>
+            <!-- Banner -->
+            <div class="receipt-header-banner">
+                <div style="font-size: 8.5pt; color: #475569; margin-bottom: 2px;">جمهوری اسلامی ایران • وزارت راه و شهرسازی • اداره کل راه و شهرسازی</div>
+                <h1>
+                    {% if check_type == 'prep' %}
+                        صورت‌جلسه و رسید رسمی تحویل چک‌های اقساط آماده‌سازی و اجاره (tashilatCheck)
+                    {% else %}
+                        صورت‌جلسه و رسید رسمی تحویل چک‌های صیادی تسهیلات وام دهک (BankCheckTracker)
+                    {% endif %}
+                </h1>
+                <h2>سامانه یکپارچه مدیریت پرونده‌های مسکن حمایتی و نهضت ملی مسکن (سندبان / مسکن‌یار)</h2>
+            </div>
+
+            <!-- Top 2-Row Centered Overlay Box (print.ts specification) -->
+            <div class="overlay">
+                <div class="overlay-row">
+                    <div class="info-item">
+                        <span class="label">نام شخص (متقاضی):</span>
+                        <span class="value">{{ dossier.full_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">کد ملی:</span>
+                        <span class="value code">{{ dossier.national_id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">
+                            {% if check_type == 'prep' %}شماره نامه راه و شهرسازی:{% else %}شماره تعهدنامه محضری:{% endif %}
+                        </span>
+                        <span class="value code">
+                            {% if check_type == 'prep' %}
+                                {{ dossier.rah_letter|default:'---' }}
+                            {% else %}
+                                {{ dossier.commitment_number|default:'---' }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="overlay-row">
+                    <div class="info-item">
+                        <span class="label">کد رهگیری / شماره پرونده:</span>
+                        <span class="value code">ZTK-{{ dossier.archive_number }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">پروژه / پیمانکار:</span>
+                        <span class="value">
+                            {{ dossier.project.name|default:dossier.project|default:'پروژه نهضت ملی مسکن' }}
+                            {% if dossier.block_name %} - بلوک {{ dossier.block_name }}{% endif %}
+                            {% if dossier.unit_number %} - واحد {{ dossier.unit_number }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">تاریخ صدور رسید:</span>
+                        <span class="value date">{{ today_jalali }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checks Table Section -->
+            <div style="margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong style="font-size: 9pt; color: #0f2744;">
+                        {% if check_type == 'prep' %}
+                            جدول اقلام چک‌های صیادی اقساط آماده‌سازی واحد (۸۰٪ غیرنقدی):
+                        {% else %}
+                            جدول اقلام چک‌های صیادی تسهیلات حمایتی وام دهک:
+                        {% endif %}
+                    </strong>
+                    <span style="font-size: 7.8pt; color: #475569;">
+                        بانک عامل: <strong>{{ dossier.decile_loan_bank|default:'بانک مسکن' }}</strong>
+                        {% if dossier.decile %} | دهک: <strong>{{ dossier.decile }}</strong>{% endif %}
+                    </span>
+                </div>
+
+                <table class="checks-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 8%;">ردیف</th>
+                            <th style="width: 18%;">تاریخ سررسید چک</th>
+                            <th style="width: 28%;">کد ۱۶ رقمی صیادی</th>
+                            <th style="width: 20%;">نام بانک صادرکننده</th>
+                            <th style="width: 26%;">مبلغ چک (ریال)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if check_type == 'prep' %}
+                            {% for c in prep_checks %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><strong>{{ c.cash_date|default:'---' }}</strong></td>
+                                    <td class="sayadi-code">{{ c.check_sayadi_code|default:'---' }}</td>
+                                    <td>{{ c.bank_name|default:'بانک مسکن' }}</td>
+                                    <td class="amount-cell">{{ c.check_amount|intcomma }} ریال</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" style="padding: 15px; color: #64748b;">هیچ چکی برای اقساط آماده‌سازی ثبت نگردیده است.</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            {% for c in loan_checks %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td><strong>{{ c.cash_date|default:'---' }}</strong></td>
+                                    <td class="sayadi-code">{{ c.check_sayadi_code|default:'---' }}</td>
+                                    <td>{{ c.bank_name|default:'بانک مسکن' }}</td>
+                                    <td class="amount-cell">{{ c.check_amount|intcomma }} ریال</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" style="padding: 15px; color: #64748b;">هیچ چکی برای تسهیلات وام دهک ثبت نگردیده است.</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Financial Summary Box (print.ts style) -->
+            {% if check_type == 'prep' %}
+                <div class="amount-summary-box">
+                    <div class="summary-item">
+                        <span class="amount-label">مبلغ اجاره عرصه:</span>
+                        <span class="amount-value" style="color: #047857;">{{ dossier.tenant_price|default:0|intcomma }} ریال</span>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-item">
+                        <span class="amount-label">پیش‌پرداخت نقد (۲۰٪):</span>
+                        <span class="amount-value" style="color: #15803d;">{{ dossier.cash_preparation_amount|default:0|intcomma }} ریال</span>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-item">
+                        <span class="amount-label">تعداد کل چک‌ها:</span>
+                        <span class="amount-value">{{ prep_checks|length }} فقره</span>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-item">
+                        <span class="amount-label">جمع کل چک‌های ۸۰٪:</span>
+                        <span class="amount-value" style="color: #1d4ed8;">{{ total_prep_amount|default:0|intcomma }} ریال</span>
+                    </div>
+                </div>
+            {% else %}
+                <div class="amount-summary-box">
+                    <div class="summary-item">
+                        <span class="amount-label">تعداد کل چک‌ها:</span>
+                        <span class="amount-value">{{ loan_checks|length }} فقره</span>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-item">
+                        <span class="amount-label">مبلغ کل چک‌های دریافتی:</span>
+                        <span class="amount-value" style="color: #c2410c;">{{ total_loan_amount|default:0|intcomma }} ریال</span>
+                    </div>
+                    <div class="summary-divider"></div>
+                    <div class="summary-item">
+                        <span class="amount-label">سقف تسهیلات وام دهک:</span>
+                        <span class="amount-value" style="color: #1e3a8a;">{{ dossier.decile_loan_amount|default:0|intcomma }} ریال</span>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <!-- Signatures Box (Recipients, Officer, Brokerage, Ministry) -->
+            <div class="signatures-box">
+                <!-- 1. متقاضی (صاحب حساب) -->
+                <div class="signature-item">
+                    <div>
+                        <div class="sig-title">امضاء متقاضی</div>
+                        <div class="sig-subtitle">{{ dossier.full_name }} (صاحب حساب)</div>
+                    </div>
+                    <div class="sig-space"></div>
+                </div>
+
+                <!-- 2. متصدی دریافت -->
+                <div class="signature-item">
+                    <div>
+                        <div class="sig-title">امضاء متصدی</div>
+                        <div class="sig-subtitle">کارشناس ثبت و کنترل صیادی</div>
+                    </div>
+                    <div class="sig-space"></div>
+                </div>
+
+                <!-- 3. کارگزار -->
+                <div class="signature-item">
+                    <div>
+                        <div class="sig-title">امضاء و مهر کارگزار</div>
+                        <div class="sig-subtitle">مدیریت اجرایی کارگزاری مسکن</div>
+                    </div>
+                    <div class="sig-space"></div>
+                </div>
+
+                <!-- 4. راه و شهرسازی -->
+                <div class="signature-item">
+                    <div>
+                        <div class="sig-title">امضاء راه و شهرسازی</div>
+                        <div class="sig-subtitle">نماینده اداره کل راه و شهرسازی</div>
+                    </div>
+                    <div class="sig-space"></div>
+                </div>
+            </div>
+
+            <!-- Page Footer & Digital Verification -->
+            <div class="page-footer-legal">
+                <div>
+                    <strong>گواهی اصالت:</strong> کلیه چک‌های مندرج در این صورت‌جلسه، با ثبت و تایید در سامانه صیاد بانک مرکزی وصول گردیده و به منزله تضمین قانونی تعهدات متقاضی است.
+                </div>
+                <div style="font-family: monospace; font-size: 7pt; color: #1e40af; direction: ltr; white-space: nowrap;">
+                    SHA256: {{ dossier.archive_number }}-CHECKS-VERIFIED
+                </div>
+                <div style="font-weight: 700; white-space: nowrap; margin-right: 12px;">
+                    صفحه ۱ از ۱
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto Print Script -->
+    <script>
+        window.addEventListener('load', function() {
+            // Auto open print dialog when loaded directly
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto_print') === '1') {
+                setTimeout(function() {
+                    window.print();
+                }, 400);
+            }
+        });
+    </script>
+</body>
+</html>

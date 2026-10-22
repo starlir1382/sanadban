@@ -57,14 +57,14 @@
             
             <div class="scan-security-watermark">سامانه جامع مسکن یار - نهضت ملی مسکن</div>
 
-            <!-- 0A. REAL UPLOADED PDF VIEWER (IF USER UPLOADED A PDF FILE) -->
-            <template x-if="activeScan.preview_url && isPdfFile(activeScan)">
+            <!-- 0A. REAL UPLOADED PDF & HTML DOCUMENT VIEWER (IF USER UPLOADED A PDF OR CHECK RECEIPT) -->
+            <template x-if="activeScan.preview_url && (isPdfFile(activeScan) || isHtmlDoc(activeScan))">
                 <div style="width: 100%; min-height: 580px; display: flex; flex-direction: column; align-items: center; background: #0f172a; border-radius: 10px; overflow: hidden; padding: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                     <iframe :src="activeScan.preview_url" style="width: 100%; height: 540px; border: none; border-radius: 6px; background: #ffffff;"></iframe>
                     <div style="display: flex; gap: 0.85rem; margin-top: 0.75rem; align-items: center; justify-content: center; flex-wrap: wrap;">
                         <a :href="activeScan.preview_url" target="_blank" download class="toolbar-btn" style="background: #2563eb; color: #ffffff; text-decoration: none; padding: 0.45rem 1.15rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            <span>دانلود فایل اصلی PDF مدرک</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            <span>چاپ سند در پنجره اختصاصی (A4)</span>
                         </a>
                         <a :href="activeScan.preview_url" target="_blank" class="toolbar-btn" style="background: rgba(255,255,255,0.15); color: #ffffff; text-decoration: none; padding: 0.45rem 1.15rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid rgba(255,255,255,0.25);">
                             <span>مشاهده در تب مجزا ↗</span>
@@ -74,7 +74,7 @@
             </template>
 
             <!-- 0B. REAL UPLOADED IMAGE PREVIEW (IF USER UPLOADED AN IMAGE FILE) -->
-            <template x-if="activeScan.preview_url && !isPdfFile(activeScan)">
+            <template x-if="activeScan.preview_url && !isPdfFile(activeScan) && !isHtmlDoc(activeScan)">
                 <div style="text-align: center; padding: 1rem;">
                     <img :src="activeScan.preview_url" 
                          style="max-width: 100%; max-height: 580px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); object-fit: contain;"
