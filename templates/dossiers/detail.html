@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}
-پرونده مسکن متقاضی: {{ dossier.full_name|default:'علیرضا رضایی پور' }} (شماره بایگانی: {{ dossier.archive_number|default:'100001' }}) | سامانه سندبان
+پرونده مسکن متقاضی: {{ dossier.full_name|default:'علیرضا رضایی پور' }} (شماره بایگانی: {{ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار
 {% endblock %}
 
 {% block content %}
@@ -208,7 +208,7 @@
 </div>
 
 <!-- Sticky Workflow Bottom Action Bar -->
-<div class="sticky-action-bar">
+<div class="sticky-action-bar" x-cloak>
     <div class="action-bar-container">
         <!-- Stage Status Description -->
         <div class="action-status-hint">
@@ -220,13 +220,13 @@
         <!-- Action Buttons -->
         <div class="action-buttons-group">
             <!-- Read-only warning if user cannot action -->
-            <div x-show="!userCanAction && !isLocked" style="display: flex; align-items: center; gap: 0.5rem; background: #fffbeb; color: #92400e; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; border: 1px solid #fde68a;">
+            <div x-show="!userCanAction && !isLocked" x-cloak style="display: none; align-items: center; gap: 0.5rem; background: #fffbeb; color: #92400e; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; border: 1px solid #fde68a;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 <span>حالت فقط خواندنی: اقدام در این مرحله مختص کارشناس مربوطه یا رئیس مسکن است.</span>
             </div>
 
             <!-- Stage 20 & 21 Print Notary Letter Button -->
-            <a href="{% url 'notary_letter_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-print" x-show="currentStage >= 20">
+            <a href="{% url 'notary_letter_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-print" x-show="currentStage >= 20" x-cloak style="display: none;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 6 2 18 2 18 9"></polyline>
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -236,7 +236,7 @@
             </a>
 
             <!-- Stage 21 Final Dossier Print Summary -->
-            <a href="{% url 'dossier_summary_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-outline" x-show="currentStage === 21 || isLocked">
+            <a href="{% url 'dossier_summary_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-outline" x-show="currentStage === 21 || isLocked" x-cloak style="display: none;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
@@ -247,6 +247,7 @@
             <!-- Return for Correction -->
             <button type="button" class="btn btn-warning" 
                     x-show="currentStage > 0 && userCanAction && !isLocked"
+                    x-cloak style="display: none;"
                     @click="openReturnModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 14 4 9 9 4"></polyline>
@@ -258,6 +259,7 @@
             <!-- Save Draft -->
             <button type="button" class="btn btn-outline" 
                     x-show="userCanAction && !isLocked"
+                    x-cloak style="display: none;"
                     @click="saveDossierDraft()" :disabled="isSaving" style="display: flex; align-items: center; gap: 0.4rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -267,7 +269,7 @@
             </button>
 
             <!-- Red Form J Rejection Print Button -->
-            <a :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'" target="_blank" class="btn btn-outline" x-show="isRejected" style="color: #dc2626; border-color: #fca5a5; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <a :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'" target="_blank" class="btn btn-outline" x-show="isRejected" x-cloak style="display: none; color: #dc2626; border-color: #fca5a5; align-items: center; gap: 0.4rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 <span>چاپ ابلاغیه رد صلاحیت (فرم «ج» قرمز)</span>
             </a>
@@ -275,8 +277,8 @@
             <!-- Red Form J Rejection Button for Admin -->
             <button type="button" class="btn" 
                     x-show="(isChief || isSuperuser) && !isRejected && (isRedFormJ || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')) || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')))"
-                    @click="openRedRejectionModal()"
-                    style="background: #dc2626; color: #fff; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    x-cloak style="display: none; background: #dc2626; color: #fff; font-weight: 800; border: none; align-items: center; gap: 0.4rem;"
+                    @click="openRedRejectionModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                 <span>صدور ابلاغیه رد صلاحیت (فرم ج قرمز)</span>
             </button>
@@ -284,8 +286,8 @@
             <!-- Red Form J Return Button for Admin / Chief -->
             <button type="button" class="btn btn-warning" 
                     x-show="(isChief || isSuperuser) && (isRejected || isRedFormJ || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')) || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')))"
-                    @click="openRedReturnModal()"
-                    style="display: inline-flex; align-items: center; gap: 0.4rem; background: #d97706; color: #fff; border-color: #b45309; font-weight: 700;">
+                    x-cloak style="display: none; align-items: center; gap: 0.4rem; background: #d97706; color: #fff; border-color: #b45309; font-weight: 700;"
+                    @click="openRedReturnModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>
                 <span x-text="isRejected ? 'رفع قفل و بازگشت پرونده جهت اصلاح' : 'بازگشت جهت اصلاح فرم «ج»'"></span>
             </button>
@@ -293,6 +295,7 @@
             <!-- Electronic Signature & Forward Button (hidden if rejected) -->
             <button type="button" class="btn btn-success" 
                     x-show="userCanAction && !isLocked && !isRejected"
+                    x-cloak style="display: none;"
                     @click="openSignatureModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20 6 9 17 4 12"></polyline>

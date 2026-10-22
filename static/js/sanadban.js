@@ -639,7 +639,7 @@ document.addEventListener('alpine:init', () => {
         step: 9,
         fromStage: 'مرحله ۹: تعیین مبلغ آورده',
         toStage: 'مرحله ۹: ارسال پیامک',
-        actor: 'سیستم پیام‌رسان هوشمند سندبان',
+        actor: 'سیستم پیام‌رسان هوشمند مسکن یار',
         role: 'سامانه اطلاع‌رسانی پیامکی',
         action: 'SMS',
         actionLabel: 'ارسال پیامک آورده متقاضی',

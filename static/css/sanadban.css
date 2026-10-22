@@ -11,9 +11,11 @@
 @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
 
 /* Alpine.js Cloak - Instant FOUC & Modal Flash Prevention */
-[x-cloak] {
+[x-cloak],
+[x-cloak] * {
   display: none !important;
 }
+.sticky-action-bar[x-cloak],
 .modal-overlay[x-cloak],
 .scan-viewer-modal[x-cloak] {
   display: none !important;

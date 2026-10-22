@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}سامانه سندبان | مدیریت پرونده و گردش کار نهضت ملی مسکن{% endblock %}</title>
+    <title>{% block title %}سامانه مسکن یار | مدیریت پرونده و گردش کار نهضت ملی مسکن{% endblock %}</title>
 
     <!-- Persian Typography (Vazirmatn) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
@@ -15,7 +15,8 @@
 
     <!-- Alpine.js Cloak & FOUC Prevention -->
     <style>
-        [x-cloak] { display: none !important; }
+        [x-cloak], [x-cloak] * { display: none !important; }
+        .sticky-action-bar[x-cloak] { display: none !important; }
         .modal-overlay[x-cloak], .scan-viewer-modal[x-cloak] { display: none !important; }
     </style>
 

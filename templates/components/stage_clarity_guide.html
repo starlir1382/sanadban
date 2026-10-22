@@ -57,10 +57,10 @@
                     </div>
                     <div>
                         <span style="color: #64748b;">وضعیت گردش کار: </span>
-                        <span x-show="status === 'REJECTED_RED'" style="color: #dc2626; font-weight: 900;">🚫 رد صلاحیت قطعی (فرم ج قرمز)</span>
-                        <span x-show="status === 'RETURNED'" style="color: #e11d48; font-weight: 800;">⚠️ برگشت‌خورده جهت اصلاح و بازبینی</span>
-                        <span x-show="status === 'IN_PROGRESS' && !isLocked" style="color: #0284c7; font-weight: 800;">● در جریان اقدام اداری</span>
-                        <span x-show="isLocked && status !== 'REJECTED_RED'" style="color: #059669; font-weight: 800;">✓ مختومه و بایگانی قطعی</span>
+                        <span x-show="status === 'REJECTED_RED'" x-cloak style="display: none; color: #dc2626; font-weight: 900;">🚫 رد صلاحیت قطعی (فرم ج قرمز)</span>
+                        <span x-show="status === 'RETURNED'" x-cloak style="display: none; color: #e11d48; font-weight: 800;">⚠️ برگشت‌خورده جهت اصلاح و بازبینی</span>
+                        <span x-show="status === 'IN_PROGRESS' && !isLocked" x-cloak style="display: none; color: #0284c7; font-weight: 800;">● در جریان اقدام اداری</span>
+                        <span x-show="isLocked && status !== 'REJECTED_RED'" x-cloak style="display: none; color: #059669; font-weight: 800;">✓ مختومه و بایگانی قطعی</span>
                     </div>
                 </div>
             </div>

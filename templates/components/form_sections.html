@@ -137,7 +137,8 @@
 
             <!-- Dynamic Red Code Alert Box for Applicant -->
             <div x-show="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')"
-                 style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-bottom: 1.25rem;"
+                 x-cloak
+                 style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-bottom: 1.25rem;"
                  x-transition>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 1.1rem;">⚠️</span>
@@ -406,7 +407,8 @@
 
             <!-- Dynamic Red Code Alert Box for Spouse -->
             <div x-show="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')"
-                 style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-top: 14px;"
+                 x-cloak
+                 style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-top: 14px;"
                  x-transition>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span style="font-size: 1.1rem;">⚠️</span>
