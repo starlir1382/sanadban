@@ -1,11 +1,13 @@
 import hashlib
 import json
+import os
 import re
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.db import transaction, models
 from django.contrib import messages
 from django.utils import timezone
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project
 
@@ -165,7 +167,7 @@ def dossier_list_view(request):
         "stage_filter": stage_filter,
         "stages_meta": stages_meta,
     }
-    return render(request, "dossier_list.html", context)
+    return render(request, "dossiers/list.html", context)
 
 
 def dossier_detail_view(request, pk):
@@ -290,7 +292,7 @@ def dossier_detail_view(request, pk):
         "archive_number": dossier.archive_number,
         "dossier_json": json.dumps(dossier_data, ensure_ascii=False),
     }
-    return render(request, "dossier_detail.html", context)
+    return render(request, "dossiers/detail.html", context)
 
 
 @csrf_exempt
@@ -685,7 +687,7 @@ def notary_letter_print_view(request, pk):
     Print-ready view for Stage 23 & 24 (Notary Letter Introduction).
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
-    return render(request, "notary_letter_print.html", {"dossier": dossier})
+    return render(request, "dossiers/print_notary.html", {"dossier": dossier})
 
 
 def dossier_summary_print_view(request, pk):
@@ -693,13 +695,14 @@ def dossier_summary_print_view(request, pk):
     Print-ready view for Stage 24 (Final Archival Summary Sheet).
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
-    return render(request, "dossier_print_summary.html", {"dossier": dossier})
+    return render(request, "dossiers/print_summary.html", {"dossier": dossier})
 
 
 @csrf_exempt
 def upload_scan_attachment_view(request, pk):
     """
     Handles uploading or scanning a new document attachment for the dossier.
+    Saves document physically into the root 'uploads/<national_id>/' folder.
     Validates stage-ownership and generates SHA-256 integrity hash.
     """
     if request.method != "POST":
@@ -712,16 +715,37 @@ def upload_scan_attachment_view(request, pk):
     preview_url = request.POST.get("preview_url", "")
     uploaded_file = request.FILES.get("file")
 
-    file_name = uploaded_file.name if uploaded_file else f"scan_{timezone.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-    
-    # Calculate SHA-256 hash
+    # Target folder: uploads/<national_id>/
+    nat_id = str(dossier.national_id).strip() or "general"
+    nat_id_dir = os.path.join(settings.MEDIA_ROOT, nat_id)
+    os.makedirs(nat_id_dir, exist_ok=True)
+
     if uploaded_file:
+        file_name = uploaded_file.name
+        file_path = os.path.join(nat_id_dir, file_name)
         hasher = hashlib.sha256()
-        for chunk in uploaded_file.chunks():
-            hasher.update(chunk)
+        with open(file_path, "wb") as f:
+            for chunk in uploaded_file.chunks():
+                hasher.update(chunk)
+                f.write(chunk)
         file_hash = "SHA256: " + hasher.hexdigest()[:24]
+        saved_url = f"/uploads/{nat_id}/{file_name}"
     else:
-        file_hash = "SHA256: " + hashlib.sha256(f"{file_name}-{timezone.now().isoformat()}".encode()).hexdigest()[:24]
+        file_name = f"scan_{timezone.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+        file_path = os.path.join(nat_id_dir, file_name)
+        saved_url = f"/uploads/{nat_id}/{file_name}"
+        if preview_url and preview_url.startswith("data:"):
+            try:
+                import base64
+                _, encoded = preview_url.split(",", 1)
+                file_bytes = base64.b64decode(encoded)
+                with open(file_path, "wb") as f:
+                    f.write(file_bytes)
+                file_hash = "SHA256: " + hashlib.sha256(file_bytes).hexdigest()[:24]
+            except Exception:
+                file_hash = "SHA256: " + hashlib.sha256(f"{file_name}-{timezone.now().isoformat()}".encode()).hexdigest()[:24]
+        else:
+            file_hash = "SHA256: " + hashlib.sha256(f"{file_name}-{timezone.now().isoformat()}".encode()).hexdigest()[:24]
 
     attachment = DossierAttachment.objects.create(
         dossier=dossier,
@@ -731,7 +755,7 @@ def upload_scan_attachment_view(request, pk):
         file_name=file_name,
         file_sha256=file_hash,
         uploaded_by=f"کارشناس مرحله {dossier.current_stage}",
-        preview_url=preview_url
+        preview_url=saved_url
     )
 
     WorkflowSignatureLog.objects.create(
@@ -743,7 +767,7 @@ def upload_scan_attachment_view(request, pk):
         action="SUBMIT",
         action_label=f"بارگذاری سند: {title}",
         signature_hash=file_hash,
-        notes=f"سند «{title}» با موفقیت اسکن و به پرونده الصاق گردید."
+        notes=f"سند «{title}» با موفقیت اسکن و در پوشه اختصاصی کد ملی {nat_id} ذخیره گردید."
     )
 
     data = {

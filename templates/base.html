@@ -22,80 +22,16 @@
 </head>
 <body x-data="sanadbanApp">
 
-    <!-- Top Administrative Navigation Bar -->
-    <header class="sanadban-header">
-        <div class="header-container">
-            <!-- Brand / Logo Area -->
-            <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 1rem;" title="بازگشت به داشبورد اصلی">
-                <div class="brand-logo-emblem">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                    </svg>
-                </div>
-                <div class="brand-titles">
-                    <h1>
-                        <span>سامانه سَنَدبان</span>
-                        <span style="font-size: 0.65rem; background: var(--color-accent-600); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: normal;">نسخه ۲.۰</span>
-                    </h1>
-                    <div class="subtitle">مدیریت اسناد، ارزیابی و گردش پرونده‌های طرح نهضت ملی مسکن</div>
-                </div>
-            </a>
-
-            <!-- Global Multi-Field Search Bar (Archive, National ID, Name, Project, Site, Stage) -->
-            <form method="GET" action="{% url 'dossier_list' %}" class="header-search" style="margin: 0;">
-                <div class="search-input-group">
-                    <button type="submit" style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; color: #93c5fd;" title="جستجو">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                    </button>
-                    <input type="text" name="q" value="{{ query|default:'' }}" 
-                           placeholder="جستجوی همه‌جانبه: شماره بایگانی، کدملی، نام متقاضی، پروژه، سایت، مرحله..." 
-                           class="fa-num"
-                           style="border: none; outline: none; background: transparent; color: inherit; width: 100%;">
-                    {% if query %}
-                    <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: #cbd5e1; font-size: 0.82rem; padding: 0 0.35rem; display: flex; align-items: center;" title="پاکسازی جستجو">✕</a>
-                    {% endif %}
-                </div>
-            </form>
-
-            <!-- Meta & User Role Information -->
-            <div class="header-meta">
-                <div class="jalali-badge">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    <span class="fa-num" x-text="todayDate">{{ today_jalali }}</span>
-                </div>
-
-                <!-- Unit & Role Indicator -->
-                <div class="role-pill" :class="stages[currentStage].unit">
-                    <span x-text="stages[currentStage].unit === 'brokerage' ? 'واحد کارگزاری مسکن' : 'اداره کل راه و شهرسازی'"></span>
-                    <span>•</span>
-                    <span x-text="stages[currentStage].role"></span>
-                </div>
-
-                <!-- User Profile -->
-                <div class="user-profile-badge">
-                    <div class="user-avatar">ع‌ر</div>
-                    <div style="font-size: 0.8rem; text-align: right;">
-                        <div style="font-weight: 700;">مهندس رضایی</div>
-                        <div style="font-size: 0.7rem; color: #94a3b8;">دسترسی کامل سیستمی</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Unified Administrative Navigation Bar -->
+    {% include 'layouts/navbar.html' %}
 
     <!-- Main Content Slot -->
     <main class="main-wrapper">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Unified Footer -->
+    {% include 'layouts/footer.html' %}
 
     <!-- Floating System Toast / Notification -->
     <div x-show="showToast" 
