@@ -89,6 +89,10 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('sanadbanApp', () => ({
     // Pipeline State
     currentStage: 0,
+    status: 'IN_PROGRESS',
+    returnReason: '',
+    returnBy: '',
+    returnFromStage: null,
     stages: STAGES_22,
     archiveNumber: 100001,
     isLocked: false,
@@ -236,6 +240,10 @@ document.addEventListener('alpine:init', () => {
           if (serverData.archive_number) this.archiveNumber = serverData.archive_number;
           if (typeof serverData.current_stage !== 'undefined') this.currentStage = Number(serverData.current_stage);
           if (typeof serverData.is_locked !== 'undefined') this.isLocked = Boolean(serverData.is_locked);
+          if (serverData.status) this.status = serverData.status;
+          if (serverData.return_reason) this.returnReason = serverData.return_reason;
+          if (serverData.return_by) this.returnBy = serverData.return_by;
+          if (typeof serverData.return_from_stage !== 'undefined' && serverData.return_from_stage !== null) this.returnFromStage = serverData.return_from_stage;
           if (typeof serverData.user_can_action !== 'undefined') this.userCanAction = Boolean(serverData.user_can_action);
           if (typeof serverData.is_chief !== 'undefined') this.isChief = Boolean(serverData.is_chief);
           if (serverData.form) {
@@ -272,23 +280,9 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    // Persist Stage Switch to Database
+    // Workflow stage is sticky - arbitrary jumping is prevented
     async selectStage(stgId) {
-      this.currentStage = stgId;
-      this.recalculateEquity();
-      try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
-        await fetch(`/dossier/${this.archiveNumber}/set-stage/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-          },
-          body: JSON.stringify({ stage: stgId })
-        });
-      } catch (err) {
-        console.warn('Could not persist stage switch:', err);
-      }
+      this.triggerToast('جابجایی دستی مرحله غیرفعال است. تغییر مرحله صرفاً از طریق تایید و امضای الکترونیک یا برگشت جهت اصلاح انجام می‌گیرد.', 'warning');
     },
 
     // Save Dossier Draft Directly to Database
@@ -617,6 +611,9 @@ document.addEventListener('alpine:init', () => {
           });
 
           this.triggerToast(data.message || `پرونده به مرحله ${this.currentStage} منتقل شد.`, 'success');
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         } else {
           const errData = await res.json().catch(() => ({}));
           this.triggerToast(errData.message || 'خطا در ثبت امضای الکترونیکی.', 'error');
@@ -684,6 +681,9 @@ document.addEventListener('alpine:init', () => {
           });
 
           this.triggerToast(data.message || `پرونده به مرحله ${targetStage} بازگشت داده شد.`, 'warning');
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         } else {
           const errData = await res.json().catch(() => ({}));
           this.triggerToast(errData.message || 'خطا در ثبت بازگشت پرونده.', 'error');

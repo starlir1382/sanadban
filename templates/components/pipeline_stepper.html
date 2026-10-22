@@ -117,7 +117,7 @@
             </div>
         </div>
 
-        <!-- Right / End: Direct Stage Selector Jump & Overall Progress -->
+        <!-- Right / End: Sticky Stage Status & Overall Progress -->
         <div style="display: flex; align-items: center; gap: 1rem;">
             <!-- Progress Percentage Badge -->
             <div style="text-align: left;">
@@ -125,17 +125,24 @@
                 <div class="fa-num" style="font-weight: 800; font-size: 1.05rem; color: #34d399;" x-text="Math.round((currentStage / 21) * 100) + '٪'"></div>
             </div>
 
-            <!-- Fast Dropdown Stage Switcher (for supervisor / review) -->
-            <div style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.08); padding: 0.35rem 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);">
-                <span style="font-size: 0.75rem; color: #94a3b8;">تغییر مرحله:</span>
-                <select class="input-control fa-num" style="height: 32px; padding: 0 0.5rem; font-size: 0.78rem; background: #1e293b; color: #ffffff; border: 1px solid #475569; border-radius: 6px; cursor: pointer;"
-                        :value="currentStage"
-                        @change="selectStage(Number($event.target.value))">
-                    <template x-for="stg in stages" :key="stg.id">
-                        <option :value="stg.id" :selected="stg.id === currentStage" 
-                                x-text="'مرحله ' + stg.id + ': ' + stg.title + ' (' + (stg.unit === 'brokerage' ? 'کارگزاری' : 'اداره کل') + ')'"></option>
-                    </template>
-                </select>
+            <!-- Fixed Document Workflow State Badge -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.08); padding: 0.4rem 0.85rem; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.15);">
+                <span style="font-size: 0.75rem; color: #94a3b8;">وضعیت فرآیند:</span>
+                <template x-if="status === 'RETURNED'">
+                    <span style="background: #e11d48; color: #ffffff; font-size: 0.76rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                        <span>⚠️ برگشت‌خورده جهت اصلاح</span>
+                    </span>
+                </template>
+                <template x-if="status === 'IN_PROGRESS' && !isLocked">
+                    <span style="background: #0284c7; color: #ffffff; font-size: 0.76rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">
+                        ● در جریان اقدام
+                    </span>
+                </template>
+                <template x-if="isLocked || status === 'COMPLETED'">
+                    <span style="background: #059669; color: #ffffff; font-size: 0.76rem; font-weight: 800; padding: 2px 8px; border-radius: 4px;">
+                        ✓ مختومه و بایگانی
+                    </span>
+                </template>
             </div>
         </div>
     </div>

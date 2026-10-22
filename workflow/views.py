@@ -220,6 +220,10 @@ def dossier_detail_view(request, pk):
         "archive_number": dossier.archive_number,
         "current_stage": dossier.current_stage,
         "is_locked": dossier.is_locked,
+        "status": dossier.status,
+        "return_reason": dossier.return_reason,
+        "return_by": dossier.return_by,
+        "return_from_stage": dossier.return_from_stage,
         "form": {
             "full_name": dossier.full_name,
             "father_name": dossier.father_name,
@@ -498,31 +502,13 @@ def save_dossier_draft_view(request, pk):
 @transaction.atomic
 def set_dossier_stage_view(request, pk):
     """
-    Switches active stage and persists to the database so page reloads remain on the selected stage.
+    Direct stage jumping is strictly prohibited to enforce workflow continuity.
+    Stages stick to the official record until transitioned via electronic signature or formal return.
     """
-    if request.method != "POST":
-        return HttpResponseBadRequest("Only POST method allowed")
-
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
-    if dossier.is_locked:
-        return JsonResponse({"status": "error", "message": "این پرونده نهایی و مختومه گردیده است."}, status=400)
-
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-    except Exception:
-        data = request.POST
-
-    try:
-        stage = int(data.get("stage", 0))
-    except (ValueError, TypeError):
-        return JsonResponse({"status": "error", "message": "مرحله نامعتبر است."}, status=400)
-
-    if 0 <= stage <= 21:
-        dossier.current_stage = stage
-        dossier.save()
-        return JsonResponse({"status": "success", "new_stage": dossier.current_stage})
-    else:
-        return JsonResponse({"status": "error", "message": "مرحله باید بین ۰ تا ۲۱ باشد."}, status=400)
+    return JsonResponse({
+        "status": "error",
+        "message": "تغییر مستقیم مرحله بدون طی گردش کار مجاز نمی‌باشد. پرونده باید صرفاً از طریق تایید و امضای الکترونیک یا برگشت جهت اصلاح جابجا شود."
+    }, status=403)
 
 
 @csrf_exempt
@@ -567,11 +553,16 @@ def electronic_sign_action(request, pk):
 
     if next_stage <= 21:
         dossier.current_stage = next_stage
+        dossier.status = "IN_PROGRESS"
+        dossier.return_reason = ""
+        dossier.return_by = ""
+        dossier.return_from_stage = None
         action = "SIGN"
         action_label = "تایید و امضای الکترونیکی"
         to_stage_str = f"مرحله {next_stage}: {dossier.STAGE_ROLES.get(next_stage, ('','',f'مرحله {next_stage}'))[2]}"
     else:
         dossier.is_locked = True
+        dossier.status = "COMPLETED"
         action = "ARCHIVE"
         action_label = "بایگانی قطعی پرونده"
         to_stage_str = "بایگانی نهایی (مختومه)"
@@ -664,9 +655,6 @@ def return_stage_action(request, pk):
     raw_stamp = f"RETURN-{dossier.archive_number}-{current_idx}-{target_stage}-{timezone.now().isoformat()}"
     sig_hash = "SHA256: " + hashlib.sha256(raw_stamp.encode()).hexdigest()[:24]
 
-    dossier.current_stage = target_stage
-    dossier.save()
-
     if request.user.is_authenticated:
         profile = getattr(request.user, 'profile', None)
         actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
@@ -674,6 +662,13 @@ def return_stage_action(request, pk):
     else:
         actor_name = "کارشناس بررسی و ممیزی"
         actor_role = current_role
+
+    dossier.current_stage = target_stage
+    dossier.status = "RETURNED"
+    dossier.return_reason = notes
+    dossier.return_by = actor_name
+    dossier.return_from_stage = current_idx
+    dossier.save()
 
     WorkflowSignatureLog.objects.create(
         dossier=dossier,
@@ -693,6 +688,10 @@ def return_stage_action(request, pk):
     return JsonResponse({
         "status": "success",
         "new_stage": dossier.current_stage,
+        "dossier_status": dossier.status,
+        "return_reason": dossier.return_reason,
+        "return_by": dossier.return_by,
+        "return_from_stage": dossier.return_from_stage,
         "hash": sig_hash,
         "message": f"پرونده جهت بازبینی به مرحله {target_stage} برگشت داده شد."
     })
@@ -886,6 +885,8 @@ def user_login_view(request):
             if user.is_active:
                 login(request, user)
                 profile = getattr(user, 'profile', None)
+                if profile and profile.must_change_password:
+                    return redirect("first_login_setup")
                 display_name = profile.full_name if profile and profile.full_name else user.username
                 messages.success(request, f"خوش آمدید، {display_name}.")
                 if next_url and next_url.startswith("/"):
@@ -932,8 +933,68 @@ def user_profile_view(request):
                 update_session_auth_hash(request, request.user)
                 messages.success(request, "کلمه عبور حساب کاربری شما با موفقیت بروزرسانی گردید.")
                 return redirect("user_profile")
+        elif action == "update_signature":
+            sig_file = request.FILES.get("signature_image")
+            if sig_file:
+                profile = getattr(request.user, 'profile', None)
+                if profile:
+                    profile.signature_image = sig_file
+                    profile.save()
+                    messages.success(request, "تصویر امضای الکترونیکی شما با موفقیت بروزرسانی شد.")
+            else:
+                messages.error(request, "لطفاً یک فایل تصویر امضا انتخاب فرمایید.")
+            return redirect("user_profile")
 
     return render(request, "auth/profile.html", {"user": request.user})
+
+
+@login_required(login_url='login')
+def first_login_setup_view(request):
+    """
+    Mandatory security onboarding screen for users on initial login:
+    Forces setting a private password and uploading or drawing their official signature picture.
+    """
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.must_change_password:
+        return redirect("dossier_list")
+
+    error = None
+    if request.method == "POST":
+        new_password = request.POST.get("new_password", "").strip()
+        confirm_password = request.POST.get("confirm_password", "").strip()
+        sig_file = request.FILES.get("signature_image")
+        canvas_sig = request.POST.get("canvas_signature_data", "").strip()
+
+        if len(new_password) < 6:
+            error = "کلمه عبور جدید باید حداقل ۶ کاراکتر باشد."
+        elif new_password != confirm_password:
+            error = "کلمه عبور جدید با تکرار آن یکسان نیست."
+        elif not sig_file and not canvas_sig:
+            error = "بارگذاری یا ترسیم تصویر نمونه امضای الکترونیک الزامی است."
+        else:
+            if sig_file:
+                profile.signature_image = sig_file
+            elif canvas_sig and "," in canvas_sig:
+                import base64
+                from django.core.files.base import ContentFile
+                try:
+                    format_part, imgstr = canvas_sig.split(';base64,')
+                    ext = format_part.split('/')[-1]
+                    data = ContentFile(base64.b64decode(imgstr), name=f"sig_{request.user.username}.{ext}")
+                    profile.signature_image = data
+                except Exception as e:
+                    error = f"خطا در پردازش تصویر امضا: {str(e)}"
+
+            if not error:
+                request.user.set_password(new_password)
+                request.user.save()
+                profile.must_change_password = False
+                profile.save()
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "کلمه عبور امنیتی و تصویر نمونه امضای دیجیتال شما با موفقیت ثبت و تایید گردید.")
+                return redirect("dossier_list")
+
+    return render(request, "auth/first_login_setup.html", {"error": error})
 
 
 # --------------------------------------------------------------------------------------------------

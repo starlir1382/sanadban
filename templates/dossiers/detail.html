@@ -19,6 +19,39 @@
     <span style="color: #475569; font-weight: 700;">پرونده شماره #<span class="fa-num" x-text="archiveNumber"></span> (<span x-text="form.full_name"></span>)</span>
 </nav>
 
+<!-- Returned for Correction Banner (if status == 'RETURNED') -->
+<template x-if="status === 'RETURNED'">
+    <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-right: 6px solid #e11d48; border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: 1.25rem; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.08);">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div style="display: flex; gap: 0.85rem; align-items: flex-start;">
+                <div style="width: 42px; height: 42px; border-radius: 50%; background: #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem;">
+                    ⚠️
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                        <span style="font-weight: 800; color: #9f1239; font-size: 1.05rem;">
+                            پرونده جهت اصلاح و بازبینی به این مرحله برگشت داده شده است
+                        </span>
+                        <span style="background: #e11d48; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;">
+                            وضعیت: نیازمند اقدام اصلاحی
+                        </span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #4c0519; margin-bottom: 0.5rem;">
+                        این پرونده از <strong class="fa-num" x-text="'مرحله ' + (returnFromStage !== null ? returnFromStage : '')"></strong> توسط <strong x-text="returnBy || 'کارشناس ممیزی'"></strong> بازگردانده شده است.
+                    </div>
+                    <div style="background: #ffffff; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #fecdd3; font-size: 0.84rem; color: #881337; line-height: 1.6;">
+                        <span style="font-weight: 800;">علت بازگشت و نواقص اعلامی: </span>
+                        <span x-text="returnReason"></span>
+                    </div>
+                </div>
+            </div>
+            <div style="font-size: 0.8rem; color: #9f1239; background: #ffe4e6; padding: 0.5rem 0.85rem; border-radius: 8px; font-weight: 700; align-self: center;">
+                کارشناس محترم، پس از اصلاح مقادیر و مدارک مربوطه، دکمه «تایید و امضای الکترونیکی» را بفشارید تا پرونده مجدداً به مرحله بعد ارسال گردد.
+            </div>
+        </div>
+    </div>
+</template>
+
 <!-- Dossier Hero Header Card -->
 <div class="dossier-hero">
     <div class="dossier-hero-info">

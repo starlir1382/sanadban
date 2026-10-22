@@ -114,6 +114,17 @@ class HousingDossier(models.Model):
     current_stage = models.PositiveSmallIntegerField(default=0, db_index=True, verbose_name="مرحله جاری (۰ تا ۲۱)")
     is_locked = models.BooleanField(default=False, verbose_name="قفل نهایی بایگانی")
 
+    # Workflow Document State
+    STATUS_CHOICES = [
+        ("IN_PROGRESS", "در جریان اقدام"),
+        ("RETURNED", "برگشت‌خورده جهت اصلاح و بازبینی"),
+        ("COMPLETED", "نهایی و بایگانی قطعی"),
+    ]
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="IN_PROGRESS", db_index=True, verbose_name="وضعیت فرآیند")
+    return_reason = models.TextField(blank=True, verbose_name="علت آخرین برگشت پرونده")
+    return_by = models.CharField(max_length=150, blank=True, verbose_name="برگشت‌دهنده")
+    return_from_stage = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="مرحله برگشت‌دهنده")
+
     # Stage 1: Applicant, Spouse & Unit
     full_name = models.CharField(max_length=150, verbose_name="نام و نام خانوادگی متقاضی")
     father_name = models.CharField(max_length=100, verbose_name="نام پدر")
@@ -351,6 +362,10 @@ class UserProfile(models.Model):
     # Access Level Management & Housing Chief (رئیس مسکن)
     is_housing_chief = models.BooleanField(default=False, verbose_name="رئیس مسکن (اختیارات و دسترسی تام)")
     allowed_stages = models.CharField(max_length=150, default="all", verbose_name="مراحل مجاز (مثال: 0,1,2 یا all)")
+
+    # Mandatory Security Onboarding & Signature
+    must_change_password = models.BooleanField(default=False, verbose_name="الزام به تغییر کلمه عبور در ورود اول")
+    signature_image = models.ImageField(upload_to="signatures/", blank=True, null=True, verbose_name="تصویر نمونه امضای الکترونیک")
 
     class Meta:
         verbose_name = "پروفایل کارشناس و کاربر"

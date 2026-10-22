@@ -38,6 +38,7 @@ USERS_DATA = [
         "is_staff": True,
         "is_superuser": True,
         "allowed_stages": "all",
+        "must_change_password": True,
     },
     {
         "username": "broker_info",
@@ -231,6 +232,7 @@ for udata in USERS_DATA:
     profile.allowed_stages = udata.get("allowed_stages", "all")
     profile.can_sign = True
     profile.is_active_expert = True
+    profile.must_change_password = udata.get("must_change_password", False)
     profile.save()
 
     chief_note = " *** REIS MASKAN (FULL AUTH) ***" if profile.is_housing_chief else ""

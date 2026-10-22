@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}راه‌اندازی امنیتی حساب و ثبت نمونه امضا | سامانه سندبان{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 1.5rem auto 4rem;" x-data="firstLoginSetup()">
+
+    <!-- Header Hero -->
+    <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem; box-shadow: 0 10px 25px -5px rgba(15, 39, 68, 0.25);">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(56, 189, 248, 0.2); border: 1.5px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div>
+                <span style="background: #f59e0b; color: #78350f; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;">
+                    اقدام امنیتی الزامی در اولین ورود
+                </span>
+                <h2 style="font-size: 1.25rem; font-weight: 800; margin: 0.25rem 0 0; color: #ffffff;">
+                    تعیین کلمه عبور اختصاصی و ثبت نمونه امضای الکترونیک
+                </h2>
+            </div>
+        </div>
+        <p style="font-size: 0.84rem; color: #93c5fd; margin: 0; line-height: 1.6;">
+            کاربر محترم <strong style="color: #ffffff;">{{ request.user.profile.full_name|default:request.user.username }}</strong> ({{ request.user.profile.role_title }})؛ جهت صیانت از اسناد دولتی و امکان تایید و امضای رسمی در مراحل گردش پرونده‌ها، تکمیل موارد زیر پیش از ورود به سامانه الزامی است.
+        </p>
+    </div>
+
+    <!-- Alert Messages if any -->
+    {% if error %}
+    <div style="background: #fef2f2; border: 1.5px solid #fecaca; color: #991b1b; padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.85rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Setup Form Card -->
+    <div style="background: #ffffff; border-radius: 16px; border: 1.5px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04); overflow: hidden;">
+        
+        <form method="POST" action="{% url 'first_login_setup' %}" enctype="multipart/form-data" @submit="handleSubmit($event)">
+            {% csrf_token %}
+            <input type="hidden" name="canvas_signature_data" x-ref="canvasData">
+
+            <div style="padding: 1.75rem 2rem;">
+                
+                <!-- Section 1: Password Change -->
+                <div style="margin-bottom: 1.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 0.65rem;">
+                        <span style="width: 24px; height: 24px; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; justify-content: center;">۱</span>
+                        <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0;">تعیین کلمه عبور جدید</h3>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">
+                                <span style="color: #ef4444;">*</span> کلمه عبور جدید (حداقل ۶ کاراکتر):
+                            </label>
+                            <input type="password" name="new_password" required minlength="6" placeholder="••••••••" class="input-control" style="width: 100%; height: 42px; direction: ltr;">
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">
+                                <span style="color: #ef4444;">*</span> تکرار کلمه عبور جدید:
+                            </label>
+                            <input type="password" name="confirm_password" required minlength="6" placeholder="••••••••" class="input-control" style="width: 100%; height: 42px; direction: ltr;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Signature Upload or Draw -->
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 0.65rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 24px; height: 24px; border-radius: 6px; background: #eff6ff; color: #2563eb; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; justify-content: center;">۲</span>
+                            <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0;">ثبت نمونه امضای الکترونیک</h3>
+                        </div>
+
+                        <!-- Mode Switcher (Upload File vs Draw on Screen) -->
+                        <div style="display: flex; gap: 4px; background: #f1f5f9; padding: 2px; border-radius: 8px;">
+                            <button type="button" @click="sigMode = 'upload'" 
+                                    :style="sigMode === 'upload' ? 'background: #ffffff; color: #1e3a8a; font-weight: 800;' : 'background: transparent; color: #64748b;'"
+                                    style="border: none; padding: 4px 10px; font-size: 0.78rem; border-radius: 6px; cursor: pointer; transition: all 0.15s;">
+                                بارگذاری فایل تصویر
+                            </button>
+                            <button type="button" @click="sigMode = 'draw'" 
+                                    :style="sigMode === 'draw' ? 'background: #ffffff; color: #1e3a8a; font-weight: 800;' : 'background: transparent; color: #64748b;'"
+                                    style="border: none; padding: 4px 10px; font-size: 0.78rem; border-radius: 6px; cursor: pointer; transition: all 0.15s;">
+                                رسم دستی با قلم / ماوس
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Option A: File Upload -->
+                    <div x-show="sigMode === 'upload'">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">
+                            <span style="color: #ef4444;">*</span> انتخاب فایل تصویر امضا (PNG یا JPG با زمینه شفاف یا سفید):
+                        </label>
+                        <input type="file" name="signature_image" accept="image/*" @change="handleFileSelect($event)" 
+                               class="input-control" style="width: 100%; height: 44px; padding: 6px 10px;">
+                        
+                        <!-- File Preview -->
+                        <div x-show="previewUrl" style="margin-top: 1rem; text-align: center; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 1rem;">
+                            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.4rem;">پیش‌نمایش تصویر امضا:</div>
+                            <img :src="previewUrl" alt="پیش‌نمایش امضا" style="max-height: 100px; max-width: 260px; object-fit: contain; margin: 0 auto; display: block; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 6px;">
+                            <span style="font-size: 0.72rem; color: #059669; font-weight: 700; margin-top: 6px; display: inline-block;">✓ تصویر با موفقیت انتخاب شد</span>
+                        </div>
+                    </div>
+
+                    <!-- Option B: Canvas Signature Pad -->
+                    <div x-show="sigMode === 'draw'" style="text-align: center;">
+                        <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; text-align: right;">
+                            نمونه امضای خود را با حرکت ماوس یا لمس صفحه در کادر زیر ترسیم فرمایید:
+                        </div>
+                        <div style="border: 2px dashed #93c5fd; background: #ffffff; border-radius: 10px; overflow: hidden; display: inline-block; position: relative;">
+                            <canvas x-ref="canvas" width="460" height="150" style="cursor: crosshair; touch-action: none; background: #ffffff; display: block;"></canvas>
+                        </div>
+                        <div style="margin-top: 0.5rem; display: flex; justify-content: center; gap: 0.75rem;">
+                            <button type="button" @click="clearCanvas()" class="btn btn-outline" style="padding: 0.35rem 0.85rem; font-size: 0.78rem;">
+                                ✕ پاک کردن امضا
+                            </button>
+                            <span x-show="hasDrawn" style="color: #059669; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
+                                ✓ امضا ترسیم شد
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Form Footer -->
+            <div style="padding: 1.25rem 2rem; background: #f8fafc; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <a href="{% url 'logout' %}" style="font-size: 0.82rem; color: #dc2626; text-decoration: none; font-weight: 600;">
+                    ← خروج از حساب
+                </a>
+                <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.75rem; font-size: 0.92rem; font-weight: 800; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+                    ذخیره و فعال‌سازی حساب کاربری ✓
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+function firstLoginSetup() {
+    return {
+        sigMode: 'upload',
+        previewUrl: null,
+        hasDrawn: false,
+        isDrawing: false,
+        lastX: 0,
+        lastY: 0,
+        ctx: null,
+
+        init() {
+            this.$nextTick(() => {
+                const canvas = this.$refs.canvas;
+                if (!canvas) return;
+                this.ctx = canvas.getContext('2d');
+                this.ctx.strokeStyle = '#0f2744';
+                this.ctx.lineWidth = 2.5;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+
+                // Mouse events
+                canvas.addEventListener('mousedown', (e) => this.startDraw(e));
+                canvas.addEventListener('mousemove', (e) => this.draw(e));
+                window.addEventListener('mouseup', () => this.stopDraw());
+
+                // Touch events
+                canvas.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    this.startDraw({ offsetX: touch.clientX - rect.left, offsetY: touch.clientY - rect.top });
+                    e.preventDefault();
+                });
+                canvas.addEventListener('touchmove', (e) => {
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    this.draw({ offsetX: touch.clientX - rect.left, offsetY: touch.clientY - rect.top });
+                    e.preventDefault();
+                });
+                canvas.addEventListener('touchend', () => this.stopDraw());
+            });
+        },
+
+        startDraw(e) {
+            this.isDrawing = true;
+            this.lastX = e.offsetX;
+            this.lastY = e.offsetY;
+        },
+
+        draw(e) {
+            if (!this.isDrawing) return;
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.lastX, this.lastY);
+            this.ctx.lineTo(e.offsetX, e.offsetY);
+            this.ctx.stroke();
+            this.lastX = e.offsetX;
+            this.lastY = e.offsetY;
+            this.hasDrawn = true;
+        },
+
+        stopDraw() {
+            this.isDrawing = false;
+        },
+
+        clearCanvas() {
+            const canvas = this.$refs.canvas;
+            this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+            this.hasDrawn = false;
+            this.$refs.canvasData.value = '';
+        },
+
+        handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                this.previewUrl = URL.createObjectURL(file);
+            }
+        },
+
+        handleSubmit(e) {
+            if (this.sigMode === 'draw' && this.hasDrawn) {
+                const canvas = this.$refs.canvas;
+                this.$refs.canvasData.value = canvas.toDataURL('image/png');
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

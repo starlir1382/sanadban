@@ -18,6 +18,7 @@ urlpatterns = [
     path("login/", views.user_login_view, name="login"),
     path("logout/", views.user_logout_view, name="logout"),
     path("profile/", views.user_profile_view, name="user_profile"),
+    path("security/first-login-setup/", views.first_login_setup_view, name="first_login_setup"),
 
     # Staff & User Access Administration
     path("users/", views.users_management_view, name="users_management"),

@@ -22,6 +22,14 @@
                 </div>
             </div>
 
+            {% if request.user.profile.signature_image %}
+            <div style="background: #ffffff; border: 1.5px dashed #cbd5e1; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; text-align: center;">
+                <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.35rem;">نمونه امضای دیجیتال ثبتی شما:</div>
+                <img src="{{ request.user.profile.signature_image.url }}" alt="امضا" style="max-height: 55px; max-width: 180px; object-fit: contain; margin: 0 auto; display: block;">
+                <div style="font-size: 0.72rem; color: #0f2744; font-weight: 700; margin-top: 4px;">{{ request.user.profile.full_name }} • {{ request.user.profile.role_title }}</div>
+            </div>
+            {% endif %}
+
             <div class="field-group" style="margin-bottom: 1rem;">
                 <label class="field-label"><span>کد تایید / رمز توکن سخت‌افزاری امضا</span></label>
                 <input type="password" class="input-control fa-num" placeholder="رمز امضای دیجیتال (۴ تا ۸ رقم)..." x-model="signerPin">
@@ -58,26 +66,16 @@
             <button type="button" class="modal-close" @click="showReturnModal = false">✕</button>
         </div>
         <div class="modal-body">
-            <!-- Rule Alert Banner based on Stage 3 vs 4-13 -->
-            <div class="routing-rule-alert">
-                <template x-if="currentStage === 3">
-                    <div>
-                        <strong>قانون گردش کار مرحله ۳:</strong>
-                        کارشناس استعلام تسهیلات بانکی صرفاً می‌تواند پرونده را جهت اصلاح به <strong>«مرحله ۰ (ثبت اولیه کارگزاری)»</strong> برگشت دهد.
-                    </div>
-                </template>
-                <template x-if="currentStage >= 4">
-                    <div>
-                        <strong>قانون گردش کار مراحل ۴ تا ۱۳:</strong>
-                        امکان برگشت پرونده به هر یک از مراحل قبلی دلخواه وجود دارد. ثبت توضیحات کامل دلیل بازگشت الزامی است.
-                    </div>
-                </template>
+            <!-- Rule Alert Banner -->
+            <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #92400e; line-height: 1.6;">
+                <strong>راهنمای بازگردانی پرونده:</strong>
+                امکان بازگردانی پرونده به هر یک از مراحل پیشین جهت رفع مغایرت‌های اطلاعاتی، کسری مدارک یا استعلامات وجود دارد. پس از برگشت، پرونده در وضعیت «برگشت‌خورده جهت اصلاح» قرار گرفته و ثبت شرح دقیق نواقص الزامی است.
             </div>
 
             <!-- Stage Selector -->
             <div class="field-group" style="margin-bottom: 1.25rem;">
                 <label class="field-label"><span><span class="required-mark">*</span>انتخاب مرحله مقصد جهت برگشت:</span></label>
-                <select class="input-control fa-num" x-model.number="selectedReturnStage" :disabled="currentStage === 3">
+                <select class="input-control fa-num" x-model.number="selectedReturnStage" style="width: 100%; height: 42px;">
                     <template x-for="stg in getAvailableReturnStages()" :key="stg.id">
                         <option :value="stg.id" x-text="'مرحله ' + stg.id + ': ' + stg.title + ' (' + (stg.unit === 'brokerage' ? 'کارگزاری' : 'اداره کل') + ')'"></option>
                     </template>

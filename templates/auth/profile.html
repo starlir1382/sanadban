@@ -117,6 +117,47 @@
                 </form>
             </div>
         </div>
+
+        <!-- Signature Card -->
+        <div class="form-card" style="margin-bottom: 0; grid-column: span 2;">
+            <div class="form-section-header">
+                <div class="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>نمونه امضای الکترونیک سازمانی (Digital Signature)</span>
+                </div>
+            </div>
+            <div class="form-section-body" style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">تصویر امضای فعال در سامانه:</div>
+                    {% if user.profile.signature_image %}
+                    <div style="border: 1.5px dashed #0284c7; padding: 0.85rem 1.5rem; border-radius: 10px; background: #f0f9ff; text-align: center;">
+                        <img src="{{ user.profile.signature_image.url }}" alt="امضا" style="max-height: 75px; max-width: 220px; object-fit: contain;">
+                        <div style="font-size: 0.72rem; color: #0369a1; font-weight: 700; margin-top: 0.25rem;">امضای تاییدشده سازمانی</div>
+                    </div>
+                    {% else %}
+                    <div style="border: 1.5px dashed #cbd5e1; padding: 1rem 1.5rem; border-radius: 10px; background: #f8fafc; color: #94a3b8; font-size: 0.82rem;">
+                        هنوز تصویری بارگذاری نشده است
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div style="flex: 1; min-width: 260px;">
+                    <form method="POST" action="{% url 'user_profile' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_signature">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">
+                            بارگذاری تصویر امضای جدید (PNG یا JPG):
+                        </label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="file" name="signature_image" accept="image/*" required class="input-control" style="flex: 1; height: 42px; padding: 6px;">
+                            <button type="submit" class="btn btn-primary" style="font-weight: 700; white-space: nowrap;">
+                                ذخیره امضای جدید
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
