@@ -259,45 +259,53 @@
               </div>
             </td>
 
-            <!-- 5. Current Stage & Arrival Date -->
-            <td style="padding: 0.95rem 1rem; text-align: right; vertical-align: middle;">
-              <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; max-width: 100%;">
+            <!-- 5. Current Stage & Arrival Date (Always Exactly 2 Lines) -->
+            <td style="padding: 0.95rem 1rem; text-align: right; vertical-align: middle; direction: rtl;">
+              <div style="display: flex; flex-direction: column; gap: 0.4rem; width: 100%; direction: rtl;">
                 
+                <!-- Line 1: Stage Badge Pill (RTL) -->
                 <div class="stage-badge-cell {% if d.current_stage == 21 %}stage-completed{% elif d.current_unit == 'brokerage' %}stage-brokerage{% else %}stage-directorate{% endif %}"
                      title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}"
-                     style="max-width: 100%; box-sizing: border-box;">
-                  <span class="stage-tag fa-num">مرحله {{ d.current_stage }}</span>
-                  <span class="stage-title-text" style="font-size: 0.78rem;">{{ d.current_stage_title }}</span>
+                     style="width: 100%; box-sizing: border-box; direction: rtl;">
+                  <span class="stage-tag fa-num" style="flex-shrink: 0;">مرحله {{ d.current_stage }}</span>
+                  <span class="stage-title-text" style="font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.current_stage_title }}</span>
                 </div>
 
-                <!-- Status Tag (If Red, Returned, or Completed) -->
-                {% if d.status == 'REJECTED_RED' %}
-                  <div style="font-size: 0.72rem; color: #991b1b; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem; background: #fee2e2; border: 1px solid #fecaca; padding: 2px 7px; border-radius: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <span>🚫</span>
-                    <span>رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)</span>
+                <!-- Line 2: Single Balanced Metadata Bar (Date on Right, Status on Left) -->
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 22px; gap: 0.4rem; direction: rtl;">
+                  
+                  <!-- Arrival Date (Right) -->
+                  <div style="font-size: 0.74rem; color: #64748b; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; direction: rtl;" class="fa-num" title="تاریخ ورود پرونده به این مرحله">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" style="flex-shrink: 0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span>ورود:</span>
+                    <strong style="color: #334155; letter-spacing: 0.2px;">{{ d.stage_entry_date_jalali }}</strong>
                   </div>
-                {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
-                  <div style="font-size: 0.72rem; color: #c2410c; font-weight: 800; display: inline-flex; align-items: center; gap: 0.25rem; background: #ffedd5; border: 1px solid #fed7aa; padding: 2px 7px; border-radius: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    <span>⚠️</span>
-                    <span>فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن</span>
-                  </div>
-                {% elif d.current_stage == 21 %}
-                  <div style="font-size: 0.72rem; color: #15803d; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-                    <span>✓</span>
-                    <span>نهایی و بایگانی قطعی (مختومه)</span>
-                  </div>
-                {% elif d.status == 'RETURNED' %}
-                  <div style="font-size: 0.72rem; color: #b91c1c; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem; background: #fee2e2; padding: 2px 6px; border-radius: 4px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">
-                    <span>⚠️</span>
-                    <span>برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason|truncatechars:22 }}{% endif %}</span>
-                  </div>
-                {% endif %}
 
-                <!-- Date dossier arrived at this stage (Explicit RTL direction) -->
-                <div style="font-size: 0.74rem; color: #64748b; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; direction: rtl;" class="fa-num" title="تاریخ ورود به این مرحله">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" style="flex-shrink: 0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                  <span>ورود به مرحله:</span>
-                  <strong style="color: #334155; letter-spacing: 0.3px;">{{ d.stage_entry_date_jalali }}</strong>
+                  <!-- Status Badge (Left - only when returned, red form, or completed) -->
+                  <div style="display: inline-flex; align-items: center; flex-shrink: 0;">
+                    {% if d.status == 'REJECTED_RED' %}
+                      <span style="font-size: 0.68rem; color: #991b1b; font-weight: 800; background: #fee2e2; border: 1px solid #fecaca; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">
+                        <span>🚫</span>
+                        <span>رد صلاحیت</span>
+                      </span>
+                    {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
+                      <span style="font-size: 0.68rem; color: #c2410c; font-weight: 800; background: #ffedd5; border: 1px solid #fed7aa; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">
+                        <span>⚠️</span>
+                        <span>فرم «ج» قرمز</span>
+                      </span>
+                    {% elif d.current_stage == 21 %}
+                      <span style="font-size: 0.68rem; color: #15803d; font-weight: 700; background: #dcfce7; border: 1px solid #86efac; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="نهایی و بایگانی قطعی (مختومه)">
+                        <span>✓</span>
+                        <span>مختومه</span>
+                      </span>
+                    {% elif d.status == 'RETURNED' %}
+                      <span style="font-size: 0.68rem; color: #b91c1c; font-weight: 800; background: #fee2e2; border: 1px solid #fca5a5; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; cursor: help;" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">
+                        <span>⚠️</span>
+                        <span>برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
+                      </span>
+                    {% endif %}
+                  </div>
+
                 </div>
 
               </div>

@@ -267,15 +267,15 @@ body {
 
 /* Unified Dashboard Stage Badges */
 .stage-badge-cell {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0.75rem 0.3rem 0.35rem;
+  direction: rtl;
+  padding: 0.3rem 0.65rem 0.3rem 0.65rem;
   border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
-  max-width: 290px;
   box-sizing: border-box;
   line-height: 1.4;
   transition: all 0.2s ease;

@@ -103,7 +103,7 @@ class HousingDossier(models.Model):
     Merged from Excel specifications & National Housing Directorate stages.
     """
     STAGE_ROLES = {
-        0: ("brokerage", "کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی", "ثبت اطلاعات متقاضی و واحد"),
+        0: ("brokerage", "کارشناس ثبت متقاضی و واحد انتخابی", "ثبت اطلاعات متقاضی و واحد"),
         1: ("brokerage", "کارشناس اطلاعات", "کنترل اطلاعات پلاک ثبتی"),
         2: ("brokerage", "کارشناس اطلاعات (کارگزاری)", "ورود مبلغ تمام شده"),
         3: ("directorate", "کارشناس بررسی فرم ج (عالمی)", "بررسی فرم ج"),
