@@ -49,25 +49,6 @@
             {% endif %}
         </nav>
 
-        <!-- Global Multi-Field Search Bar -->
-        <form method="GET" action="{% url 'dossier_list' %}" class="header-search" style="margin: 0; flex: 1; max-width: 380px;">
-            <div class="search-input-group">
-                <button type="submit" style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; color: #93c5fd;" title="جستجو">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                </button>
-                <input type="text" name="q" value="{{ query|default:'' }}" 
-                       placeholder="جستجوی همه‌جانبه: کدملی، نام متقاضی یا همسر، بایگانی..." 
-                       class="fa-num"
-                       style="border: none; outline: none; background: transparent; color: inherit; width: 100%; font-size: 0.85rem;">
-                {% if query %}
-                <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: #cbd5e1; font-size: 0.82rem; padding: 0 0.35rem; display: flex; align-items: center;" title="پاکسازی جستجو">✕</a>
-                {% endif %}
-            </div>
-        </form>
-
         <!-- Meta & User Role Information -->
         <div class="header-meta">
             <!-- Jalali Date -->

@@ -23,6 +23,7 @@ urlpatterns = [
     # Staff & User Access Administration
     path("users/", views.users_management_view, name="users_management"),
     path("users/create/", views.create_user_action, name="create_user_action"),
+    path("users/<int:user_id>/edit/", views.edit_user_action, name="edit_user_action"),
     path("users/<int:user_id>/toggle-status/", views.toggle_user_status_action, name="toggle_user_status_action"),
     path("users/<int:user_id>/reset-password/", views.reset_user_password_action, name="reset_user_password_action"),
 

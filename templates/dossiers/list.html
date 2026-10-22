@@ -1,573 +1,361 @@
-{% extends 'base.html' %} {% load static %} {% block title %}داشبورد پرونده‌های
-نهضت ملی مسکن | سامانه سندبان{% endblock %} {% block content %}
-<div style="margin-bottom: 2rem">
-  <!-- Dashboard Hero Header -->
-  <div
-    class="dossier-hero"
-    style="
-      background: linear-gradient(135deg, #ffffff, #f0f7ff);
-      border-color: #bfdbfe;
-    "
-  >
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+{% if is_full_admin %}داشبورد نظارتی و رهگیری جامع پرونده‌ها | سامانه سندبان{% else %}کارپوشه تخصصی اقدام پرونده‌ها | سامانه سندبان{% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+
+  <!-- =========================================================================
+       HERO HEADER: ADAPTIVE FOR SUPERVISION (ADMIN/CHIEF) vs SPECIALIST INBOX
+       ========================================================================= -->
+  <div class="dossier-hero" style="background: linear-gradient(135deg, #ffffff 0%, {% if is_full_admin %}#f0fdf4 50%, #eff6ff 100%{% else %}#f0f7ff 100%{% endif %}); border-color: {% if is_full_admin %}#86efac{% else %}#bfdbfe{% endif %}; margin-bottom: 1.25rem;">
     <div>
-      <h2
-        style="
-          font-size: 1.35rem;
-          font-weight: 800;
-          color: #0f2744;
-          margin-bottom: 0.35rem;
-        "
-      >
-        میز کار و داشبورد پرونده‌های نهضت ملی مسکن
+      <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
+        {% if is_full_admin %}
+          <span style="background: linear-gradient(135deg, #15803d 0%, #166534 100%); color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.25rem 0.75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 6px rgba(22,101,52,0.25);">
+            <span>👑</span>
+            <span>پنل نظارتی مدیران ارشد و رئیس مسکن</span>
+          </span>
+          <span style="background: #e0f2fe; color: #0369a1; font-size: 0.74rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px;">
+            دسترسی به تمامی ۲۲ مرحله
+          </span>
+        {% else %}
+          <span style="background: #2563eb; color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.25rem 0.75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <span>📋</span>
+            <span>کارپوشه تخصصی اقدام</span>
+          </span>
+          <span style="background: #f1f5f9; color: #334155; font-size: 0.74rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px;" class="fa-num">
+            مراحل مجاز شما: {{ user_profile.allowed_stages }}
+          </span>
+        {% endif %}
+      </div>
+
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f2744; margin: 0 0 0.35rem 0;">
+        {% if is_full_admin %}
+          داشبورد نظارتی جامع: رصد تمامی پرونده‌ها و گلوگاه‌های توقف
+        {% else %}
+          کارپوشه اقدام: پرونده‌های در انتظار بررسی شما ({{ user_profile.role_title|default:'کارشناس اقدام' }})
+        {% endif %}
       </h2>
-      <p style="font-size: 0.88rem; color: #475569">
-        مشاهده، پیگیری، جستجو و ارجاع پرونده‌های متقاضیان در طول خط لوله ۲۴
-        مرحله‌ای کارگزاری و اداره کل راه و شهرسازی
+      <p style="font-size: 0.88rem; color: #475569; margin: 0;">
+        {% if is_full_admin %}
+          دید کلی بر خط لوله ۲۲ مرحله‌ای نهضت ملی مسکن؛ رصد مرحله توقف هر پرونده، علت برگشت احتمالی و بررسی عملکرد واحدها.
+        {% else %}
+          شما در این کارپوشه صرفاً پرونده‌هایی را مشاهده می‌کنید که هم‌اکنون در مرحله تخصصی شما متوقف شده و منتظر اقدام و تصمیم‌گیری شما هستند.
+        {% endif %}
       </p>
     </div>
-    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap">
-      <a
-        href="{% url 'dossier_detail' pk=100001 %}"
-        class="btn btn-primary"
-        style="display: flex; align-items: center; gap: 0.45rem"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-          ></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
-        <span>ورود به کارپوشه پرونده #۱۰،۰۰۱</span>
+
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+      <a href="{% url 'dossier_list' %}" class="btn btn-outline" style="display: flex; align-items: center; gap: 0.45rem; background: #ffffff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span>تازه‌سازی کارپوشه</span>
       </a>
-      <a
-        href="{% url 'dossier_list' %}"
-        class="btn btn-outline"
-        style="
-          display: flex;
-          align-items: center;
-          gap: 0.45rem;
-          background: #ffffff;
-        "
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path
-            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-          ></path>
-        </svg>
-        <span>تازه‌سازی لیست</span>
+      {% if is_full_admin %}
+      <a href="{% url 'users_management' %}" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>مدیریت کاربران و مراحل</span>
       </a>
+      {% endif %}
     </div>
   </div>
 
-  <!-- Quick Stage Filter Track -->
-  <div
-    style="
-      display: flex;
-      gap: 0.5rem;
-      overflow-x: auto;
-      padding-bottom: 0.5rem;
-      margin-bottom: 1.25rem;
-    "
-  >
-    <a
-      href="{% url 'dossier_list' %}{% if query %}?q={{ query }}{% endif %}"
-      style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; white-space: nowrap; border: 1px solid var(--color-border); background: {% if stage_filter == '' %}#2563eb; color: #fff;{% else %}#fff; color: #334155;{% endif %}"
-    >
-      همه مراحل
+  <!-- =========================================================================
+       SUPERVISORY RADAR: WHERE ARE DOSSIERS STUCK? (FOR ADMINS & HOUSING CHIEF)
+       ========================================================================= -->
+  {% if is_full_admin and stage_breakdown %}
+  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.15rem;">📍</span>
+        <span style="font-weight: 800; font-size: 0.92rem; color: #0f2744;">رادار مراحل توقف پرونده‌ها (محل توقف فعلی در خط لوله):</span>
+      </div>
+      <div style="font-size: 0.78rem; color: #64748b;">
+        کلیک روی هر مرحله جهت فیلتر آنی
+      </div>
+    </div>
+    
+    <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; align-items: center;">
+      <a href="{% url 'dossier_list' %}" 
+         style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; transition: all 0.15s; border: 1.5px solid {% if stage_filter == '' %}#2563eb; background: #2563eb; color: #ffffff;{% else %}#cbd5e1; background: #f8fafc; color: #334155;{% endif %}">
+        همه پرونده‌ها ({{ total_all_dossiers }})
+      </a>
+      {% for item in stage_breakdown %}
+      <a href="{% url 'dossier_list' %}?stage={{ item.stage_id }}" 
+         style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.45rem; border: 1.5px solid {% if stage_filter == item.stage_id|stringformat:'i' %}#2563eb; background: #2563eb; color: #ffffff;{% else %}#fed7aa; background: #fffaf0; color: #9a3412;{% endif %}"
+         class="fa-num">
+        <span>مرحله {{ item.stage_id }}: {{ item.title }}</span>
+        <span style="background: {% if stage_filter == item.stage_id|stringformat:'i' %}rgba(255,255,255,0.25){% else %}#ea580c{% endif %}; color: #ffffff; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px;">
+          {{ item.count }} پرونده
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- =========================================================================
+       QUICK STAGE FILTER TRACK (ROLE-AWARE)
+       ========================================================================= -->
+  <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; margin-bottom: 1.25rem;">
+    <a href="{% url 'dossier_list' %}{% if query %}?q={{ query }}{% endif %}"
+       style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; white-space: nowrap; border: 1px solid var(--color-border); background: {% if stage_filter == '' %}#2563eb; color: #fff;{% else %}#fff; color: #334155;{% endif %}">
+      {% if is_full_admin %}همه ۲۲ مرحله{% else %}همه مراحل مجاز من{% endif %}
     </a>
     {% for stg in stages_meta %}
-    <a
-      href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query }}{% endif %}"
-      style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; border: 1px solid var(--color-border); background: {% if stage_filter == stg.id|stringformat:'i' %}#2563eb; color: #fff;{% else %}#fff; color: #334155;{% endif %}"
-    >
-      مرحله {{ stg.id }}: {{ stg.title }} ({{ stg.unit }})
+    <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query }}{% endif %}"
+       style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; border: 1px solid var(--color-border); background: {% if stage_filter == stg.id|stringformat:'i' %}#2563eb; color: #fff;{% else %}#fff; color: #334155;{% endif %}" class="fa-num">
+      مرحله {{ stg.id }}: {{ stg.title }} ({{ stg.role }})
     </a>
     {% endfor %}
   </div>
 
-  <!-- Dedicated Multi-Field Search & Filter Box -->
-  <div
-    style="
-      background: #ffffff;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 1.15rem 1.35rem;
-      margin-bottom: 1.25rem;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-    "
-  >
-    <form
-      method="GET"
-      action="{% url 'dossier_list' %}"
-      id="dossier-search-form"
-      style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap"
-    >
+  <!-- =========================================================================
+       DEDICATED SEARCH & FILTER BOX
+       ========================================================================= -->
+  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.15rem 1.35rem; margin-bottom: 1.25rem; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);">
+    <form method="GET" action="{% url 'dossier_list' %}" id="dossier-search-form" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
       {% if stage_filter %}
       <input type="hidden" name="stage" value="{{ stage_filter }}" />
       {% endif %}
 
-      <div style="position: relative; flex: 1; min-width: 300px">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#2563eb"
-          stroke-width="2.2"
-          style="
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-          "
-        >
+      <div style="position: relative; flex: 1; min-width: 300px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none;">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
-        <input
-          type="text"
-          id="table-search-input"
-          name="q"
-          value="{{ query|default:'' }}"
-          oninput="filterDossierTable(this.value)"
-          placeholder="جستجوی آنی در تمامی فیلدها: شماره بایگانی (#100001)، کدملی، نام متقاضی، پروژه، سایت، مرحله جاری (بایگانی، 24)..."
-          class="fa-num"
-          style="
-            width: 100%;
-            padding: 0.75rem 2.85rem 0.75rem 2.5rem;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            outline: none;
-            transition: all 0.2s;
-            background: #f8fafc;
-          "
-          onfocus="
-            this.style.borderColor = '#2563eb';
-            this.style.background = '#ffffff';
-            this.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';
-          "
-          onblur="
-            this.style.borderColor = '#cbd5e1';
-            this.style.background = '#f8fafc';
-            this.style.boxShadow = 'none';
-          "
-        />
+        <input type="text"
+               id="table-search-input"
+               name="q"
+               value="{{ query|default:'' }}"
+               oninput="filterDossierTable(this.value)"
+               placeholder="جستجوی آنی: شماره بایگانی (#100001)، کدملی متقاضی یا همسر، نام، پروژه، مرحله جاری..."
+               class="fa-num"
+               style="width: 100%; padding: 0.75rem 2.85rem 0.75rem 2.5rem; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; outline: none; transition: all 0.2s; background: #f8fafc;"
+               onfocus="this.style.borderColor = '#2563eb'; this.style.background = '#ffffff'; this.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';"
+               onblur="this.style.borderColor = '#cbd5e1'; this.style.background = '#f8fafc'; this.style.boxShadow = 'none';" />
 
-        <button
-          type="button"
-          id="clear-search-btn"
-          onclick="clearSearchInput()"
-          style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; {% if not query %}display: none;{% endif %}"
-          title="پاکسازی جستجو"
-        >
-          ✕
-        </button>
+        <button type="button"
+                id="clear-search-btn"
+                onclick="clearSearchInput()"
+                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; {% if not query %}display: none;{% endif %}"
+                title="پاکسازی جستجو">✕</button>
       </div>
 
-      <button
-        type="submit"
-        class="btn btn-primary"
-        style="
-          padding: 0.75rem 1.5rem;
-          font-size: 0.88rem;
-          font-weight: 800;
-          display: flex;
-          align-items: center;
-          gap: 0.45rem;
-        "
-      >
-        <svg
-          width="17"
-          height="17"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-        >
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
+      <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.88rem; font-weight: 800; display: flex; align-items: center; gap: 0.45rem;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <span>جستجو</span>
       </button>
 
       {% if query %}
-      <a
-        href="{% url 'dossier_list' %}{% if stage_filter %}?stage={{ stage_filter }}{% endif %}"
-        class="btn btn-outline"
-        style="
-          padding: 0.75rem 1.1rem;
-          font-size: 0.82rem;
-          color: #dc2626;
-          border-color: #fca5a5;
-          display: flex;
-          align-items: center;
-          gap: 0.35rem;
-        "
-        title="حذف فیلتر و نمایش همه"
-      >
+      <a href="{% url 'dossier_list' %}{% if stage_filter %}?stage={{ stage_filter }}{% endif %}" class="btn btn-outline" style="padding: 0.75rem 1.1rem; font-size: 0.82rem; color: #dc2626; border-color: #fca5a5; display: flex; align-items: center; gap: 0.35rem;" title="حذف فیلتر و نمایش همه">
         <span>✕ حذف فیلتر جستجو</span>
       </a>
       {% endif %}
     </form>
 
     <!-- Search Guide & Active Counter Status -->
-    <div
-      style="
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-        font-size: 0.78rem;
-        color: #64748b;
-        border-top: 1px dashed #e2e8f0;
-        padding-top: 0.6rem;
-      "
-    >
-      <div
-        style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap"
-      >
-        <span style="font-weight: 700; color: #334155"
-          >پشتیبانی از جستجوی همه‌جانبه:</span
-        >
-        <span
-          style="
-            background: #f1f5f9;
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-          "
-          >شماره بایگانی (۱۰،۰۰۱ / #100001)</span
-        >
-        <span
-          style="
-            background: #f1f5f9;
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-          "
-          >کدملی متقاضی</span
-        >
-        <span
-          style="
-            background: #f1f5f9;
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-          "
-          >نام و نام خانوادگی</span
-        >
-        <span
-          style="
-            background: #f1f5f9;
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-          "
-          >نام پروژه و سایت (۵۶۰ هکتاری، قنوات، پرنیان)</span
-        >
-        <span
-          style="
-            background: #f1f5f9;
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-          "
-          >مرحله جاری (۲۴، بایگانی، نهضت ملی، وام دهک)</span
-        >
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.78rem; color: #64748b; border-top: 1px dashed #e2e8f0; padding-top: 0.6rem;">
+      <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+        <span style="font-weight: 700; color: #334155;">راهنمای جستجو:</span>
+        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">کدملی</span>
+        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">نام متقاضی یا همسر</span>
+        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">شماره بایگانی (#100001)</span>
+        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">پروژه و سایت</span>
       </div>
-      <div
-        id="search-result-count"
-        class="fa-num"
-        style="
-          font-weight: 800;
-          color: #1e40af;
-          background: #dbeafe;
-          padding: 0.25rem 0.75rem;
-          border-radius: 8px;
-        "
-      >
-        {{ dossiers.count }} پرونده فعال
+      <div id="search-result-count" class="fa-num" style="font-weight: 800; color: #1e40af; background: #dbeafe; padding: 0.25rem 0.75rem; border-radius: 8px;">
+        {{ dossiers.count }} پرونده در این کارپوشه
       </div>
     </div>
   </div>
 
-  <!-- Dossier Data Table -->
-  <div class="form-card">
-    <div
-      class="panel-header"
-      style="
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        padding: 1rem 1.5rem;
-        border-bottom: 1.5px solid #e2e8f0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      "
-    >
-      <div
-        class="panel-title"
-        style="
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-          font-weight: 800;
-          color: #0f2744;
-          font-size: 1.05rem;
-        "
-      >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#2563eb"
-          stroke-width="2.2"
-        >
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
-        <span>فهرست پرونده‌های مسکن ثبتی</span>
+  <!-- =========================================================================
+       DOSSIERS DATA TABLE CARD
+       ========================================================================= -->
+  <div class="form-card" style="box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); border: 1.5px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff;">
+    <div class="panel-header" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.1rem 1.5rem; border-bottom: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div class="panel-title" style="display: flex; align-items: center; gap: 0.6rem; font-weight: 800; color: #0f2744; font-size: 1.05rem;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        <span>
+          {% if is_full_admin %}
+            فهرست کلیه پرونده‌های مسکن و وضعیت مراحل توقف
+          {% else %}
+            پرونده‌های منتظر اقدام تخصصی شما
+          {% endif %}
+        </span>
       </div>
-      {% if query %}
-      <div
-        style="
-          font-size: 0.8rem;
-          background: #eff6ff;
-          color: #1d4ed8;
-          padding: 0.25rem 0.75rem;
-          border-radius: 6px;
-          border: 1px solid #bfdbfe;
-        "
-      >
-        فیلتر جستجو بر اساس: <strong class="fa-num">"{{ query }}"</strong>
+
+      {% if stage_filter %}
+      <div style="font-size: 0.8rem; background: #eff6ff; color: #1d4ed8; padding: 0.3rem 0.85rem; border-radius: 6px; border: 1px solid #bfdbfe; font-weight: 700;" class="fa-num">
+        فیلتر مرحله: مرحله {{ stage_filter }}
       </div>
       {% endif %}
     </div>
 
-    <div style="overflow-x: auto">
-      <table
-        style="
-          width: 100%;
-          border-collapse: collapse;
-          text-align: right;
-          font-size: 0.88rem;
-        "
-      >
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.88rem;">
         <thead>
-          <tr
-            style="
-              background: #f8fafc;
-              border-bottom: 1.5px solid #e2e8f0;
-              color: #475569;
-              font-weight: 800;
-              font-size: 0.82rem;
-            "
-          >
-            <th style="padding: 1rem 1.25rem; width: 140px">شماره بایگانی</th>
-            <th style="padding: 1rem 1rem; width: 150px">کدملی</th>
-            <th style="padding: 1rem 1rem">نام متقاضی</th>
-            <th style="padding: 1rem 1rem">پروژه و سایت</th>
-            <th style="padding: 1rem 1rem; width: 270px; white-space: nowrap">
-              مرحله جاری
-            </th>
-            <th style="padding: 1rem 1rem; width: 160px">مسئول اقدام</th>
-            <th style="padding: 1rem 1rem; width: 175px; white-space: nowrap">
-              آورده متقاضی
-            </th>
-            <th
-              style="
-                padding: 1rem 1.25rem;
-                width: 160px;
-                text-align: center;
-                white-space: nowrap;
-              "
-            >
-              عملیات
-            </th>
+          <tr style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; color: #475569; font-weight: 800; font-size: 0.82rem;">
+            <th style="padding: 1rem 1.25rem; width: 130px;">شماره بایگانی</th>
+            <th style="padding: 1rem 1rem; width: 140px;">کدملی</th>
+            <th style="padding: 1rem 1rem;">نام متقاضی و همسر</th>
+            <th style="padding: 1rem 1rem;">پروژه و سایت</th>
+            <th style="padding: 1rem 1rem; width: 280px; white-space: nowrap;">محل توقف و مرحله جاری</th>
+            <th style="padding: 1rem 1rem; width: 170px;">مسئول اقدام</th>
+            <th style="padding: 1rem 1rem; width: 160px; white-space: nowrap;">آورده متقاضی</th>
+            <th style="padding: 1rem 1.25rem; width: 160px; text-align: center; white-space: nowrap;">عملیات</th>
           </tr>
         </thead>
         <tbody id="dossier-table-body">
           {% for d in dossiers %}
-          <tr
-            class="dossier-row"
-            data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }}"
-            style="
-              border-bottom: 1px solid #f1f5f9;
-              transition: background 0.15s;
-            "
-            onmouseover="this.style.background = '#f8fafc'"
-            onmouseout="this.style.background = 'transparent'"
-          >
+          <tr class="dossier-row"
+              data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }}"
+              style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;"
+              onmouseover="this.style.background = '#f8fafc'"
+              onmouseout="this.style.background = 'transparent'">
+            
             <!-- Archive Number -->
-            <td
-              style="padding: 1rem 1.25rem; font-weight: 800; color: #1e3a8a"
-              class="fa-num"
-            >
+            <td style="padding: 1rem 1.25rem; font-weight: 800; color: #1e3a8a;" class="fa-num">
               # {{ d.archive_number }}
             </td>
 
             <!-- National ID -->
-            <td
-              style="
-                padding: 1rem 1rem;
-                font-family: monospace;
-                font-size: 0.92rem;
-                letter-spacing: 0.5px;
-              "
-              class="fa-num"
-            >
+            <td style="padding: 1rem 1rem; font-family: monospace; font-size: 0.92rem; letter-spacing: 0.5px;" class="fa-num">
               {{ d.national_id }}
             </td>
 
-            <!-- Applicant Name -->
-            <td style="padding: 1rem 1rem; font-weight: 700; color: #0f172a">
-              {{ d.full_name }}
+            <!-- Applicant & Spouse Name -->
+            <td style="padding: 1rem 1rem;">
+              <strong style="color: #0f172a; display: block;">{{ d.full_name }}</strong>
+              {% if d.spouse_full_name %}
+              <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">
+                همسر: {{ d.spouse_full_name }}
+              </div>
+              {% endif %}
             </td>
 
             <!-- Project and Site -->
-            <td style="padding: 1rem 1rem; color: #334155">
-              <div style="font-weight: 600">{{ d.project }}</div>
-              <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px">
-                سایت {{ d.site }}
+            <td style="padding: 1rem 1rem; color: #334155;">
+              <div style="font-weight: 600;">{{ d.project }}</div>
+              <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">سایت {{ d.site }}</div>
+            </td>
+
+            <!-- Where is it stuck? / Current Stage -->
+            <td style="padding: 0.85rem 1rem; vertical-align: middle;">
+              <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                
+                <div class="stage-badge-cell {% if d.current_stage == 21 %}stage-completed{% elif d.current_unit == 'brokerage' %}stage-brokerage{% else %}stage-directorate{% endif %}"
+                     title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
+                  <span class="stage-tag fa-num">مرحله {{ d.current_stage }}</span>
+                  <span class="stage-title-text">{{ d.current_stage_title }}</span>
+                </div>
+
+                <!-- Stuck state indicator -->
+                {% if d.current_stage == 21 %}
+                  <div style="font-size: 0.72rem; color: #15803d; font-weight: 700; display: flex; align-items: center; gap: 0.25rem;">
+                    <span>✓</span>
+                    <span>نهایی و بایگانی قطعی (مختومه)</span>
+                  </div>
+                {% elif d.status == 'RETURNED' %}
+                  <div style="font-size: 0.72rem; color: #b91c1c; font-weight: 700; display: flex; align-items: center; gap: 0.25rem; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">
+                    <span>⚠️</span>
+                    <span>برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason|truncatechars:28 }}{% endif %}</span>
+                  </div>
+                {% else %}
+                  <div style="font-size: 0.72rem; color: #b45309; font-weight: 700; display: flex; align-items: center; gap: 0.25rem;">
+                    <span>⏳</span>
+                    <span>متوقف در این مرحله جهت اقدام</span>
+                  </div>
+                {% endif %}
+
               </div>
             </td>
 
-            <!-- Current Stage (Unified Lookalike Badges) -->
-            <td style="padding: 0.85rem 1rem; vertical-align: middle">
-              <div
-                class="stage-badge-cell {% if d.current_stage == 24 %}stage-completed{% elif d.current_unit == 'کارگزاری' %}stage-brokerage{% else %}stage-directorate{% endif %}"
-                title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }} ({{ d.current_role }})"
-              >
-                <span class="stage-tag fa-num"
-                  >مرحله {{ d.current_stage }}</span
-                >
-                <span class="stage-title-text"
-                  >{{ d.current_stage_title }}</span
-                >
+            <!-- Responsible Role & Unit -->
+            <td style="padding: 1rem 1rem;">
+              <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b;">
+                {{ d.current_role }}
+              </div>
+              <div style="margin-top: 3px;">
+                {% if d.current_unit == 'brokerage' %}
+                <span style="font-size: 0.7rem; background: #eef2ff; color: #4338ca; padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                  واحد کارگزاری مسکن
+                </span>
+                {% else %}
+                <span style="font-size: 0.7rem; background: #ecfdf5; color: #065f46; padding: 1px 6px; border-radius: 4px; font-weight: 700;">
+                  اداره کل راه و شهرسازی
+                </span>
+                {% endif %}
               </div>
             </td>
 
-            <!-- Role -->
-            <td style="padding: 1rem 1rem; font-size: 0.8rem; color: #64748b">
-              {{ d.current_role }}
-            </td>
-
-            <!-- Applicant Equity with Comma Separators and Rial at End -->
-            <td
-              style="
-                padding: 1rem 1rem;
-                font-weight: 700;
-                color: #047857;
-                white-space: nowrap;
-                direction: rtl;
-              "
-              class="fa-num"
-            >
+            <!-- Applicant Equity -->
+            <td style="padding: 1rem 1rem; font-weight: 700; color: #047857; white-space: nowrap; direction: rtl;" class="fa-num">
               <span>{{ d.formatted_equity }}</span>
-              <span
-                style="
-                  font-size: 0.78rem;
-                  font-weight: 700;
-                  color: #065f46;
-                  margin-right: 4px;
-                "
-                >ریال</span
-              >
+              <span style="font-size: 0.78rem; font-weight: 700; color: #065f46; margin-right: 4px;">ریال</span>
             </td>
 
             <!-- Action Button -->
-            <td
-              style="
-                padding: 0.85rem 1.25rem;
-                text-align: center;
-                white-space: nowrap;
-              "
-            >
-              <a
-                href="{% url 'dossier_detail' pk=d.archive_number %}"
-                class="btn-open-dossier"
-                title="مشاهده و ارزیابی پرونده {{ d.archive_number }}"
-              >
+            <td style="padding: 0.85rem 1.25rem; text-align: center; white-space: nowrap;">
+              <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="btn-open-dossier" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
                 <span>ورود به پرونده</span>
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  class="btn-arrow-icon"
-                >
-                  <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow-icon"><polyline points="15 18 9 12 15 6"></polyline></svg>
               </a>
             </td>
           </tr>
+
           {% empty %}
+          <!-- Empty State (Role-Specific) -->
           <tr id="server-empty-row">
-            <td
-              colspan="8"
-              style="text-align: center; padding: 4rem 1.5rem; color: #94a3b8"
-            >
-              <div style="font-size: 2rem; margin-bottom: 0.5rem">🔍</div>
-              <div style="font-weight: 800; font-size: 1.05rem; color: #334155">
-                هیچ پرونده‌ای منطبق با جستجوی شما یافت نشد
-              </div>
-              <div
-                style="font-size: 0.85rem; margin-top: 0.35rem; color: #64748b"
-              >
-                عبارت جستجو شده: "{{ query }}"
-              </div>
-              <div style="margin-top: 1.25rem">
-                <a
-                  href="{% url 'dossier_list' %}"
-                  class="btn btn-primary"
-                  style="font-size: 0.84rem"
-                >
-                  نمایش تمامی پرونده‌ها
-                </a>
-              </div>
+            <td colspan="8" style="text-align: center; padding: 4.5rem 1.5rem; color: #64748b;">
+              {% if is_full_admin %}
+                <div style="font-size: 2.5rem; margin-bottom: 0.65rem;">🔍</div>
+                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b;">
+                  هیچ پرونده‌ای منطبق با فیلتر یا جستجوی شما یافت نشد
+                </div>
+                <div style="font-size: 0.88rem; margin-top: 0.4rem; color: #64748b;">
+                  {% if query %}عبارت جستجو شده: «{{ query }}»{% else %}در فیلتر انتخابی پرونده‌ای وجود ندارد.{% endif %}
+                </div>
+                <div style="margin-top: 1.25rem;">
+                  <a href="{% url 'dossier_list' %}" class="btn btn-primary" style="font-size: 0.86rem; font-weight: 700;">
+                    نمایش تمامی پرونده‌ها
+                  </a>
+                </div>
+              {% else %}
+                <div style="width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+                <div style="font-weight: 800; font-size: 1.2rem; color: #0f2744; margin-bottom: 0.5rem;">
+                  کارپوشه اقدام شما خالی است
+                </div>
+                <div style="font-size: 0.9rem; color: #475569; max-width: 520px; margin: 0 auto; line-height: 1.7;">
+                  در حال حاضر هیچ پرونده‌ای در مرحله‌های مجاز شما (<strong class="fa-num">مراحل {{ user_profile.allowed_stages }}</strong>) متوقف نشده است. به محض ارسال یا ارجاع پرونده از مرحله قبل، در این کارپوشه قرار خواهد گرفت.
+                </div>
+                <div style="margin-top: 1.5rem;">
+                  <a href="{% url 'dossier_list' %}" class="btn btn-outline" style="font-size: 0.86rem; background: #ffffff;">
+                    بررسی مجدد و تازه‌سازی کارپوشه
+                  </a>
+                </div>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
 
           <!-- Client-side Instant Filter No-Results Row (Hidden by default) -->
-          <tr id="client-empty-row" style="display: none">
-            <td
-              colspan="8"
-              style="text-align: center; padding: 3.5rem 1.5rem; color: #94a3b8"
-            >
-              <div style="font-size: 2rem; margin-bottom: 0.5rem">🔍</div>
-              <div style="font-weight: 800; font-size: 1.05rem; color: #334155">
-                پرونده‌ای منطبق با عبارت واردشده یافت نشد
+          <tr id="client-empty-row" style="display: none;">
+            <td colspan="8" style="text-align: center; padding: 3.5rem 1.5rem; color: #94a3b8;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+              <div style="font-weight: 800; font-size: 1.05rem; color: #334155;">
+                پرونده‌ای منطبق با عبارت واردشده در این کارپوشه یافت نشد
               </div>
-              <div
-                style="font-size: 0.82rem; margin-top: 0.35rem; color: #64748b"
-              >
+              <div style="font-size: 0.82rem; margin-top: 0.35rem; color: #64748b;">
                 می‌توانید کلمه دیگری را جستجو نموده یا دکمه پاکسازی را بزنید.
               </div>
-              <div style="margin-top: 1rem">
-                <button
-                  type="button"
-                  class="btn btn-outline"
-                  onclick="clearSearchInput()"
-                  style="font-size: 0.82rem"
-                >
+              <div style="margin-top: 1rem;">
+                <button type="button" class="btn btn-outline" onclick="clearSearchInput()" style="font-size: 0.82rem;">
                   پاکسازی جستجو و نمایش همه
                 </button>
               </div>
@@ -607,7 +395,7 @@
 
     const normTerm = normalizeDossierQuery(term);
     const rows = document.querySelectorAll(
-      "#dossier-table-body tr.dossier-row",
+      "#dossier-table-body tr.dossier-row"
     );
     const emptyRow = document.getElementById("client-empty-row");
     const countBadge = document.getElementById("search-result-count");
@@ -615,7 +403,7 @@
     if (!normTerm) {
       rows.forEach((r) => (r.style.display = ""));
       if (emptyRow) emptyRow.style.display = "none";
-      if (countBadge) countBadge.innerText = rows.length + " پرونده فعال";
+      if (countBadge) countBadge.innerText = rows.length + " پرونده در این کارپوشه";
       return;
     }
 
@@ -626,7 +414,7 @@
 
     rows.forEach((row) => {
       const rowData = normalizeDossierQuery(
-        row.getAttribute("data-search") || row.innerText,
+        row.getAttribute("data-search") || row.innerText
       );
       const isMatch =
         tokens.length === 0 || tokens.every((token) => rowData.includes(token));

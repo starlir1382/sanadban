@@ -130,14 +130,30 @@ def get_token_search_condition(token: str):
 @login_required(login_url='login')
 def dossier_list_view(request):
     """
-    Dashboard list view showing all housing dossiers with multi-field search and stage filtering.
-    Searches across: archive_number, national_id, full_name, father_name, spouse,
-    project, site, current_stage number, and stage title/role.
+    Dashboard list view showing housing dossiers with strict role-based stage visibility.
+    - Regular experts ONLY see dossiers stuck at their assigned stage(s).
+    - Admins, superusers, and Housing Chief see ALL dossiers across the 22-stage pipeline and where each dossier is stuck.
     """
     query = request.GET.get('q', '').strip()
     stage_filter = request.GET.get('stage', '')
 
+    profile = getattr(request.user, 'profile', None)
+    is_super = request.user.is_superuser
+    is_staff = request.user.is_staff
+    is_chief = bool(profile and profile.is_housing_chief)
+    is_system = bool(profile and profile.organization == 'system')
+    is_all_stages = bool(profile and profile.allowed_stages == 'all')
+    
+    is_full_admin = is_super or is_staff or is_chief or is_system or is_all_stages
+
     dossiers = HousingDossier.objects.all()
+
+    # Stage restriction for regular experts
+    user_allowed_stages = []
+    if not is_full_admin:
+        if profile and profile.allowed_stages:
+            user_allowed_stages = [int(s.strip()) for s in profile.allowed_stages.split(',') if s.strip().isdigit()]
+        dossiers = dossiers.filter(current_stage__in=user_allowed_stages)
 
     if query:
         whole_cond = get_token_search_condition(query)
@@ -156,20 +172,53 @@ def dossier_list_view(request):
 
     if stage_filter != '':
         try:
-            dossiers = dossiers.filter(current_stage=int(stage_filter))
+            stg_val = int(stage_filter)
+            if is_full_admin or stg_val in user_allowed_stages:
+                dossiers = dossiers.filter(current_stage=stg_val)
+            else:
+                dossiers = dossiers.none()
         except ValueError:
             pass
 
-    stages_meta = [
+    # Build stages_meta
+    all_stages = [
         {"id": i, "title": role_tuple[2], "role": role_tuple[1], "unit": role_tuple[0]}
         for i, role_tuple in HousingDossier.STAGE_ROLES.items()
     ]
+    if is_full_admin:
+        stages_meta = all_stages
+    else:
+        stages_meta = [stg for stg in all_stages if stg["id"] in user_allowed_stages]
+
+    # Compute stuck breakdown for admins to see where dossiers are stuck across all stages
+    stage_breakdown = []
+    if is_full_admin:
+        from django.db.models import Count
+        counts_by_stage = dict(HousingDossier.objects.values_list('current_stage').annotate(cnt=Count('id')))
+        for stg in all_stages:
+            cnt = counts_by_stage.get(stg["id"], 0)
+            if cnt > 0:
+                stage_breakdown.append({
+                    "stage_id": stg["id"],
+                    "title": stg["title"],
+                    "role": stg["role"],
+                    "unit": stg["unit"],
+                    "count": cnt,
+                })
+
+    user_allowed_titles = [f"مرحله {i} ({HousingDossier.STAGE_ROLES[i][2]})" for i in user_allowed_stages if i in HousingDossier.STAGE_ROLES]
 
     context = {
         "dossiers": dossiers,
         "query": query,
         "stage_filter": stage_filter,
         "stages_meta": stages_meta,
+        "is_full_admin": is_full_admin,
+        "user_profile": profile,
+        "user_allowed_stages": user_allowed_stages,
+        "user_allowed_titles": user_allowed_titles,
+        "stage_breakdown": stage_breakdown,
+        "total_all_dossiers": HousingDossier.objects.count() if is_full_admin else dossiers.count(),
     }
     return render(request, "dossiers/list.html", context)
 
@@ -177,10 +226,28 @@ def dossier_list_view(request):
 @login_required(login_url='login')
 def dossier_detail_view(request, pk):
     """
-    Main interactive workspace view for a single housing dossier across its 24-stage workflow.
-    Serializes dossier state into JSON so Alpine.js starts with exact database values.
+    Main interactive workspace view for a single housing dossier across its 22-stage workflow.
+    Restricts access so experts can ONLY open dossiers currently stuck at their permitted stage.
+    Admins, superusers, and Housing Chief have full access to inspect all dossiers.
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
+
+    profile = getattr(request.user, 'profile', None)
+    is_super = request.user.is_superuser
+    is_staff = request.user.is_staff
+    is_chief = bool(profile and profile.is_housing_chief)
+    is_system = bool(profile and profile.organization == 'system')
+    is_all_stages = bool(profile and profile.allowed_stages == 'all')
+    is_full_admin = is_super or is_staff or is_chief or is_system or is_all_stages
+
+    if not is_full_admin:
+        user_allowed = [int(s.strip()) for s in profile.allowed_stages.split(',') if s.strip().isdigit()] if profile and profile.allowed_stages else []
+        if dossier.current_stage not in user_allowed:
+            messages.warning(
+                request,
+                f"عدم دسترسی: پرونده شماره #{dossier.archive_number} هم‌اکنون در مرحله {dossier.current_stage} ({dossier.current_stage_title}) متوقف است. شما صرفاً مجاز به کار بر روی پرونده‌های متوقف در مراحل تخصصی خود ({profile.allowed_stages if profile else 'هیچکدام'}) می‌باشید."
+            )
+            return redirect("dossier_list")
     attachments = dossier.attachments.all().order_by("stage", "-uploaded_at")
     audit_logs = dossier.audit_logs.all().order_by("-timestamp")
 
@@ -1024,7 +1091,7 @@ def first_login_setup_view(request):
 @login_required(login_url='login')
 def users_management_view(request):
     """
-    Admin control panel to manage registered experts, review access rights, and monitor accounts.
+    Admin control panel to manage registered experts, review access rights, and assign stages.
     Accessible to Superadmin, Staff, and Housing Chief (رئیس مسکن).
     """
     profile = getattr(request.user, 'profile', None)
@@ -1036,9 +1103,17 @@ def users_management_view(request):
     count_brokerage = 0
     count_directorate = 0
     count_system = 0
+    count_chief = 0
 
+    all_stages_meta = [
+        {"id": i, "title": role_tuple[2], "role": role_tuple[1], "unit": role_tuple[0]}
+        for i, role_tuple in HousingDossier.STAGE_ROLES.items()
+    ]
+
+    users_data = []
     for u in users:
-        org = getattr(u, 'profile', None) and u.profile.organization
+        p = getattr(u, 'profile', None)
+        org = p.organization if p else "brokerage"
         if org == "brokerage":
             count_brokerage += 1
         elif org == "directorate":
@@ -1046,13 +1121,116 @@ def users_management_view(request):
         else:
             count_system += 1
 
+        is_chief = bool(p and p.is_housing_chief)
+        if is_chief:
+            count_chief += 1
+
+        allowed_raw = p.allowed_stages if p else "all"
+        if allowed_raw == "all" or is_chief or u.is_superuser:
+            parsed_stages = "all"
+            stage_pills = [{"id": "all", "title": "کلیه ۲۲ مرحله (اختیارات تام)"}]
+        else:
+            nums = [int(s.strip()) for s in allowed_raw.split(',') if s.strip().isdigit()]
+            stage_pills = [{"id": s, "title": f"مرحله {s}: {HousingDossier.STAGE_ROLES.get(s, ('','',f'مرحله {s}'))[2]}"} for s in nums]
+            parsed_stages = ",".join(str(s) for s in nums)
+
+        users_data.append({
+            "id": u.id,
+            "username": u.username,
+            "full_name": p.full_name if p and p.full_name else u.username,
+            "organization": org,
+            "role_title": p.role_title if p and p.role_title else "کارشناس اقدام‌کننده",
+            "personnel_code": p.personnel_code if p else "",
+            "phone_number": p.phone_number if p else "",
+            "national_id": p.national_id if p else "",
+            "can_sign": p.can_sign if p else True,
+            "is_housing_chief": is_chief,
+            "is_superuser": u.is_superuser,
+            "is_active": u.is_active,
+            "allowed_stages": allowed_raw,
+            "parsed_stages": parsed_stages,
+            "stage_pills": stage_pills,
+        })
+
     context = {
         "users": users,
+        "users_data": users_data,
+        "all_stages_meta": all_stages_meta,
         "count_brokerage": count_brokerage,
         "count_directorate": count_directorate,
         "count_system": count_system,
+        "count_chief": count_chief,
     }
     return render(request, "admin/users_manage.html", context)
+
+
+@login_required(login_url='login')
+def edit_user_action(request, user_id):
+    """
+    Updates profile, organization, roles, housing chief status, and allowed stages for a user.
+    Accessible to Superadmin, Staff, and Housing Chief.
+    """
+    profile = getattr(request.user, 'profile', None)
+    if not (request.user.is_staff or request.user.is_superuser or (profile and profile.is_housing_chief)):
+        return HttpResponseBadRequest("مجوز غیرمجاز")
+
+    if request.method == "POST":
+        target_user = get_object_or_404(User, id=user_id)
+        target_profile, _ = UserProfile.objects.get_or_create(user=target_user)
+
+        full_name = request.POST.get("full_name", "").strip()
+        role_title = request.POST.get("role_title", "").strip()
+        organization = request.POST.get("organization", "brokerage").strip()
+        personnel_code = request.POST.get("personnel_code", "").strip()
+        phone_number = request.POST.get("phone_number", "").strip()
+        national_id = request.POST.get("national_id", "").strip()
+        is_housing_chief = bool(request.POST.get("is_housing_chief"))
+        can_sign = bool(request.POST.get("can_sign"))
+        is_active = bool(request.POST.get("is_active"))
+
+        stages_selected = request.POST.getlist("stages_selected")
+        stages_text = request.POST.get("allowed_stages", "").strip()
+
+        if is_housing_chief:
+            allowed_stages = "all"
+            target_user.is_staff = True
+        elif stages_selected:
+            if "all" in stages_selected:
+                allowed_stages = "all"
+            else:
+                try:
+                    sorted_stages = sorted([int(s) for s in stages_selected if s.isdigit()])
+                    allowed_stages = ",".join(str(s) for s in sorted_stages)
+                except Exception:
+                    allowed_stages = ",".join(stages_selected)
+        elif stages_text:
+            allowed_stages = stages_text
+        else:
+            allowed_stages = "0"
+
+        if organization == "system":
+            target_user.is_staff = True
+
+        if full_name:
+            target_profile.full_name = full_name
+        target_profile.role_title = role_title or "کارشناس اقدام‌کننده"
+        target_profile.organization = organization
+        target_profile.personnel_code = personnel_code
+        target_profile.phone_number = phone_number
+        target_profile.national_id = national_id
+        target_profile.is_housing_chief = is_housing_chief
+        target_profile.allowed_stages = allowed_stages
+        target_profile.can_sign = can_sign
+        target_profile.save()
+
+        # Update user active status (prevent deactivating own account)
+        if target_user != request.user:
+            target_user.is_active = is_active
+        target_user.save()
+
+        messages.success(request, f"دسترسی‌ها، مراحل و مشخصات کاربر «{target_user.username}» با موفقیت بروزرسانی شد.")
+
+    return redirect("users_management")
 
 
 @login_required(login_url='login')
