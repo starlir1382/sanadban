@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project, UserProfile
+from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project, UserProfile, DossierCheck
 
 DOSSIER_FIELD_LABELS = {
     "full_name": "نام و نام خانوادگی متقاضی",
@@ -75,10 +75,25 @@ DOSSIER_FIELD_LABELS = {
     "current_year_rent": "اجاره سال جاری (ریال)",
     "land_lease_year": "سال اجاره عرصه",
     "preparation_cost": "مبلغ آماده سازی (ریال)",
-    "cash_preparation_amount": "مبلغ نقدی آماده سازی (ریال)",
-    "non_cash_preparation_amount": "مبلغ غیرنقدی آماده سازی (ریال)",
+    "cash_preparation_amount": "مبلغ نقدی آماده سازی (۲۰٪ نقد - ریال)",
+    "non_cash_preparation_amount": "مبلغ غیرنقدی آماده سازی (۸۰٪ اقساط - ریال)",
     "is_cash_rent_confirmed": "تایید مبلغ نقدی اجاره",
     "is_decile_loan_confirmed": "تایید چک‌های وام دهک",
+    "decile_loan_bank": "بانک عامل وام دهک",
+    "supported_institution": "نهاد تحت حمایت متقاضی",
+    "check_count": "تعداد چک‌های تسهیلات دهک",
+    "check_amount": "مبلغ هر فقره چک تسهیلات (ریال)",
+    "last_check_amount": "مبلغ چک آخر تسهیلات (ریال)",
+    "total_check_amount": "مجموع کل مبالغ چک‌های تسهیلات (ریال)",
+    "check_service_fee": "کارمزد خدمات چک (ریال)",
+    "commitment_number": "شماره تعهدنامه چک",
+    "commitment_date": "تاریخ تعهدنامه چک",
+    "tenant_price": "مبلغ پرداختی اجاره عرصه (ریال)",
+    "tenant_code": "کد رهگیری فیش اجاره عرصه",
+    "prepayment_code": "کد رهگیری فیش پیش‌پرداخت آماده‌سازی",
+    "preparation_service_fee": "کارمزد خدمات آماده‌سازی (ریال)",
+    "rah_letter": "شماره نامه راه و شهرسازی",
+    "rah_letter_date": "تاریخ نامه راه و شهرسازی",
 }
 
 def normalize_digits(text: str, to_type="ascii") -> str:
@@ -301,6 +316,27 @@ def dossier_detail_view(request, pk):
         for log in audit_logs
     ]
 
+    # Check entries for BankCheckTracker
+    check_items_list = []
+    for item in dossier.check_items.all().order_by("row_number", "id"):
+        check_items_list.append({
+            "id": item.id,
+            "row_number": item.row_number,
+            "cash_date": item.cash_date,
+            "check_amount": item.check_amount,
+            "check_sayadi_code": item.check_sayadi_code,
+            "bank_name": item.bank_name,
+        })
+    if not check_items_list and dossier.check_entries_json and dossier.check_entries_json.strip() not in ("[]", ""):
+        try:
+            check_items_list = json.loads(dossier.check_entries_json)
+        except Exception:
+            pass
+    if not check_items_list:
+        check_items_list = [
+            {"row_number": 1, "cash_date": "", "check_amount": 0, "check_sayadi_code": "", "bank_name": "بانک مسکن"}
+        ]
+
     dossier_data = {
         "archive_number": dossier.archive_number,
         "current_stage": dossier.current_stage,
@@ -380,6 +416,22 @@ def dossier_detail_view(request, pk):
             "non_cash_preparation_amount": dossier.non_cash_preparation_amount,
             "is_cash_rent_confirmed": dossier.is_cash_rent_confirmed,
             "is_decile_loan_confirmed": dossier.is_decile_loan_confirmed,
+            "decile_loan_bank": dossier.decile_loan_bank or "بانک مسکن",
+            "supported_institution": dossier.supported_institution or "هیچکدام",
+            "check_count": dossier.check_count or len(check_items_list),
+            "check_amount": dossier.check_amount,
+            "last_check_amount": dossier.last_check_amount,
+            "total_check_amount": dossier.total_check_amount or sum(c.get("check_amount", 0) for c in check_items_list),
+            "check_service_fee": dossier.check_service_fee or 2000000,
+            "commitment_number": dossier.commitment_number or "",
+            "commitment_date": dossier.commitment_date or "",
+            "check_entries": check_items_list,
+            "tenant_price": dossier.tenant_price or 0,
+            "tenant_code": dossier.tenant_code or "",
+            "prepayment_code": dossier.prepayment_code or "",
+            "preparation_service_fee": dossier.preparation_service_fee or 2000000,
+            "rah_letter": dossier.rah_letter or "",
+            "rah_letter_date": dossier.rah_letter_date or "",
         },
         "attachments": attachments_data,
         "audit_logs": audit_logs_data,
@@ -529,7 +581,9 @@ def save_dossier_draft_view(request, pk):
         "marital_status",
         "site", "project", "construction_type", "block_name", "block_code",
         "unit_code", "unit_direction", "registration_section",
-        "bank_letter_number", "bank_letter_date", "land_lease_year"
+        "bank_letter_number", "bank_letter_date", "land_lease_year",
+        "decile_loan_bank", "supported_institution", "commitment_number", "commitment_date",
+        "tenant_code", "prepayment_code", "rah_letter", "rah_letter_date"
     ]:
         if field in data and data[field] is not None:
             parsed_updates[field] = str(data[field]).strip()
@@ -541,7 +595,9 @@ def save_dossier_draft_view(request, pk):
         "main_plaque", "separated_plaque", "sub_plaque", "plot_number",
         "base_cost_without_loan", "bank_loan_amount", "fund_loan_amount", "contractor_letter_amount",
         "decile_loan_amount", "past_years_rent", "current_year_rent",
-        "preparation_cost", "cash_preparation_amount", "non_cash_preparation_amount"
+        "preparation_cost", "cash_preparation_amount", "non_cash_preparation_amount",
+        "check_count", "check_amount", "last_check_amount", "total_check_amount",
+        "check_service_fee", "tenant_price", "preparation_service_fee"
     ]:
         if field in data:
             val = data[field]
@@ -581,6 +637,48 @@ def save_dossier_draft_view(request, pk):
         if field in data:
             val = data[field]
             parsed_updates[field] = bool(val) if not isinstance(val, str) else val.lower() in ("true", "1")
+
+    # Sync and persist Check entries list from BankCheckTracker
+    if "check_entries" in data and isinstance(data["check_entries"], list):
+        entries_data = data["check_entries"]
+        cleaned_entries = []
+        total_sum = 0
+        for idx, entry in enumerate(entries_data):
+            c_date = str(entry.get("cash_date") or "").strip()
+            c_sayadi = str(entry.get("check_sayadi_code") or "").strip()
+            c_bank = str(entry.get("bank_name") or "").strip()
+            try:
+                c_amount = int(entry.get("check_amount") or 0)
+            except (ValueError, TypeError):
+                c_amount = 0
+            total_sum += c_amount
+            cleaned_entries.append({
+                "row_number": idx + 1,
+                "cash_date": c_date,
+                "check_amount": c_amount,
+                "check_sayadi_code": c_sayadi,
+                "bank_name": c_bank,
+            })
+        dossier.check_entries_json = json.dumps(cleaned_entries, ensure_ascii=False)
+        dossier.check_count = len(cleaned_entries)
+        dossier.total_check_amount = total_sum
+        if cleaned_entries:
+            dossier.check_amount = cleaned_entries[0]["check_amount"]
+            dossier.last_check_amount = cleaned_entries[-1]["check_amount"]
+        parsed_updates["total_check_amount"] = total_sum
+        parsed_updates["check_count"] = len(cleaned_entries)
+
+        # Sync relational DossierCheck table
+        dossier.check_items.all().delete()
+        for item in cleaned_entries:
+            DossierCheck.objects.create(
+                dossier=dossier,
+                row_number=item["row_number"],
+                cash_date=item["cash_date"],
+                check_amount=item["check_amount"],
+                check_sayadi_code=item["check_sayadi_code"],
+                bank_name=item["bank_name"],
+            )
 
     # Detect field differences and construct audit change logs
     change_logs_to_create = []

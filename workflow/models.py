@@ -237,9 +237,28 @@ class HousingDossier(models.Model):
     land_lease_year = models.CharField(max_length=4, default="1403", blank=True, verbose_name="سال اجاره عرصه")
     preparation_cost = models.BigIntegerField(default=0, verbose_name="مبلغ آماده سازی")
 
-    # Stage 22: Cash & Non-cash Prep & Rent Installments
-    cash_preparation_amount = models.BigIntegerField(default=0, verbose_name="مبلغ نقدی آماده سازی")
-    non_cash_preparation_amount = models.BigIntegerField(default=0, verbose_name="مبلغ غیرنقدی آماده سازی")
+    # Stage 18: BankCheckTracker & TashilatCheck Fields (وام دهک، چک‌ها، آماده‌سازی و اجاره)
+    # 1. BankCheckTracker: Decile Loan Check Fields
+    decile_loan_bank = models.CharField(max_length=50, blank=True, default="", verbose_name="بانک عامل تسهیلات دهک")
+    supported_institution = models.CharField(max_length=100, blank=True, default="", verbose_name="نهاد تحت حمایت")
+    check_count = models.PositiveSmallIntegerField(default=0, blank=True, verbose_name="تعداد چک‌ها")
+    check_amount = models.BigIntegerField(default=0, blank=True, verbose_name="مبلغ هر چک (ریال)")
+    last_check_amount = models.BigIntegerField(default=0, blank=True, verbose_name="مبلغ چک آخر (ریال)")
+    total_check_amount = models.BigIntegerField(default=0, blank=True, verbose_name="مجموع مبلغ چک‌ها (ریال)")
+    check_service_fee = models.BigIntegerField(default=2000000, blank=True, verbose_name="کارمزد خدمات چک (ریال)")
+    commitment_number = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره تعهدنامه")
+    commitment_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ تعهدنامه (شمسی)")
+    check_entries_json = models.TextField(default="[]", blank=True, verbose_name="اطلاعات اقلام چک‌ها (JSON)")
+
+    # 2. TashilatCheck: Rent & 20%/80% Preparation Fields
+    tenant_price = models.BigIntegerField(default=0, blank=True, verbose_name="مبلغ پرداختی اجاره عرصه (ریال)")
+    tenant_code = models.CharField(max_length=50, blank=True, default="", verbose_name="کد پیگیری فیش اجاره")
+    cash_preparation_amount = models.BigIntegerField(default=0, verbose_name="مبلغ نقدی آماده سازی (۲۰٪ نقد)")
+    prepayment_code = models.CharField(max_length=50, blank=True, default="", verbose_name="کد پیگیری فیش پیش‌پرداخت آماده‌سازی")
+    non_cash_preparation_amount = models.BigIntegerField(default=0, verbose_name="مبلغ غیرنقدی آماده سازی (۸۰٪ اقساط)")
+    preparation_service_fee = models.BigIntegerField(default=2000000, blank=True, verbose_name="کارمزد خدمات آماده‌سازی (ریال)")
+    rah_letter = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره نامه راه و شهرسازی")
+    rah_letter_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ نامه راه و شهرسازی (شمسی)")
     is_cash_rent_confirmed = models.BooleanField(default=False, verbose_name="تایید مبلغ نقدی اجاره")
     is_decile_loan_confirmed = models.BooleanField(default=False, verbose_name="تایید چک‌های وام دهک")
 
@@ -308,6 +327,27 @@ class HousingDossier(models.Model):
     def __str__(self):
         return f"{self.full_name} (#{self.archive_number} - کد: {self.national_id})"
 
+class DossierCheck(models.Model):
+    """
+    Individual promissory / sayadi checks received for decile loans (from BankCheckTracker).
+    """
+    dossier = models.ForeignKey(HousingDossier, on_delete=models.CASCADE, related_name='check_items', verbose_name="پرونده")
+    row_number = models.PositiveSmallIntegerField(default=1, verbose_name="شماره ردیف چک")
+    cash_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ سررسید (شمسی)")
+    check_amount = models.BigIntegerField(default=0, verbose_name="مبلغ چک (ریال)")
+    check_sayadi_code = models.CharField(max_length=50, blank=True, default="", verbose_name="کد صیادی (۱۶ رقم)")
+    bank_name = models.CharField(max_length=50, blank=True, default="", verbose_name="نام بانک صادرکننده")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+
+    class Meta:
+        ordering = ["row_number", "id"]
+        verbose_name = "چک صیادی تسهیلات دهک"
+        verbose_name_plural = "چک‌های صیادی تسهیلات دهک"
+
+    def __str__(self):
+        return f"چک {self.row_number} پرونده #{self.dossier.archive_number} - {self.check_amount:,} ریال"
+
+
 class DossierAttachment(models.Model):
     """
     Immutable stage-owned attachments with built-in Scan Viewer data.
@@ -322,6 +362,7 @@ class DossierAttachment(models.Model):
         ("TITLE_DEED", "اسکن سند مالکیت تک‌برگ عرصه و اعیان"),
         ("PREP_CHECK", "چک‌های آماده‌سازی"),
         ("LOAN_CHECK", "چک‌های تسهیلات دهک"),
+        ("COMMITMENT_LETTER", "تعهدنامه محضری / ثبتی"),
         ("OTHER", "سایر مستندات و ضمائم"),
     ]
 

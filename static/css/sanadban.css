@@ -1853,3 +1853,112 @@ body {
   animation: pulseGlow 1.2s ease-in-out 2 !important;
   border-color: #2563eb !important;
 }
+
+/* ==========================================================================
+   25. Section 8: BankCheckTracker & TashilatCheck Custom Styles
+   ========================================================================== */
+.section-sub-banner {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-sub-banner.amber-theme {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fde68a;
+}
+
+.section-sub-banner.emerald-theme {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #bbf7d0;
+}
+
+.check-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+  font-size: 0.86rem;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.check-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 800;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1.5px solid #e2e8f0;
+  font-size: 0.8rem;
+}
+
+.check-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.check-table tr:last-child td {
+  border-bottom: none;
+}
+
+.btn-table-delete {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 0.82rem;
+  transition: all 0.15s ease;
+}
+
+.btn-table-delete:hover:not(:disabled) {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #b91c1c;
+  transform: scale(1.05);
+}
+
+.btn-table-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.appraisal-hint-chip {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #475569;
+  margin-top: 0.4rem;
+}
+
+.appraisal-hint-btn {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.appraisal-hint-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}

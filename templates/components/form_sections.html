@@ -793,12 +793,14 @@
         </div>
     </div>
 
-    <!-- Section 8: چک‌های وام دهک و نقد و اقساط (مرحله ۱۸) -->
+    <!-- Section 8: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مرحله ۱۸) -->
+    <!-- جایگزینی و تجمیع قابلیت‌های سامانه‌های BankCheckTracker و tashilatCheck -->
     <div class="form-card" id="section-checks" :class="{'section-active-highlight': isSectionActive('section-checks')}">
         <div class="form-section-header">
             <div class="section-title">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <line x1="2" y1="10" x2="22" y2="10"></line>
                 </svg>
                 <span>بخش ۸: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مرحله ۱۸)</span>
             </div>
@@ -809,39 +811,442 @@
                     </span>
                 </template>
                 <div class="section-stage-badge editable">
-                    <span>وصول تضامین و چک صیادی</span>
+                    <span>سامانه جامع چک‌های صیادی و اقساط آماده‌سازی</span>
                 </div>
             </div>
         </div>
+
         <div class="form-section-body">
-            <div class="fields-grid">
-                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('cash_preparation_amount')}">
-                    <label class="field-label"><span>مبلغ نقدی آماده‌سازی (ریال)</span></label>
-                    <input type="number" class="input-control fa-num" x-model="form.cash_preparation_amount" :readonly="!isFieldEditable('cash_preparation_amount')">
-                </div>
-                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
-                    <label class="field-label"><span>مبلغ غیرنقدی آماده‌سازی (اقساط - ریال)</span></label>
-                    <input type="number" class="input-control fa-num" x-model="form.non_cash_preparation_amount" :readonly="!isFieldEditable('non_cash_preparation_amount')">
-                </div>
-                <div class="col-6">
-                    <div class="confirmation-toggle-card" :class="{'confirmed': form.is_cash_rent_confirmed}">
-                        <label>
-                            <input type="checkbox" x-model="form.is_cash_rent_confirmed" :disabled="!isFieldEditable('is_cash_rent_confirmed')">
-                            <span>تایید وصول نقدی اجاره عرصه</span>
-                        </label>
-                        <span class="fa-num" x-text="form.is_cash_rent_confirmed ? 'تایید شد ✓' : 'در انتظار'"></span>
+            
+            <!-- =========================================================================
+                 ۱. دریافت چک‌های وام دهک (برگرفته از سامانه BankCheckTracker)
+                 ========================================================================= -->
+            <div class="section-sub-banner amber-theme">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.55rem;">
+                        <span style="font-size: 1.25rem;">💳</span>
+                        <div>
+                            <strong style="color: #92400e; font-size: 0.95rem; display: block;">۱. مشخصات تسهیلات و ثبت اقلام چک‌های وام دهک (BankCheckTracker)</strong>
+                            <span style="font-size: 0.76rem; color: #b45309;">ثبت مشخصات نهاد حمایتی، بانک عامل، شماره تعهدنامه و جدول اقلام چک‌های صیادی متقاضی</span>
+                        </div>
                     </div>
-                </div>
-                <div class="col-6">
-                    <div class="confirmation-toggle-card" :class="{'confirmed': form.is_decile_loan_confirmed}">
-                        <label>
-                            <input type="checkbox" x-model="form.is_decile_loan_confirmed" :disabled="!isFieldEditable('is_decile_loan_confirmed')">
-                            <span>تایید دریافت چک‌های وام دهک (مرحله ۲۰)</span>
-                        </label>
-                        <span class="fa-num" x-text="form.is_decile_loan_confirmed ? 'تایید شد ✓' : 'در انتظار'"></span>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;" class="fa-num">
+                        <span style="font-size: 0.74rem; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+                            تعداد چک‌ها: <span x-text="form.check_entries ? form.check_entries.length : 0"></span> فقره
+                        </span>
                     </div>
                 </div>
             </div>
+
+            <!-- اطلاعات پایه چک‌های وام دهک -->
+            <div class="fields-grid" style="margin-bottom: 1.25rem;">
+                <!-- دهک درآمدی متقاضی -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('decile')}">
+                    <label class="field-label">
+                        <span>دهک درآمدی متقاضی</span>
+                        <span class="helper-badge">۱ تا ۱۰</span>
+                    </label>
+                    <input type="number" min="1" max="10" class="input-control fa-num" style="font-weight: 700; text-align: center;" x-model="form.decile" :readonly="!isFieldEditable('decile')">
+                </div>
+
+                <!-- نهاد تحت حمایت -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('supported_institution')}">
+                    <label class="field-label">
+                        <span>نهاد تحت حمایت</span>
+                    </label>
+                    <select class="input-control" x-model="form.supported_institution" :disabled="!isFieldEditable('supported_institution')">
+                        <option value="هیچکدام">هیچکدام (عادی)</option>
+                        <option value="بهزیستی">سازمان بهزیستی کشور</option>
+                        <option value="کمیته امداد">کمیته امداد امام خمینی (ره)</option>
+                        <option value="بنیاد شهید">بنیاد شهید و امور ایثارگران</option>
+                        <option value="سایر">سایر نهادهای حمایتی</option>
+                    </select>
+                </div>
+
+                <!-- بانک عامل ارزیابی / تسهیلات -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('decile_loan_bank')}">
+                    <label class="field-label">
+                        <span>بانک عامل تسهیلات</span>
+                    </label>
+                    <input type="text" list="bank-list" class="input-control" x-model="form.decile_loan_bank" :readonly="!isFieldEditable('decile_loan_bank')" placeholder="مثال: بانک مسکن">
+                    <datalist id="bank-list">
+                        <option value="بانک مسکن">
+                        <option value="بانک ملی ایران">
+                        <option value="بانک ملت">
+                        <option value="بانک صادرات">
+                        <option value="بانک تجارت">
+                        <option value="بانک سپه">
+                    </datalist>
+                </div>
+
+                <!-- کارمزد خدمات چک -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('check_service_fee')}">
+                    <label class="field-label">
+                        <span>کارمزد خدمات چک (ریال)</span>
+                    </label>
+                    <input type="number" class="input-control fa-num" x-model="form.check_service_fee" :readonly="!isFieldEditable('check_service_fee')">
+                </div>
+
+                <!-- مبلغ کل وام دهک -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile_loan_amount')}">
+                    <label class="field-label">
+                        <span>مبلغ کل تسهیلات وام دهک (ریال)</span>
+                    </label>
+                    <input type="number" class="input-control fa-num" style="font-weight: 800; color: #1e3a8a;" x-model="form.decile_loan_amount" :readonly="!isFieldEditable('decile_loan_amount')">
+                    <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
+                        معادل: <span x-text="formatNumber(Math.round((form.decile_loan_amount || 0) / 10))"></span> تومان
+                    </div>
+                </div>
+
+                <!-- شماره تعهدنامه -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('commitment_number')}">
+                    <label class="field-label">
+                        <span>شماره تعهدنامه محضری / ثبتی</span>
+                    </label>
+                    <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.commitment_number" :readonly="!isFieldEditable('commitment_number')" placeholder="مثال: ۱۲۴۰۵/ت">
+                </div>
+
+                <!-- تاریخ تعهدنامه -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('commitment_date')}">
+                    <label class="field-label">
+                        <span>تاریخ تعهدنامه (شمسی)</span>
+                    </label>
+                    <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.commitment_date" :readonly="!isFieldEditable('commitment_date')" placeholder="۱۴۰۳/۰۵/۱۵">
+                </div>
+            </div>
+
+            <!-- جدول اقلام چک‌های صیادی وام دهک (Check Entries Table) -->
+            <div style="margin-bottom: 1.5rem; background: #ffffff; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 1.15rem; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <strong style="color: #9a3412; font-size: 0.88rem;">جدول تاریخ سررسید و مبالغ چک‌های صیادی</strong>
+                    </div>
+
+                    <button type="button"
+                            @click="addCheckEntry()"
+                            :disabled="!isFieldEditable('decile_loan_amount')"
+                            class="btn btn-outline"
+                            style="padding: 0.35rem 0.85rem; font-size: 0.8rem; font-weight: 700; color: #ea580c; border-color: #fdba74; display: inline-flex; align-items: center; gap: 0.35rem; background: #fffaf0;">
+                        <span>+ افزودن چک بعدی</span>
+                    </button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="check-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px; text-align: center;">ردیف</th>
+                                <th style="width: 22%;">تاریخ سررسید چک (شمسی)</th>
+                                <th style="width: 24%;">شناسه صیادی (۱۶ رقمی)</th>
+                                <th style="width: 22%;">نام بانک صادرکننده</th>
+                                <th style="width: 24%;">مبلغ چک (ریال)</th>
+                                <th style="width: 60px; text-align: center;">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(check, idx) in form.check_entries" :key="idx">
+                                <tr>
+                                    <!-- ردیف چک -->
+                                    <td style="text-align: center;">
+                                        <span class="fa-num" style="display: inline-block; background: #fef3c7; color: #92400e; font-weight: 800; font-size: 0.78rem; padding: 2px 7px; border-radius: 6px; border: 1px solid #fde68a;" x-text="'چک ' + (idx + 1)"></span>
+                                    </td>
+
+                                    <!-- تاریخ سررسید -->
+                                    <td>
+                                        <input type="text"
+                                               class="input-control fa-num"
+                                               style="direction: ltr; font-weight: 700; font-size: 0.84rem; text-align: center;"
+                                               x-model="check.cash_date"
+                                               :readonly="!isFieldEditable('decile_loan_amount')"
+                                               placeholder="مثال: ۱۴۰۴/۰۶/۱۵">
+                                    </td>
+
+                                    <!-- کد صیادی ۱۶ رقمی -->
+                                    <td>
+                                        <input type="text"
+                                               maxlength="16"
+                                               class="input-control fa-num"
+                                               style="direction: ltr; font-weight: 800; letter-spacing: 1px; font-size: 0.84rem; text-align: center;"
+                                               x-model="check.check_sayadi_code"
+                                               :readonly="!isFieldEditable('decile_loan_amount')"
+                                               placeholder="کد ۱۶ رقمی صیاد">
+                                    </td>
+
+                                    <!-- نام بانک -->
+                                    <td>
+                                        <input type="text"
+                                               class="input-control"
+                                               style="font-size: 0.84rem;"
+                                               x-model="check.bank_name"
+                                               :readonly="!isFieldEditable('decile_loan_amount')"
+                                               placeholder="مثال: مسکن">
+                                    </td>
+
+                                    <!-- مبلغ چک -->
+                                    <td>
+                                        <div>
+                                            <input type="number"
+                                                   class="input-control fa-num"
+                                                   style="direction: ltr; font-weight: 800; font-size: 0.88rem; color: #047857;"
+                                                   x-model="check.check_amount"
+                                                   @input="recalculateChecks()"
+                                                   :readonly="!isFieldEditable('decile_loan_amount')"
+                                                   placeholder="مبلغ به ریال">
+                                            <div style="font-size: 0.68rem; color: #059669; font-weight: 700; margin-top: 2px; text-align: left;" class="fa-num" x-show="check.check_amount > 0">
+                                                <span x-text="formatNumber(check.check_amount)"></span> ریال
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- عملیات حذف -->
+                                    <td style="text-align: center;">
+                                        <button type="button"
+                                                @click="removeCheckEntry(idx)"
+                                                :disabled="!isFieldEditable('decile_loan_amount') || (form.check_entries.length <= 1 && idx === 0 && !check.check_amount && !check.cash_date)"
+                                                class="btn-table-delete"
+                                                title="حذف این چک">
+                                            ✕
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- خلاصه محاسباتی مجموع کل مبالغ چک‌ها -->
+                <div style="margin-top: 0.85rem; padding: 0.85rem 1.15rem; background: #fffaf0; border: 1.5px solid #fed7aa; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.1rem;">🧮</span>
+                        <div>
+                            <span style="font-size: 0.82rem; font-weight: 800; color: #9a3412;">مجموع کل مبالغ چک‌های ثبت‌شده:</span>
+                            <div style="font-size: 0.72rem; color: #b45309;" class="fa-num">
+                                تعداد کل: <strong x-text="form.check_entries ? form.check_entries.length : 0"></strong> فقره چک صیادی
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: baseline; gap: 0.5rem;" class="fa-num">
+                        <span style="font-size: 1.1rem; font-weight: 900; color: #c2410c;" x-text="formatNumber(form.total_check_amount || 0)"></span>
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #9a3412;">ریال</span>
+                        <span style="font-size: 0.74rem; color: #78350f; background: #fed7aa; padding: 2px 7px; border-radius: 5px; margin-right: 4px;">
+                            (<span x-text="formatNumber(Math.round((form.total_check_amount || 0) / 10))"></span> تومان)
+                        </span>
+                    </div>
+
+                    <!-- وضعیت تراز با مبلغ کل وام دهک -->
+                    <div style="width: 100%; border-top: 1px dashed #fdba74; padding-top: 0.5rem; font-size: 0.76rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;" class="fa-num">
+                        <div>
+                            <span style="color: #78350f;">مبلغ سقف وام دهک:</span>
+                            <strong style="color: #1e3a8a;" x-text="formatNumber(form.decile_loan_amount || 0) + ' ریال'"></strong>
+                        </div>
+                        <div>
+                            <template x-if="(form.total_check_amount || 0) === (Number(form.decile_loan_amount) || 0) && (form.total_check_amount > 0)">
+                                <span style="color: #15803d; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; background: #dcfce7; padding: 2px 8px; border-radius: 6px;">
+                                    <span>✓</span>
+                                    <span>مجموع چک‌ها دقیقاً منطبق با سقف وام دهک است.</span>
+                                </span>
+                            </template>
+                            <template x-if="(form.total_check_amount || 0) < (Number(form.decile_loan_amount) || 0)">
+                                <span style="color: #b45309; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #fef3c7; padding: 2px 8px; border-radius: 6px;">
+                                    <span>⚠️</span>
+                                    <span>باقیمانده تا سقف وام دهک:</span>
+                                    <strong x-text="formatNumber((Number(form.decile_loan_amount) || 0) - (form.total_check_amount || 0)) + ' ریال'"></strong>
+                                </span>
+                            </template>
+                            <template x-if="(form.total_check_amount || 0) > (Number(form.decile_loan_amount) || 0)">
+                                <span style="color: #b91c1c; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #fee2e2; padding: 2px 8px; border-radius: 6px;">
+                                    <span>⚠️</span>
+                                    <span>مجموع چک‌ها بیش از سقف وام دهک است!</span>
+                                </span>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- کارت تاییدیه دریافت چک‌های صیادی وام دهک -->
+            <div style="margin-bottom: 2rem;">
+                <div class="confirmation-toggle-card" :class="{'confirmed': form.is_decile_loan_confirmed}">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 0.6rem; flex: 1;">
+                        <input type="checkbox" x-model="form.is_decile_loan_confirmed" :disabled="!isFieldEditable('is_decile_loan_confirmed')">
+                        <div>
+                            <strong style="display: block; font-size: 0.88rem;">تایید دریافت، ثبت و کنترل کلیه چک‌های وام دهک (مرحله ۱۸)</strong>
+                            <span style="font-size: 0.74rem; color: #64748b; font-weight: normal;">اصالت‌سنجی چک‌های صیادی متقاضی بر اساس سقف وام دهک درآمدی تایید گردید.</span>
+                        </div>
+                    </label>
+                    <span class="fa-num" style="font-weight: 800; font-size: 0.82rem;" x-text="form.is_decile_loan_confirmed ? 'تایید شد ✓' : 'در انتظار تایید'"></span>
+                </div>
+            </div>
+
+
+            <!-- =========================================================================
+                 ۲. آماده‌سازی و اجاره (۲۰٪ نقد و ۸۰٪ اقساط) (برگرفته از سامانه tashilatCheck)
+                 ========================================================================= -->
+            <div class="section-sub-banner emerald-theme">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.55rem;">
+                        <span style="font-size: 1.25rem;">📑</span>
+                        <div>
+                            <strong style="color: #065f46; font-size: 0.95rem; display: block;">۲. اقساط آماده‌سازی و اجاره عرصه (۲۰٪ نقد و ۸۰٪ اقساط - tashilatCheck)</strong>
+                            <span style="font-size: 0.76rem; color: #047857;">ثبت مبالغ پرداختی اجاره عرصه، ۲۰٪ پیش‌پرداخت نقدی، ۸۰٪ اقساط آماده‌سازی و کدهای پیگیری فیش واریز</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.74rem; background: #dcfce7; color: #065f46; border: 1px solid #bbf7d0; padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+                        فرمول قانونی: ۲۰٪ نقد + ۸۰٪ تقسیط
+                    </div>
+                </div>
+            </div>
+
+            <!-- الف) بخش اجاره عرصه -->
+            <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.15rem; margin-bottom: 1.25rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <span style="font-size: 1.1rem;">🏢</span>
+                        <strong style="color: #0f2744; font-size: 0.88rem;">الف) مشخصات وصول اجاره عرصه</strong>
+                    </div>
+
+                    <!-- ارزیابی اجاره عرصه Hint -->
+                    <div class="appraisal-hint-chip fa-num">
+                        <span>مبلغ اجاره عرصه ارزیابی اداره کل (سنوات + جاری):</span>
+                        <strong style="color: #047857;" x-text="formatNumber(getAppraisalRent()) + ' ریال'"></strong>
+                        <button type="button" @click="applyAppraisalRent()" :disabled="!isFieldEditable('tenant_price')" class="appraisal-hint-btn" title="اعمال این مبلغ در کادر پرداخت">
+                            اعمال مبلغ ارزیابی
+                        </button>
+                    </div>
+                </div>
+
+                <div class="fields-grid">
+                    <!-- مبلغ پرداختی اجاره عرصه -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('tenant_price')}">
+                        <label class="field-label">
+                            <span>مبلغ پرداختی اجاره عرصه (ریال)</span>
+                            <span class="helper-badge">وصول نقدی</span>
+                        </label>
+                        <input type="number" class="input-control fa-num" style="font-weight: 800; color: #065f46;" x-model="form.tenant_price" :readonly="!isFieldEditable('tenant_price')">
+                        <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
+                            معادل: <span x-text="formatNumber(Math.round((form.tenant_price || 0) / 10))"></span> تومان
+                        </div>
+                    </div>
+
+                    <!-- کد پیگیری فیش اجاره -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('tenant_code')}">
+                        <label class="field-label">
+                            <span>کد رهگیری فیش واریز اجاره عرصه</span>
+                            <span class="helper-badge">شناسه واریز</span>
+                        </label>
+                        <input type="text" class="input-control fa-num" style="direction: ltr; font-weight: 700;" x-model="form.tenant_code" :readonly="!isFieldEditable('tenant_code')" placeholder="مثال: ۱۲/۹۹۸۸۷۷۶۶">
+                    </div>
+
+                    <!-- تاییدیه وصول نقدی اجاره عرصه -->
+                    <div class="col-12" style="margin-top: 0.5rem;">
+                        <div class="confirmation-toggle-card" :class="{'confirmed': form.is_cash_rent_confirmed}">
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 0.6rem; flex: 1;">
+                                <input type="checkbox" x-model="form.is_cash_rent_confirmed" :disabled="!isFieldEditable('is_cash_rent_confirmed')">
+                                <div>
+                                    <strong style="display: block; font-size: 0.86rem;">تایید وصول نقدی اجاره عرصه</strong>
+                                    <span style="font-size: 0.72rem; color: #64748b; font-weight: normal;">واریز نقدی اجاره عرصه بر اساس ارزیابی رسمی ممیزی و تایید گردید.</span>
+                                </div>
+                            </label>
+                            <span class="fa-num" style="font-weight: 800; font-size: 0.82rem;" x-text="form.is_cash_rent_confirmed ? 'تایید شد ✓' : 'در انتظار تایید'"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ب) بخش آماده‌سازی (۲۰٪ نقد و ۸۰٪ اقساط) -->
+            <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.15rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <span style="font-size: 1.1rem;">🏗️</span>
+                        <strong style="color: #0f2744; font-size: 0.88rem;">ب) مشخصات آماده‌سازی واحد (۲۰٪ نقد و ۸۰٪ اقساط)</strong>
+                    </div>
+
+                    <!-- ارزیابی کل آماده‌سازی Hint -->
+                    <div class="appraisal-hint-chip fa-num">
+                        <span>کل آماده‌سازی ارزیابی اداره کل:</span>
+                        <strong style="color: #1e3a8a;" x-text="formatNumber(form.preparation_cost || 0) + ' ریال'"></strong>
+                    </div>
+                </div>
+
+                <!-- چیپ‌های کمکی ۲۰٪ و ۸۰٪ -->
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                    <div class="appraisal-hint-chip fa-num" style="background: #f0fdf4; border-color: #86efac;">
+                        <span>۲۰٪ پیش‌پرداخت نقد (ارزیابی):</span>
+                        <strong style="color: #15803d;" x-text="formatNumber(getAppraisalCash()) + ' ریال'"></strong>
+                        <button type="button" @click="applyAppraisalCash()" :disabled="!isFieldEditable('cash_preparation_amount')" class="appraisal-hint-btn">
+                            اعمال ۲۰٪ نقد
+                        </button>
+                    </div>
+
+                    <div class="appraisal-hint-chip fa-num" style="background: #eff6ff; border-color: #93c5fd;">
+                        <span>۸۰٪ تقسیط غیرنقدی (ارزیابی):</span>
+                        <strong style="color: #1d4ed8;" x-text="formatNumber(getAppraisalInstallment()) + ' ریال'"></strong>
+                        <button type="button" @click="applyAppraisalInstallment()" :disabled="!isFieldEditable('non_cash_preparation_amount')" class="appraisal-hint-btn">
+                            اعمال ۸۰٪ اقساط
+                        </button>
+                    </div>
+                </div>
+
+                <div class="fields-grid">
+                    <!-- ۲۰٪ پیش‌پرداخت نقد آماده‌سازی -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('cash_preparation_amount')}">
+                        <label class="field-label">
+                            <span>مبلغ پیش‌پرداخت آماده‌سازی (۲۰٪ نقد - ریال)</span>
+                        </label>
+                        <input type="number" class="input-control fa-num" style="font-weight: 800; color: #15803d;" x-model="form.cash_preparation_amount" :readonly="!isFieldEditable('cash_preparation_amount')">
+                        <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
+                            معادل: <span x-text="formatNumber(Math.round((form.cash_preparation_amount || 0) / 10))"></span> تومان
+                        </div>
+                    </div>
+
+                    <!-- کد پیگیری فیش پیش‌پرداخت نقد -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('prepayment_code')}">
+                        <label class="field-label">
+                            <span>کد رهگیری فیش پیش‌پرداخت نقدی</span>
+                            <span class="helper-badge">شناسه واریز</span>
+                        </label>
+                        <input type="text" class="input-control fa-num" style="direction: ltr; font-weight: 700;" x-model="form.prepayment_code" :readonly="!isFieldEditable('prepayment_code')" placeholder="مثال: ۲۲/۱۱۴۴۳۳۵۵">
+                    </div>
+
+                    <!-- ۸۰٪ تقسیط / غیرنقدی آماده‌سازی -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
+                        <label class="field-label">
+                            <span>مبلغ غیرنقدی / اقساط آماده‌سازی (۸۰٪ اقساط - ریال)</span>
+                        </label>
+                        <input type="number" class="input-control fa-num" style="font-weight: 800; color: #1d4ed8;" x-model="form.non_cash_preparation_amount" :readonly="!isFieldEditable('non_cash_preparation_amount')">
+                        <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
+                            معادل: <span x-text="formatNumber(Math.round((form.non_cash_preparation_amount || 0) / 10))"></span> تومان
+                        </div>
+                    </div>
+
+                    <!-- کارمزد خدمات آماده‌سازی -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('preparation_service_fee')}">
+                        <label class="field-label">
+                            <span>کارمزد خدمات آماده‌سازی (ریال)</span>
+                        </label>
+                        <input type="number" class="input-control fa-num" x-model="form.preparation_service_fee" :readonly="!isFieldEditable('preparation_service_fee')">
+                    </div>
+
+                    <!-- شماره نامه راه و شهرسازی -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('rah_letter')}">
+                        <label class="field-label">
+                            <span>شماره نامه راه و شهرسازی</span>
+                        </label>
+                        <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.rah_letter" :readonly="!isFieldEditable('rah_letter')" placeholder="مثال: ۱۱۱/۴۴۵۵۶">
+                    </div>
+
+                    <!-- تاریخ نامه راه و شهرسازی -->
+                    <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('rah_letter_date')}">
+                        <label class="field-label">
+                            <span>تاریخ نامه راه و شهرسازی (شمسی)</span>
+                        </label>
+                        <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.rah_letter_date" :readonly="!isFieldEditable('rah_letter_date')" placeholder="مثال: ۱۴۰۳/۰۴/۲۰">
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 

@@ -452,9 +452,29 @@ document.addEventListener('alpine:init', () => {
       land_lease_year: '1403',
       preparation_cost: 320000000,
 
-      // Stage 22: Cash & Non-cash Prep & Rent Installments
+      // Stage 18: BankCheckTracker & TashilatCheck Fields (وام دهک، چک‌ها، آماده‌سازی و اجاره)
+      decile_loan_bank: 'بانک مسکن',
+      supported_institution: 'هیچکدام',
+      check_count: 1,
+      check_amount: 0,
+      last_check_amount: 0,
+      total_check_amount: 0,
+      check_service_fee: 2000000,
+      commitment_number: '',
+      commitment_date: '',
+      check_entries: [
+        { row_number: 1, cash_date: '', check_amount: 0, check_sayadi_code: '', bank_name: 'بانک مسکن' }
+      ],
+
+      // TashilatCheck: Rent & 20%/80% Preparation
+      tenant_price: 0,
+      tenant_code: '',
       cash_preparation_amount: 120000000,
+      prepayment_code: '',
       non_cash_preparation_amount: 200000000,
+      preparation_service_fee: 2000000,
+      rah_letter: '',
+      rah_letter_date: '',
       is_cash_rent_confirmed: false,
       is_decile_loan_confirmed: false
     },
@@ -534,6 +554,13 @@ document.addEventListener('alpine:init', () => {
         }
       }
       this.recalculateEquity();
+
+      if (!this.form.check_entries || !Array.isArray(this.form.check_entries) || this.form.check_entries.length === 0) {
+        this.form.check_entries = [
+          { row_number: 1, cash_date: '', check_amount: 0, check_sayadi_code: '', bank_name: this.form.decile_loan_bank || 'بانک مسکن' }
+        ];
+      }
+      this.recalculateChecks();
     },
 
     getTodayJalali() {
@@ -931,6 +958,85 @@ document.addEventListener('alpine:init', () => {
       if (this.isLocked) return false;
       if (typeof this.userCanAction !== 'undefined' && !this.userCanAction) return false;
       return true;
+    },
+
+    // --------------------------------------------------------------------------
+    // BankCheckTracker & TashilatCheck Dynamic Helpers
+    // --------------------------------------------------------------------------
+    addCheckEntry() {
+      if (!this.form.check_entries) this.form.check_entries = [];
+      const nextNum = this.form.check_entries.length + 1;
+      this.form.check_entries.push({
+        row_number: nextNum,
+        cash_date: '',
+        check_amount: 0,
+        check_sayadi_code: '',
+        bank_name: this.form.decile_loan_bank || 'بانک مسکن'
+      });
+      this.recalculateChecks();
+    },
+
+    removeCheckEntry(idx) {
+      if (!this.form.check_entries) return;
+      if (this.form.check_entries.length > 1) {
+        this.form.check_entries.splice(idx, 1);
+      } else {
+        this.form.check_entries[0] = {
+          row_number: 1,
+          cash_date: '',
+          check_amount: 0,
+          check_sayadi_code: '',
+          bank_name: this.form.decile_loan_bank || 'بانک مسکن'
+        };
+      }
+      this.form.check_entries.forEach((c, i) => c.row_number = i + 1);
+      this.recalculateChecks();
+    },
+
+    recalculateChecks() {
+      if (!this.form.check_entries || !Array.isArray(this.form.check_entries)) return;
+      let total = 0;
+      this.form.check_entries.forEach(c => {
+        const val = Number(c.check_amount) || 0;
+        total += val;
+      });
+      this.form.total_check_amount = total;
+      this.form.check_count = this.form.check_entries.length;
+      if (this.form.check_entries.length > 0) {
+        this.form.check_amount = this.form.check_entries[0].check_amount || 0;
+        this.form.last_check_amount = this.form.check_entries[this.form.check_entries.length - 1].check_amount || 0;
+      }
+    },
+
+    getAppraisalCash() {
+      const prep = Number(this.form.preparation_cost) || 0;
+      return Math.round(prep * 0.2);
+    },
+
+    getAppraisalInstallment() {
+      const prep = Number(this.form.preparation_cost) || 0;
+      return Math.round(prep * 0.8);
+    },
+
+    getAppraisalRent() {
+      const past = Number(this.form.past_years_rent) || 0;
+      const curr = Number(this.form.current_year_rent) || 0;
+      return past + curr;
+    },
+
+    applyAppraisalCash() {
+      this.form.cash_preparation_amount = this.getAppraisalCash();
+      this.triggerToast('مبلغ ۲۰٪ نقد ارزیابی آماده‌سازی اعمال گردید.', 'info');
+    },
+
+    applyAppraisalInstallment() {
+      this.form.non_cash_preparation_amount = this.getAppraisalInstallment();
+      this.triggerToast('مبلغ ۸۰٪ اقساط ارزیابی آماده‌سازی اعمال گردید.', 'info');
+    },
+
+    applyAppraisalRent() {
+      this.form.tenant_price = this.getAppraisalRent();
+      this.triggerToast('مجموع مبالغ اجاره سنوات و سال جاری اعمال گردید.', 'info');
     },
 
     // Forward & Sign
