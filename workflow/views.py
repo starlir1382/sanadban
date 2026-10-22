@@ -19,6 +19,11 @@ DOSSIER_FIELD_LABELS = {
     "father_name": "نام پدر متقاضی",
     "national_id": "کد ملی متقاضی",
     "birth_date": "تاریخ تولد متقاضی",
+    "applicant_phone": "شماره تماس متقاضی",
+    "selection_rank": "رتبه انتخاب واحد",
+    "applicant_form_j_status": "وضعیت استعلام فرم ج متقاضی",
+    "applicant_form_j_directorate_status": "استعلام اداره کل متقاضی",
+    "applicant_form_j_red_description": "علت و توضیحات کد قرمز متقاضی",
     "spouse_full_name": "نام و نام خانوادگی همسر",
     "spouse_father_name": "نام پدر همسر",
     "spouse_national_id": "کد ملی همسر",
@@ -26,6 +31,8 @@ DOSSIER_FIELD_LABELS = {
     "spouse_id_number": "شماره شناسنامه همسر",
     "spouse_birth_place": "محل صدور / تولد همسر",
     "spouse_form_j_status": "وضعیت فرم ج همسر",
+    "spouse_form_j_directorate_status": "استعلام اداره کل همسر",
+    "spouse_form_j_red_description": "علت و توضیحات کد قرمز همسر",
     "marital_status": "وضعیت تاهل",
     "is_married_confirmed": "احراز زوجیت و تایید تاهل",
     "decile": "دهک درآمدی",
@@ -33,19 +40,28 @@ DOSSIER_FIELD_LABELS = {
     "project": "نام پروژه",
     "construction_type": "نوع ساخت",
     "block_name": "نام بلوک",
+    "block_code": "کد بلوک",
     "floor_number": "شماره طبقه",
     "unit_number": "شماره واحد",
+    "unit_code": "کد واحد",
+    "bedroom_count": "تعداد خواب",
+    "unit_direction": "جهت واحد",
+    "net_unit_area": "متراژ مفید واحد (م²)",
+    "common_area": "متراژ مشاعات (م²)",
+    "total_area": "جمع کل متراژ واحد (م²)",
     "unit_area": "مساحت واحد (م²)",
     "storage_number": "شماره انباری",
     "storage_area": "مساحت انباری (م²)",
     "parking_number": "شماره پارکینگ",
     "parking_area": "مساحت پارکینگ (م²)",
+    "covered_parking_area": "متراژ پارکینگ مسقف (م²)",
     "registration_section": "بخش ثبتی",
     "main_plaque": "پلاک اصلی",
     "separated_plaque": "پلاک مفروز",
     "sub_plaque": "فرعی از",
     "plot_number": "شماره قطعه",
-    "base_cost_without_loan": "قیمت پایه بدون وام ۶۵۰ میلیونی (ریال)",
+    "base_cost_without_loan": "قیمت پایه بدون وام بانکی (ریال)",
+    "bank_loan_amount": "مبلغ تسهیلات وام بانکی (ریال)",
     "fund_loan_amount": "مبلغ وام صندوق (ریال)",
     "contractor_letter_amount": "مبلغ نامه پیمانکار (ریال)",
     "decile_loan_amount": "مبلغ وام دهک (ریال)",
@@ -190,21 +206,23 @@ def dossier_list_view(request):
     else:
         stages_meta = [stg for stg in all_stages if stg["id"] in user_allowed_stages]
 
-    # Compute stuck breakdown for admins to see where dossiers are stuck across all stages
+    # Compute stuck breakdown and annotate stages_meta with counts
+    from django.db.models import Count
+    counts_by_stage = dict(HousingDossier.objects.values_list('current_stage').annotate(cnt=Count('id')))
+    for stg in stages_meta:
+        stg["count"] = counts_by_stage.get(stg["id"], 0)
+
     stage_breakdown = []
-    if is_full_admin:
-        from django.db.models import Count
-        counts_by_stage = dict(HousingDossier.objects.values_list('current_stage').annotate(cnt=Count('id')))
-        for stg in all_stages:
-            cnt = counts_by_stage.get(stg["id"], 0)
-            if cnt > 0:
-                stage_breakdown.append({
-                    "stage_id": stg["id"],
-                    "title": stg["title"],
-                    "role": stg["role"],
-                    "unit": stg["unit"],
-                    "count": cnt,
-                })
+    for stg in all_stages:
+        cnt = counts_by_stage.get(stg["id"], 0)
+        if cnt > 0:
+            stage_breakdown.append({
+                "stage_id": stg["id"],
+                "title": stg["title"],
+                "role": stg["role"],
+                "unit": stg["unit"],
+                "count": cnt,
+            })
 
     user_allowed_titles = [f"مرحله {i} ({HousingDossier.STAGE_ROLES[i][2]})" for i in user_allowed_stages if i in HousingDossier.STAGE_ROLES]
 
@@ -296,13 +314,20 @@ def dossier_detail_view(request, pk):
             "father_name": dossier.father_name,
             "national_id": dossier.national_id,
             "birth_date": dossier.birth_date,
+            "applicant_phone": dossier.applicant_phone or "",
+            "selection_rank": dossier.selection_rank,
+            "applicant_form_j_status": dossier.applicant_form_j_status or "سبز (استعلام شده)",
+            "applicant_form_j_directorate_status": dossier.applicant_form_j_directorate_status or "تایید نهایی اداره کل",
+            "applicant_form_j_red_description": dossier.applicant_form_j_red_description or "",
             "spouse_full_name": dossier.spouse_full_name,
             "spouse_father_name": dossier.spouse_father_name,
             "spouse_national_id": dossier.spouse_national_id,
             "spouse_birth_date": dossier.spouse_birth_date,
             "spouse_id_number": dossier.spouse_id_number,
             "spouse_birth_place": dossier.spouse_birth_place,
-            "spouse_form_j_status": dossier.spouse_form_j_status,
+            "spouse_form_j_status": dossier.spouse_form_j_status or "سبز (استعلام شده)",
+            "spouse_form_j_directorate_status": dossier.spouse_form_j_directorate_status or "تایید نهایی اداره کل",
+            "spouse_form_j_red_description": dossier.spouse_form_j_red_description or "",
             "marital_status": dossier.marital_status,
             "is_married_confirmed": dossier.is_married_confirmed,
             "decile": dossier.decile,
@@ -310,19 +335,28 @@ def dossier_detail_view(request, pk):
             "project": dossier.project,
             "construction_type": dossier.construction_type,
             "block_name": dossier.block_name,
+            "block_code": dossier.block_code or "",
             "floor_number": dossier.floor_number,
             "unit_number": dossier.unit_number,
+            "unit_code": dossier.unit_code or "",
+            "bedroom_count": dossier.bedroom_count or 2,
+            "unit_direction": dossier.unit_direction or "شمال غربی",
+            "net_unit_area": float(dossier.net_unit_area) if dossier.net_unit_area else 0.0,
+            "common_area": float(dossier.common_area) if dossier.common_area else 0.0,
+            "total_area": float(dossier.total_area) if dossier.total_area else 0.0,
             "unit_area": float(dossier.unit_area) if dossier.unit_area else 0.0,
             "storage_number": dossier.storage_number,
             "storage_area": float(dossier.storage_area) if dossier.storage_area else 0.0,
             "parking_number": dossier.parking_number,
             "parking_area": float(dossier.parking_area) if dossier.parking_area else 0.0,
+            "covered_parking_area": float(dossier.covered_parking_area) if dossier.covered_parking_area else 0.0,
             "registration_section": dossier.registration_section,
             "main_plaque": dossier.main_plaque,
             "separated_plaque": dossier.separated_plaque,
             "sub_plaque": dossier.sub_plaque,
             "plot_number": dossier.plot_number,
             "base_cost_without_loan": dossier.base_cost_without_loan,
+            "bank_loan_amount": dossier.bank_loan_amount or 6500000000,
             "fund_loan_amount": dossier.fund_loan_amount,
             "contractor_letter_amount": dossier.contractor_letter_amount,
             "decile_loan_amount": dossier.decile_loan_amount,
@@ -481,11 +515,14 @@ def save_dossier_draft_view(request, pk):
 
     # String fields
     for field in [
-        "full_name", "father_name", "birth_date",
+        "full_name", "father_name", "birth_date", "applicant_phone",
+        "applicant_form_j_status", "applicant_form_j_directorate_status", "applicant_form_j_red_description",
         "spouse_full_name", "spouse_father_name", "spouse_national_id",
         "spouse_birth_date", "spouse_id_number", "spouse_birth_place",
-        "spouse_form_j_status", "marital_status",
-        "site", "project", "construction_type", "block_name", "registration_section",
+        "spouse_form_j_status", "spouse_form_j_directorate_status", "spouse_form_j_red_description",
+        "marital_status",
+        "site", "project", "construction_type", "block_name", "block_code",
+        "unit_code", "unit_direction", "registration_section",
         "bank_letter_number", "bank_letter_date", "land_lease_year"
     ]:
         if field in data and data[field] is not None:
@@ -493,17 +530,20 @@ def save_dossier_draft_view(request, pk):
 
     # Integer fields
     for field in [
-        "decile", "floor_number", "unit_number", "storage_number", "parking_number",
+        "selection_rank", "decile", "floor_number", "unit_number", "bedroom_count",
+        "storage_number", "parking_number",
         "main_plaque", "separated_plaque", "sub_plaque", "plot_number",
-        "base_cost_without_loan", "fund_loan_amount", "contractor_letter_amount",
+        "base_cost_without_loan", "bank_loan_amount", "fund_loan_amount", "contractor_letter_amount",
         "decile_loan_amount", "past_years_rent", "current_year_rent",
         "preparation_cost", "cash_preparation_amount", "non_cash_preparation_amount"
     ]:
         if field in data:
             val = data[field]
             if val is None or val == "":
-                if field in ["storage_number", "parking_number", "main_plaque", "separated_plaque", "sub_plaque", "plot_number"]:
+                if field in ["selection_rank", "storage_number", "parking_number", "main_plaque", "separated_plaque", "sub_plaque", "plot_number"]:
                     parsed_updates[field] = None
+                elif field == "bank_loan_amount":
+                    parsed_updates[field] = 6500000000
                 else:
                     parsed_updates[field] = 0
             else:
@@ -513,7 +553,10 @@ def save_dossier_draft_view(request, pk):
                     pass
 
     # Decimal / Float fields
-    for field in ["unit_area", "storage_area", "parking_area", "total_land_share"]:
+    for field in [
+        "unit_area", "storage_area", "parking_area", "total_land_share",
+        "net_unit_area", "common_area", "total_area", "covered_parking_area"
+    ]:
         if field in data:
             val = data[field]
             if val is None or val == "":
@@ -543,7 +586,7 @@ def save_dossier_draft_view(request, pk):
         new_repr = "" if new_val is None else str(new_val).strip()
 
         # For floats/decimals, normalize precision
-        if field in ["unit_area", "storage_area", "parking_area", "total_land_share"]:
+        if field in ["unit_area", "storage_area", "parking_area", "total_land_share", "net_unit_area", "common_area", "total_area", "covered_parking_area"]:
             try:
                 if old_val is not None:
                     old_repr = f"{float(old_val):.2f}"
@@ -820,6 +863,11 @@ def lookup_preselected_unit_api(request):
             "full_name": unit.full_name,
             "father_name": unit.father_name,
             "birth_date": unit.birth_date,
+            "applicant_phone": unit.applicant_phone or "",
+            "selection_rank": unit.selection_rank,
+            "applicant_form_j_status": unit.applicant_form_j_status,
+            "applicant_form_j_directorate_status": unit.applicant_form_j_directorate_status,
+            "applicant_form_j_red_description": unit.applicant_form_j_red_description,
             "spouse_full_name": unit.spouse_full_name,
             "spouse_father_name": unit.spouse_father_name,
             "spouse_national_id": unit.spouse_national_id,
@@ -827,6 +875,8 @@ def lookup_preselected_unit_api(request):
             "spouse_id_number": unit.spouse_id_number,
             "spouse_birth_place": unit.spouse_birth_place,
             "spouse_form_j_status": unit.spouse_form_j_status,
+            "spouse_form_j_directorate_status": unit.spouse_form_j_directorate_status,
+            "spouse_form_j_red_description": unit.spouse_form_j_red_description,
             "marital_status": unit.marital_status,
             "is_married_confirmed": unit.is_married_confirmed,
             "decile": unit.decile,
@@ -834,14 +884,23 @@ def lookup_preselected_unit_api(request):
             "project": str(unit.project) if unit.project else "",
             "construction_type": unit.construction_type,
             "block_name": unit.block_name,
+            "block_code": unit.block_code,
             "floor_number": unit.floor_number,
             "unit_number": unit.unit_number,
+            "unit_code": unit.unit_code,
+            "bedroom_count": unit.bedroom_count,
+            "unit_direction": unit.unit_direction,
+            "net_unit_area": str(unit.net_unit_area),
+            "common_area": str(unit.common_area),
+            "total_area": str(unit.total_area),
             "unit_area": str(unit.unit_area),
             "storage_number": unit.storage_number,
             "storage_area": str(unit.storage_area),
             "parking_number": unit.parking_number,
             "parking_area": str(unit.parking_area),
+            "covered_parking_area": str(unit.covered_parking_area),
             "base_cost_without_loan": unit.base_cost_without_loan,
+            "bank_loan_amount": unit.bank_loan_amount,
             "registration_section": unit.registration_section,
             "main_plaque": unit.main_plaque,
             "separated_plaque": unit.separated_plaque,

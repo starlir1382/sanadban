@@ -64,53 +64,46 @@
   </div>
 
   <!-- =========================================================================
-       SUPERVISORY RADAR: WHERE ARE DOSSIERS STUCK? (FOR ADMINS & HOUSING CHIEF)
+       UNIFIED PIPELINE STAGE TRACK (WITH STUCK-DOSSIER COUNT BADGES)
        ========================================================================= -->
-  {% if is_full_admin and stage_breakdown %}
-  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 0.95rem 1.2rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; flex-wrap: wrap; gap: 0.5rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style="font-size: 1.15rem;">📍</span>
-        <span style="font-weight: 800; font-size: 0.92rem; color: #0f2744;">رادار مراحل توقف پرونده‌ها (محل توقف فعلی در خط لوله):</span>
+        <span style="font-size: 1.1rem;">📍</span>
+        <span style="font-weight: 800; font-size: 0.9rem; color: #0f2744;">
+          {% if is_full_admin %}گردش کار ۲۲ مرحله‌ای و موقعیت توقف پرونده‌ها:{% else %}مراحل مجاز تخصصی شما:{% endif %}
+        </span>
       </div>
       <div style="font-size: 0.78rem; color: #64748b;">
-        کلیک روی هر مرحله جهت فیلتر آنی
+        کلیک روی هر مرحله جهت فیلتر و مشاهده پرونده‌ها
       </div>
     </div>
-    
-    <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; align-items: center;">
-      <a href="{% url 'dossier_list' %}" 
-         style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; transition: all 0.15s; border: 1.5px solid {% if stage_filter == '' %}#2563eb; background: #2563eb; color: #ffffff;{% else %}#cbd5e1; background: #f8fafc; color: #334155;{% endif %}">
-        همه پرونده‌ها ({{ total_all_dossiers }})
-      </a>
-      {% for item in stage_breakdown %}
-      <a href="{% url 'dossier_list' %}?stage={{ item.stage_id }}" 
-         style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.45rem; border: 1.5px solid {% if stage_filter == item.stage_id|stringformat:'i' %}#2563eb; background: #2563eb; color: #ffffff;{% else %}#fed7aa; background: #fffaf0; color: #9a3412;{% endif %}"
+
+    <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.4rem; align-items: center;">
+      <!-- All Dossiers Pill -->
+      <a href="{% url 'dossier_list' %}{% if query %}?q={{ query }}{% endif %}"
+         style="text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; transition: all 0.15s; border: 1.5px solid {% if stage_filter == '' %}#2563eb; background: #2563eb; color: #ffffff;{% else %}#cbd5e1; background: #f8fafc; color: #334155;{% endif %} display: inline-flex; align-items: center; gap: 0.4rem;"
          class="fa-num">
-        <span>مرحله {{ item.stage_id }}: {{ item.title }}</span>
-        <span style="background: {% if stage_filter == item.stage_id|stringformat:'i' %}rgba(255,255,255,0.25){% else %}#ea580c{% endif %}; color: #ffffff; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px;">
-          {{ item.count }} پرونده
+        <span>{% if is_full_admin %}همه پرونده‌ها{% else %}همه پرونده‌های مجاز من{% endif %}</span>
+        <span style="background: {% if stage_filter == '' %}rgba(255,255,255,0.25){% else %}#e2e8f0{% endif %}; color: {% if stage_filter == '' %}#ffffff{% else %}#475569{% endif %}; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px;">
+          {{ total_all_dossiers }}
         </span>
+      </a>
+
+      <!-- Stages with stuck count badge -->
+      {% for stg in stages_meta %}
+      <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query }}{% endif %}"
+         style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.45rem; border: 1.5px solid {% if stage_filter == stg.id|stringformat:'i' %}#2563eb; background: #2563eb; color: #ffffff;{% elif stg.count > 0 %}#fed7aa; background: #fffaf0; color: #9a3412;{% else %}#e2e8f0; background: #ffffff; color: #475569;{% endif %}"
+         class="fa-num">
+        <span>مرحله {{ stg.id }}: {{ stg.title }} ({{ stg.role }})</span>
+        {% if stg.count > 0 %}
+        <span style="background: {% if stage_filter == stg.id|stringformat:'i' %}rgba(255,255,255,0.25){% else %}#ea580c{% endif %}; color: #ffffff; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; font-weight: 700;">
+          {{ stg.count }} پرونده
+        </span>
+        {% endif %}
       </a>
       {% endfor %}
     </div>
-  </div>
-  {% endif %}
-
-  <!-- =========================================================================
-       QUICK STAGE FILTER TRACK (ROLE-AWARE)
-       ========================================================================= -->
-  <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; margin-bottom: 1.25rem;">
-    <a href="{% url 'dossier_list' %}{% if query %}?q={{ query }}{% endif %}"
-       style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; white-space: nowrap; border: 1px solid var(--color-border); background: {% if stage_filter == '' %}#2563eb; color: #fff;{% else %}#fff; color: #334155;{% endif %}">
-      {% if is_full_admin %}همه ۲۲ مرحله{% else %}همه مراحل مجاز من{% endif %}
-    </a>
-    {% for stg in stages_meta %}
-    <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query }}{% endif %}"
-       style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; border: 1px solid var(--color-border); background: {% if stage_filter == stg.id|stringformat:'i' %}#2563eb; color: #fff;{% else %}#fff; color: #334155;{% endif %}" class="fa-num">
-      مرحله {{ stg.id }}: {{ stg.title }} ({{ stg.role }})
-    </a>
-    {% endfor %}
   </div>
 
   <!-- =========================================================================

@@ -23,7 +23,7 @@
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <span>بخش ۱: اطلاعات متقاضی، واحد مسکونی و پروژه (مرحله ۰)</span>
+                <span>بخش ۱: اطلاعات متقاضی، استعلام فرم «ج»، پروژه و واحد مسکونی (مرحله ۰)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-applicant')">
@@ -37,12 +37,17 @@
             </div>
         </div>
         <div class="form-section-body">
-            <div class="fields-grid">
+            <!-- Sub-group: مشخصات فردی و هویتی متقاضی -->
+            <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                <span>👤</span>
+                <span>مشخصات فردی، تماسی و استعلام فرم «ج» متقاضی (سرپرست خانوار)</span>
+            </div>
+            <div class="fields-grid" style="margin-bottom: 1.25rem;">
                 <!-- 1. national_id -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('national_id')}">
                     <label class="field-label">
-                        <span><span class="required-mark">*</span>کد ملی متقاضی (شناسه پیشنویس)</span>
-                        <span class="helper-badge">شناسه ۱۰ رقمی</span>
+                        <span><span class="required-mark">*</span>کد ملی متقاضی</span>
+                        <span class="helper-badge">۱۰ رقمی</span>
                     </label>
                     <input type="text" maxlength="10" class="input-control fa-num" 
                            x-model="form.national_id" 
@@ -57,20 +62,38 @@
                 </div>
 
                 <!-- 3. father_name -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('father_name')}">
-                    <label class="field-label"><span><span class="required-mark">*</span>نام پدر متقاضی</span></label>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('father_name')}">
+                    <label class="field-label"><span><span class="required-mark">*</span>نام پدر</span></label>
                     <input type="text" class="input-control" x-model="form.father_name" :readonly="!isFieldEditable('father_name')">
                 </div>
 
                 <!-- 4. birth_date -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('birth_date')}">
-                    <label class="field-label"><span>تاریخ تولد متقاضی (شمسی)</span></label>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('birth_date')}">
+                    <label class="field-label"><span>تاریخ تولد (شمسی)</span></label>
                     <input type="text" class="input-control fa-num" x-model="form.birth_date" :readonly="!isFieldEditable('birth_date')">
                 </div>
 
-                <!-- 5. decile -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('decile')}">
-                    <label class="field-label"><span>دهک درآمدی</span></label>
+                <!-- 5. applicant_phone -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('applicant_phone')}">
+                    <label class="field-label">
+                        <span>شماره همراه متقاضی</span>
+                        <span class="helper-badge text-emerald-700">تماس</span>
+                    </label>
+                    <input type="text" class="input-control fa-num" x-model="form.applicant_phone" :readonly="!isFieldEditable('applicant_phone')" placeholder="0912...">
+                </div>
+
+                <!-- 6. selection_rank -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('selection_rank')}">
+                    <label class="field-label">
+                        <span>رتبه انتخاب واحد</span>
+                        <span class="helper-badge">قرعه‌کشی</span>
+                    </label>
+                    <input type="number" class="input-control fa-num" x-model="form.selection_rank" :readonly="!isFieldEditable('selection_rank')" placeholder="مثال: 45">
+                </div>
+
+                <!-- 7. decile -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('decile')}">
+                    <label class="field-label"><span>دهک درآمدی (۱ تا ۱۰)</span></label>
                     <select class="input-control fa-num" x-model="form.decile" :disabled="!isFieldEditable('decile')">
                         <option value="1">دهک ۱</option>
                         <option value="2">دهک ۲</option>
@@ -85,25 +108,77 @@
                     </select>
                 </div>
 
-                <!-- 6. site -->
+                <!-- 8. applicant_form_j_status -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('applicant_form_j_status')}">
+                    <label class="field-label">
+                        <span>وضعیت استعلام فرم «ج» متقاضی</span>
+                        <span class="helper-badge" :style="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">فرم ج</span>
+                    </label>
+                    <select class="input-control" x-model="form.applicant_form_j_status" :disabled="!isFieldEditable('applicant_form_j_status')">
+                        <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
+                        <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
+                        <option value="در حال استعلام">در حال استعلام</option>
+                    </select>
+                </div>
+
+                <!-- 9. applicant_form_j_directorate_status -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('applicant_form_j_directorate_status')}">
+                    <label class="field-label">
+                        <span>استعلام اداره کل متقاضی</span>
+                        <span class="helper-badge text-blue-700">سامانه اداره کل</span>
+                    </label>
+                    <select class="input-control" x-model="form.applicant_form_j_directorate_status" :disabled="!isFieldEditable('applicant_form_j_directorate_status')">
+                        <option value="تایید نهایی اداره کل">تایید نهایی اداره کل</option>
+                        <option value="در حال بررسی">در حال بررسی</option>
+                        <option value="عدم تایید اداره کل">عدم تایید اداره کل</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Red Code Alert Box for Applicant -->
+            <div x-show="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')"
+                 style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-bottom: 1.25rem;"
+                 x-transition>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 1.1rem;">⚠️</span>
+                    <strong style="color: #991b1b; font-size: 0.88rem;">هشدار کد قرمز فرم «ج» متقاضی: دارای سابقه مالکیت دولتی یا فاقد شرایط</strong>
+                </div>
+                <label class="field-label" style="color: #7f1d1d; margin-bottom: 4px;">
+                    <span>علت و توضیحات تفصیلی کد قرمز متقاضی (سوابق زمین، مسکن مهر یا تسهیلات دولتی قبلی):</span>
+                </label>
+                <textarea class="input-control" rows="2" 
+                          x-model="form.applicant_form_j_red_description"
+                          :readonly="!isFieldEditable('applicant_form_j_red_description')"
+                          placeholder="توضیحات استعلام سوابق مسکن متقاضی، پلاک ثبتی یا زمین واگذاری قبلی..."></textarea>
+            </div>
+
+            <!-- Sub-group: مشخصات سایت، پروژه و واحد مسکونی -->
+            <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 0.85rem;">
+                <span>🏢</span>
+                <span>مشخصات سایت، پروژه و واحد مسکونی</span>
+            </div>
+            <div class="fields-grid">
+                <!-- site -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('site')}">
                     <label class="field-label"><span>نام سایت</span></label>
                     <select class="input-control" x-model="form.site" :disabled="!isFieldEditable('site')">
                         <option value="شهید رئیسی">سایت شهید رئیسی</option>
-                        <option value="27 هکتاری">سایت ۲۷ هکتاری</option>
+                        <option value="۲۷ هکتاری">سایت ۲۷ هکتاری</option>
+                        <option value="27 هکتاری">سایت 27 هکتاری</option>
                         <option value="قنوات">سایت قنوات</option>
                         <option value="پرنیان">سایت پرنیان</option>
                         <option value="جعفریه">سایت جعفریه</option>
+                        <option value="۵۶۰ هکتاری">سایت ۵۶۰ هکتاری</option>
                     </select>
                 </div>
 
-                <!-- 7. project -->
-                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('project')}">
+                <!-- project -->
+                <div class="field-group col-5" :class="{'field-locked': !isFieldEditable('project')}">
                     <label class="field-label"><span>نام پروژه</span></label>
                     <input type="text" class="input-control" x-model="form.project" :readonly="!isFieldEditable('project')">
                 </div>
 
-                <!-- Unit details -->
+                <!-- construction_type -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('construction_type')}">
                     <label class="field-label"><span>نوع ساخت</span></label>
                     <select class="input-control" x-model="form.construction_type" :disabled="!isFieldEditable('construction_type')">
@@ -111,25 +186,99 @@
                         <option value="ویلایی">ویلایی</option>
                     </select>
                 </div>
+
+                <!-- bedroom_count -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('bedroom_count')}">
+                    <label class="field-label"><span>تعداد خواب</span></label>
+                    <select class="input-control fa-num" x-model="form.bedroom_count" :disabled="!isFieldEditable('bedroom_count')">
+                        <option value="1">۱ خوابه</option>
+                        <option value="2">۲ خوابه</option>
+                        <option value="3">۳ خوابه</option>
+                        <option value="4">۴ خوابه</option>
+                    </select>
+                </div>
+
+                <!-- block_name & block_code -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('block_name')}">
-                    <label class="field-label"><span>بلوک</span></label>
-                    <input type="text" class="input-control" x-model="form.block_name" :readonly="!isFieldEditable('block_name')">
+                    <label class="field-label"><span>نام بلوک</span></label>
+                    <input type="text" class="input-control" x-model="form.block_name" :readonly="!isFieldEditable('block_name')" placeholder="مثال: بلوک B-14">
                 </div>
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('block_code')}">
+                    <label class="field-label"><span>کد بلوک</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.block_code" :readonly="!isFieldEditable('block_code')" placeholder="مثال: hh89">
+                </div>
+
+                <!-- floor_number -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('floor_number')}">
-                    <label class="field-label"><span>طبقه</span></label>
-                    <input type="number" class="input-control fa-num" x-model="form.floor_number" :readonly="!isFieldEditable('floor_number')">
+                    <label class="field-label"><span>طبقه (۱ تا ۶)</span></label>
+                    <select class="input-control fa-num" x-model="form.floor_number" :disabled="!isFieldEditable('floor_number')">
+                        <option value="1">طبقه ۱</option>
+                        <option value="2">طبقه ۲</option>
+                        <option value="3">طبقه ۳</option>
+                        <option value="4">طبقه ۴</option>
+                        <option value="5">طبقه ۵</option>
+                        <option value="6">طبقه ۶</option>
+                    </select>
                 </div>
+
+                <!-- unit_number & unit_code -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('unit_number')}">
                     <label class="field-label"><span>شماره واحد</span></label>
                     <input type="number" class="input-control fa-num" x-model="form.unit_number" :readonly="!isFieldEditable('unit_number')">
                 </div>
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('unit_area')}">
-                    <label class="field-label"><span>مساحت واحد (م²)</span></label>
-                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.unit_area" :readonly="!isFieldEditable('unit_area')">
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('unit_code')}">
+                    <label class="field-label"><span>کد واحد</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.unit_code" :readonly="!isFieldEditable('unit_code')" placeholder="مثال: 37">
                 </div>
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('storage_number')}">
-                    <label class="field-label"><span>انباری / پارکینگ</span></label>
-                    <input type="text" class="input-control fa-num" :value="'انبار ' + (form.storage_number || '-') + ' / پارک ' + (form.parking_number || '-')" readonly>
+
+                <!-- unit_direction -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('unit_direction')}">
+                    <label class="field-label"><span>جهت واحد</span></label>
+                    <select class="input-control" x-model="form.unit_direction" :disabled="!isFieldEditable('unit_direction')">
+                        <option value="شمال غربی">شمال غربی</option>
+                        <option value="شمال شرقی">شمال شرقی</option>
+                        <option value="جنوب غربی">جنوب غربی</option>
+                        <option value="جنوب شرقی">جنوب شرقی</option>
+                        <option value="شمالی">شمالی</option>
+                        <option value="جنوبی">جنوبی</option>
+                        <option value="دو کله">دو کله</option>
+                    </select>
+                </div>
+
+                <!-- Areas -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('net_unit_area')}">
+                    <label class="field-label"><span>متراژ مفید واحد (م²)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.net_unit_area" :readonly="!isFieldEditable('net_unit_area')">
+                </div>
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('common_area')}">
+                    <label class="field-label"><span>متراژ مشاعات (م²)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.common_area" :readonly="!isFieldEditable('common_area')">
+                </div>
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('total_area')}">
+                    <label class="field-label"><span>جمع کل متراژ واحد (م²)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.total_area" :readonly="!isFieldEditable('total_area')">
+                </div>
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('covered_parking_area')}">
+                    <label class="field-label"><span>متراژ پارکینگ مسقف (م²)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.covered_parking_area" :readonly="!isFieldEditable('covered_parking_area')">
+                </div>
+
+                <!-- Storage & Parking numbers -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('storage_number')}">
+                    <label class="field-label"><span>شماره انباری</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.storage_number" :readonly="!isFieldEditable('storage_number')">
+                </div>
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('storage_area')}">
+                    <label class="field-label"><span>مساحت انباری (م²)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.storage_area" :readonly="!isFieldEditable('storage_area')">
+                </div>
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('parking_number')}">
+                    <label class="field-label"><span>شماره پارکینگ</span></label>
+                    <input type="number" class="input-control fa-num" x-model="form.parking_number" :readonly="!isFieldEditable('parking_number')">
+                </div>
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('parking_area')}">
+                    <label class="field-label"><span>مساحت پارکینگ (م²)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.parking_area" :readonly="!isFieldEditable('parking_area')">
                 </div>
             </div>
         </div>
@@ -232,14 +381,44 @@
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_form_j_status')}">
                     <label class="field-label">
                         <span>وضعیت استعلام فرم «ج» همسر</span>
-                        <span class="helper-badge" style="background: #dcfce7; color: #166534;">استعلام اداره کل</span>
+                        <span class="helper-badge" :style="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">فرم ج</span>
                     </label>
                     <select class="input-control" x-model="form.spouse_form_j_status" :disabled="!isFieldEditable('spouse_form_j_status')">
                         <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
-                        <option value="قرمز (دارای سابقه مسکن)">قرمز (دارای سابقه مسکن)</option>
+                        <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
                         <option value="در حال استعلام">در حال استعلام</option>
                     </select>
                 </div>
+
+                <!-- 9. spouse_form_j_directorate_status -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_form_j_directorate_status')}">
+                    <label class="field-label">
+                        <span>استعلام اداره کل مسکن همسر</span>
+                        <span class="helper-badge text-blue-700">سامانه اداره کل</span>
+                    </label>
+                    <select class="input-control" x-model="form.spouse_form_j_directorate_status" :disabled="!isFieldEditable('spouse_form_j_directorate_status')">
+                        <option value="تایید نهایی اداره کل">تایید نهایی اداره کل</option>
+                        <option value="در حال بررسی">در حال بررسی</option>
+                        <option value="عدم تایید اداره کل">عدم تایید اداره کل</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Red Code Alert Box for Spouse -->
+            <div x-show="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')"
+                 style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-top: 14px;"
+                 x-transition>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span style="font-size: 1.1rem;">⚠️</span>
+                    <strong style="color: #991b1b; font-size: 0.88rem;">هشدار کد قرمز فرم «ج» همسر: فاقد شرایط واگذاری دولتی</strong>
+                </div>
+                <label class="field-label" style="color: #7f1d1d; margin-bottom: 4px;">
+                    <span>علت و توضیحات تفصیلی سابقه ملکی / کد قرمز همسر:</span>
+                </label>
+                <textarea class="input-control" rows="2" 
+                          x-model="form.spouse_form_j_red_description"
+                          :readonly="!isFieldEditable('spouse_form_j_red_description')"
+                          placeholder="توضیحات استعلام سوابق مسکن همسر، نوع تسهیلات دریافت شده قبلی یا سند ملکی ثبتی..."></textarea>
             </div>
         </div>
     </div>
@@ -291,7 +470,7 @@
         </div>
     </div>
 
-    <!-- Section 3: مبلغ تمام‌شده بدون وام ۶۵۰ میلیونی (مرحله ۲) -->
+    <!-- Section 3: قیمت تمام‌شده واحد و تسهیلات وام ساخت بانکی (مرحله ۲) -->
     <div class="form-card" id="section-cost" :class="{'section-active-highlight': isSectionActive('section-cost')}">
         <div class="form-section-header">
             <div class="section-title">
@@ -299,7 +478,7 @@
                     <line x1="12" y1="1" x2="12" y2="23"></line>
                     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
-                <span>بخش ۳: مبلغ تمام‌شده بدون وام ۶۵۰ میلیون تومانی (مرحله ۲)</span>
+                <span>بخش ۳: قیمت تمام‌شده واحد و تسهیلات وام ساخت بانکی (مرحله ۲)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-cost')">
@@ -314,9 +493,45 @@
         </div>
         <div class="form-section-body">
             <div class="fields-grid">
-                <div class="field-group col-12" :class="{'field-locked': !isFieldEditable('base_cost_without_loan')}">
+                <!-- Bank Loan Amount with 650M and 550M toggle buttons -->
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_loan_amount')}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 4px;">
+                        <label class="field-label" style="margin-bottom: 0;">
+                            <span><span class="required-mark">*</span>مبلغ تسهیلات وام ساخت بانکی مسکن (ریال)</span>
+                        </label>
+                        <div style="display: flex; gap: 4px;">
+                            <button type="button" 
+                                    @click="setBankLoan(6500000000)" 
+                                    :disabled="!isFieldEditable('bank_loan_amount')"
+                                    style="padding: 2px 9px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer; transition: all 0.15s; border: 1.5px solid #2563eb;"
+                                    :style="form.bank_loan_amount == 6500000000 ? 'background: #2563eb; color: #ffffff;' : 'background: #eff6ff; color: #2563eb;'">
+                                وام ۶۵۰ میلیون (پیش‌فرض)
+                            </button>
+                            <button type="button" 
+                                    @click="setBankLoan(5500000000)" 
+                                    :disabled="!isFieldEditable('bank_loan_amount')"
+                                    style="padding: 2px 9px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer; transition: all 0.15s; border: 1.5px solid #059669;"
+                                    :style="form.bank_loan_amount == 5500000000 ? 'background: #059669; color: #ffffff;' : 'background: #ecfdf5; color: #059669;'">
+                                وام ۵۵۰ میلیون
+                            </button>
+                        </div>
+                    </div>
+                    <div class="currency-input-wrapper">
+                        <input type="number" class="input-control fa-num" 
+                               x-model="form.bank_loan_amount" 
+                               :readonly="!isFieldEditable('bank_loan_amount')">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
+                    <div class="currency-word-display" x-show="form.bank_loan_amount">
+                        <span>مبلغ به حروف: </span>
+                        <strong x-text="toWords(form.bank_loan_amount)"></strong>
+                    </div>
+                </div>
+
+                <!-- Base Cost Without Loan -->
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('base_cost_without_loan')}">
                     <label class="field-label">
-                        <span><span class="required-mark">*</span>قیمت تمام شده واحد بدون وام ۶۵۰ میلیون تومانی (ریال)</span>
+                        <span><span class="required-mark">*</span>قیمت تمام شده واحد بدون احتساب وام بانکی (ریال)</span>
                     </label>
                     <div class="currency-input-wrapper">
                         <input type="number" class="input-control fa-num" 
@@ -328,6 +543,27 @@
                     <div class="currency-word-display" x-show="form.base_cost_without_loan">
                         <span>مبلغ به حروف: </span>
                         <strong x-text="toWords(form.base_cost_without_loan)"></strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Estimated Price Summary Card -->
+            <div style="margin-top: 1rem; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <span style="font-size: 1.35rem;">💰</span>
+                    <div>
+                        <div style="font-size: 0.82rem; color: #64748b; font-weight: 600;">فرمول برآورد کل قیمت واحد مسکونی:</div>
+                        <div style="font-size: 0.88rem; color: #0f172a; font-weight: 700;">
+                            قیمت پایه بدون وام (<span class="fa-num" x-text="formatNumber(form.base_cost_without_loan)"></span> ریال) + 
+                            تسهیلات بانکی (<span class="fa-num" x-text="formatNumber(form.bank_loan_amount)"></span> ریال)
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: left;">
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">مجموع بهای تمام‌شده کل واحد:</div>
+                    <div style="font-size: 1.15rem; color: #2563eb; font-weight: 900;" class="fa-num">
+                        <span x-text="formatNumber(Number(form.base_cost_without_loan || 0) + Number(form.bank_loan_amount || 0))"></span>
+                        <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">ریال</span>
                     </div>
                 </div>
             </div>

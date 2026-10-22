@@ -38,6 +38,14 @@ class PreSelectedUnit(models.Model):
     father_name = models.CharField(max_length=100, verbose_name="نام پدر")
     birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد (شمسی)")
     
+    applicant_phone = models.CharField(max_length=20, blank=True, verbose_name="شماره تماس متقاضی")
+    selection_rank = models.PositiveIntegerField(null=True, blank=True, verbose_name="رتبه انتخاب واحد")
+    
+    # Form J Inquiries & Status
+    applicant_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج متقاضی")
+    applicant_form_j_directorate_status = models.CharField(max_length=50, default="تایید نهایی اداره کل", blank=True, verbose_name="استعلام اداره کل متقاضی")
+    applicant_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج متقاضی")
+
     # Spouse fields (Crucial for Couples Scheme - طرح زوجین)
     spouse_full_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی همسر")
     spouse_father_name = models.CharField(max_length=100, blank=True, verbose_name="نام پدر همسر")
@@ -46,6 +54,8 @@ class PreSelectedUnit(models.Model):
     spouse_id_number = models.CharField(max_length=20, blank=True, verbose_name="شماره شناسنامه همسر")
     spouse_birth_place = models.CharField(max_length=100, blank=True, verbose_name="محل تولد / صدور همسر")
     spouse_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج همسر")
+    spouse_form_j_directorate_status = models.CharField(max_length=50, default="تایید نهایی اداره کل", blank=True, verbose_name="استعلام اداره کل همسر")
+    spouse_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج همسر")
     marital_status = models.CharField(max_length=50, default="متاهل (واجد شرایط طرح زوجین)", blank=True, verbose_name="وضعیت تاهل")
     is_married_confirmed = models.BooleanField(default=True, verbose_name="احراز زوجیت و تایید تاهل")
     
@@ -55,15 +65,24 @@ class PreSelectedUnit(models.Model):
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, verbose_name="پروژه")
     construction_type = models.CharField(max_length=50, default="آپارتمانی", verbose_name="نوع ساخت")
     block_name = models.CharField(max_length=50, blank=True, verbose_name="نام بلوک")
+    block_code = models.CharField(max_length=50, blank=True, verbose_name="کد بلوک")
     floor_number = models.PositiveSmallIntegerField(default=1, verbose_name="شماره طبقه")
     unit_number = models.PositiveIntegerField(default=1, verbose_name="شماره واحد")
+    unit_code = models.CharField(max_length=50, blank=True, verbose_name="کد واحد")
+    bedroom_count = models.PositiveSmallIntegerField(default=2, verbose_name="تعداد خواب")
+    unit_direction = models.CharField(max_length=50, default="شمال غربی", blank=True, verbose_name="جهت واحد")
+    net_unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="متراژ مفید واحد (م²)")
+    common_area = models.DecimalField(max_digits=7, decimal_places=2, default=25.00, verbose_name="متراژ مشاعات (م²)")
+    total_area = models.DecimalField(max_digits=7, decimal_places=2, default=110.00, verbose_name="جمع کل متراژ واحد (م²)")
     unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="مساحت واحد")
 
     storage_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره انباری")
     storage_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت انباری")
     parking_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره پارکینگ")
     parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت پارکینگ")
-    base_cost_without_loan = models.BigIntegerField(default=4500000000, verbose_name="قیمت پایه بدون وام ۶۵۰ میلیونی (ریال)")
+    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=11.25, verbose_name="متراژ پارکینگ مسقف (م²)")
+    base_cost_without_loan = models.BigIntegerField(default=4500000000, verbose_name="قیمت پایه بدون وام بانکی (ریال)")
+    bank_loan_amount = models.BigIntegerField(default=6500000000, verbose_name="مبلغ وام بانکی مسکن (ریال)")
 
     registration_section = models.CharField(max_length=100, blank=True, verbose_name="بخش ثبتی")
     main_plaque = models.IntegerField(null=True, blank=True, verbose_name="پلاک اصلی")
@@ -129,6 +148,13 @@ class HousingDossier(models.Model):
     full_name = models.CharField(max_length=150, verbose_name="نام و نام خانوادگی متقاضی")
     father_name = models.CharField(max_length=100, verbose_name="نام پدر")
     birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد (شمسی)")
+    applicant_phone = models.CharField(max_length=20, blank=True, verbose_name="شماره تماس متقاضی")
+    selection_rank = models.PositiveIntegerField(null=True, blank=True, verbose_name="رتبه انتخاب واحد")
+
+    # Form J Inquiries & Status
+    applicant_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج متقاضی")
+    applicant_form_j_directorate_status = models.CharField(max_length=50, default="تایید نهایی اداره کل", blank=True, verbose_name="استعلام اداره کل متقاضی")
+    applicant_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج متقاضی")
     
     # Specific Spouse Fields (Crucial for Couples Scheme - طرح زوجین)
     spouse_full_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی همسر")
@@ -138,6 +164,8 @@ class HousingDossier(models.Model):
     spouse_id_number = models.CharField(max_length=20, blank=True, verbose_name="شماره شناسنامه همسر")
     spouse_birth_place = models.CharField(max_length=100, blank=True, verbose_name="محل تولد / صدور همسر")
     spouse_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج همسر")
+    spouse_form_j_directorate_status = models.CharField(max_length=50, default="تایید نهایی اداره کل", blank=True, verbose_name="استعلام اداره کل همسر")
+    spouse_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج همسر")
     marital_status = models.CharField(max_length=50, default="متاهل (واجد شرایط طرح زوجین)", blank=True, verbose_name="وضعیت تاهل")
     is_married_confirmed = models.BooleanField(default=True, verbose_name="احراز زوجیت و تایید تاهل")
 
@@ -147,13 +175,21 @@ class HousingDossier(models.Model):
     project = models.CharField(max_length=200, verbose_name="نام پروژه")
     construction_type = models.CharField(max_length=50, default="آپارتمانی", verbose_name="نوع ساخت")
     block_name = models.CharField(max_length=50, blank=True, verbose_name="نام بلوک")
+    block_code = models.CharField(max_length=50, blank=True, verbose_name="کد بلوک")
     floor_number = models.PositiveSmallIntegerField(default=1, verbose_name="شماره طبقه")
     unit_number = models.PositiveIntegerField(default=1, verbose_name="شماره واحد")
+    unit_code = models.CharField(max_length=50, blank=True, verbose_name="کد واحد")
+    bedroom_count = models.PositiveSmallIntegerField(default=2, verbose_name="تعداد خواب")
+    unit_direction = models.CharField(max_length=50, default="شمال غربی", blank=True, verbose_name="جهت واحد")
+    net_unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="متراژ مفید واحد (م²)")
+    common_area = models.DecimalField(max_digits=7, decimal_places=2, default=25.00, verbose_name="متراژ مشاعات (م²)")
+    total_area = models.DecimalField(max_digits=7, decimal_places=2, default=110.00, verbose_name="جمع کل متراژ واحد (م²)")
     unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="مساحت واحد")
     storage_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره انباری")
     storage_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت انباری")
     parking_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره پارکینگ")
     parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت پارکینگ")
+    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=11.25, verbose_name="متراژ پارکینگ مسقف (م²)")
 
     # Stage 2 & 18: Plot & Registry Fields
     registration_section = models.CharField(max_length=100, blank=True, verbose_name="بخش ثبتی")
@@ -162,8 +198,9 @@ class HousingDossier(models.Model):
     sub_plaque = models.IntegerField(null=True, blank=True, verbose_name="فرعی از")
     plot_number = models.IntegerField(null=True, blank=True, verbose_name="شماره قطعه")
 
-    # Stage 3: Base Cost without 650M Toman loan
-    base_cost_without_loan = models.BigIntegerField(default=4500000000, verbose_name="قیمت تمام شده بدون وام ۶۵۰ میلیونی (ریال)")
+    # Stage 3: Base Cost without Bank Loan & Bank Loan Amount (Default 650M, can be 550M or custom)
+    base_cost_without_loan = models.BigIntegerField(default=4500000000, verbose_name="قیمت تمام شده بدون وام بانکی (ریال)")
+    bank_loan_amount = models.BigIntegerField(default=6500000000, verbose_name="مبلغ تسهیلات وام بانکی (ریال)")
 
     # Stage 6: Fund Loan Amount
     fund_loan_amount = models.BigIntegerField(default=0, verbose_name="مبلغ وام صندوق (ریال)")

@@ -369,13 +369,18 @@ document.addEventListener('alpine:init', () => {
       rotation: 0
     },
 
-    // Form Data - Merged 31+ Fields Matrix
+    // Form Data - Merged 45+ Fields Matrix
     form: {
       // Stage 1 Fields
       full_name: 'علیرضا رضایی پور',
       father_name: 'محمدرضا',
       national_id: '0012345678',
       birth_date: '1365/04/15',
+      applicant_phone: '',
+      selection_rank: null,
+      applicant_form_j_status: 'سبز (استعلام شده)',
+      applicant_form_j_directorate_status: 'تایید نهایی اداره کل',
+      applicant_form_j_red_description: '',
       spouse_full_name: 'فاطمه السادات موسوی',
       spouse_father_name: 'سید علی',
       spouse_national_id: '0029876543',
@@ -383,6 +388,8 @@ document.addEventListener('alpine:init', () => {
       spouse_id_number: '1245',
       spouse_birth_place: 'قم',
       spouse_form_j_status: 'سبز (استعلام شده)',
+      spouse_form_j_directorate_status: 'تایید نهایی اداره کل',
+      spouse_form_j_red_description: '',
       marital_status: 'متاهل (واجد شرایط طرح زوجین)',
       is_married_confirmed: true,
       decile: 4,
@@ -390,13 +397,21 @@ document.addEventListener('alpine:init', () => {
       project: 'پروژه ۵۶۰ هکتاری فاز ۲ (تعداد واحد: ۳۲۰)',
       construction_type: 'آپارتمانی',
       block_name: 'بلوک B-14',
+      block_code: '',
       floor_number: 3,
       unit_number: 12,
+      unit_code: '',
+      bedroom_count: 2,
+      unit_direction: 'شمال غربی',
+      net_unit_area: 85.00,
+      common_area: 25.00,
+      total_area: 110.00,
       unit_area: 85.50,
       storage_number: 12,
       storage_area: 3.20,
       parking_number: 12,
       parking_area: 12.50,
+      covered_parking_area: 11.25,
 
       // Stage 2: Plot & Registry
       registration_section: 'بخش ۱ ثبتی قم',
@@ -405,8 +420,9 @@ document.addEventListener('alpine:init', () => {
       sub_plaque: 312,
       plot_number: 48,
 
-      // Stage 3: Base Cost without 650M Toman loan
+      // Stage 3: Base Cost & Bank Loan Amount (Default 650M Tomans, can be 550M or custom)
       base_cost_without_loan: 4500000000,
+      bank_loan_amount: 6500000000,
 
       // Stage 6: Fund Loan Amount
       fund_loan_amount: 500000000,
@@ -556,6 +572,10 @@ document.addEventListener('alpine:init', () => {
     getStageSignature(stageId) {
       if (!this.stageSignatures) return null;
       return this.stageSignatures[stageId] || this.stageSignatures[String(stageId)] || null;
+    },
+
+    setBankLoan(amount) {
+      this.form.bank_loan_amount = Number(amount) || 0;
     },
 
     recalculateEquity() {
