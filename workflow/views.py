@@ -1126,7 +1126,7 @@ def dossier_summary_print_view(request, pk):
     return render(request, "dossiers/print_summary.html", {"dossier": dossier})
 
 
-def _ensure_check_receipt_attachment(user, dossier, check_type="loan"):
+def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=""):
     """
     Creates or retrieves the official check receipt attachment in DossierAttachment
     so that printed check receipts are automatically tracked in the Scan Album.
@@ -1134,9 +1134,13 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan"):
     check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
     doc_type = "PREP_CHECK" if check_type_norm == "prep" else "LOAN_CHECK"
     type_label = "اقساط آماده‌سازی و اجاره" if check_type_norm == "prep" else "تسهیلات وام دهک"
-    title = f"رسید رسمی و صورت‌جلسه تحویل چک‌های {type_label}"
+    title = f"رسید رسمی و برگه تحویل چک‌های {type_label}"
     file_name = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
+    
+    import urllib.parse
     preview_url = f"/dossier/{dossier.archive_number}/print/checks/?type={check_type_norm}&auto_archive=0"
+    if scan_url:
+        preview_url += f"&scan_url={urllib.parse.quote(scan_url)}"
     
     # Check if this receipt attachment already exists
     att = dossier.attachments.filter(preview_url=preview_url).first()
@@ -1190,16 +1194,25 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan"):
 def dossier_print_checks_view(request, pk):
     """
     Print-ready official check receipt document based on print.ts from BankCheckTracker & tashilatCheck.
-    Renders an A4 document with the 2-row overlay header, checks table, financial summary bar,
-    and official recipient/issuer signature boxes.
+    Renders an A4 document with the 2-row overlay header, the check scan image in the center,
+    financial summary bar, and official recipient/issuer signature boxes.
     Also ensures the printed receipt is automatically preserved in the DossierAttachment scan album.
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
     check_type = request.GET.get('type', 'loan').lower()
+    check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
+    doc_type = "PREP_CHECK" if check_type_norm == "prep" else "LOAN_CHECK"
     auto_archive = request.GET.get('auto_archive', '1') == '1'
+    scan_url = request.GET.get('scan_url') or ""
+
+    # Look for existing check scan if scan_url not passed
+    if not scan_url:
+        existing_scan = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("-id").first()
+        if existing_scan and existing_scan.preview_url:
+            scan_url = existing_scan.preview_url
 
     if auto_archive:
-        _ensure_check_receipt_attachment(request.user, dossier, check_type)
+        _ensure_check_receipt_attachment(request.user, dossier, check_type_norm, scan_url=scan_url)
 
     import jdatetime
     now_j = jdatetime.datetime.now().strftime("%Y/%m/%d")
@@ -1235,12 +1248,13 @@ def dossier_print_checks_view(request, pk):
 
     context = {
         "dossier": dossier,
-        "check_type": "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan",
+        "check_type": check_type_norm,
         "today_jalali": now_j,
         "loan_checks": loan_checks,
         "prep_checks": prep_checks,
         "total_loan_amount": total_loan_amount,
         "total_prep_amount": total_prep_amount,
+        "scan_url": scan_url,
     }
     return render(request, "dossiers/print_checks.html", context)
 
@@ -1260,7 +1274,8 @@ def archive_check_receipt_api(request, pk):
         data = request.POST or {}
 
     check_type = data.get('type', 'loan').lower()
-    attachment = _ensure_check_receipt_attachment(request.user, dossier, check_type)
+    scan_url = data.get('scan_url', '')
+    attachment = _ensure_check_receipt_attachment(request.user, dossier, check_type, scan_url=scan_url)
 
     return JsonResponse({
         "status": "success",
@@ -1276,6 +1291,125 @@ def archive_check_receipt_api(request, pk):
             "preview_url": attachment.preview_url,
             "immutable": True
         }
+    })
+
+
+@login_required(login_url='login')
+@csrf_exempt
+def upload_check_scan_and_create_receipt_view(request, pk):
+    """
+    Endpoint that gets a check scan (upload or existing),
+    attaches the official Header & Footer according to print.ts,
+    saves that as the official check receipt in DossierAttachment,
+    and returns JSON with the created attachments and the print URL.
+    """
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    check_type = request.POST.get('check_type', 'loan').lower()
+    check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
+    doc_type = "PREP_CHECK" if check_type_norm == "prep" else "LOAN_CHECK"
+    type_label = "اقساط آماده‌سازی و اجاره" if check_type_norm == "prep" else "تسهیلات وام دهک"
+
+    profile = getattr(request.user, 'profile', None) if request.user and request.user.is_authenticated else None
+    if profile and profile.full_name:
+        uploader_name = profile.full_name
+        uploader_role = profile.role_title or "متصدی دریافت چک"
+    elif request.user and request.user.is_authenticated:
+        uploader_name = request.user.get_full_name() or request.user.username
+        uploader_role = "متصدی دریافت چک"
+    else:
+        uploader_name = "متصدی ثبت و دریافت چک"
+        uploader_role = "امور چک و تضامین"
+
+    saved_url = ""
+    file_obj = request.FILES.get('file')
+    if file_obj:
+        nat_id = dossier.national_id or "general"
+        upload_dir = os.path.join(settings.MEDIA_ROOT, nat_id, "check_scans")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        clean_name = f"check_scan_{dossier.archive_number}_{check_type_norm}_{int(timezone.now().timestamp())}_{file_obj.name}"
+        clean_name = "".join(c for c in clean_name if c.isalnum() or c in "._-")
+        save_path = os.path.join(upload_dir, clean_name)
+
+        with open(save_path, 'wb+') as destination:
+            for chunk in file_obj.chunks():
+                destination.write(chunk)
+
+        saved_url = f"{settings.MEDIA_URL}{nat_id}/check_scans/{clean_name}"
+    else:
+        saved_url = request.POST.get('preview_url') or ""
+        if not saved_url:
+            existing_scan = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("-id").first()
+            if existing_scan:
+                saved_url = existing_scan.preview_url
+
+    import hashlib
+    raw_hash = f"{dossier.archive_number}-SCAN-{check_type_norm}-{timezone.now().isoformat()}"
+    file_sha = "SHA256: " + hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()[:24]
+
+    # 1. Create raw scan attachment if file was uploaded
+    if file_obj and saved_url:
+        DossierAttachment.objects.create(
+            dossier=dossier,
+            stage=18,
+            doc_type=doc_type,
+            title=f"اسکن اصل چک‌های صیادی {type_label}",
+            file_name=file_obj.name,
+            file_sha256=file_sha,
+            uploaded_by=uploader_name,
+            preview_url=saved_url
+        )
+
+    # 2. Create the Official Checks Receipt with Header & Footer
+    receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} (با تصویر اسکن)"
+    receipt_filename = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
+    receipt_hash = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
+    
+    import urllib.parse
+    preview_query = f"?scan_url={urllib.parse.quote(saved_url)}&type={check_type_norm}&auto_archive=0" if saved_url else f"?type={check_type_norm}&auto_archive=0"
+    print_preview_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}"
+
+    receipt_att = DossierAttachment.objects.create(
+        dossier=dossier,
+        stage=18,
+        doc_type=doc_type,
+        title=receipt_title,
+        file_name=receipt_filename,
+        file_sha256=receipt_hash,
+        uploaded_by=uploader_name,
+        preview_url=print_preview_url
+    )
+
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage="مرحله ۱۸: دریافت چک‌های صیادی",
+        to_stage="مرحله ۱۸: دریافت چک‌های صیادی",
+        actor=uploader_name,
+        role=uploader_role,
+        action="SUBMIT_AND_PRINT",
+        action_label=f"بارگذاری اسکن و صدور رسید چک‌های {type_label}",
+        signature_hash=receipt_hash,
+        notes=f"تصویر اسکن چک‌های {type_label} دریافت، سربرگ متمرکز و کادر امضاها اضافه و به عنوان رسید رسمی در آلبوم اسکن ذخیره شد."
+    )
+
+    print_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}&auto_print=1"
+
+    return JsonResponse({
+        "status": "success",
+        "attachment": {
+            "id": receipt_att.id,
+            "stage": receipt_att.stage,
+            "type": receipt_att.doc_type,
+            "title": receipt_att.title,
+            "fileName": receipt_att.file_name,
+            "uploader": receipt_att.uploaded_by,
+            "uploadDate": receipt_att.uploaded_at.strftime("%Y/%m/%d"),
+            "sha256": receipt_att.file_sha256,
+            "preview_url": receipt_att.preview_url,
+            "immutable": True
+        },
+        "scan_url": saved_url,
+        "print_url": print_url
     })
 
 

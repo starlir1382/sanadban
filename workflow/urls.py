@@ -16,6 +16,7 @@ urlpatterns = [
     path("dossier/<int:pk>/print/rejection-letter/", views.red_rejection_letter_print_view, name="red_rejection_letter_print"),
     path("dossier/<int:pk>/print/checks/", views.dossier_print_checks_view, name="dossier_print_checks"),
     path("dossier/<int:pk>/checks/archive-receipt/", views.archive_check_receipt_api, name="archive_check_receipt_api"),
+    path("dossier/<int:pk>/checks/upload-scan-and-create-receipt/", views.upload_check_scan_and_create_receipt_view, name="upload_check_scan_and_create_receipt"),
     path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="dossier_upload_scan"),
     path("api/lookup-unit/", views.lookup_preselected_unit_api, name="lookup_unit_api"),
 

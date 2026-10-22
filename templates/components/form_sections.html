@@ -1162,16 +1162,42 @@
                 </div>
             </div>
 
-            <!-- دکمه چاپ رسید و برگه چک‌های وام دهک (BankCheckTracker) -->
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 0.85rem;">
-                <button type="button"
-                        @click="printChecksReceipt('loan')"
-                        class="btn btn-primary"
-                        style="background: #ea580c; border-color: #c2410c; padding: 0.5rem 1.25rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);"
-                        title="چاپ برگه و رسید چک‌های وام دهک همراه با مشخصات دریافت‌کنندگان و افزودن خودکار به اسناد اسکن‌شده">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                    <span>🖨️ چاپ رسید و برگ چک‌های وام دهک (با امضای دریافت‌کنندگان)</span>
-                </button>
+            <!-- بخش صدور رسید با تصویر اسکن چک‌های وام دهک (BankCheckTracker) -->
+            <div style="background: #fffaf0; border: 1.5px dashed #ea580c; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.65rem;">
+                        <span style="font-size: 1.6rem;">📸</span>
+                        <div>
+                            <strong style="color: #9a3412; font-size: 0.9rem; display: block;">صدور رسید رسمی چک‌های وام دهک (تلفیق تصویر اسکن با سربرگ و امضاء)</strong>
+                            <span style="font-size: 0.76rem; color: #b45309;">بارگذاری یا انتخاب اسکن چک‌ها، درج سربرگ اطلاعات متقاضی در بالا و کادر امضای دریافت‌کنندگان در پایین و ذخیره خودکار در اسناد اسکن‌شده</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <input type="file" 
+                               id="loan-check-scan-input" 
+                               accept="image/*,.pdf" 
+                               style="display: none;" 
+                               @change="handleCheckScanUploadAndReceipt($event, 'loan')">
+                        
+                        <button type="button" 
+                                onclick="document.getElementById('loan-check-scan-input').click()" 
+                                class="btn btn-primary"
+                                style="background: #ea580c; border-color: #c2410c; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);"
+                                title="بارگذاری فایل تصویر اسکن چک و تولید برگه رسید">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            <span>📷 بارگذاری اسکن چک و تولید رسید</span>
+                        </button>
+
+                        <button type="button" 
+                                @click="printExistingCheckScanReceipt('loan')" 
+                                class="btn btn-outline"
+                                style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #9a3412; border-color: #fdba74; background: #ffffff;"
+                                title="استفاده از اسکن موجود در پرونده و چاپ رسید رسمی">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            <span>🖨️ چاپ با اسکن پرونده</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- کارت تاییدیه دریافت چک‌های صیادی وام دهک -->
@@ -1583,16 +1609,42 @@
                     </div>
                 </div>
 
-                <!-- دکمه چاپ رسید و برگه چک‌های آماده‌سازی (tashilatCheck) -->
-                <div style="display: flex; justify-content: flex-end; margin-top: 0.85rem; margin-bottom: 0.5rem;">
-                    <button type="button"
-                            @click="printChecksReceipt('prep')"
-                            class="btn btn-primary"
-                            style="background: #15803d; border-color: #166534; padding: 0.5rem 1.25rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);"
-                            title="چاپ برگه و رسید چک‌های اقساط آماده‌سازی همراه با مشخصات دریافت‌کنندگان و افزودن خودکار به اسناد اسکن‌شده">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                        <span>🖨️ چاپ رسید و برگ چک‌های آماده‌سازی (با امضای دریافت‌کنندگان)</span>
-                    </button>
+                <!-- بخش صدور رسید با تصویر اسکن چک‌های آماده‌سازی (tashilatCheck) -->
+                <div style="background: #f0fdf4; border: 1.5px dashed #15803d; border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; margin-bottom: 0.85rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.65rem;">
+                            <span style="font-size: 1.6rem;">📸</span>
+                            <div>
+                                <strong style="color: #166534; font-size: 0.9rem; display: block;">صدور رسید رسمی چک‌های آماده‌سازی (تلفیق تصویر اسکن با سربرگ و امضاء)</strong>
+                                <span style="font-size: 0.76rem; color: #15803d;">بارگذاری یا انتخاب اسکن چک‌ها، درج سربرگ اطلاعات در بالا و کادر امضای دریافت‌کنندگان در پایین و ذخیره خودکار در اسناد اسکن‌شده</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <input type="file" 
+                                   id="prep-check-scan-input" 
+                                   accept="image/*,.pdf" 
+                                   style="display: none;" 
+                                   @change="handleCheckScanUploadAndReceipt($event, 'prep')">
+                            
+                            <button type="button" 
+                                    onclick="document.getElementById('prep-check-scan-input').click()" 
+                                    class="btn btn-primary"
+                                    style="background: #15803d; border-color: #166534; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);"
+                                    title="بارگذاری فایل تصویر اسکن چک و تولید برگه رسید">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                <span>📷 بارگذاری اسکن چک و تولید رسید</span>
+                            </button>
+
+                            <button type="button" 
+                                    @click="printExistingCheckScanReceipt('prep')" 
+                                    class="btn btn-outline"
+                                    style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #166534; border-color: #86efac; background: #ffffff;"
+                                    title="استفاده از اسکن موجود در پرونده و چاپ رسید رسمی">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                                <span>🖨️ چاپ با اسکن پرونده</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- کارت تاییدیه دریافت چک‌های اقساط آماده‌سازی -->
