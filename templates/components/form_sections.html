@@ -892,7 +892,17 @@
                         <span>کارمزد خدمات چک (ریال)</span>
                         <span class="helper-badge" style="background: #e0e7ff; color: #3730a3;">مخصوص مدیر چک</span>
                     </label>
-                    <input type="number" class="input-control fa-num" x-model="form.check_service_fee" :readonly="!isFieldEditable('check_service_fee')">
+                    <div class="currency-input-wrapper">
+                        <input type="text"
+                               class="input-control fa-num"
+                               style="direction: ltr; font-weight: 700;"
+                               :value="form.check_service_fee ? formatNumber(form.check_service_fee) : ''"
+                               @input="updateFormattedAmount(form, 'check_service_fee', $event)"
+                               @blur="formatAmountOnBlur(form, 'check_service_fee', $event)"
+                               :readonly="!isFieldEditable('check_service_fee')"
+                               placeholder="۰">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
                 </div>
 
                 <!-- مبلغ کل وام دهک -->
@@ -900,9 +910,16 @@
                     <label class="field-label">
                         <span>مبلغ کل تسهیلات وام دهک (ریال)</span>
                     </label>
-                    <input type="number" class="input-control fa-num" style="font-weight: 800; color: #1e3a8a;" x-model="form.decile_loan_amount" :readonly="!isFieldEditable('decile_loan_amount')">
-                    <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
-                        معادل: <span x-text="formatNumber(Math.round((form.decile_loan_amount || 0) / 10))"></span> تومان
+                    <div class="currency-input-wrapper">
+                        <input type="text"
+                               class="input-control fa-num"
+                               style="direction: ltr; font-weight: 800; color: #1e3a8a;"
+                               :value="form.decile_loan_amount ? formatNumber(form.decile_loan_amount) : ''"
+                               @input="updateFormattedAmount(form, 'decile_loan_amount', $event); recalculateChecks()"
+                               @blur="formatAmountOnBlur(form, 'decile_loan_amount', $event); recalculateChecks()"
+                               :readonly="!isFieldEditable('decile_loan_amount')"
+                               placeholder="۰">
+                        <span class="currency-unit-tag">ریال</span>
                     </div>
                 </div>
 
@@ -1081,17 +1098,16 @@
 
                                     <!-- مبلغ چک -->
                                     <td>
-                                        <div>
-                                            <input type="number"
+                                        <div class="currency-input-wrapper" style="width: 100%;">
+                                            <input type="text"
                                                    class="input-control fa-num"
-                                                   style="direction: ltr; font-weight: 800; font-size: 0.88rem; color: #047857;"
-                                                   x-model="check.check_amount"
-                                                   @input="recalculateChecks()"
+                                                   style="direction: ltr; font-weight: 800; font-size: 0.88rem; color: #047857; width: 100%;"
+                                                   :value="check.check_amount ? formatNumber(check.check_amount) : ''"
+                                                   @input="updateFormattedAmount(check, 'check_amount', $event); recalculateChecks()"
+                                                   @blur="formatAmountOnBlur(check, 'check_amount', $event); recalculateChecks()"
                                                    :readonly="!isFieldEditable('decile_loan_amount')"
-                                                   placeholder="مبلغ به ریال">
-                                            <div style="font-size: 0.68rem; color: #059669; font-weight: 700; margin-top: 2px; text-align: left;" class="fa-num" x-show="check.check_amount > 0">
-                                                <span x-text="formatNumber(check.check_amount)"></span> ریال
-                                            </div>
+                                                   placeholder="۰">
+                                            <span class="currency-unit-tag">ریال</span>
                                         </div>
                                     </td>
 
@@ -1258,9 +1274,16 @@
                             <span>مبلغ پرداختی اجاره عرصه (ریال)</span>
                             <span class="helper-badge">وصول نقدی</span>
                         </label>
-                        <input type="number" class="input-control fa-num" style="font-weight: 800; color: #065f46;" x-model="form.tenant_price" :readonly="!isFieldEditable('tenant_price')">
-                        <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
-                            معادل: <span x-text="formatNumber(Math.round((form.tenant_price || 0) / 10))"></span> تومان
+                        <div class="currency-input-wrapper">
+                            <input type="text"
+                                   class="input-control fa-num"
+                                   style="direction: ltr; font-weight: 800; color: #065f46;"
+                                   :value="form.tenant_price ? formatNumber(form.tenant_price) : ''"
+                                   @input="updateFormattedAmount(form, 'tenant_price', $event)"
+                                   @blur="formatAmountOnBlur(form, 'tenant_price', $event)"
+                                   :readonly="!isFieldEditable('tenant_price')"
+                                   placeholder="۰">
+                            <span class="currency-unit-tag">ریال</span>
                         </div>
                     </div>
 
@@ -1329,9 +1352,16 @@
                         <label class="field-label">
                             <span>مبلغ پیش‌پرداخت آماده‌سازی (۲۰٪ نقد - ریال)</span>
                         </label>
-                        <input type="number" class="input-control fa-num" style="font-weight: 800; color: #15803d;" x-model="form.cash_preparation_amount" :readonly="!isFieldEditable('cash_preparation_amount')">
-                        <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
-                            معادل: <span x-text="formatNumber(Math.round((form.cash_preparation_amount || 0) / 10))"></span> تومان
+                        <div class="currency-input-wrapper">
+                            <input type="text"
+                                   class="input-control fa-num"
+                                   style="direction: ltr; font-weight: 800; color: #15803d;"
+                                   :value="form.cash_preparation_amount ? formatNumber(form.cash_preparation_amount) : ''"
+                                   @input="updateFormattedAmount(form, 'cash_preparation_amount', $event)"
+                                   @blur="formatAmountOnBlur(form, 'cash_preparation_amount', $event)"
+                                   :readonly="!isFieldEditable('cash_preparation_amount')"
+                                   placeholder="۰">
+                            <span class="currency-unit-tag">ریال</span>
                         </div>
                     </div>
 
@@ -1349,9 +1379,16 @@
                         <label class="field-label">
                             <span>مبلغ غیرنقدی / اقساط آماده‌سازی (۸۰٪ اقساط - ریال)</span>
                         </label>
-                        <input type="number" class="input-control fa-num" style="font-weight: 800; color: #1d4ed8;" x-model="form.non_cash_preparation_amount" :readonly="!isFieldEditable('non_cash_preparation_amount')">
-                        <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;" class="fa-num">
-                            معادل: <span x-text="formatNumber(Math.round((form.non_cash_preparation_amount || 0) / 10))"></span> تومان
+                        <div class="currency-input-wrapper">
+                            <input type="text"
+                                   class="input-control fa-num"
+                                   style="direction: ltr; font-weight: 800; color: #1d4ed8;"
+                                   :value="form.non_cash_preparation_amount ? formatNumber(form.non_cash_preparation_amount) : ''"
+                                   @input="updateFormattedAmount(form, 'non_cash_preparation_amount', $event)"
+                                   @blur="formatAmountOnBlur(form, 'non_cash_preparation_amount', $event)"
+                                   :readonly="!isFieldEditable('non_cash_preparation_amount')"
+                                   placeholder="۰">
+                            <span class="currency-unit-tag">ریال</span>
                         </div>
                     </div>
 
@@ -1528,17 +1565,16 @@
 
                                         <!-- مبلغ چک -->
                                         <td>
-                                            <div>
-                                                <input type="number"
+                                            <div class="currency-input-wrapper" style="width: 100%;">
+                                                <input type="text"
                                                        class="input-control fa-num"
-                                                       style="direction: ltr; font-weight: 800; font-size: 0.88rem; color: #15803d;"
-                                                       x-model="check.check_amount"
-                                                       @input="recalculatePrepChecks()"
+                                                       style="direction: ltr; font-weight: 800; font-size: 0.88rem; color: #15803d; width: 100%;"
+                                                       :value="check.check_amount ? formatNumber(check.check_amount) : ''"
+                                                       @input="updateFormattedAmount(check, 'check_amount', $event); recalculatePrepChecks()"
+                                                       @blur="formatAmountOnBlur(check, 'check_amount', $event); recalculatePrepChecks()"
                                                        :readonly="!isFieldEditable('non_cash_preparation_amount')"
-                                                       placeholder="مبلغ به ریال">
-                                                <div style="font-size: 0.68rem; color: #166534; font-weight: 700; margin-top: 2px; text-align: left;" class="fa-num" x-show="check.check_amount > 0">
-                                                    <span x-text="formatNumber(check.check_amount)"></span> ریال
-                                                </div>
+                                                       placeholder="۰">
+                                                <span class="currency-unit-tag">ریال</span>
                                             </div>
                                         </td>
 

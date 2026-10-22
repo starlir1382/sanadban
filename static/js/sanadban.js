@@ -1267,6 +1267,65 @@ document.addEventListener('alpine:init', () => {
     // --------------------------------------------------------------------------
     // BankCheckTracker & TashilatCheck Dynamic Helpers
     // --------------------------------------------------------------------------
+    calculateCheckInstallments(totalRials, count) {
+      const ONE_MILLION_TOMAN = 10000000;
+      const total = Math.max(0, Number(totalRials) || 0);
+      const n = Math.max(1, Number(count) || 1);
+      if (total === 0) return { baseCheck: 0, lastCheck: 0 };
+      const totalMillionToman = Math.floor(total / ONE_MILLION_TOMAN);
+      const baseMillionToman = Math.floor(totalMillionToman / n);
+      let baseCheck = 0;
+      let lastCheck = 0;
+      if (baseMillionToman > 0) {
+        baseCheck = baseMillionToman * ONE_MILLION_TOMAN;
+        lastCheck = total - (baseCheck * (n - 1));
+      } else {
+        baseCheck = Math.floor(total / n);
+        lastCheck = total - (baseCheck * (n - 1));
+      }
+      return { baseCheck, lastCheck };
+    },
+
+    parseRawNumber(val) {
+      if (val === null || val === undefined) return 0;
+      let s = String(val);
+      s = s.replace(/[۰-۹]/g, d => String.fromCharCode(d.charCodeAt(0) - 1776 + 48));
+      s = s.replace(/[٠-٩]/g, d => String.fromCharCode(d.charCodeAt(0) - 1632 + 48));
+      s = s.replace(/[^\d]/g, '');
+      return s ? parseInt(s, 10) : 0;
+    },
+
+    updateFormattedAmount(obj, key, event) {
+      const input = event.target;
+      const raw = input.value;
+      const oldCursor = input.selectionEnd || 0;
+      const oldLength = raw.length;
+      const numeric = this.parseRawNumber(raw);
+      obj[key] = numeric;
+      if (numeric > 0) {
+        const formatted = this.formatNumber(numeric);
+        input.value = formatted;
+        const diff = formatted.length - oldLength;
+        const newCursor = Math.max(0, oldCursor + diff);
+        if (input.setSelectionRange) {
+          try {
+            input.setSelectionRange(newCursor, newCursor);
+          } catch (e) {}
+        }
+      } else if (raw === '' || raw === '0') {
+        input.value = raw;
+      }
+    },
+
+    formatAmountOnBlur(obj, key, event) {
+      const numeric = Number(obj[key]) || 0;
+      if (numeric > 0) {
+        event.target.value = this.formatNumber(numeric);
+      } else {
+        event.target.value = '';
+      }
+    },
+
     generateChecksAuto() {
       const count = Math.max(1, Math.min(12, Number(this.checkGenerator.count) || 4));
       const totalAmount = Number(this.form.decile_loan_amount) || Number(this.form.total_check_amount) || 0;
@@ -1276,20 +1335,7 @@ document.addEventListener('alpine:init', () => {
         this.checkGenerator.startDate = startDate;
       }
 
-      // BankCheckTracker rounding rule: each check floored to 10M rial (1M toman), remainder to last check
-      const ROUNDING_UNIT = 10000000;
-      let baseCheck = 0;
-      let lastCheck = 0;
-
-      if (totalAmount > 0) {
-        baseCheck = Math.floor(totalAmount / count / ROUNDING_UNIT) * ROUNDING_UNIT;
-        lastCheck = totalAmount - (baseCheck * (count - 1));
-        // Fallback if totalAmount is too small for 10M flooring
-        if (baseCheck <= 0 || lastCheck <= 0) {
-          baseCheck = Math.floor(totalAmount / count);
-          lastCheck = totalAmount - (baseCheck * (count - 1));
-        }
-      }
+      const { baseCheck, lastCheck } = this.calculateCheckInstallments(totalAmount, count);
 
       const newEntries = [];
       for (let i = 0; i < count; i++) {
@@ -1496,19 +1542,7 @@ document.addEventListener('alpine:init', () => {
         this.prepCheckGenerator.startDate = startDate;
       }
 
-      // 10M floor rounding rule (from tashilatCheck / BankCheckTracker)
-      const ROUNDING_UNIT = 10000000;
-      let baseCheck = 0;
-      let lastCheck = 0;
-
-      if (totalAmount > 0) {
-        baseCheck = Math.floor(totalAmount / count / ROUNDING_UNIT) * ROUNDING_UNIT;
-        lastCheck = totalAmount - (baseCheck * (count - 1));
-        if (baseCheck <= 0 || lastCheck <= 0) {
-          baseCheck = Math.floor(totalAmount / count);
-          lastCheck = totalAmount - (baseCheck * (count - 1));
-        }
-      }
+      const { baseCheck, lastCheck } = this.calculateCheckInstallments(totalAmount, count);
 
       const newEntries = [];
       let curDate = startDate;
