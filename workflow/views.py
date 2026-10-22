@@ -6,7 +6,59 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.db import transaction, models
 from django.contrib import messages
 from django.utils import timezone
-from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, Site, Project
+from django.views.decorators.csrf import csrf_exempt
+from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project
+
+DOSSIER_FIELD_LABELS = {
+    "full_name": "نام و نام خانوادگی متقاضی",
+    "father_name": "نام پدر متقاضی",
+    "national_id": "کد ملی متقاضی",
+    "birth_date": "تاریخ تولد متقاضی",
+    "spouse_full_name": "نام و نام خانوادگی همسر",
+    "spouse_father_name": "نام پدر همسر",
+    "spouse_national_id": "کد ملی همسر",
+    "spouse_birth_date": "تاریخ تولد همسر",
+    "spouse_id_number": "شماره شناسنامه همسر",
+    "spouse_birth_place": "محل صدور / تولد همسر",
+    "spouse_form_j_status": "وضعیت فرم ج همسر",
+    "marital_status": "وضعیت تاهل",
+    "is_married_confirmed": "احراز زوجیت و تایید تاهل",
+    "decile": "دهک درآمدی",
+    "site": "نام سایت",
+    "project": "نام پروژه",
+    "construction_type": "نوع ساخت",
+    "block_name": "نام بلوک",
+    "floor_number": "شماره طبقه",
+    "unit_number": "شماره واحد",
+    "unit_area": "مساحت واحد (م²)",
+    "storage_number": "شماره انباری",
+    "storage_area": "مساحت انباری (م²)",
+    "parking_number": "شماره پارکینگ",
+    "parking_area": "مساحت پارکینگ (م²)",
+    "registration_section": "بخش ثبتی",
+    "main_plaque": "پلاک اصلی",
+    "separated_plaque": "پلاک مفروز",
+    "sub_plaque": "فرعی از",
+    "plot_number": "شماره قطعه",
+    "base_cost_without_loan": "قیمت پایه بدون وام ۶۵۰ میلیونی (ریال)",
+    "fund_loan_amount": "مبلغ وام صندوق (ریال)",
+    "contractor_letter_amount": "مبلغ نامه پیمانکار (ریال)",
+    "decile_loan_amount": "مبلغ وام دهک (ریال)",
+    "applicant_equity": "آورده نقدی متقاضی (ریال)",
+    "is_sms_sent": "وضعیت ارسال پیامک",
+    "is_equity_funded": "تأیید تأمین آورده نقدی",
+    "bank_letter_number": "شماره نامه بانک",
+    "bank_letter_date": "تاریخ نامه بانک",
+    "total_land_share": "جمع کل قدرالسهم (م²)",
+    "past_years_rent": "اجاره سنوات تا پایان سال جاری (ریال)",
+    "current_year_rent": "اجاره سال جاری (ریال)",
+    "land_lease_year": "سال اجاره عرصه",
+    "preparation_cost": "مبلغ آماده سازی (ریال)",
+    "cash_preparation_amount": "مبلغ نقدی آماده سازی (ریال)",
+    "non_cash_preparation_amount": "مبلغ غیرنقدی آماده سازی (ریال)",
+    "is_cash_rent_confirmed": "تایید مبلغ نقدی اجاره",
+    "is_decile_loan_confirmed": "تایید چک‌های وام دهک",
+}
 
 def normalize_digits(text: str, to_type="ascii") -> str:
     """Converts numerals between Persian/Arabic and ASCII digits, and normalizes Arabic Yeh/Kaf."""
@@ -167,7 +219,14 @@ def dossier_detail_view(request, pk):
             "national_id": dossier.national_id,
             "birth_date": dossier.birth_date,
             "spouse_full_name": dossier.spouse_full_name,
+            "spouse_father_name": dossier.spouse_father_name,
             "spouse_national_id": dossier.spouse_national_id,
+            "spouse_birth_date": dossier.spouse_birth_date,
+            "spouse_id_number": dossier.spouse_id_number,
+            "spouse_birth_place": dossier.spouse_birth_place,
+            "spouse_form_j_status": dossier.spouse_form_j_status,
+            "marital_status": dossier.marital_status,
+            "is_married_confirmed": dossier.is_married_confirmed,
             "decile": dossier.decile,
             "site": dossier.site,
             "project": dossier.project,
@@ -206,22 +265,40 @@ def dossier_detail_view(request, pk):
         },
         "attachments": attachments_data,
         "audit_logs": audit_logs_data,
+        "field_changes": [
+            {
+                "id": c.id,
+                "fieldName": c.field_name,
+                "fieldLabel": c.field_label,
+                "oldValue": c.old_value if c.old_value is not None else "-",
+                "newValue": c.new_value if c.new_value is not None else "-",
+                "changedBy": c.changed_by,
+                "role": c.role,
+                "stage": c.stage,
+                "timestamp": c.timestamp.strftime("%Y/%m/%d %H:%M:%S"),
+                "ipAddress": c.ip_address or "-"
+            }
+            for c in dossier.field_changes.all().order_by("-timestamp")[:100]
+        ],
     }
 
     context = {
         "dossier": dossier,
         "attachments": attachments,
         "audit_logs": audit_logs,
+        "field_changes": dossier.field_changes.all().order_by("-timestamp")[:100],
         "archive_number": dossier.archive_number,
         "dossier_json": json.dumps(dossier_data, ensure_ascii=False),
     }
     return render(request, "dossier_detail.html", context)
 
 
+@csrf_exempt
 @transaction.atomic
 def save_dossier_draft_view(request, pk):
     """
-    Persists changes to the dossier's 31+ fields into the SQLite database.
+    Persists changes to the dossier's fields into the SQLite database with automated audit logging.
+    Tracks who changed each field, when, and the exact before/after values.
     """
     if request.method != "POST":
         return HttpResponseBadRequest("Only POST method allowed")
@@ -244,14 +321,33 @@ def save_dossier_draft_view(request, pk):
         except (ValueError, TypeError):
             pass
 
+    # Extract user identity and client IP
+    if request.user.is_authenticated:
+        actor_name = request.user.get_full_name() or request.user.username
+    else:
+        actor_name = str(data.get("actor") or "کارشناس اقدام‌کننده").strip()
+
+    actor_role = str(data.get("role") or dossier.current_role).strip()
+
+    x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded:
+        ip_address = x_forwarded.split(',')[0].strip()
+    else:
+        ip_address = request.META.get('REMOTE_ADDR')
+
+    parsed_updates = {}
+
     # String fields
     for field in [
-        "full_name", "father_name", "birth_date", "spouse_full_name", "spouse_national_id",
+        "full_name", "father_name", "birth_date",
+        "spouse_full_name", "spouse_father_name", "spouse_national_id",
+        "spouse_birth_date", "spouse_id_number", "spouse_birth_place",
+        "spouse_form_j_status", "marital_status",
         "site", "project", "construction_type", "block_name", "registration_section",
         "bank_letter_number", "bank_letter_date", "land_lease_year"
     ]:
         if field in data and data[field] is not None:
-            setattr(dossier, field, str(data[field]))
+            parsed_updates[field] = str(data[field]).strip()
 
     # Integer fields
     for field in [
@@ -265,12 +361,12 @@ def save_dossier_draft_view(request, pk):
             val = data[field]
             if val is None or val == "":
                 if field in ["storage_number", "parking_number", "main_plaque", "separated_plaque", "sub_plaque", "plot_number"]:
-                    setattr(dossier, field, None)
+                    parsed_updates[field] = None
                 else:
-                    setattr(dossier, field, 0)
+                    parsed_updates[field] = 0
             else:
                 try:
-                    setattr(dossier, field, int(val))
+                    parsed_updates[field] = int(val)
                 except (ValueError, TypeError):
                     pass
 
@@ -280,30 +376,95 @@ def save_dossier_draft_view(request, pk):
             val = data[field]
             if val is None or val == "":
                 if field == "total_land_share":
-                    setattr(dossier, field, None)
+                    parsed_updates[field] = None
                 else:
-                    setattr(dossier, field, 0.0)
+                    parsed_updates[field] = 0.0
             else:
                 try:
-                    setattr(dossier, field, float(val))
+                    parsed_updates[field] = round(float(val), 2)
                 except (ValueError, TypeError):
                     pass
 
     # Boolean fields
-    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed"]:
+    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed"]:
         if field in data:
             val = data[field]
-            setattr(dossier, field, bool(val) if not isinstance(val, str) else val.lower() in ("true", "1"))
+            parsed_updates[field] = bool(val) if not isinstance(val, str) else val.lower() in ("true", "1")
+
+    # Detect field differences and construct audit change logs
+    change_logs_to_create = []
+    for field, new_val in parsed_updates.items():
+        old_val = getattr(dossier, field, None)
+
+        # Normalize values for fair diff comparison
+        old_repr = "" if old_val is None else str(old_val).strip()
+        new_repr = "" if new_val is None else str(new_val).strip()
+
+        # For floats/decimals, normalize precision
+        if field in ["unit_area", "storage_area", "parking_area", "total_land_share"]:
+            try:
+                if old_val is not None:
+                    old_repr = f"{float(old_val):.2f}"
+                if new_val is not None:
+                    new_repr = f"{float(new_val):.2f}"
+            except (ValueError, TypeError):
+                pass
+
+        if old_repr != new_repr:
+            field_label = DOSSIER_FIELD_LABELS.get(field, field)
+            old_display = old_repr if old_repr != "" else "خالی"
+            new_display = new_repr if new_repr != "" else "خالی"
+
+            if isinstance(new_val, bool):
+                old_display = "بله (تایید شده)" if old_val else "خیر"
+                new_display = "بله (تایید شده)" if new_val else "خیر"
+
+            log_entry = DossierFieldChangeLog(
+                dossier=dossier,
+                field_name=field,
+                field_label=field_label,
+                old_value=old_display,
+                new_value=new_display,
+                changed_by=actor_name,
+                role=actor_role,
+                stage=dossier.current_stage,
+                ip_address=ip_address,
+                timestamp=timezone.now()
+            )
+            change_logs_to_create.append(log_entry)
+            setattr(dossier, field, new_val)
+
+    if change_logs_to_create:
+        DossierFieldChangeLog.objects.bulk_create(change_logs_to_create)
 
     dossier.save()
+
+    recent_changes = [
+        {
+            "id": log.id,
+            "fieldName": log.field_name,
+            "fieldLabel": log.field_label,
+            "oldValue": log.old_value,
+            "newValue": log.new_value,
+            "changedBy": log.changed_by,
+            "role": log.role,
+            "stage": log.stage,
+            "timestamp": log.timestamp.strftime("%Y/%m/%d %H:%M:%S"),
+            "ipAddress": log.ip_address or "-"
+        }
+        for log in change_logs_to_create
+    ]
+
     return JsonResponse({
         "status": "success",
-        "message": "اطلاعات با موفقیت ذخیره شد.",
+        "message": f"اطلاعات با موفقیت ذخیره شد. ({len(change_logs_to_create)} مورد تغییر در تاریخچه ثبت گردید)",
         "current_stage": dossier.current_stage,
-        "applicant_equity": dossier.applicant_equity
+        "applicant_equity": dossier.applicant_equity,
+        "new_changes": recent_changes
     })
 
 
+@csrf_exempt
 @transaction.atomic
 def set_dossier_stage_view(request, pk):
     """
@@ -334,6 +495,7 @@ def set_dossier_stage_view(request, pk):
         return JsonResponse({"status": "error", "message": "مرحله باید بین ۱ تا ۲۴ باشد."}, status=400)
 
 
+@csrf_exempt
 @transaction.atomic
 def electronic_sign_action(request, pk):
     """
@@ -402,6 +564,7 @@ def electronic_sign_action(request, pk):
     })
 
 
+@csrf_exempt
 @transaction.atomic
 def return_stage_action(request, pk):
     """
@@ -485,7 +648,14 @@ def lookup_preselected_unit_api(request):
             "father_name": unit.father_name,
             "birth_date": unit.birth_date,
             "spouse_full_name": unit.spouse_full_name,
+            "spouse_father_name": unit.spouse_father_name,
             "spouse_national_id": unit.spouse_national_id,
+            "spouse_birth_date": unit.spouse_birth_date,
+            "spouse_id_number": unit.spouse_id_number,
+            "spouse_birth_place": unit.spouse_birth_place,
+            "spouse_form_j_status": unit.spouse_form_j_status,
+            "marital_status": unit.marital_status,
+            "is_married_confirmed": unit.is_married_confirmed,
             "decile": unit.decile,
             "site": unit.site.name if unit.site else "",
             "project": str(unit.project) if unit.project else "",
@@ -526,6 +696,7 @@ def dossier_summary_print_view(request, pk):
     return render(request, "dossier_print_summary.html", {"dossier": dossier})
 
 
+@csrf_exempt
 def upload_scan_attachment_view(request, pk):
     """
     Handles uploading or scanning a new document attachment for the dossier.

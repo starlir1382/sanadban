@@ -148,7 +148,14 @@ document.addEventListener('alpine:init', () => {
       national_id: '0012345678',
       birth_date: '1365/04/15',
       spouse_full_name: 'فاطمه السادات موسوی',
+      spouse_father_name: 'سید علی',
       spouse_national_id: '0029876543',
+      spouse_birth_date: '1368/02/10',
+      spouse_id_number: '1245',
+      spouse_birth_place: 'قم',
+      spouse_form_j_status: 'سبز (استعلام شده)',
+      marital_status: 'متاهل (واجد شرایط طرح زوجین)',
+      is_married_confirmed: true,
       decile: 4,
       site: 'شهید رئیسی',
       project: 'پروژه ۵۶۰ هکتاری فاز ۲ (تعداد واحد: ۳۲۰)',
@@ -213,6 +220,10 @@ document.addEventListener('alpine:init', () => {
     // Audit Trail / History (populated dynamically from database)
     auditLogs: [],
 
+    // Field-level Change Audit Trail
+    fieldChanges: [],
+    auditActiveTab: 'stages', // 'stages' or 'fields'
+
     init() {
       // 1. Set Persian Today Date dynamically
       this.todayDate = this.getTodayJalali();
@@ -233,6 +244,9 @@ document.addEventListener('alpine:init', () => {
           }
           if (Array.isArray(serverData.audit_logs)) {
             this.auditLogs = serverData.audit_logs;
+          }
+          if (Array.isArray(serverData.field_changes)) {
+            this.fieldChanges = serverData.field_changes;
           }
         } catch (e) {
           console.error('Failed to parse server dossier data:', e);
@@ -293,10 +307,13 @@ document.addEventListener('alpine:init', () => {
         if (res.ok) {
           const data = await res.json();
           if (notify) {
-            this.triggerToast('کلیه تغییرات با موفقیت در پایگاه داده ذخیره گردید.', 'success');
+            this.triggerToast(data.message || 'کلیه تغییرات با موفقیت در پایگاه داده ذخیره گردید.', 'success');
           }
           if (typeof data.applicant_equity !== 'undefined') {
             this.form.applicant_equity = data.applicant_equity;
+          }
+          if (Array.isArray(data.new_changes) && data.new_changes.length > 0) {
+            this.fieldChanges.unshift(...data.new_changes);
           }
         } else {
           const errData = await res.json().catch(() => ({}));
@@ -539,42 +556,10 @@ document.addEventListener('alpine:init', () => {
       this.attachments.unshift(newScan);
     },
 
-    // Stage Permission Checker
+    // Permission Checker: all fields are editable across stages with automated audit logging, locked only upon final archive
     isFieldEditable(fieldName) {
-      const stage = this.currentStage;
-
-      // Stage 1: Applicant, Spouse & Unit
-      const stage1Fields = ['full_name', 'father_name', 'national_id', 'birth_date', 'spouse_full_name', 'spouse_national_id', 'decile', 'site', 'project', 'construction_type', 'block_name', 'floor_number', 'unit_number', 'unit_area', 'storage_number', 'storage_area', 'parking_number', 'parking_area'];
-      if (stage1Fields.includes(fieldName)) return stage <= 4;
-
-      // Stage 2 & 15: Plot and Registry (Editable in Stage 2 and Stage 15 by Technical Expert)
-      const plotFields = ['registration_section', 'main_plaque', 'separated_plaque', 'sub_plaque', 'plot_number'];
-      if (plotFields.includes(fieldName)) return stage === 2 || stage === 15;
-
-      // Stage 3: Base cost
-      if (fieldName === 'base_cost_without_loan') return stage <= 4;
-
-      // Stage 6: Fund loan
-      if (fieldName === 'fund_loan_amount') return stage === 6;
-
-      // Stage 7: Contractor letter
-      if (fieldName === 'contractor_letter_amount') return stage === 7;
-
-      // Stage 8: Decile loan
-      if (fieldName === 'decile_loan_amount') return stage === 8;
-
-      // Stage 11: Bank letter
-      if (fieldName === 'bank_letter_number' || fieldName === 'bank_letter_date') return stage === 11;
-
-      // Stage 19: Valuation
-      const stage19Fields = ['total_land_share', 'past_years_rent', 'current_year_rent', 'land_lease_year', 'preparation_cost'];
-      if (stage19Fields.includes(fieldName)) return stage === 19;
-
-      // Stage 21: Cash & Non-cash prep & rent
-      const stage21Fields = ['cash_preparation_amount', 'non_cash_preparation_amount', 'is_cash_rent_confirmed', 'is_decile_loan_confirmed'];
-      if (stage21Fields.includes(fieldName)) return stage === 21;
-
-      return false;
+      if (this.isLocked) return false;
+      return true;
     },
 
     // Forward & Sign
@@ -697,38 +682,33 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    // Auto-fill PreSelectedUnit at Stage 1
-    fetchPreSelectedUnit() {
-      if (!this.form.national_id || this.form.national_id.length !== 10) {
+    // Auto-fill PreSelectedUnit at Stage 1 from backend database
+    async fetchPreSelectedUnit() {
+      if (!this.form.national_id || this.form.national_id.trim().length !== 10) {
         this.triggerToast('کد ملی وارد شده باید دقیقاً ۱۰ رقم باشد.', 'error');
         return;
       }
-      this.form.full_name = 'علیرضا رضایی پور';
-      this.form.father_name = 'محمدرضا';
-      this.form.birth_date = '1365/04/15';
-      this.form.spouse_full_name = 'فاطمه السادات موسوی';
-      this.form.spouse_national_id = '0029876543';
-      this.form.decile = 4;
-      this.form.site = 'شهید رئیسی';
-      this.form.project = 'پروژه ۵۶۰ هکتاری فاز ۲ (تعداد واحد: ۳۲۰)';
-      this.form.construction_type = 'آپارتمانی';
-      this.form.block_name = 'بلوک B-14';
-      this.form.floor_number = 3;
-      this.form.unit_number = 12;
-      this.form.unit_area = 85.50;
-      this.form.storage_number = 12;
-      this.form.storage_area = 3.20;
-      this.form.parking_number = 12;
-      this.form.parking_area = 12.50;
-      this.form.base_cost_without_loan = 4500000000;
-      this.form.registration_section = 'بخش ۱ ثبتی قم';
-      this.form.main_plaque = 1420;
-      this.form.separated_plaque = 85;
-      this.form.sub_plaque = 312;
-      this.form.plot_number = 48;
-
-      this.recalculateEquity();
-      this.triggerToast('اطلاعات متقاضی، همسر و واحد مسکونی با موفقیت بارگذاری شد.', 'success');
+      try {
+        const cleanNatId = this.form.national_id.trim();
+        const res = await fetch(`/api/lookup-unit/?national_id=${cleanNatId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success') {
+            for (const [key, val] of Object.entries(data)) {
+              if (key !== 'status' && key in this.form) {
+                this.form[key] = val;
+              }
+            }
+            this.recalculateEquity();
+            this.triggerToast('اطلاعات متقاضی، همسر و واحد مسکونی با موفقیت از پایگاه داده بارگذاری شد.', 'success');
+            return;
+          }
+        }
+        this.triggerToast('اطلاعاتی با این کد ملی در بانک انتخاب واحد یافت نشد.', 'error');
+      } catch (err) {
+        console.error('Fetch preselected unit error:', err);
+        this.triggerToast('خطا در واکشی اطلاعات از سامانه.', 'error');
+      }
     },
 
     toWords(num) {

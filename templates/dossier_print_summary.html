@@ -112,22 +112,39 @@
             </tr>
         </table>
 
-        <!-- 1. مشخصات متقاضی -->
+        <!-- 1. مشخصات متقاضی و همسر (طرح زوجین) -->
         <table class="official-doc-table">
             <tr class="table-section-title">
-                <td rowspan="2" style="width: 14%; font-weight: 800; background: #e2e8f0; text-align: center;">مشخصات متقاضی</td>
-                <td style="width: 26%;">نام و نام خانوادگی</td>
-                <td style="width: 16%;">نام پدر</td>
-                <td style="width: 20%;">کد ملی</td>
-                <td style="width: 14%;">تاریخ تولد</td>
-                <td style="width: 10%;">توضیحات</td>
+                <td rowspan="4" style="width: 14%; font-weight: 800; background: #e2e8f0; text-align: center;">مشخصات متقاضی و همسر<br><span style="font-size: 7pt; color: #047857; font-weight: normal;">(طرح زوجین مسکن)</span></td>
+                <td style="width: 18%; background: #f8fafc;">طرف اول / عنوان</td>
+                <td style="width: 22%; background: #f8fafc;">نام و نام خانوادگی</td>
+                <td style="width: 14%; background: #f8fafc;">نام پدر</td>
+                <td style="width: 16%; background: #f8fafc;">کد ملی</td>
+                <td style="width: 14%; background: #f8fafc;">تاریخ تولد</td>
+                <td style="width: 16%; background: #f8fafc;">استعلام فرم «ج»</td>
             </tr>
             <tr style="text-align: center; font-weight: 700;">
-                <td>{{ dossier.full_name|default:'علیرضا نادعلی' }}</td>
-                <td>{{ dossier.father_name|default:'هادی' }}</td>
-                <td style="letter-spacing: 1px;">{{ dossier.national_id|default:'0370944194' }}</td>
-                <td>{{ dossier.birth_date|default:'1372/08/27' }}</td>
-                <td style="color: #64748b;">-</td>
+                <td style="background: #f1f5f9; text-align: right; padding-right: 8px;">متقاضی اصلی</td>
+                <td>{{ dossier.full_name|default:'-' }}</td>
+                <td>{{ dossier.father_name|default:'-' }}</td>
+                <td style="letter-spacing: 1px;">{{ dossier.national_id|default:'-' }}</td>
+                <td>{{ dossier.birth_date|default:'-' }}</td>
+                <td style="color: #059669;">سبز (تایید شده)</td>
+            </tr>
+            <tr style="text-align: center; font-weight: 700;">
+                <td style="background: #f1f5f9; text-align: right; padding-right: 8px;">همسر (احراز زوجیت)</td>
+                <td>{{ dossier.spouse_full_name|default:'-' }}</td>
+                <td>{{ dossier.spouse_father_name|default:'-' }}</td>
+                <td style="letter-spacing: 1px;">{{ dossier.spouse_national_id|default:'-' }}</td>
+                <td>{{ dossier.spouse_birth_date|default:'-' }}</td>
+                <td style="color: #059669;">{{ dossier.spouse_form_j_status|default:'سبز (استعلام شده)' }}</td>
+            </tr>
+            <tr style="font-size: 7.5pt; background: #f8fafc;">
+                <td colspan="6" style="padding: 4px 8px; color: #334155;">
+                    <span>شماره شناسنامه همسر: <strong>{{ dossier.spouse_id_number|default:'-' }}</strong></span> — 
+                    <span>محل صدور / تولد: <strong>{{ dossier.spouse_birth_place|default:'-' }}</strong></span> — 
+                    <span>وضعیت تاهل: <strong style="color: #047857;">{{ dossier.marital_status|default:'متاهل (واجد شرایط طرح زوجین)' }}</strong></span>
+                </td>
             </tr>
         </table>
 

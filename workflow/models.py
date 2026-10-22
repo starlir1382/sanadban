@@ -35,9 +35,16 @@ class PreSelectedUnit(models.Model):
     father_name = models.CharField(max_length=100, verbose_name="نام پدر")
     birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد (شمسی)")
     
-    # Spouse fields
+    # Spouse fields (Crucial for Couples Scheme - طرح زوجین)
     spouse_full_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی همسر")
+    spouse_father_name = models.CharField(max_length=100, blank=True, verbose_name="نام پدر همسر")
     spouse_national_id = models.CharField(max_length=10, blank=True, verbose_name="کد ملی همسر")
+    spouse_birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد همسر")
+    spouse_id_number = models.CharField(max_length=20, blank=True, verbose_name="شماره شناسنامه همسر")
+    spouse_birth_place = models.CharField(max_length=100, blank=True, verbose_name="محل تولد / صدور همسر")
+    spouse_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج همسر")
+    marital_status = models.CharField(max_length=50, default="متاهل (واجد شرایط طرح زوجین)", blank=True, verbose_name="وضعیت تاهل")
+    is_married_confirmed = models.BooleanField(default=True, verbose_name="احراز زوجیت و تایید تاهل")
     
     decile = models.PositiveSmallIntegerField(default=1, verbose_name="دهک درآمدی")
 
@@ -110,8 +117,18 @@ class HousingDossier(models.Model):
     full_name = models.CharField(max_length=150, verbose_name="نام و نام خانوادگی متقاضی")
     father_name = models.CharField(max_length=100, verbose_name="نام پدر")
     birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد (شمسی)")
+    
+    # Specific Spouse Fields (Crucial for Couples Scheme - طرح زوجین)
     spouse_full_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی همسر")
+    spouse_father_name = models.CharField(max_length=100, blank=True, verbose_name="نام پدر همسر")
     spouse_national_id = models.CharField(max_length=10, blank=True, verbose_name="کد ملی همسر")
+    spouse_birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد همسر")
+    spouse_id_number = models.CharField(max_length=20, blank=True, verbose_name="شماره شناسنامه همسر")
+    spouse_birth_place = models.CharField(max_length=100, blank=True, verbose_name="محل تولد / صدور همسر")
+    spouse_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج همسر")
+    marital_status = models.CharField(max_length=50, default="متاهل (واجد شرایط طرح زوجین)", blank=True, verbose_name="وضعیت تاهل")
+    is_married_confirmed = models.BooleanField(default=True, verbose_name="احراز زوجیت و تایید تاهل")
+
     decile = models.PositiveSmallIntegerField(default=1, verbose_name="دهک درآمدی (۱ تا ۱۰)")
 
     site = models.CharField(max_length=100, verbose_name="سایت")
@@ -284,3 +301,28 @@ class WorkflowSignatureLog(models.Model):
 
     def __str__(self):
         return f"{self.dossier.archive_number}: {self.action_label} توسط {self.actor}"
+
+class DossierFieldChangeLog(models.Model):
+    """
+    Detailed audit log tracking exact field-level changes: who, when, field name, old value, new value.
+    Ensures complete accountability when any user modifies any field across the workflow.
+    """
+    dossier = models.ForeignKey(HousingDossier, on_delete=models.CASCADE, related_name="field_changes")
+    field_name = models.CharField(max_length=100, verbose_name="نام سیستمی فیلد")
+    field_label = models.CharField(max_length=150, verbose_name="عنوان فارسی فیلد")
+    old_value = models.TextField(blank=True, null=True, verbose_name="مقدار قبلی")
+    new_value = models.TextField(blank=True, null=True, verbose_name="مقدار جدید")
+    changed_by = models.CharField(max_length=150, default="کاربر سامانه", verbose_name="اقدام‌کننده")
+    role = models.CharField(max_length=150, blank=True, verbose_name="سمت / نقش کاربر")
+    stage = models.PositiveSmallIntegerField(default=1, verbose_name="مرحله هنگام ویرایش")
+    timestamp = models.DateTimeField(default=timezone.now, verbose_name="زمان ویرایش")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="آدرس IP")
+
+    class Meta:
+        verbose_name = "لاگ تغییر فیلد"
+        verbose_name_plural = "تاریخچه تغییرات فیلدها"
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.dossier.archive_number}: {self.field_label} ({self.old_value} -> {self.new_value}) توسط {self.changed_by}"
+
