@@ -1,27 +1,29 @@
-{% load static %}
+{% load static humanize %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>شناسنامه و فرم جامع بایگانی پرونده مسکن - {{ dossier.archive_number|default:'100001' }}</title>
+    <title>فرم مراحل قرارداد اجاره عرصه انفرادی - پرونده {{ dossier.archive_number|default:'100001' }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
-    <link rel="stylesheet" href="{% static 'css/sanadban.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.0">
     <style>
         body {
             background-color: #f1f5f9;
-            color: #000;
-            padding: 2rem;
+            color: #0f172a;
+            padding: 1.5rem;
             display: flex;
             justify-content: center;
+            font-family: 'Vazirmatn', sans-serif;
         }
         .print-paper {
             background: #ffffff;
             width: 210mm;
             min-height: 297mm;
-            padding: 15mm 20mm;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 12mm 15mm;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             position: relative;
             box-sizing: border-box;
+            border: 2px solid #0f2744;
         }
         @media print {
             body {
@@ -30,191 +32,304 @@
             }
             .print-paper {
                 box-shadow: none !important;
-                padding: 10mm !important;
+                padding: 8mm 10mm !important;
                 width: 100% !important;
+                min-height: auto !important;
+                border: 2px solid #000 !important;
             }
             .no-print {
                 display: none !important;
             }
         }
-        .section-header-print {
+        .official-doc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.5pt;
+            text-align: right;
+            margin-bottom: 8px;
+        }
+        .official-doc-table th, .official-doc-table td {
+            border: 1px solid #1e293b;
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+        .table-section-title {
             background: #e2e8f0;
-            padding: 4px 10px;
-            font-size: 10pt;
-            font-weight: bold;
-            margin: 12px 0 6px 0;
-            border-right: 4px solid #1e3a8a;
+            font-weight: 800;
+            text-align: center;
+            font-size: 9pt;
+        }
+        .sig-box {
+            height: 52px;
+            text-align: center;
+            vertical-align: top;
+            padding: 4px;
+            position: relative;
+        }
+        .digital-stamp {
+            display: inline-block;
+            border: 1px dashed #059669;
+            background: #f0fdf4;
+            color: #166534;
+            font-size: 6.8pt;
+            padding: 2px 4px;
+            border-radius: 4px;
+            margin-top: 3px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Print Action Bar -->
-    <div style="position: fixed; top: 1rem; right: 2rem; z-index: 100;" class="no-print">
-        <button onclick="window.print()" class="btn btn-primary">
+    <!-- Non-Print Controls -->
+    <div style="position: fixed; top: 1rem; right: 2rem; z-index: 100; display: flex; gap: 0.5rem;" class="no-print">
+        <button onclick="window.print()" class="btn btn-primary" style="padding: 0.55rem 1.25rem; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-            <span>چاپ فرم جامع بایگانی (مرحله ۱۴)</span>
+            <span>چاپ رسمی فرم مراحل (Word)</span>
+        </button>
+        <button onclick="window.close()" class="btn btn-outline" style="padding: 0.55rem 1rem; font-size: 0.85rem; background: #fff;">
+            <span>بستن</span>
         </button>
     </div>
 
     <div class="print-paper fa-num">
-        <!-- Document Header -->
-        <div class="official-letterhead" style="margin-bottom: 12px; padding-bottom: 8px;">
-            <div class="letterhead-right">
-                <div style="font-weight: bold; font-size: 10.5pt;">طرح نهضت ملی مسکن</div>
-                <div style="font-size: 9pt;">سامانه جامع سندبان (DeedFlow)</div>
-                <div style="font-size: 8.5pt; color: #444;">شناسنامه کامل پرونده متقاضی</div>
-            </div>
+        
+        <!-- Header Banner -->
+        <table class="official-doc-table" style="margin-bottom: 6px;">
+            <tr>
+                <td colspan="10" style="background: #f8fafc; text-align: center; padding: 8px 6px; border: 1.5px solid #0f2744;">
+                    <div style="font-size: 11pt; font-weight: 800; color: #0f172a; margin-bottom: 2px;">
+                        فرم مراحل قرارداد اجاره عرصه انفرادی – مسکن ملی
+                    </div>
+                    <div style="font-size: 9pt; font-weight: 700; color: #334155;">
+                        عضو شرکت تعاونی / شرکت سازنده: <strong>{{ dossier.project|default:'ایراء البرز' }}</strong> — سایت: <strong>{{ dossier.site|default:'۲۷ هکتاری' }}</strong>
+                    </div>
+                    <div style="font-size: 7.5pt; color: #64748b; margin-top: 3px; display: flex; justify-content: space-between; padding: 0 8px;">
+                        <span>شماره پرونده بایگانی: <strong>#{{ dossier.archive_number }}</strong></span>
+                        <span>سامانه جامع سندبان (نهضت ملی مسکن)</span>
+                        <span>تاریخ گزارش: <strong>{{ today_jalali }}</strong></span>
+                    </div>
+                </td>
+            </tr>
+        </table>
 
-            <div class="letterhead-center">
-                <h2 style="font-size: 13pt; font-weight: bold;">برگه جامع خلاصه پرونده و بایگانی قطعی</h2>
-                <h3 style="font-size: 9pt; font-weight: normal;">(گزارش خاتمه گردش کار - مرحله ۱۴)</h3>
-            </div>
+        <!-- 1. مشخصات متقاضی -->
+        <table class="official-doc-table">
+            <tr class="table-section-title">
+                <td rowspan="2" style="width: 14%; font-weight: 800; background: #e2e8f0; text-align: center;">مشخصات متقاضی</td>
+                <td style="width: 26%;">نام و نام خانوادگی</td>
+                <td style="width: 16%;">نام پدر</td>
+                <td style="width: 20%;">کد ملی</td>
+                <td style="width: 14%;">تاریخ تولد</td>
+                <td style="width: 10%;">توضیحات</td>
+            </tr>
+            <tr style="text-align: center; font-weight: 700;">
+                <td>{{ dossier.full_name|default:'علیرضا نادعلی' }}</td>
+                <td>{{ dossier.father_name|default:'هادی' }}</td>
+                <td style="letter-spacing: 1px;">{{ dossier.national_id|default:'0370944194' }}</td>
+                <td>{{ dossier.birth_date|default:'1372/08/27' }}</td>
+                <td style="color: #64748b;">-</td>
+            </tr>
+        </table>
 
-            <div class="letterhead-left">
-                <div><strong>شماره پرونده بایگانی:</strong> {{ dossier.archive_number|default:'100001' }}</div>
-                <div><strong>کد ملی متقاضی:</strong> {{ dossier.national_id|default:'0012345678' }}</div>
-                <div><strong>تاریخ بایگانی:</strong> {{ today_jalali }}</div>
-                <div><strong>وضعیت:</strong> <span style="color: #065f46; font-weight: bold;">مختومه و بایگانی شده ✓</span></div>
-            </div>
+        <!-- 2. مشخصات مورد اجاره -->
+        <table class="official-doc-table">
+            <tr>
+                <td rowspan="4" style="width: 14%; font-weight: 800; background: #e2e8f0; text-align: center;">مشخصات مورد اجاره</td>
+                <td colspan="8" style="background: #f1f5f9; font-weight: 700;">مشخصات واحد آپارتمانی و متعلقات اختصاصی:</td>
+            </tr>
+            <tr style="text-align: center;">
+                <td style="width: 10%; background: #f8fafc;">بلوک:</td>
+                <td style="width: 12%; font-weight: bold;">{{ dossier.block_name|default:'۲۷' }}</td>
+                <td style="width: 10%; background: #f8fafc;">طبقه:</td>
+                <td style="width: 12%; font-weight: bold;">{{ dossier.floor_number|default:'۴' }}</td>
+                <td style="width: 10%; background: #f8fafc;">شماره واحد:</td>
+                <td style="width: 14%; font-weight: bold;">{{ dossier.unit_number|default:'۵۳' }}</td>
+                <td style="width: 12%; background: #f8fafc;">مساحت واحد:</td>
+                <td style="width: 18%; font-weight: bold;">{{ dossier.unit_area|default:'100.57' }} م²</td>
+            </tr>
+            <tr style="text-align: center;">
+                <td style="background: #f8fafc;">شماره انباری:</td>
+                <td style="font-weight: bold;">{{ dossier.storage_number|default:'۴۵' }}</td>
+                <td style="background: #f8fafc;">مساحت انباری:</td>
+                <td style="font-weight: bold;">{{ dossier.storage_area|default:'2.72' }} م²</td>
+                <td style="background: #f8fafc;">شماره پارکینگ:</td>
+                <td style="font-weight: bold;">{{ dossier.parking_number|default:'۳۵' }}</td>
+                <td style="background: #f8fafc;">مساحت پارکینگ:</td>
+                <td style="font-weight: bold;">{{ dossier.parking_area|default:'12.50' }} م²</td>
+            </tr>
+            <tr>
+                <td colspan="4" style="padding: 6px;">
+                    <span>قیمت علی‌الحساب تمام شده (بدون وام):</span><br>
+                    <strong style="color: #0f2744; font-size: 9.5pt;">{{ dossier.base_cost_without_loan|intcomma }} ریال</strong>
+                </td>
+                <td colspan="4" style="padding: 6px;">
+                    <span>مبلغ واریزی متقاضی تاکنون:</span><br>
+                    <strong style="color: #047857; font-size: 9.5pt;">{{ dossier.applicant_equity|default:dossier.base_cost_without_loan|intcomma }} ریال</strong>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 3. مشخصات ثبتی واحد -->
+        <table class="official-doc-table">
+            <tr>
+                <td rowspan="3" style="width: 14%; font-weight: 800; background: #e2e8f0; text-align: center;">مشخصات ثبتی واحد</td>
+                <td style="width: 16%; background: #f8fafc; text-align: center;">بخش ثبتی</td>
+                <td style="width: 16%; background: #f8fafc; text-align: center;">اصلی</td>
+                <td style="width: 18%; background: #f8fafc; text-align: center;">مفروز و مجزا</td>
+                <td style="width: 18%; background: #f8fafc; text-align: center;">فرعی</td>
+                <td style="width: 18%; background: #f8fafc; text-align: center;">قطعه</td>
+            </tr>
+            <tr style="text-align: center; font-weight: 700;">
+                <td>{{ dossier.registration_section|default:'بخش ۱ قم' }}</td>
+                <td>{{ dossier.main_plaque|default:'۳۰۲۱' }}</td>
+                <td>{{ dossier.separated_plaque|default:'-' }}</td>
+                <td>{{ dossier.sub_plaque|default:'۴۳۰۸' }}</td>
+                <td>{{ dossier.plot_number|default:'۲۴۹' }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" style="font-size: 8pt; line-height: 1.6; padding: 5px 8px;">
+                    <div><strong>مستند واگذاری:</strong> ماده ۷ قانون جهش تولید مسکن و ماده ۷ آئین‌نامه اجرایی قانون ساماندهی و حمایت از تولید و عرصه مسکن.</div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                        <span>جمع قدرالسهم از عرصه: <strong>{{ dossier.total_land_share|default:'--' }} متر مربع</strong></span>
+                        <span>قدرالسهم از مشاعات: <strong>{{ dossier.land_share_common|default:'--' }} متر مربع</strong></span>
+                        <span>جمع کل قدرالسهم: <strong>{{ dossier.land_share_total|default:'--' }} متر مربع</strong></span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 4. کارگزار و اجاره بها -->
+        <table class="official-doc-table">
+            <tr>
+                <td style="width: 50%; padding: 8px;">
+                    <div style="font-weight: bold; margin-bottom: 4px;">نام کارگزار: مهندسین مشاور ره آزرم بین‌الملل</div>
+                    <div>مدیرعامل: مهندس مسعود رهبر</div>
+                    <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 8pt; color: #475569;">مهر و امضاء کارگزاری:</span>
+                        <span class="digital-stamp">تأیید و امضای دیجیتال کارگزاری ✓</span>
+                    </div>
+                </td>
+                <td style="width: 50%; padding: 8px;">
+                    <div style="font-weight: bold; margin-bottom: 4px;">اجاره‌بهاء قابل پرداخت:</div>
+                    <div>مبلغ: <strong style="color: #0f2744;">{{ dossier.current_year_rent|default:'۴۵,۰۰۰,۰۰۰'|intcomma }} ریال</strong></div>
+                    <div style="margin-top: 2px;">بابت اجاره عرصه سال: <strong>{{ dossier.land_lease_year|default:'۱۴۰۳' }}</strong></div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 5. جدول ماتریسی امضاء کارشناسان (4 سطر × 3 ستون = 12 کارشناس) -->
+        <table class="official-doc-table">
+            <tr>
+                <td rowspan="8" style="width: 14%; font-weight: 800; background: #e2e8f0; text-align: center; vertical-align: middle;">
+                    امضاء کارشناسان<br>
+                    <span style="font-size: 7pt; font-weight: normal; color: #475569;">(تأییدات ۱۲ گانه تخصصی)</span>
+                </td>
+                <td style="width: 28%; font-weight: 800; background: #f8fafc; text-align: center;">کارشناس نهضت ملی</td>
+                <td style="width: 30%; font-weight: 800; background: #f8fafc; text-align: center;">استعلام تسهیلات بانکی</td>
+                <td style="width: 28%; font-weight: 800; background: #f8fafc; text-align: center;">تسهیلات دهک</td>
+            </tr>
+            <tr>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">کارشناس مسکن • 1403/05/14</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">کارشناس بانک مسکن • 1403/05/15</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">کارشناس تسهیلات • 1403/05/16</span>
+                </td>
+            </tr>
+
+            <tr>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">تسویه با پیمانکار</td>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">تسویه با متقاضی</td>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">سایر تسهیلات</td>
+            </tr>
+            <tr>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">امور پیمانکاران • 1403/05/18</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">امور متقاضیان • 1403/05/19</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">تسهیلات تکمیلی • 1403/05/20</span>
+                </td>
+            </tr>
+
+            <tr>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">کارشناس حقوقی</td>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">کارشناس فرم ج</td>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">کارشناس ارزیابی</td>
+            </tr>
+            <tr>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">مدیریت حقوقی • 1403/05/21</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">بررسی سوابق جیم • 1403/05/22</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">کارشناس ارزیاب • 1403/05/23</span>
+                </td>
+            </tr>
+
+            <tr>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">کارشناس فنی و مهندسی</td>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">کارشناس املاک</td>
+                <td style="font-weight: 800; background: #f8fafc; text-align: center;">کارشناس بانک زمین</td>
+            </tr>
+            <tr>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">دفتر فنی و مهندسی • 1403/05/24</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">املاک و اراضی • 1403/05/25</span>
+                </td>
+                <td class="sig-box">
+                    <span class="digital-stamp">امضای دیجیتال ثبت گردید ✓</span><br>
+                    <span style="font-size: 7.2pt; color: #64748b;">سامانه بانک زمین • 1403/05/26</span>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 6. اداره درآمد -->
+        <table class="official-doc-table" style="margin-bottom: 0;">
+            <tr>
+                <td style="width: 14%; font-weight: 800; background: #e2e8f0; text-align: center; padding: 8px;">اداره درآمد</td>
+                <td style="padding: 8px; line-height: 1.8;">
+                    <div>
+                        جمع مبلغ وصول شده به عدد: <strong style="color: #047857; font-size: 9.5pt;">{{ dossier.applicant_equity|default:dossier.base_cost_without_loan|intcomma }} ریال</strong>
+                    </div>
+                    <div>
+                        به حروف: <strong>{{ dossier.applicant_equity_in_words|default:'پنج میلیارد و پانصد میلیون ریال تمام' }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; border-top: 1px dashed #cbd5e1; padding-top: 4px;">
+                        <span>نام و نام خانوادگی مسئول وصول و درآمد: <strong>علیرضا رضایی پور</strong></span>
+                        <span class="digital-stamp">تأییدیه وصول درآمد ثبت شد ✓</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Bottom Security Footer -->
+        <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 7pt; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 4px;">
+            <span>شناسه امنیتی سند (SHA-256): <span style="font-family: monospace;">7f83b1657ff18b429188a4b2</span></span>
+            <span>این برگه پس از اخذ کلیه امضاهای الکترونیکی معتبر بوده و جهت صدور سند رسمی به دفتر اسناد رسمی تسلیم می‌گردد.</span>
+            <span>صفحه ۱ از ۱</span>
         </div>
 
-        <!-- 1. Identity & Unit Information -->
-        <div class="section-header-print">۱. مشخصات هویتی و واحد مسکونی</div>
-        <table class="official-table">
-            <tr>
-                <td style="width: 20%; font-weight: bold;">نام و نام خانوادگی:</td>
-                <td style="width: 30%;">{{ dossier.full_name|default:'علیرضا رضایی پور' }}</td>
-                <td style="width: 20%; font-weight: bold;">نام پدر / تاریخ تولد:</td>
-                <td style="width: 30%;">{{ dossier.father_name|default:'محمدرضا' }} ({{ dossier.birth_date|default:'1365/04/15' }})</td>
-            </tr>
-            <tr>
-                <td style="font-weight: bold;">دهک درآمدی:</td>
-                <td>دهک {{ dossier.decile|default:'۴' }}</td>
-                <td style="font-weight: bold;">سایت و پروژه:</td>
-                <td>{{ dossier.site|default:'شهید رئیسی' }} - {{ dossier.project|default:'پروژه ۵۶۰ هکتاری فاز ۲' }}</td>
-            </tr>
-            <tr>
-                <td style="font-weight: bold;">نوع ساخت / بلوک:</td>
-                <td>{{ dossier.construction_type|default:'آپارتمانی' }} - بلوک {{ dossier.block_name|default:'B-14' }}</td>
-                <td style="font-weight: bold;">طبقه و واحد:</td>
-                <td>طبقه {{ dossier.floor_number|default:'۳' }} - واحد {{ dossier.unit_number|default:'۱۲' }} (مساحت {{ dossier.unit_area|default:'85.50' }} م² )</td>
-            </tr>
-            <tr>
-                <td style="font-weight: bold;">انباری و مساحت:</td>
-                <td>شماره {{ dossier.storage_number|default:'۱۲' }} ({{ dossier.storage_area|default:'3.20' }} م² )</td>
-                <td style="font-weight: bold;">پارکینگ و مساحت:</td>
-                <td>شماره {{ dossier.parking_number|default:'۱۲' }} ({{ dossier.parking_area|default:'12.50' }} م² )</td>
-            </tr>
-        </table>
-
-        <!-- 2. Plot & Valuation Information -->
-        <div class="section-header-print">۲. مشخصات ثبتی، ارزیابی عرصه و مبالغ مالی</div>
-        <table class="official-table">
-            <tr>
-                <td style="width: 20%; font-weight: bold;">بخش ثبتی:</td>
-                <td style="width: 30%;">{{ dossier.registration_section|default:'بخش ۱ ثبتی قم' }}</td>
-                <td style="width: 20%; font-weight: bold;">پلاک اصلی / مفروز / فرعی:</td>
-                <td style="width: 30%;">اصلی {{ dossier.main_plaque|default:'۱۴۲۰' }} / مفروز {{ dossier.separated_plaque|default:'۸۵' }} / فرعی {{ dossier.sub_plaque|default:'۳۱۲' }}</td>
-            </tr>
-            <tr>
-                <td style="font-weight: bold;">شماره قطعه و قدرالسهم:</td>
-                <td>قطعه {{ dossier.plot_number|default:'۴۸' }} (قدرالسهم: {{ dossier.total_land_share|default:'42.75' }} م² )</td>
-                <td style="font-weight: bold;">سال و مبالغ اجاره عرصه:</td>
-                <td>سال {{ dossier.land_lease_year|default:'۱۴۰۳' }} (سنوات: ۱۸۰,۰۰۰,۰۰۰ + جاری: ۴۵,۰۰۰,۰۰۰ ریال)</td>
-            </tr>
-            <tr>
-                <td style="font-weight: bold;">قیمت تمام شده بدون وام:</td>
-                <td>۴,۵۰۰,۰۰۰,۰۰۰ ریال</td>
-                <td style="font-weight: bold;">مبلغ تسهیلات دهک:</td>
-                <td>۱,۵۰۰,۰۰۰,۰۰۰ ریال</td>
-            </tr>
-            <tr>
-                <td style="font-weight: bold;">آورده متقاضی (خالص):</td>
-                <td style="font-weight: bold; color: #166534;">۳,۰۰۰,۰۰۰,۰۰۰ ریال</td>
-                <td style="font-weight: bold;">هزینه آماده‌سازی:</td>
-                <td>۳۲۰,۰۰۰,۰۰۰ ریال (نقدی ۱۲۰م + غیرنقدی ۲۰۰م)</td>
-            </tr>
-        </table>
-
-        <!-- 3. Audit Trail & 15-Stage Signatures Log -->
-        <div class="section-header-print">۳. گزارش تاییدات الکترونیکی و زنجیره اصالت (۱۵ مرحله)</div>
-        <table class="official-table" style="font-size: 8.5pt;">
-            <thead>
-                <tr>
-                    <th style="width: 8%;">مرحله</th>
-                    <th style="width: 25%;">سمت اقدام‌کننده و واحد</th>
-                    <th style="width: 15%;">اقدام</th>
-                    <th style="width: 20%;">تاریخ و ساعت تایید</th>
-                    <th style="width: 32%;">هش الکترونیکی SHA-256</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>مرحله ۰</td>
-                    <td>کارشناس ثبت کارگزاری</td>
-                    <td>ثبت اولیه</td>
-                    <td>1403/05/10 10:45</td>
-                    <td style="font-family: monospace; font-size: 7.5pt;">7f83b1657ff18b429188a4b2</td>
-                </tr>
-                <tr>
-                    <td>مرحله ۲</td>
-                    <td>مدیرعامل کارگزاری</td>
-                    <td>تایید و امضا</td>
-                    <td>1403/05/12 14:10</td>
-                    <td style="font-family: monospace; font-size: 7.5pt;">5e81d77a0ba12488bb9103c8</td>
-                </tr>
-                <tr>
-                    <td>مرحله ۳</td>
-                    <td>کارشناس استعلام بانکی</td>
-                    <td>تایید استعلام</td>
-                    <td>1403/05/14 11:30</td>
-                    <td style="font-family: monospace; font-size: 7.5pt;">c2b6f12019ab4577889100fa</td>
-                </tr>
-                <tr>
-                    <td>مرحله ۶</td>
-                    <td>کارشناس فنی و مهندسی</td>
-                    <td>تایید پلاک و عرصه</td>
-                    <td>1403/05/16 09:20</td>
-                    <td style="font-family: monospace; font-size: 7.5pt;">109fa883cb0174aa541098ef</td>
-                </tr>
-                <tr>
-                    <td>مرحله ۱۰</td>
-                    <td>کارشناس تسهیلات دهک</td>
-                    <td>محاسبه تسهیلات و آورده</td>
-                    <td>1403/05/18 16:00</td>
-                    <td style="font-family: monospace; font-size: 7.5pt;">44a108be3392a541001bc917</td>
-                </tr>
-                <tr>
-                    <td>مرحله ۱۳</td>
-                    <td>کارشناس صدور نامه محضر</td>
-                    <td>صدور معرفی‌نامه محضر</td>
-                    <td>1403/05/20 12:30</td>
-                    <td style="font-family: monospace; font-size: 7.5pt;">98a7c41b65e08819003592fb</td>
-                </tr>
-                <tr>
-                    <td>مرحله ۱۴</td>
-                    <td>کارشناس بایگانی اداره کل</td>
-                    <td>بایگانی قطعی پرونده</td>
-                    <td>1403/05/20 12:45</td>
-                    <td style="font-family: monospace; font-size: 7.5pt;">f3b190ca88714120997115ad</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- Signatures and Archival Stamp -->
-        <div class="signatures-box-row" style="margin-top: 35px;">
-            <div class="signature-stamp-box">
-                <div class="sign-role">کارشناس صدور نامه محضر</div>
-                <div style="font-size: 8.5pt;">تاییدیه صدور نامه دفترخانه</div>
-            </div>
-
-            <div class="signature-stamp-box" style="border: 2px solid #065f46; background: #f0fdf4;">
-                <div class="sign-role" style="color: #065f46;">مهر و امضای بایگانی اسناد اداره کل</div>
-                <div style="font-size: 9pt; font-weight: bold; color: #047857;">پرونده مختومه و بایگانی قطعی گردید</div>
-                <div style="font-size: 8pt; margin-top: 5px; color: #475569;">شماره ردیف قفسه بایگانی: B-104 / سند ۱۰،۰۰۱</div>
-            </div>
-        </div>
     </div>
 
 </body>
