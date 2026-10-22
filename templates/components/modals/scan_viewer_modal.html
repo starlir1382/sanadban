@@ -277,7 +277,7 @@
 
                     <div style="margin-top: 2rem; padding: 1rem; background: #f8fafc; border-radius: 6px; font-size: 0.85rem;" class="fa-num">
                         <div><strong>کد امنیتی SHA-256 سند:</strong> <span class="sha-hash" x-text="activeScan.sha256"></span></div>
-                        <div><strong>مرحله بارگذاری:</strong> مرحله <span x-text="activeScan.stage"></span> (<span x-text="stages[activeScan.stage - 1].title"></span>)</div>
+                        <div><strong>مرحله بارگذاری:</strong> مرحله <span x-text="activeScan.stage"></span> (<span x-text="stages[activeScan.stage] ? stages[activeScan.stage].title : ''"></span>)</div>
                         <div><strong>کاربر ثبت‌کننده:</strong> <span x-text="activeScan.uploader"></span></div>
                     </div>
 

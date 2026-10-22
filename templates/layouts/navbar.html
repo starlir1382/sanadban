@@ -35,11 +35,16 @@
             </a>
             {% endif %}
 
-            {% if request.user.is_staff or request.user.is_superuser %}
+            {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_housing_chief %}
             <a href="{% url 'users_management' %}" 
                style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'users_management' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                <span>مدیریت کاربران</span>
+                <span>کاربران</span>
+            </a>
+            <a href="{% url 'audit_logs' %}" 
+               style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'audit_logs' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                <span>ممیزی و لاگ‌ها</span>
             </a>
             {% endif %}
         </nav>
@@ -78,16 +83,16 @@
 
             <!-- Role Badge -->
             {% if request.user.is_authenticated and request.user.profile %}
-            <div class="role-pill" :class="stages[currentStage - 1] ? stages[currentStage - 1].unit : 'brokerage'">
+            <div class="role-pill" :class="stages[currentStage] ? stages[currentStage].unit : 'brokerage'">
                 <span>{{ request.user.profile.get_organization_display|default:'واحد کارگزاری مسکن' }}</span>
                 <span>•</span>
                 <span>{{ request.user.profile.role_title|default:'کارشناس اقدام‌کننده' }}</span>
             </div>
             {% else %}
-            <div class="role-pill" :class="stages[currentStage - 1] ? stages[currentStage - 1].unit : 'brokerage'">
-                <span x-text="stages[currentStage - 1] ? (stages[currentStage - 1].unit === 'brokerage' ? 'واحد کارگزاری مسکن' : 'اداره کل راه و شهرسازی') : 'واحد کارگزاری مسکن'"></span>
+            <div class="role-pill" :class="stages[currentStage] ? stages[currentStage].unit : 'brokerage'">
+                <span x-text="stages[currentStage] ? (stages[currentStage].unit === 'brokerage' ? 'واحد کارگزاری مسکن' : 'اداره کل راه و شهرسازی') : 'واحد کارگزاری مسکن'"></span>
                 <span>•</span>
-                <span x-text="stages[currentStage - 1] ? stages[currentStage - 1].role : 'کارشناس اقدام‌کننده'"></span>
+                <span x-text="stages[currentStage] ? stages[currentStage].role : 'کارشناس اقدام‌کننده'"></span>
             </div>
             {% endif %}
 
@@ -117,10 +122,14 @@
                         <span>پروفایل کاربری</span>
                     </a>
 
-                    {% if request.user.is_staff or request.user.is_superuser %}
+                    {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_housing_chief %}
                     <a href="{% url 'users_management' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #2563eb; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         <span>مدیریت کاربران و ادمین</span>
+                    </a>
+                    <a href="{% url 'audit_logs' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #0284c7; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        <span>ممیزی و ردگیری تغییرات</span>
                     </a>
                     <a href="/admin/" target="_blank" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #475569; text-decoration: none; border-radius: 6px;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>

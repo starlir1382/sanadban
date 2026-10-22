@@ -119,7 +119,7 @@ def get_token_search_condition(token: str):
     if digits:
         num = int(digits)
         cond |= models.Q(archive_number=num)
-        if 1 <= num <= 24:
+        if 0 <= num <= 21:
             cond |= models.Q(current_stage=num)
         
     if matched_stages:
@@ -285,17 +285,30 @@ def dossier_detail_view(request, pk):
                 "timestamp": c.timestamp.strftime("%Y/%m/%d %H:%M:%S"),
                 "ipAddress": c.ip_address or "-"
             }
-            for c in dossier.field_changes.all().order_by("-timestamp")[:100]
+            for c in dossier.field_changes.all().order_by("-timestamp")[:500]
         ],
     }
+
+    profile = getattr(request.user, 'profile', None)
+    is_chief = bool(profile and profile.is_housing_chief)
+    user_can_action = request.user.is_superuser or is_chief or (profile and profile.can_action_stage(dossier.current_stage))
+    can_view_audit = request.user.is_superuser or is_chief or (profile and profile.can_view_all_audit_logs())
+
+    dossier_data["user_can_action"] = user_can_action
+    dossier_data["is_chief"] = is_chief
+    dossier_data["current_role"] = dossier.current_role
+    dossier_data["current_stage_title"] = dossier.current_stage_title
 
     context = {
         "dossier": dossier,
         "attachments": attachments,
         "audit_logs": audit_logs,
-        "field_changes": dossier.field_changes.all().order_by("-timestamp")[:100],
+        "field_changes": dossier.field_changes.all().order_by("-timestamp")[:500],
         "archive_number": dossier.archive_number,
         "dossier_json": json.dumps(dossier_data, ensure_ascii=False),
+        "user_can_action": user_can_action,
+        "is_chief": is_chief,
+        "can_view_audit": can_view_audit,
     }
     return render(request, "dossiers/detail.html", context)
 
@@ -306,6 +319,7 @@ def save_dossier_draft_view(request, pk):
     """
     Persists changes to the dossier's fields into the SQLite database with automated audit logging.
     Tracks who changed each field, when, and the exact before/after values.
+    Enforces role-based permissions unless user is Superadmin or Housing Chief.
     """
     if request.method != "POST":
         return HttpResponseBadRequest("Only POST method allowed")
@@ -313,6 +327,14 @@ def save_dossier_draft_view(request, pk):
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
     if dossier.is_locked:
         return JsonResponse({"status": "error", "message": "این پرونده نهایی و مختومه گردیده است و امکان ویرایش آن وجود ندارد."}, status=400)
+
+    profile = getattr(request.user, 'profile', None)
+    user_can_action = request.user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(dossier.current_stage))
+    if not user_can_action:
+        return JsonResponse({
+            "status": "error",
+            "message": f"شما دسترسی مجاز برای ویرایش اطلاعات در مرحله {dossier.current_stage} را ندارید. این مرحله در اختیار «{dossier.current_role}» یا رئیس مسکن می‌باشد."
+        }, status=403)
 
     try:
         data = json.loads(request.body.decode('utf-8'))
@@ -323,7 +345,7 @@ def save_dossier_draft_view(request, pk):
     if "current_stage" in data:
         try:
             stg = int(data.get("current_stage"))
-            if 1 <= stg <= 24:
+            if 0 <= stg <= 21:
                 dossier.current_stage = stg
         except (ValueError, TypeError):
             pass
@@ -495,12 +517,12 @@ def set_dossier_stage_view(request, pk):
     except (ValueError, TypeError):
         return JsonResponse({"status": "error", "message": "مرحله نامعتبر است."}, status=400)
 
-    if 1 <= stage <= 24:
+    if 0 <= stage <= 21:
         dossier.current_stage = stage
         dossier.save()
         return JsonResponse({"status": "success", "new_stage": dossier.current_stage})
     else:
-        return JsonResponse({"status": "error", "message": "مرحله باید بین ۱ تا ۲۴ باشد."}, status=400)
+        return JsonResponse({"status": "error", "message": "مرحله باید بین ۰ تا ۲۱ باشد."}, status=400)
 
 
 @csrf_exempt
@@ -508,7 +530,8 @@ def set_dossier_stage_view(request, pk):
 def electronic_sign_action(request, pk):
     """
     Handles electronic signature and forwards the dossier to the next stage (select_for_update).
-    Supports all 24 stages seamlessly.
+    Supports all 22 stages (0 to 21).
+    Enforces role-based permissions unless user is Superadmin or Housing Chief.
     """
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
@@ -517,6 +540,15 @@ def electronic_sign_action(request, pk):
 
     if dossier.is_locked:
         return JsonResponse({"status": "error", "message": "این پرونده نهایی و مختومه گردیده است."}, status=400)
+
+    # Permission check for active stage
+    profile = getattr(request.user, 'profile', None)
+    user_can_action = request.user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(dossier.current_stage))
+    if not user_can_action:
+        return JsonResponse({
+            "status": "error",
+            "message": f"شما دسترسی مجاز برای تایید و امضای الکترونیک در مرحله {dossier.current_stage} را ندارید. این اقدام مختص «{dossier.current_role}» یا رئیس مسکن می‌باشد."
+        }, status=403)
 
     try:
         body_data = json.loads(request.body.decode('utf-8')) if request.body else {}
@@ -533,7 +565,7 @@ def electronic_sign_action(request, pk):
     raw_stamp = f"{dossier.archive_number}-{current_idx}-{next_stage}-{timezone.now().isoformat()}"
     sig_hash = "SHA256: " + hashlib.sha256(raw_stamp.encode()).hexdigest()[:24]
 
-    if next_stage <= 24:
+    if next_stage <= 21:
         dossier.current_stage = next_stage
         action = "SIGN"
         action_label = "تایید و امضای الکترونیکی"
@@ -585,7 +617,8 @@ def electronic_sign_action(request, pk):
 def return_stage_action(request, pk):
     """
     Handles backward routing / rejection for correction (select_for_update).
-    Supports all 24 stages: any stage > 1 can return to any prior stage < current_stage.
+    Supports all 22 stages: any stage > 0 can return to any prior stage >= 0.
+    Enforces role-based permissions unless user is Superadmin or Housing Chief.
     """
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
@@ -594,6 +627,15 @@ def return_stage_action(request, pk):
 
     if dossier.is_locked:
         return JsonResponse({"status": "error", "message": "پرونده بایگانی‌شده قابل بازگشت نیست."}, status=400)
+
+    # Permission check for active stage
+    profile = getattr(request.user, 'profile', None)
+    user_can_action = request.user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(dossier.current_stage))
+    if not user_can_action:
+        return JsonResponse({
+            "status": "error",
+            "message": f"شما دسترسی مجاز برای بازگردانی پرونده از مرحله {dossier.current_stage} را ندارید. این اقدام مختص «{dossier.current_role}» یا رئیس مسکن می‌باشد."
+        }, status=403)
 
     try:
         body_data = json.loads(request.body.decode('utf-8')) if request.body else {}
@@ -612,8 +654,8 @@ def return_stage_action(request, pk):
 
     current_idx = dossier.current_stage
 
-    if target_stage >= current_idx or target_stage < 1:
-        return JsonResponse({"status": "error", "message": "مرحله برگشت باید از مرحله فعلی کوچکتر و حداقل ۱ باشد."}, status=400)
+    if target_stage >= current_idx or target_stage < 0:
+        return JsonResponse({"status": "error", "message": "مرحله برگشت باید از مرحله فعلی کوچکتر و حداقل ۰ باشد."}, status=400)
 
     current_title = dossier.current_stage_title
     current_role = dossier.current_role
@@ -902,9 +944,11 @@ def user_profile_view(request):
 def users_management_view(request):
     """
     Admin control panel to manage registered experts, review access rights, and monitor accounts.
+    Accessible to Superadmin, Staff, and Housing Chief (رئیس مسکن).
     """
-    if not (request.user.is_staff or request.user.is_superuser):
-        messages.error(request, "دسترسی به بخش مدیریت کاربران نیازمند مجوز مدیر سیستم است.")
+    profile = getattr(request.user, 'profile', None)
+    if not (request.user.is_staff or request.user.is_superuser or (profile and profile.is_housing_chief)):
+        messages.error(request, "دسترسی به بخش مدیریت کاربران نیازمند مجوز مدیر سیستم یا رئیس مسکن است.")
         return redirect("dossier_list")
 
     users = User.objects.all().select_related("profile").order_by("id")
@@ -933,9 +977,10 @@ def users_management_view(request):
 @login_required(login_url='login')
 def create_user_action(request):
     """
-    Creates a new expert / staff user account and associated UserProfile.
+    Creates a new expert / staff user account and associated UserProfile with specific stage permissions.
     """
-    if not (request.user.is_staff or request.user.is_superuser):
+    profile = getattr(request.user, 'profile', None)
+    if not (request.user.is_staff or request.user.is_superuser or (profile and profile.is_housing_chief)):
         return HttpResponseBadRequest("مجوز غیرمجاز")
 
     if request.method == "POST":
@@ -947,6 +992,8 @@ def create_user_action(request):
         personnel_code = request.POST.get("personnel_code", "").strip()
         phone_number = request.POST.get("phone_number", "").strip()
         can_sign = bool(request.POST.get("can_sign"))
+        is_housing_chief = bool(request.POST.get("is_housing_chief"))
+        allowed_stages = request.POST.get("allowed_stages", "all").strip()
 
         if not username or not password or not full_name:
             messages.error(request, "تکمیل نام کاربری، کلمه عبور و نام کامل الزامی است.")
@@ -956,21 +1003,23 @@ def create_user_action(request):
             messages.error(request, f"نام کاربری «{username}» قبلاً در سامانه ثبت شده است.")
             return redirect("users_management")
 
-        is_staff = (organization == "system")
+        is_staff = (organization == "system" or is_housing_chief)
         new_user = User.objects.create_user(
             username=username,
             password=password,
             is_staff=is_staff
         )
-        profile, _ = UserProfile.objects.get_or_create(user=new_user)
-        profile.full_name = full_name
-        profile.organization = organization
-        profile.role_title = role_title or "کارشناس"
-        profile.personnel_code = personnel_code
-        profile.phone_number = phone_number
-        profile.can_sign = can_sign
-        profile.is_active_expert = True
-        profile.save()
+        user_prof, _ = UserProfile.objects.get_or_create(user=new_user)
+        user_prof.full_name = full_name
+        user_prof.organization = organization
+        user_prof.role_title = role_title or "کارشناس"
+        user_prof.personnel_code = personnel_code
+        user_prof.phone_number = phone_number
+        user_prof.can_sign = can_sign
+        user_prof.is_housing_chief = is_housing_chief
+        user_prof.allowed_stages = allowed_stages if not is_housing_chief else "all"
+        user_prof.is_active_expert = True
+        user_prof.save()
         messages.success(request, f"کارشناس جدید «{full_name}» با نام کاربری «{username}» با موفقیت افزوده شد.")
 
     return redirect("users_management")
@@ -981,7 +1030,8 @@ def toggle_user_status_action(request, user_id):
     """
     Toggles is_active flag for the specified user account.
     """
-    if not (request.user.is_staff or request.user.is_superuser):
+    profile = getattr(request.user, 'profile', None)
+    if not (request.user.is_staff or request.user.is_superuser or (profile and profile.is_housing_chief)):
         return HttpResponseBadRequest("مجوز غیرمجاز")
 
     target_user = get_object_or_404(User, id=user_id)
@@ -1001,7 +1051,8 @@ def reset_user_password_action(request, user_id):
     """
     Resets the password for a selected user account.
     """
-    if not (request.user.is_staff or request.user.is_superuser):
+    profile = getattr(request.user, 'profile', None)
+    if not (request.user.is_staff or request.user.is_superuser or (profile and profile.is_housing_chief)):
         return HttpResponseBadRequest("مجوز غیرمجاز")
 
     target_user = get_object_or_404(User, id=user_id)
@@ -1014,3 +1065,53 @@ def reset_user_password_action(request, user_id):
         messages.success(request, f"کلمه عبور کاربر «{target_user.username}» با موفقیت بازنشانی شد.")
 
     return redirect("users_management")
+
+
+@login_required(login_url='login')
+def audit_logs_view(request):
+    """
+    Comprehensive System Audit Deck for Super Admin and Housing Chief (رئیس مسکن).
+    Displays exhaustive historical logging of all field alterations and electronic signatures across all dossiers.
+    """
+    profile = getattr(request.user, 'profile', None)
+    if not (request.user.is_superuser or (profile and profile.can_view_all_audit_logs())):
+        messages.error(request, "مشاهده سیاهه جامع ممیزی مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد.")
+        return redirect("dossier_list")
+
+    query = request.GET.get("q", "").strip()
+    archive_num = request.GET.get("archive_number", "").strip()
+
+    field_changes = DossierFieldChangeLog.objects.select_related("dossier").order_by("-timestamp")
+    signature_logs = WorkflowSignatureLog.objects.select_related("dossier").order_by("-timestamp")
+
+    if archive_num:
+        try:
+            num = int(archive_num)
+            field_changes = field_changes.filter(dossier__archive_number=num)
+            signature_logs = signature_logs.filter(dossier__archive_number=num)
+        except ValueError:
+            pass
+
+    if query:
+        field_changes = field_changes.filter(
+            models.Q(field_name__icontains=query) |
+            models.Q(field_label__icontains=query) |
+            models.Q(changed_by__icontains=query) |
+            models.Q(old_value__icontains=query) |
+            models.Q(new_value__icontains=query)
+        )
+        signature_logs = signature_logs.filter(
+            models.Q(actor__icontains=query) |
+            models.Q(action_label__icontains=query) |
+            models.Q(notes__icontains=query)
+        )
+
+    context = {
+        "field_changes": field_changes[:500],
+        "signature_logs": signature_logs[:500],
+        "total_field_changes": field_changes.count(),
+        "total_signature_logs": signature_logs.count(),
+        "query": query,
+        "archive_number": archive_num,
+    }
+    return render(request, "admin/audit_logs.html", context)

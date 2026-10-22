@@ -58,42 +58,42 @@ const PersianNumberWords = {
   }
 };
 
-// Merged 24-Stage Workflow Configuration
-const STAGES_24 = [
-  { id: 1, unit: 'brokerage', role: 'کارشناس ثبت درخواست کارگزاری', title: 'ورود اطلاعات متقاضی، همسر، واحد و پروژه', category: 'کارگزاری اولیه' },
-  { id: 2, unit: 'brokerage', role: 'کارشناس ثبتی کارگزاری', title: 'ورود اطلاعات ثبتی عرصه و پلاک', category: 'کارگزاری اولیه' },
-  { id: 3, unit: 'brokerage', role: 'کارشناس مالی کارگزاری', title: 'ورود مبلغ تمام‌شده بدون وام ۶۵۰ میلیونی', category: 'کارگزاری اولیه' },
-  { id: 4, unit: 'brokerage', role: 'مدیرعامل کارگزاری', title: 'تأیید مدیرعامل کارگزاری', category: 'کارگزاری اولیه' },
-  { id: 5, unit: 'directorate', role: 'کارشناس بررسی فرم جیم', title: 'کارشناس بررسی فرم جیم', category: 'اداره کل - استعلامات' },
-  { id: 6, unit: 'brokerage', role: 'کارشناس مالی کارگزاری', title: 'ورود مبلغ وام صندوق', category: 'تسهیلات و مالی' },
-  { id: 7, unit: 'directorate', role: 'کارشناس پیمانکاران اداره کل', title: 'ورود مبلغ نامه پیمانکار', category: 'تسهیلات و مالی' },
-  { id: 8, unit: 'directorate', role: 'کارشناس تسهیلات دهک اداره کل', title: 'ورود مبلغ وام دهک', category: 'تسهیلات و مالی' },
-  { id: 9, unit: 'brokerage', role: 'کارشناس امور متقاضیان', title: 'تعیین مبلغ آورده نقدی متقاضی و ارسال پیامک', category: 'اطلاع‌رسانی متقاضی' },
-  { id: 10, unit: 'brokerage', role: 'کارشناس مالی کارگزاری', title: 'تأیید تأمین مبلغ آورده متقاضی', category: 'اطلاع‌رسانی متقاضی' },
-  { id: 11, unit: 'brokerage', role: 'کارشناس امور بانکی', title: 'ارسال و درج شماره نامه بانک', category: 'امور بانکی و اسکن' },
-  { id: 12, unit: 'brokerage', role: 'کارشناس اسکن و بایگانی کارگزاری', title: 'اسکن مدارک و دفترچه قسط', category: 'امور بانکی و اسکن' },
-  { id: 13, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن', title: 'کارشناس نهضت ملی مسکن', category: 'تاییدات اداره کل' },
-  { id: 14, unit: 'directorate', role: 'کارشناس ثبت فرم ج', title: 'کارشناس ثبت فرم ج', category: 'تاییدات اداره کل' },
-  { id: 15, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'کارشناس فنی و مهندسی (پلاک و نقشه)', category: 'تاییدات اداره کل' },
-  { id: 16, unit: 'directorate', role: 'کارشناس املاک', title: 'کارشناس املاک (اسکن سند مالکیت)', category: 'تاییدات اداره کل' },
-  { id: 17, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'کارشناس بانک زمین', category: 'تاییدات اداره کل' },
-  { id: 18, unit: 'directorate', role: 'کارشناس حقوقی', title: 'کارشناس حقوقی', category: 'تاییدات اداره کل' },
-  { id: 19, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'کارشناس ارزیابی (اجاره و آماده‌سازی)', category: 'ارزیابی و وصول' },
-  { id: 20, unit: 'brokerage', role: 'کارشناس وصول کارگزاری', title: 'دریافت چک‌های وام دهک', category: 'ارزیابی و وصول' },
-  { id: 21, unit: 'brokerage', role: 'کارشناس مالی کارگزاری', title: 'دریافت نقد و اقساط آماده‌سازی و اجاره', category: 'ارزیابی و وصول' },
-  { id: 22, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'کارشناس تسویه با پیمانکار سازنده', category: 'تسویه و خاتمه' },
-  { id: 23, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'چاپ فرم مراحل و نامه محضر', category: 'صدور و بایگانی' },
-  { id: 24, unit: 'directorate', role: 'کارشناس بایگانی اداره کل', title: 'بایگانی نهایی پرونده', category: 'صدور و بایگانی' }
+// Official 22-Stage Workflow Configuration (Stages 0 to 21)
+const STAGES_22 = [
+  { id: 0, unit: 'brokerage', role: 'کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی', title: 'ثبت اطلاعات متقاضی و واحد', category: 'کارگزاری اولیه' },
+  { id: 1, unit: 'brokerage', role: 'کارشناس اطلاعات', title: 'کنترل اطلاعات پلاک ثبتی', category: 'کارگزاری اولیه' },
+  { id: 2, unit: 'brokerage', role: 'کارشناس اطلاعات (کارگزاری)', title: 'ورود مبلغ تمام شده', category: 'کارگزاری اولیه' },
+  { id: 3, unit: 'directorate', role: 'کارشناس بررسی فرم ج (عالمی)', title: 'بررسی فرم ج', category: 'اداره کل - استعلامات' },
+  { id: 4, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'ورود مبلغ وام صندوق', category: 'تسهیلات و مالی' },
+  { id: 5, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ نامه (کسر یا تخفیف) پیمانکار', category: 'تسهیلات و مالی' },
+  { id: 6, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ تسهیلات دهک', category: 'تسهیلات و مالی' },
+  { id: 7, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی)', title: 'تعیین مبلغ باقیمانده نقدی مورد نیاز', category: 'تسهیلات و مالی' },
+  { id: 8, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی / حیدری)', title: 'ارسال و درج شماره و تاریخ نامه بانک', category: 'امور بانکی و اسکن' },
+  { id: 9, unit: 'brokerage', role: 'کارشناس تشکیل پرونده کارگزاری', title: 'اسکن مدارک و دفترچه اقساط', category: 'امور بانکی و اسکن' },
+  { id: 10, unit: 'brokerage', role: 'مدیرعامل کارگزاری', title: 'تأیید مدیرعامل کارگزاری', category: 'کارگزاری اولیه' },
+  { id: 11, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی', title: 'بررسی استعلام تسهیلات بانکی', category: 'تاییدات اداره کل' },
+  { id: 12, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'بررسی مشخصات فنی، پلاک و عرصه', category: 'تاییدات اداره کل' },
+  { id: 13, unit: 'directorate', role: 'کارشناس املاک', title: 'بررسی و بارگذاری سند املاک', category: 'تاییدات اداره کل' },
+  { id: 14, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'بررسی اطلاعات بانک زمین', category: 'تاییدات اداره کل' },
+  { id: 15, unit: 'directorate', role: 'کارشناس حقوقی', title: 'بررسی حقوقی و استعلامات اراضی', category: 'تاییدات اداره کل' },
+  { id: 16, unit: 'directorate', role: 'کارشناس فرم ج', title: 'تطبیق نهایی فرم ج اداره کل', category: 'تاییدات اداره کل' },
+  { id: 17, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'ارزیابی قدرالسهم و اجاره عرصه', category: 'ارزیابی و وصول' },
+  { id: 18, unit: 'brokerage', role: 'کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک', title: 'اخذ اجاره، آماده‌سازی و چک دهک', category: 'ارزیابی و وصول' },
+  { id: 19, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'تسویه حساب با پیمانکار سازنده', category: 'تسویه و خاتمه' },
+  { id: 20, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'صدور نامه معرفی به دفتر اسناد رسمی (محضر)', category: 'صدور و بایگانی' },
+  { id: 21, unit: 'directorate', role: 'کارشناس بایگانی', title: 'مشاهده فرم نهایی و بایگانی قطعی پرونده', category: 'صدور و بایگانی' }
 ];
 
 // Alpine.js Application Store & Controller
 document.addEventListener('alpine:init', () => {
   Alpine.data('sanadbanApp', () => ({
     // Pipeline State
-    currentStage: 1,
-    stages: STAGES_24,
+    currentStage: 0,
+    stages: STAGES_22,
     archiveNumber: 100001,
     isLocked: false,
+    userCanAction: true,
+    isChief: false,
     selectedCategory: 'all',
     attachmentViewMode: 'album',
     todayDate: '',
@@ -234,8 +234,10 @@ document.addEventListener('alpine:init', () => {
         try {
           const serverData = JSON.parse(serverDataEl.textContent);
           if (serverData.archive_number) this.archiveNumber = serverData.archive_number;
-          if (serverData.current_stage) this.currentStage = Number(serverData.current_stage);
+          if (typeof serverData.current_stage !== 'undefined') this.currentStage = Number(serverData.current_stage);
           if (typeof serverData.is_locked !== 'undefined') this.isLocked = Boolean(serverData.is_locked);
+          if (typeof serverData.user_can_action !== 'undefined') this.userCanAction = Boolean(serverData.user_can_action);
+          if (typeof serverData.is_chief !== 'undefined') this.isChief = Boolean(serverData.is_chief);
           if (serverData.form) {
             this.form = Object.assign({}, this.form, serverData.form);
           }
@@ -527,7 +529,7 @@ document.addEventListener('alpine:init', () => {
         fromStage: `مرحله ${this.currentStage}`,
         toStage: `مرحله ${this.currentStage}`,
         actor: 'کارشناس بارگذاری اسناد',
-        role: this.stages[this.currentStage - 1].role,
+        role: this.getStage(this.currentStage).role,
         action: 'SUBMIT',
         actionLabel: `بارگذاری سند: ${this.uploadForm.title}`,
         timestamp: nowStr,
@@ -551,14 +553,20 @@ document.addEventListener('alpine:init', () => {
         sha256: hashStr,
         preview_url: this.uploadForm.preview_url,
         immutable: true,
-        desc: `مدرک بارگذاری‌شده در مرحله ${this.currentStage} (${this.stages[this.currentStage - 1].title})`
+        desc: `مدرک بارگذاری‌شده در مرحله ${this.currentStage} (${this.getStage(this.currentStage).title})`
       };
       this.attachments.unshift(newScan);
     },
 
-    // Permission Checker: all fields are editable across stages with automated audit logging, locked only upon final archive
+    // Helper to safely get stage metadata by ID
+    getStage(id) {
+      return this.stages.find(s => s.id === Number(id)) || { id, title: `مرحله ${id}`, role: 'کارشناس اقدام‌کننده', unit: 'brokerage' };
+    },
+
+    // Permission Checker: all fields are editable across stages if user has permission, locked upon final archive
     isFieldEditable(fieldName) {
       if (this.isLocked) return false;
+      if (typeof this.userCanAction !== 'undefined' && !this.userCanAction) return false;
       return true;
     },
 
@@ -592,12 +600,15 @@ document.addEventListener('alpine:init', () => {
           this.currentStage = data.new_stage;
           if (data.is_locked) this.isLocked = true;
 
+          const fromInfo = this.getStage(prevStage);
+          const toInfo = this.getStage(this.currentStage);
+
           this.auditLogs.unshift({
             step: this.currentStage,
-            fromStage: `مرحله ${prevStage}: ${this.stages[prevStage - 1].title}`,
-            toStage: this.currentStage <= 24 ? `مرحله ${this.currentStage}: ${this.stages[this.currentStage - 1].title}` : 'خاتمه و بایگانی قطعی',
+            fromStage: `مرحله ${prevStage}: ${fromInfo.title}`,
+            toStage: this.currentStage <= 21 ? `مرحله ${this.currentStage}: ${toInfo.title}` : 'خاتمه و بایگانی قطعی',
             actor: 'کاربر ارشد سازمانی',
-            role: this.stages[prevStage - 1]?.role || 'کارشناس اقدام‌کننده',
+            role: fromInfo.role,
             action: 'SIGN',
             actionLabel: 'تایید و امضای دیجیتال',
             timestamp: new Date().toLocaleDateString('fa-IR') + ' ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
@@ -620,7 +631,7 @@ document.addEventListener('alpine:init', () => {
 
     // Return Modal
     openReturnModal() {
-      this.selectedReturnStage = Math.max(1, this.currentStage - 1);
+      this.selectedReturnStage = Math.max(0, this.currentStage - 1);
       this.returnNotes = '';
       this.showReturnModal = true;
     },
@@ -656,12 +667,15 @@ document.addEventListener('alpine:init', () => {
           const prevStage = this.currentStage;
           this.currentStage = data.new_stage;
 
+          const fromInfo = this.getStage(prevStage);
+          const targetInfo = this.getStage(targetStage);
+
           this.auditLogs.unshift({
             step: this.currentStage,
-            fromStage: `مرحله ${prevStage}: ${this.stages[prevStage - 1].title}`,
-            toStage: `مرحله ${targetStage}: ${this.stages[targetStage - 1].title}`,
+            fromStage: `مرحله ${prevStage}: ${fromInfo.title}`,
+            toStage: `مرحله ${targetStage}: ${targetInfo.title}`,
             actor: 'کارشناس بررسی و ممیزی',
-            role: this.stages[prevStage - 1]?.role || 'کارشناس ممیزی',
+            role: fromInfo.role,
             action: 'RETURN',
             actionLabel: 'برگشت جهت اصلاح',
             timestamp: new Date().toLocaleDateString('fa-IR') + ' ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),

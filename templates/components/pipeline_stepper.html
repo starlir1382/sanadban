@@ -1,91 +1,90 @@
-<!-- Modern 4-Phase Milestone Header & Focused Stage Controller -->
+<!-- Modern 4-Phase Milestone Header & Focused Stage Controller (Stages 0 to 21) -->
 <section class="pipeline-card" style="margin-bottom: 1.5rem; padding: 1.25rem 1.5rem; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;">
     
-    <!-- Top Phase Milestone Progress Track (4 Main Macro-Phases) -->
+    <!-- Top Phase Milestone Progress Track (4 Macro-Phases) -->
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
         
-        <!-- Phase 1: Brokerage Onboarding (Stages 1-4) -->
+        <!-- Phase 1: Brokerage Onboarding (Stages 0-2) -->
         <div style="border-radius: 10px; padding: 0.75rem 1rem; border: 1.5px solid; transition: all 0.2s;"
-             :style="currentStage >= 1 && currentStage <= 4 
+             :style="currentStage >= 0 && currentStage <= 2 
                      ? 'border-color: #2563eb; background: #eff6ff; box-shadow: 0 4px 12px rgba(37,99,235,0.12);' 
-                     : (currentStage > 4 ? 'border-color: #10b981; background: #f0fdf4;' : 'border-color: #e2e8f0; background: #f8fafc; opacity: 0.75;')">
+                     : (currentStage > 2 ? 'border-color: #10b981; background: #f0fdf4;' : 'border-color: #e2e8f0; background: #f8fafc; opacity: 0.75;')">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                 <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;"
-                      :style="currentStage >= 1 && currentStage <= 4 ? 'color: #1d4ed8;' : (currentStage > 4 ? 'color: #047857;' : 'color: #64748b;')">
+                      :style="currentStage >= 0 && currentStage <= 2 ? 'color: #1d4ed8;' : (currentStage > 2 ? 'color: #047857;' : 'color: #64748b;')">
                     فاز اول (کارگزاری)
                 </span>
                 <span class="fa-num" style="font-size: 0.75rem; font-weight: 700;"
-                      :style="currentStage > 4 ? 'color: #059669;' : 'color: #64748b;'">
-                    <span x-show="currentStage > 4">تکمیل شد ✓</span>
-                    <span x-show="currentStage >= 1 && currentStage <= 4" style="color: #2563eb;">در حال اقدام</span>
-                    <span x-show="currentStage < 1">مراحل ۱ تا ۴</span>
+                      :style="currentStage > 2 ? 'color: #059669;' : 'color: #64748b;'">
+                    <span x-show="currentStage > 2">تکمیل شد ✓</span>
+                    <span x-show="currentStage >= 0 && currentStage <= 2" style="color: #2563eb;">در حال اقدام</span>
                 </span>
             </div>
-            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">ثبت اولیه و تأیید کارگزاری</div>
-            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۱ الی ۴ • مدیرعامل و ثبتی</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">ثبت اطلاعات و قیمت تمام‌شده</div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۰ تا ۲ • متقاضی، همسر، پلاک</div>
         </div>
 
-        <!-- Phase 2: Inquiries & Financials (Stages 5-12) -->
+        <!-- Phase 2: Inquiries & Financials (Stages 3-10) -->
         <div style="border-radius: 10px; padding: 0.75rem 1rem; border: 1.5px solid; transition: all 0.2s;"
-             :style="currentStage >= 5 && currentStage <= 12 
+             :style="currentStage >= 3 && currentStage <= 10 
                      ? 'border-color: #2563eb; background: #eff6ff; box-shadow: 0 4px 12px rgba(37,99,235,0.12);' 
-                     : (currentStage > 12 ? 'border-color: #10b981; background: #f0fdf4;' : 'border-color: #e2e8f0; background: #f8fafc; opacity: 0.75;')">
+                     : (currentStage > 10 ? 'border-color: #10b981; background: #f0fdf4;' : 'border-color: #e2e8f0; background: #f8fafc; opacity: 0.75;')">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                 <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;"
-                      :style="currentStage >= 5 && currentStage <= 12 ? 'color: #1d4ed8;' : (currentStage > 12 ? 'color: #047857;' : 'color: #64748b;')">
-                    فاز دوم (تسهیلات و بانک)
+                      :style="currentStage >= 3 && currentStage <= 10 ? 'color: #1d4ed8;' : (currentStage > 10 ? 'color: #047857;' : 'color: #64748b;')">
+                    فاز دوم (استعلام و تسهیلات)
                 </span>
                 <span class="fa-num" style="font-size: 0.75rem; font-weight: 700;"
-                      :style="currentStage > 12 ? 'color: #059669;' : 'color: #64748b;'">
-                    <span x-show="currentStage > 12">تکمیل شد ✓</span>
-                    <span x-show="currentStage >= 5 && currentStage <= 12" style="color: #2563eb;">در حال اقدام</span>
-                    <span x-show="currentStage < 5">مراحل ۵ تا ۱۲</span>
+                      :style="currentStage > 10 ? 'color: #059669;' : 'color: #64748b;'">
+                    <span x-show="currentStage > 10">تکمیل شد ✓</span>
+                    <span x-show="currentStage >= 3 && currentStage <= 10" style="color: #2563eb;">در حال اقدام</span>
+                    <span x-show="currentStage < 3">مراحل ۳ تا ۱۰</span>
                 </span>
             </div>
-            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">استعلامات فرم ج، وام و بانک</div>
-            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۵ الی ۱۲ • پیامک و دفترچه قسط</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">فرم ج، وام‌ها و تأیید مدیرعامل</div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۳ تا ۱۰ • حیدری، وصالی، تقوی</div>
         </div>
 
-        <!-- Phase 3: Directorate Review (Stages 13-19) -->
+        <!-- Phase 3: Directorate Review (Stages 11-17) -->
         <div style="border-radius: 10px; padding: 0.75rem 1rem; border: 1.5px solid; transition: all 0.2s;"
-             :style="currentStage >= 13 && currentStage <= 19 
+             :style="currentStage >= 11 && currentStage <= 17 
                      ? 'border-color: #2563eb; background: #eff6ff; box-shadow: 0 4px 12px rgba(37,99,235,0.12);' 
-                     : (currentStage > 19 ? 'border-color: #10b981; background: #f0fdf4;' : 'border-color: #e2e8f0; background: #f8fafc; opacity: 0.75;')">
+                     : (currentStage > 17 ? 'border-color: #10b981; background: #f0fdf4;' : 'border-color: #e2e8f0; background: #f8fafc; opacity: 0.75;')">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                 <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;"
-                      :style="currentStage >= 13 && currentStage <= 19 ? 'color: #1d4ed8;' : (currentStage > 19 ? 'color: #047857;' : 'color: #64748b;')">
-                    فاز سوم (اداره کل)
+                      :style="currentStage >= 11 && currentStage <= 17 ? 'color: #1d4ed8;' : (currentStage > 17 ? 'color: #047857;' : 'color: #64748b;')">
+                    فاز سوم (ممیزی اداره کل)
                 </span>
                 <span class="fa-num" style="font-size: 0.75rem; font-weight: 700;"
-                      :style="currentStage > 19 ? 'color: #059669;' : 'color: #64748b;'">
-                    <span x-show="currentStage > 19">تکمیل شد ✓</span>
-                    <span x-show="currentStage >= 13 && currentStage <= 19" style="color: #2563eb;">در حال اقدام</span>
-                    <span x-show="currentStage < 13">مراحل ۱۳ تا ۱۹</span>
+                      :style="currentStage > 17 ? 'color: #059669;' : 'color: #64748b;'">
+                    <span x-show="currentStage > 17">تکمیل شد ✓</span>
+                    <span x-show="currentStage >= 11 && currentStage <= 17" style="color: #2563eb;">در حال اقدام</span>
+                    <span x-show="currentStage < 11">مراحل ۱۱ تا ۱۷</span>
                 </span>
             </div>
-            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">کنترل‌های تخصصی اداره کل</div>
-            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۱۳ الی ۱۹ • فنی، املاک، ارزیابی</div>
+            <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">ممیزی‌های تخصصی اراضی و فنی</div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۱۱ تا ۱۷ • املاک، حقوقی، ارزیابی</div>
         </div>
 
-        <!-- Phase 4: Settlement & Notary (Stages 20-24) -->
+        <!-- Phase 4: Settlement & Notary (Stages 18-21) -->
         <div style="border-radius: 10px; padding: 0.75rem 1rem; border: 1.5px solid; transition: all 0.2s;"
-             :style="currentStage >= 20 
+             :style="currentStage >= 18 
                      ? 'border-color: #2563eb; background: #eff6ff; box-shadow: 0 4px 12px rgba(37,99,235,0.12);' 
                      : 'border-color: #e2e8f0; background: #f8fafc; opacity: 0.75;'">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                 <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;"
-                      :style="currentStage >= 20 ? 'color: #1d4ed8;' : 'color: #64748b;'">
-                    فاز چهارم (محضر و بایگانی)
+                      :style="currentStage >= 18 ? 'color: #1d4ed8;' : 'color: #64748b;'">
+                    فاز چهارم (وصول و محضر)
                 </span>
                 <span class="fa-num" style="font-size: 0.75rem; font-weight: 700;"
-                      :style="isLocked ? 'color: #059669;' : (currentStage >= 20 ? 'color: #2563eb;' : 'color: #64748b;')">
+                      :style="isLocked ? 'color: #059669;' : (currentStage >= 18 ? 'color: #2563eb;' : 'color: #64748b;')">
                     <span x-show="isLocked">مختومه ✓</span>
-                    <span x-show="currentStage >= 20 && !isLocked">در حال صدور</span>
-                    <span x-show="currentStage < 20">مراحل ۲۰ تا ۲۴</span>
+                    <span x-show="currentStage >= 18 && !isLocked">در حال صدور</span>
+                    <span x-show="currentStage < 18">مراحل ۱۸ تا ۲۱</span>
                 </span>
             </div>
             <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a;">چک‌ها، تسویه و نامه محضر</div>
-            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۲۰ الی ۲۴ • چاپ فرم و بایگانی</div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">مراحل ۱۸ تا ۲۱ • چاپ فرم و بایگانی</div>
         </div>
     </div>
 
@@ -96,14 +95,25 @@
         <div style="display: flex; align-items: center; gap: 0.85rem;">
             <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; justify-content: center; color: #38bdf8; font-weight: 800; font-size: 1.15rem;" class="fa-num" x-text="currentStage"></div>
             <div>
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2px;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2px; flex-wrap: wrap;">
                     <span class="role-pill fa-num" style="padding: 0.15rem 0.5rem; font-size: 0.72rem;" 
-                          :class="stages[currentStage - 1].unit === 'brokerage' ? 'brokerage' : 'directorate'"
-                          x-text="stages[currentStage - 1].unit === 'brokerage' ? 'مسئول: کارگزاری مسکن' : 'مسئول: اداره کل راه و شهرسازی'"></span>
-                    <span style="font-size: 0.75rem; color: #94a3b8;" class="fa-num" x-text="'مرحله ' + currentStage + ' از ۲۴'"></span>
+                          :class="getStage(currentStage).unit === 'brokerage' ? 'brokerage' : 'directorate'"
+                          x-text="getStage(currentStage).unit === 'brokerage' ? 'مسئول: کارگزاری مسکن' : 'مسئول: اداره کل راه و شهرسازی'"></span>
+                    <span style="font-size: 0.75rem; color: #94a3b8;" class="fa-num" x-text="'مرحله ' + currentStage + ' از ۲۱'"></span>
+                    
+                    <!-- Access indicator -->
+                    <template x-if="isChief">
+                        <span style="background: #fef3c7; color: #92400e; font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px;">👑 دسترسی تام رئیس مسکن</span>
+                    </template>
+                    <template x-if="!isChief && userCanAction">
+                        <span style="background: #ecfdf5; color: #065f46; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;">✓ دسترسی اقدام مجاز</span>
+                    </template>
+                    <template x-if="!userCanAction">
+                        <span style="background: #fef2f2; color: #991b1b; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;">🔒 فقط خواندنی برای شما</span>
+                    </template>
                 </div>
-                <div style="font-weight: 800; font-size: 0.98rem; color: #f8fafc;" x-text="stages[currentStage - 1].title"></div>
-                <div style="font-size: 0.75rem; color: #cbd5e1;" x-text="'سمت اقدام‌کننده: ' + stages[currentStage - 1].role"></div>
+                <div style="font-weight: 800; font-size: 0.98rem; color: #f8fafc;" x-text="getStage(currentStage).title"></div>
+                <div style="font-size: 0.75rem; color: #cbd5e1;" x-text="'سمت اقدام‌کننده: ' + getStage(currentStage).role"></div>
             </div>
         </div>
 
@@ -112,7 +122,7 @@
             <!-- Progress Percentage Badge -->
             <div style="text-align: left;">
                 <div style="font-size: 0.72rem; color: #94a3b8;">پیشرفت کل خط لوله:</div>
-                <div class="fa-num" style="font-weight: 800; font-size: 1.05rem; color: #34d399;" x-text="Math.round((currentStage / 24) * 100) + '٪'"></div>
+                <div class="fa-num" style="font-weight: 800; font-size: 1.05rem; color: #34d399;" x-text="Math.round((currentStage / 21) * 100) + '٪'"></div>
             </div>
 
             <!-- Fast Dropdown Stage Switcher (for supervisor / review) -->

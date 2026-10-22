@@ -123,7 +123,7 @@
                 <div>
                     <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin: 0;">بارگذاری و اسکن مدرک جدید</h3>
                     <div style="font-size: 0.78rem; color: #93c5fd; margin-top: 2px;" class="fa-num">
-                        الصاق سند به مرحله <span x-text="currentStage"></span>: <span x-text="stages[currentStage - 1].title"></span>
+                        الصاق سند به مرحله <span x-text="currentStage"></span>: <span x-text="stages[currentStage] ? stages[currentStage].title : ''"></span>
                     </div>
                 </div>
             </div>

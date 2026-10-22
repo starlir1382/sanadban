@@ -80,40 +80,38 @@ class PreSelectedUnit(models.Model):
 
 class HousingDossier(models.Model):
     """
-    Main dossier tracking the complete 24-Stage Workflow (Stages 1 to 24).
-    Merged from Excel specifications & 24 rental agreement stages.
+    Main dossier tracking the complete 22-Stage Workflow (Stages 0 to 21).
+    Merged from Excel specifications & National Housing Directorate stages.
     """
     STAGE_ROLES = {
-        1: ("کارگزاری", "کارشناس ثبت درخواست کارگزاری", "ورود اطلاعات متقاضی، همسر، واحد و پروژه"),
-        2: ("کارگزاری", "کارشناس ثبتی کارگزاری", "ورود اطلاعات ثبتی عرصه و پلاک"),
-        3: ("کارگزاری", "کارشناس مالی کارگزاری", "ورود مبلغ تمام‌شده بدون وام ۶۵۰ میلیون تومانی"),
-        4: ("کارگزاری", "مدیرعامل کارگزاری", "تأیید مدیرعامل کارگزاری"),
-        5: ("اداره کل", "کارشناس بررسی فرم جیم", "کارشناس بررسی فرم جیم"),
-        6: ("کارگزاری", "کارشناس مالی کارگزاری", "ورود مبلغ وام صندوق"),
-        7: ("اداره کل", "کارشناس پیمانکاران اداره کل", "ورود مبلغ نامه پیمانکار"),
-        8: ("اداره کل", "کارشناس تسهیلات دهک اداره کل", "ورود مبلغ وام دهک"),
-        9: ("کارگزاری", "کارشناس امور متقاضیان", "تعیین مبلغ آورده نقدی متقاضی و ارسال پیامک"),
-        10: ("کارگزاری", "کارشناس مالی کارگزاری", "تأیید تأمین مبلغ آورده متقاضی"),
-        11: ("کارگزاری", "کارشناس امور بانکی", "ارسال و درج شماره نامه بانک"),
-        12: ("کارگزاری", "کارشناس اسکن و بایگانی کارگزاری", "اسکن مدارک و دفترچه قسط"),
-        13: ("اداره کل", "کارشناس نهضت ملی مسکن", "کارشناس نهضت ملی مسکن"),
-        14: ("اداره کل", "کارشناس ثبت فرم ج", "کارشناس ثبت فرم ج"),
-        15: ("اداره کل", "کارشناس فنی و مهندسی", "کارشناس فنی و مهندسی"),
-        16: ("اداره کل", "کارشناس املاک", "کارشناس املاک"),
-        17: ("اداره کل", "کارشناس بانک زمین", "کارشناس بانک زمین"),
-        18: ("اداره کل", "کارشناس حقوقی", "کارشناس حقوقی"),
-        19: ("اداره کل", "کارشناس ارزیابی", "کارشناس ارزیابی (تعیین اجاره و آماده‌سازی)"),
-        20: ("کارگزاری", "کارشناس وصول کارگزاری", "دریافت چک‌های وام دهک"),
-        21: ("کارگزاری", "کارشناس مالی کارگزاری", "دریافت نقد و اقساط آماده‌سازی و اجاره"),
-        22: ("اداره کل", "کارشناس تسویه با پیمانکار", "کارشناس تسویه با پیمانکار سازنده"),
-        23: ("اداره کل", "کارشناس صدور نامه محضر", "چاپ فرم مراحل و نامه محضر"),
-        24: ("اداره کل", "کارشناس بایگانی اداره کل", "بایگانی نهایی پرونده"),
+        0: ("brokerage", "کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی", "ثبت اطلاعات متقاضی و واحد"),
+        1: ("brokerage", "کارشناس اطلاعات", "کنترل اطلاعات پلاک ثبتی"),
+        2: ("brokerage", "کارشناس اطلاعات (کارگزاری)", "ورود مبلغ تمام شده"),
+        3: ("directorate", "کارشناس بررسی فرم ج (عالمی)", "بررسی فرم ج"),
+        4: ("directorate", "کارشناس برنامه ریزی مسکن (حیدری)", "ورود مبلغ وام صندوق"),
+        5: ("directorate", "کارشناس برنامه ریزی مسکن (حیدری)", "مبلغ نامه (کسر یا تخفیف) پیمانکار"),
+        6: ("directorate", "کارشناس برنامه ریزی مسکن (حیدری)", "مبلغ تسهیلات دهک"),
+        7: ("directorate", "کارشناس برنامه ریزی مسکن (وصالی)", "تعیین مبلغ باقیمانده نقدی مورد نیاز"),
+        8: ("directorate", "کارشناس برنامه ریزی مسکن (وصالی / حیدری)", "ارسال و درج شماره و تاریخ نامه بانک"),
+        9: ("brokerage", "کارشناس تشکیل پرونده کارگزاری", "اسکن مدارک و دفترچه اقساط"),
+        10: ("brokerage", "مدیرعامل کارگزاری", "تأیید مدیرعامل کارگزاری"),
+        11: ("directorate", "کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی", "بررسی استعلام تسهیلات بانکی"),
+        12: ("directorate", "کارشناس فنی و مهندسی", "بررسی مشخصات فنی، پلاک و عرصه"),
+        13: ("directorate", "کارشناس املاک", "بررسی و بارگذاری سند املاک"),
+        14: ("directorate", "کارشناس بانک زمین", "بررسی اطلاعات بانک زمین"),
+        15: ("directorate", "کارشناس حقوقی", "بررسی حقوقی و استعلامات اراضی"),
+        16: ("directorate", "کارشناس فرم ج", "تطبیق نهایی فرم ج اداره کل"),
+        17: ("directorate", "کارشناس ارزیابی", "ارزیابی قدرالسهم و اجاره عرصه"),
+        18: ("brokerage", "کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک", "اخذ اجاره، آماده‌سازی و چک دهک"),
+        19: ("directorate", "کارشناس تسویه با پیمانکار", "تسویه حساب با پیمانکار سازنده"),
+        20: ("directorate", "کارشناس صدور نامه محضر", "صدور نامه معرفی به دفتر اسناد رسمی (محضر)"),
+        21: ("directorate", "کارشناس بایگانی", "مشاهده فرم نهایی و بایگانی قطعی پرونده"),
     }
 
     # Identifiers
     national_id = models.CharField(max_length=10, unique=True, db_index=True, verbose_name="کدملی / شماره پیشنویس")
     archive_number = models.PositiveIntegerField(unique=True, db_index=True, verbose_name="شماره بایگانی")
-    current_stage = models.PositiveSmallIntegerField(default=1, db_index=True, verbose_name="مرحله جاری (۱ تا ۲۴)")
+    current_stage = models.PositiveSmallIntegerField(default=0, db_index=True, verbose_name="مرحله جاری (۰ تا ۲۱)")
     is_locked = models.BooleanField(default=False, verbose_name="قفل نهایی بایگانی")
 
     # Stage 1: Applicant, Spouse & Unit
@@ -350,12 +348,38 @@ class UserProfile(models.Model):
     can_sign = models.BooleanField(default=True, verbose_name="مجوز امضای الکترونیکی")
     is_active_expert = models.BooleanField(default=True, verbose_name="وضعیت فعالیت کارشناس")
 
+    # Access Level Management & Housing Chief (رئیس مسکن)
+    is_housing_chief = models.BooleanField(default=False, verbose_name="رئیس مسکن (اختیارات و دسترسی تام)")
+    allowed_stages = models.CharField(max_length=150, default="all", verbose_name="مراحل مجاز (مثال: 0,1,2 یا all)")
+
     class Meta:
         verbose_name = "پروفایل کارشناس و کاربر"
         verbose_name_plural = "کاربران و کارشناسان سامانه"
 
+    def can_action_stage(self, stage_number):
+        """
+        Determines whether this expert can edit, sign, or return a dossier at the given stage.
+        Superadmin, Housing Chief (رئیس مسکن), and system managers have unrestricted authority.
+        """
+        if not self.is_active_expert or not self.user.is_active:
+            return False
+        if self.user.is_superuser or self.is_housing_chief or self.organization == 'system' or self.allowed_stages == 'all':
+            return True
+        try:
+            allowed = [int(s.strip()) for s in self.allowed_stages.split(',') if s.strip().isdigit()]
+            return int(stage_number) in allowed
+        except Exception:
+            return False
+
+    def can_view_all_audit_logs(self):
+        """
+        Grants full visibility to the system-wide audit trail and field logs.
+        """
+        return self.user.is_superuser or self.is_housing_chief or self.organization == 'system'
+
     def __str__(self):
-        return f"{self.full_name} ({self.role_title})"
+        chief_tag = " [رئیس مسکن]" if self.is_housing_chief else ""
+        return f"{self.full_name} ({self.role_title}){chief_tag}"
 
 
 @receiver(post_save, sender=User)

@@ -68,7 +68,7 @@
         <div class="current-stage-tag">
             <span style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb; display: inline-block;"></span>
             <span>مرحله فعال: </span>
-            <strong x-text="'مرحله ' + currentStage + ' - ' + stages[currentStage - 1].title"></strong>
+            <strong x-text="'مرحله ' + currentStage + ' - ' + (stages[currentStage] ? stages[currentStage].title : '')"></strong>
         </div>
     </div>
 </div>
@@ -116,35 +116,41 @@
     <div class="action-bar-container">
         <!-- Stage Status Description -->
         <div class="action-status-hint">
-            <span class="role-pill" :class="stages[currentStage - 1].unit" x-text="stages[currentStage - 1].role"></span>
+            <span class="role-pill" :class="stages[currentStage] ? stages[currentStage].unit : 'brokerage'" x-text="stages[currentStage] ? stages[currentStage].role : ''"></span>
             <span style="font-weight: 600;">اقدام مرحله جاری: </span>
-            <span x-text="stages[currentStage - 1].title"></span>
+            <span x-text="stages[currentStage] ? stages[currentStage].title : ''"></span>
         </div>
 
         <!-- Action Buttons -->
         <div class="action-buttons-group">
-            <!-- Stage 23 & 24 Print Notary Letter Button -->
-            <a href="{% url 'notary_letter_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-print" x-show="currentStage >= 23">
+            <!-- Read-only warning if user cannot action -->
+            <div x-show="!userCanAction && !isLocked" style="display: flex; align-items: center; gap: 0.5rem; background: #fffbeb; color: #92400e; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; border: 1px solid #fde68a;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>حالت فقط خواندنی: اقدام در این مرحله مختص کارشناس مربوطه یا رئیس مسکن است.</span>
+            </div>
+
+            <!-- Stage 20 & 21 Print Notary Letter Button -->
+            <a href="{% url 'notary_letter_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-print" x-show="currentStage >= 20">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 6 2 18 2 18 9"></polyline>
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                     <rect x="6" y="14" width="12" height="8"></rect>
                 </svg>
-                <span>چاپ معرفی‌نامه محضر (مرحله ۲۳)</span>
+                <span>چاپ معرفی‌نامه محضر (مرحله ۲۰)</span>
             </a>
 
-            <!-- Stage 24 Final Dossier Print Summary -->
-            <a href="{% url 'dossier_summary_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-outline" x-show="currentStage === 24">
+            <!-- Stage 21 Final Dossier Print Summary -->
+            <a href="{% url 'dossier_summary_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-outline" x-show="currentStage === 21 || isLocked">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
-                <span>چاپ شناسنامه جامع بایگانی (مرحله ۲۴)</span>
+                <span>چاپ شناسنامه جامع بایگانی (مرحله ۲۱)</span>
             </a>
 
             <!-- Return for Correction -->
             <button type="button" class="btn btn-warning" 
-                    x-show="currentStage > 1"
+                    x-show="currentStage > 0 && userCanAction && !isLocked"
                     @click="openReturnModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 14 4 9 9 4"></polyline>
@@ -154,7 +160,9 @@
             </button>
 
             <!-- Save Draft -->
-            <button type="button" class="btn btn-outline" @click="saveDossierDraft()" :disabled="isSaving" style="display: flex; align-items: center; gap: 0.4rem;">
+            <button type="button" class="btn btn-outline" 
+                    x-show="userCanAction && !isLocked"
+                    @click="saveDossierDraft()" :disabled="isSaving" style="display: flex; align-items: center; gap: 0.4rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -163,11 +171,13 @@
             </button>
 
             <!-- Electronic Signature & Forward Button -->
-            <button type="button" class="btn btn-success" @click="openSignatureModal()">
+            <button type="button" class="btn btn-success" 
+                    x-show="userCanAction && !isLocked"
+                    @click="openSignatureModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
-                <span x-text="currentStage === 24 ? 'تایید و بایگانی نهایی پرونده' : 'تایید و امضای الکترونیکی'"></span>
+                <span x-text="currentStage === 21 ? 'تایید و بایگانی قطعی پرونده' : 'تایید و امضای الکترونیکی'"></span>
             </button>
         </div>
     </div>

@@ -1,10 +1,10 @@
 <!-- Merged 24-Stage Workflow Form Sections -->
 <div class="form-sections-wrapper">
 
-    <!-- Stage 1 Auto-Lookup Fast Query Banner -->
-    <div class="stage0-lookup-box" x-show="currentStage === 1">
+    <!-- Stage 0 Auto-Lookup Fast Query Banner -->
+    <div class="stage0-lookup-box" x-show="currentStage === 0">
         <div class="lookup-text">
-            <h4>واکشی خودکار اطلاعات متقاضی، همسر و انتخاب واحد (مرحله ۱)</h4>
+            <h4>واکشی خودکار اطلاعات متقاضی، همسر و انتخاب واحد (مرحله ۰)</h4>
             <p>با ورود کدملی ۱۰ رقمی متقاضی، مشخصات سجلی متقاضی و همسر، سایت، پروژه و واحد مسکونی بارگذاری می‌گردد.</p>
         </div>
         <button type="button" class="btn-lookup" @click="fetchPreSelectedUnit()">
@@ -15,7 +15,7 @@
         </button>
     </div>
 
-    <!-- Section 1: متقاضی، واحد و پروژه (مرحله ۱) -->
+    <!-- Section 1: متقاضی، واحد و پروژه (مرحله ۰) -->
     <div class="form-card">
         <div class="form-section-header">
             <div class="section-title">
@@ -23,7 +23,7 @@
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <span>بخش ۱: اطلاعات متقاضی، واحد مسکونی و پروژه (مرحله ۱)</span>
+                <span>بخش ۱: اطلاعات متقاضی، واحد مسکونی و پروژه (مرحله ۰)</span>
             </div>
             <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
                 <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'قابل ویرایش (با ثبت لاگ ممیزی)'"></span>
@@ -238,10 +238,10 @@
                     <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                     <polyline points="2 17 12 22 22 17"></polyline>
                 </svg>
-                <span>بخش ۲: ورود اطلاعات ثبتی عرصه و پلاک (مراحل ۲ ثبتی و ۱۵ فنی و مهندسی)</span>
+                <span>بخش ۲: کنترل و ورود اطلاعات ثبتی عرصه و پلاک (مراحل ۱ و ۱۲)</span>
             </div>
             <div class="section-stage-badge" :class="isFieldEditable('registration_section') ? 'editable' : 'locked'">
-                <span x-text="currentStage === 2 ? 'مرحله ۲: کارگزاری' : (currentStage === 15 ? 'مرحله ۱۵: کارشناس فنی اداره کل' : 'قفل شده')"></span>
+                <span x-text="currentStage === 1 ? 'مرحله ۱: کارشناسی اطلاعات' : (currentStage === 12 ? 'مرحله ۱۲: کارشناس فنی اداره کل' : 'ثبت‌شده')"></span>
             </div>
         </div>
         <div class="form-section-body">
