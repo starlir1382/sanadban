@@ -286,6 +286,19 @@ class HousingDossier(models.Model):
         return self.status == "REJECTED_RED"
 
     @property
+    def stage_entry_date_jalali(self):
+        """Returns the Jalali date when the dossier arrived at the current stage."""
+        try:
+            import jdatetime
+            latest_log = self.audit_logs.first()
+            dt = latest_log.timestamp if latest_log and latest_log.timestamp else (self.updated_at or self.created_at)
+            if dt:
+                return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d")
+        except Exception:
+            pass
+        return ""
+
+    @property
     def formatted_equity(self):
         val = self.applicant_equity if self.applicant_equity is not None else self.base_cost_without_loan
         if val is None:
