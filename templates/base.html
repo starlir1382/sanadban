@@ -13,6 +13,12 @@
     <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.0">
     {% block extra_css %}{% endblock %}
 
+    <!-- Alpine.js Cloak & FOUC Prevention -->
+    <style>
+        [x-cloak] { display: none !important; }
+        .modal-overlay[x-cloak], .scan-viewer-modal[x-cloak] { display: none !important; }
+    </style>
+
     <!-- Alpine.js & HTMX Core Scripts -->
     <script defer src="https://unpkg.com/alpinejs@3.14.0/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>

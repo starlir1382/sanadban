@@ -10,6 +10,15 @@
    ========================================================================== */
 @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
 
+/* Alpine.js Cloak - Instant FOUC & Modal Flash Prevention */
+[x-cloak] {
+  display: none !important;
+}
+.modal-overlay[x-cloak],
+.scan-viewer-modal[x-cloak] {
+  display: none !important;
+}
+
 :root {
   /* Primary Color Palette - Iranian Deep Navy */
   --color-primary-50: #eff6ff;
@@ -1812,4 +1821,33 @@ body {
   background: #1e3a8a;
   color: #ffffff;
   border-color: #1e3a8a;
+}
+
+/* ==========================================================================
+   24. Workflow Clarity Triad & Active Section Highlight System
+   ========================================================================== */
+.clarity-triad-card {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 920px) {
+  .triad-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.form-card.section-active-highlight {
+  border: 2px solid #2563eb !important;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.12) !important;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+  50% { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+.pulse-highlight {
+  animation: pulseGlow 1.2s ease-in-out 2 !important;
+  border-color: #2563eb !important;
 }

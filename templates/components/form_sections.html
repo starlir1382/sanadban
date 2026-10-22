@@ -16,7 +16,7 @@
     </div>
 
     <!-- Section 1: متقاضی، واحد و پروژه (مرحله ۰) -->
-    <div class="form-card">
+    <div class="form-card" id="section-applicant" :class="{'section-active-highlight': isSectionActive('section-applicant')}">
         <div class="form-section-header">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -25,8 +25,15 @@
                 </svg>
                 <span>بخش ۱: اطلاعات متقاضی، واحد مسکونی و پروژه (مرحله ۰)</span>
             </div>
-            <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
-                <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'قابل ویرایش (با ثبت لاگ ممیزی)'"></span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-applicant')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
+                    <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'قابل ویرایش (با ثبت لاگ ممیزی)'"></span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
@@ -129,7 +136,7 @@
     </div>
 
     <!-- Section 1-B: مشخصات همسر و احراز زوجین (طرح زوجین - افراد مجرد فاقد شرایط می‌باشند) -->
-    <div class="form-card spouse-card-highlight">
+    <div class="form-card spouse-card-highlight" id="section-spouse" :class="{'section-active-highlight': isSectionActive('section-spouse')}">
         <div class="form-section-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -143,8 +150,15 @@
                     الزام زوجیت (تخصیص واحد صرفاً به زوجین)
                 </span>
             </div>
-            <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
-                <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'قابل ویرایش (با ثبت لاگ ممیزی)'"></span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-spouse')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
+                    <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'قابل ویرایش (با ثبت لاگ ممیزی)'"></span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
@@ -230,8 +244,8 @@
         </div>
     </div>
 
-    <!-- Section 2: اطلاعات ثبتی عرصه و پلاک (مرحله ۲ و ۱۵) -->
-    <div class="form-card">
+    <!-- Section 2: اطلاعات ثبتی عرصه و پلاک (مراحل ۱، ۱۲ و ۱۴) -->
+    <div class="form-card" id="section-plot" :class="{'section-active-highlight': isSectionActive('section-plot')}">
         <div class="form-section-header">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -240,8 +254,15 @@
                 </svg>
                 <span>بخش ۲: کنترل و ورود اطلاعات ثبتی عرصه و پلاک (مراحل ۱ و ۱۲)</span>
             </div>
-            <div class="section-stage-badge" :class="isFieldEditable('registration_section') ? 'editable' : 'locked'">
-                <span x-text="currentStage === 1 ? 'مرحله ۱: کارشناسی اطلاعات' : (currentStage === 12 ? 'مرحله ۱۲: کارشناس فنی اداره کل' : 'ثبت‌شده')"></span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-plot')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge" :class="isFieldEditable('registration_section') ? 'editable' : 'locked'">
+                    <span x-text="currentStage === 1 ? 'مرحله ۱: کارشناسی اطلاعات' : (currentStage === 12 ? 'مرحله ۱۲: کارشناس فنی اداره کل' : 'ثبت‌شده')"></span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
@@ -270,18 +291,25 @@
         </div>
     </div>
 
-    <!-- Section 3: مبلغ تمام‌شده بدون وام ۶۵۰ میلیونی (مرحله ۳) -->
-    <div class="form-card">
+    <!-- Section 3: مبلغ تمام‌شده بدون وام ۶۵۰ میلیونی (مرحله ۲) -->
+    <div class="form-card" id="section-cost" :class="{'section-active-highlight': isSectionActive('section-cost')}">
         <div class="form-section-header">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="1" x2="12" y2="23"></line>
                     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
-                <span>بخش ۳: مبلغ تمام‌شده بدون وام ۶۵۰ میلیون تومانی (مرحله ۳)</span>
+                <span>بخش ۳: مبلغ تمام‌شده بدون وام ۶۵۰ میلیون تومانی (مرحله ۲)</span>
             </div>
-            <div class="section-stage-badge" :class="isFieldEditable('base_cost_without_loan') ? 'editable' : 'locked'">
-                <span x-text="currentStage === 3 ? 'مرحله ۳: ورود مالی کارگزاری' : 'قفل شده'"></span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-cost')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge" :class="isFieldEditable('base_cost_without_loan') ? 'editable' : 'locked'">
+                    <span x-text="currentStage === 2 ? 'مرحله ۲: ورود مالی کارگزاری' : 'قفل شده'"></span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
@@ -306,15 +334,25 @@
         </div>
     </div>
 
-    <!-- Section 4: تسهیلات و مبالغ پیمانکار (مراحل ۶، ۷ و ۸) -->
-    <div class="form-card">
+    <!-- Section 4: تسهیلات و مبالغ پیمانکار (مراحل ۴، ۵ و ۶) -->
+    <div class="form-card" id="section-loans" :class="{'section-active-highlight': isSectionActive('section-loans')}">
         <div class="form-section-header">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                 </svg>
-                <span>بخش ۴: وام صندوق، نامه پیمانکار و وام دهک (مراحل ۶، ۷ و ۸)</span>
+                <span>بخش ۴: وام صندوق، نامه پیمانکار و وام دهک (مراحل ۴، ۵ و ۶)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-loans')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge editable">
+                    <span>تسهیلات و کسورات مصوب</span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
@@ -366,17 +404,24 @@
         </div>
     </div>
 
-    <!-- Section 5: تعیین آورده نقدی متقاضی و ارسال پیامک (مراحل ۹ و ۱۰) -->
-    <div class="form-card" style="border: 2px solid #bbf7d0;">
+    <!-- Section 5: تعیین آورده نقدی متقاضی و ارسال پیامک (مرحله ۷) -->
+    <div class="form-card" id="section-equity" :class="{'section-active-highlight': isSectionActive('section-equity')}">
         <div class="form-section-header" style="background: #f0fdf4;">
             <div class="section-title" style="color: #166534;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                 </svg>
-                <span>بخش ۵: تعیین مبلغ آورده نقدی و ارسال پیامک (مراحل ۹ و ۱۰)</span>
+                <span>بخش ۵: تعیین مبلغ آورده نقدی و ارسال پیامک (مرحله ۷)</span>
             </div>
-            <div class="section-stage-badge" style="background: #dcfce7; color: #15803d;">
-                <span>محاسبه سیستمی و تایید واریز</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-equity')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge" style="background: #dcfce7; color: #15803d;">
+                    <span>محاسبه سیستمی و تایید واریز</span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
@@ -428,8 +473,8 @@
         </div>
     </div>
 
-    <!-- Section 6: امور بانکی و اسکن دفترچه قسط (مراحل ۱۱ و ۱۲) -->
-    <div class="form-card">
+    <!-- Section 6: امور بانکی و اسکن دفترچه قسط (مراحل ۸ و ۱۱) -->
+    <div class="form-card" id="section-bank" :class="{'section-active-highlight': isSectionActive('section-bank')}">
         <div class="form-section-header">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -437,13 +482,23 @@
                     <line x1="16" y1="2" x2="16" y2="6"></line>
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                 </svg>
-                <span>بخش ۶: ارسال و درج شماره نامه بانک و اسکن دفترچه قسط (مراحل ۱۱ و ۱۲)</span>
+                <span>بخش ۶: ارسال و درج شماره نامه بانک و استعلام تسهیلات (مراحل ۸ و ۱۱)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-bank')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge editable">
+                    <span>امور بانک مسکن</span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
             <div class="fields-grid">
                 <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_number')}">
-                    <label class="field-label"><span>شماره نامه بانک (مرحله ۱۱)</span></label>
+                    <label class="field-label"><span>شماره نامه بانک (مرحله ۸)</span></label>
                     <input type="text" class="input-control fa-num" x-model="form.bank_letter_number" :readonly="!isFieldEditable('bank_letter_number')">
                 </div>
                 <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_date')}">
@@ -454,17 +509,24 @@
         </div>
     </div>
 
-    <!-- Section 7: ارزیابی اجاره و آماده‌سازی (مرحله ۱۹) -->
-    <div class="form-card">
+    <!-- Section 7: ارزیابی اجاره و آماده‌سازی (مراحل ۱۷ و ۱۹) -->
+    <div class="form-card" id="section-valuation" :class="{'section-active-highlight': isSectionActive('section-valuation')}">
         <div class="form-section-header">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                 </svg>
-                <span>بخش ۷: کارشناس ارزیابی - تعیین اجاره و آماده‌سازی (مرحله ۱۹)</span>
+                <span>بخش ۷: کارشناس ارزیابی - تعیین اجاره و آماده‌سازی (مراحل ۱۷ و ۱۹)</span>
             </div>
-            <div class="section-stage-badge" :class="currentStage === 19 ? 'editable' : 'locked'">
-                <span x-text="currentStage === 19 ? 'ویرایش ارزیابی اداره کل' : 'مخصوص مرحله ۱۹'"></span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-valuation')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge" :class="[17, 19].includes(currentStage) ? 'editable' : 'locked'">
+                    <span x-text="currentStage === 17 ? 'ویرایش ارزیابی اداره کل (مرحله ۱۷)' : (currentStage === 19 ? 'تسویه پیمانکار (مرحله ۱۹)' : 'ممیزی اداره کل')"></span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
@@ -493,14 +555,24 @@
         </div>
     </div>
 
-    <!-- Section 8: چک‌های وام دهک و نقد و اقساط (مراحل ۲۰ و ۲۱) -->
-    <div class="form-card">
+    <!-- Section 8: چک‌های وام دهک و نقد و اقساط (مرحله ۱۸) -->
+    <div class="form-card" id="section-checks" :class="{'section-active-highlight': isSectionActive('section-checks')}">
         <div class="form-section-header">
             <div class="section-title">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                 </svg>
-                <span>بخش ۸: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مراحل ۲۰ و ۲۱)</span>
+                <span>بخش ۸: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مرحله ۱۸)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <template x-if="isSectionActive('section-checks')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge editable">
+                    <span>وصول تضامین و چک صیادی</span>
+                </div>
             </div>
         </div>
         <div class="form-section-body">
