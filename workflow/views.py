@@ -773,24 +773,32 @@ def return_stage_action(request, pk):
 
     dossier = HousingDossier.objects.select_for_update().get(archive_number=pk)
 
-    if dossier.is_locked:
-        return JsonResponse({"status": "error", "message": "پرونده بایگانی‌شده قابل بازگشت نیست."}, status=400)
-
     # Permission check for active stage
     profile = getattr(request.user, 'profile', None)
-    user_can_action = request.user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(dossier.current_stage))
+    is_chief_or_admin = request.user.is_superuser or (profile and profile.is_housing_chief)
+    user_can_action = is_chief_or_admin or (profile and profile.can_action_stage(dossier.current_stage))
     if not user_can_action:
         return JsonResponse({
             "status": "error",
             "message": f"شما دسترسی مجاز برای بازگردانی پرونده از مرحله {dossier.current_stage} را ندارید. این اقدام مختص «{dossier.current_role}» یا رئیس مسکن می‌باشد."
         }, status=403)
 
+    if dossier.is_locked:
+        # Admin / Chief can unlock and return rejected/red Form J dossiers for correction
+        if is_chief_or_admin and (dossier.status == "REJECTED_RED" or dossier.is_red_form_j):
+            dossier.is_locked = False
+        else:
+            return JsonResponse({"status": "error", "message": "پرونده بایگانی‌شده قابل بازگشت نیست."}, status=400)
+
     try:
         body_data = json.loads(request.body.decode('utf-8')) if request.body else {}
     except Exception:
         body_data = {}
 
-    target_stage_val = body_data.get("target_stage") or request.POST.get("target_stage")
+    if "target_stage" in body_data:
+        target_stage_val = body_data.get("target_stage")
+    else:
+        target_stage_val = request.POST.get("target_stage")
     try:
         target_stage = int(target_stage_val)
     except (TypeError, ValueError):
@@ -802,8 +810,10 @@ def return_stage_action(request, pk):
 
     current_idx = dossier.current_stage
 
-    if target_stage >= current_idx or target_stage < 0:
-        return JsonResponse({"status": "error", "message": "مرحله برگشت باید از مرحله فعلی کوچکتر و حداقل ۰ باشد."}, status=400)
+    if current_idx == 0 and target_stage == 0 and is_chief_or_admin:
+        pass
+    elif target_stage >= current_idx or target_stage < 0:
+        return JsonResponse({"status": "error", "message": "مرحله برگشت باید از مرحله فعلی کوچکتر یا مرحله جاری جهت بازبینی باشد."}, status=400)
 
     current_title = dossier.current_stage_title
     current_role = dossier.current_role
@@ -1020,6 +1030,120 @@ def reject_red_form_j_action(request, pk):
         "rejection_letter_date": dossier.rejection_letter_date,
         "rejection_reason": dossier.rejection_reason,
         "rejected_by": dossier.rejected_by,
+    })
+
+
+@csrf_exempt
+@transaction.atomic
+def return_red_form_j_action(request, pk):
+    """
+    Action for Housing Chief / Superadmin to return a Red Form J dossier for correction or re-inquiry.
+    Unlocks the dossier if it was locked/archived, resets status to RETURNED,
+    sets current_stage to target stage (0 or 1), records the official notes,
+    optionally resets Form J status to 'در حال استعلام' for fresh verification,
+    and logs the event in WorkflowSignatureLog and DossierFieldChangeLog.
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
+
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    profile = getattr(request.user, 'profile', None)
+    is_chief = bool(profile and profile.is_housing_chief)
+    if not (request.user.is_superuser or is_chief or request.user.is_staff):
+        return JsonResponse({
+            "status": "error",
+            "message": "تنها رئیس مسکن و مدیران سیستم مجاز به بازگشت پرونده‌های دارای فرم «ج» قرمز جهت اصلاح و استعلام مجدد می‌باشند."
+        }, status=403)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    try:
+        target_stage = int(data.get("target_stage", 0))
+    except (ValueError, TypeError):
+        target_stage = 0
+    if target_stage not in [0, 1]:
+        target_stage = 0
+
+    notes = str(data.get("notes") or "").strip()
+    if len(notes) < 5:
+        return JsonResponse({
+            "status": "error",
+            "message": "ثبت توضیحات و دستور اداری بازگشت جهت اصلاح الزامی است (حداقل ۵ کاراکتر)."
+        }, status=400)
+
+    reset_form_j = bool(data.get("reset_form_j", True))
+
+    actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+    actor_role = profile.role_title if profile and profile.role_title else "رئیس مسکن و شهرسازی"
+
+    old_status = dossier.status
+    old_stage = dossier.current_stage
+
+    # Unlock and update status
+    dossier.is_locked = False
+    dossier.status = "RETURNED"
+    dossier.current_stage = target_stage
+    dossier.return_reason = notes
+    dossier.return_by = actor_name
+    dossier.return_from_stage = old_stage
+
+    # If requested, reset the red Form J status so applicant/brokerage can re-inquire cleanly
+    if reset_form_j:
+        if "قرمز" in (dossier.applicant_form_j_status or ""):
+            dossier.applicant_form_j_status = "در حال استعلام"
+        if "قرمز" in (dossier.spouse_form_j_status or ""):
+            dossier.spouse_form_j_status = "در حال استعلام"
+        dossier.applicant_form_j_red_description = ""
+        dossier.spouse_form_j_red_description = ""
+
+    dossier.save()
+
+    # Generate audit hash
+    import hashlib
+    raw_hash = f"{dossier.archive_number}-RETURN_RED-{old_stage}-{target_stage}-{timezone.now().isoformat()}"
+    sig_hash = "SHA256: " + hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()[:24]
+
+    # Log in WorkflowSignatureLog
+    target_title = dossier.STAGE_ROLES.get(target_stage, ('','',f'مرحله {target_stage}'))[2]
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage=f"مرحله {old_stage}: {dossier.current_stage_title} (کد قرمز فرم «ج»)",
+        to_stage=f"مرحله {target_stage}: {target_title}",
+        actor=actor_name,
+        role=actor_role,
+        action="RETURN",
+        action_label="بازگشت جهت اصلاح، رفع مغایرت و استعلام مجدد فرم «ج»",
+        notes=notes,
+        signature_hash=sig_hash
+    )
+
+    # Log in DossierFieldChangeLog
+    DossierFieldChangeLog.objects.create(
+        dossier=dossier,
+        field_name="status",
+        field_label="وضعیت فرآیند",
+        old_value=old_status,
+        new_value="برگشت‌خورده جهت اصلاح و استعلام مجدد",
+        changed_by=actor_name,
+        role=actor_role,
+        stage=target_stage,
+        ip_address=request.META.get('REMOTE_ADDR'),
+        timestamp=timezone.now()
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"پرونده با موفقیت جهت اصلاح و استعلام مجدد به مرحله {target_stage} بازگردانده شد و قفل آن باز گردید.",
+        "new_stage": target_stage,
+        "dossier_status": "RETURNED",
+        "is_locked": False,
+        "is_rejected": False,
+        "applicant_form_j_status": dossier.applicant_form_j_status,
+        "spouse_form_j_status": dossier.spouse_form_j_status,
+        "hash": sig_hash
     })
 
 

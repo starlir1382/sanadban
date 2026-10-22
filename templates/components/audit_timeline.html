@@ -1,32 +1,64 @@
 <!-- Audit Trail & Digital Signature Timeline -->
-<div class="form-card">
-    <div class="panel-header" style="flex-wrap: wrap; gap: 12px;">
-        <div class="panel-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span>تاریخچه و ممیزی سامانه سندبان</span>
-        </div>
+<div class="form-card" style="padding: 0; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem;">
+    <!-- Compact 1-Liner Header (Minimized by default, click to expand) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 0.85rem 1.25rem; background: #ffffff; cursor: pointer; user-select: none;"
+         @click="showAuditDetails = !showAuditDetails">
         
-        <!-- Tab Switcher -->
-        <div class="audit-tab-switcher" style="display: flex; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 4px;">
+        <!-- Right: Title & Summary Counters -->
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; color: #0f2744; font-size: 0.95rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>تاریخچه و ممیزی سامانه سندبان</span>
+            </div>
+
+            <!-- Quick Counter Badges in 1-liner -->
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem;">
+                <span style="background: #f1f5f9; color: #334155; padding: 2px 10px; border-radius: 999px; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
+                    <span>گردش ۲۲ مرحله و امضاها:</span>
+                    <strong class="fa-num" style="color: #0f2744;" x-text="auditLogs.length"></strong>
+                </span>
+                <span style="background: #eff6ff; color: #1d4ed8; padding: 2px 10px; border-radius: 999px; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px;">
+                    <span>سیاهه تغییرات فیلدها:</span>
+                    <strong class="fa-num" style="color: #1e40af;" x-text="fieldChanges.length"></strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- Left: Expand / Collapse Toggle Button -->
+        <div style="display: flex; align-items: center; gap: 8px;">
             <button type="button" 
-                    @click="auditActiveTab = 'stages'" 
-                    :class="auditActiveTab === 'stages' ? 'tab-btn-active' : 'tab-btn-idle'"
-                    style="border: none; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
-                <span>گردش ۲۲ مرحله (۰ تا ۲۱) و امضاها</span>
-                <span style="background: rgba(0,0,0,0.08); padding: 1px 6px; border-radius: 999px; font-size: 0.72rem;" class="fa-num" x-text="auditLogs.length"></span>
-            </button>
-            <button type="button" 
-                    @click="auditActiveTab = 'fields'" 
-                    :class="auditActiveTab === 'fields' ? 'tab-btn-active' : 'tab-btn-idle'"
-                    style="border: none; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
-                <span>سیاهه تغییرات فیلدها (Audit Log)</span>
-                <span style="background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 999px; font-size: 0.72rem;" class="fa-num" x-text="fieldChanges.length"></span>
+                    class="btn btn-outline" 
+                    @click.stop="showAuditDetails = !showAuditDetails"
+                    style="padding: 0.4rem 1rem; font-size: 0.8rem; font-weight: 700; border-color: #cbd5e1; background: #ffffff; color: #1e293b; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+                <span x-text="showAuditDetails ? 'بستن تاریخچه ممیزی ▲' : 'مشاهده تاریخچه و جزئیات ممیزی ▼'"></span>
             </button>
         </div>
     </div>
+
+    <!-- Expandable Detailed Section -->
+    <div x-show="showAuditDetails" x-cloak style="border-top: 1px solid #e2e8f0; padding: 1.25rem; background: #ffffff;" x-transition>
+        <!-- Tab Switcher -->
+        <div style="display: flex; justify-content: flex-start; margin-bottom: 1.25rem;">
+            <div class="audit-tab-switcher" style="display: flex; background: #f1f5f9; padding: 3px; border-radius: 8px; gap: 4px;">
+                <button type="button" 
+                        @click="auditActiveTab = 'stages'" 
+                        :class="auditActiveTab === 'stages' ? 'tab-btn-active' : 'tab-btn-idle'"
+                        style="border: none; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
+                    <span>گردش ۲۲ مرحله (۰ تا ۲۱) و امضاها</span>
+                    <span style="background: rgba(0,0,0,0.08); padding: 1px 6px; border-radius: 999px; font-size: 0.72rem;" class="fa-num" x-text="auditLogs.length"></span>
+                </button>
+                <button type="button" 
+                        @click="auditActiveTab = 'fields'" 
+                        :class="auditActiveTab === 'fields' ? 'tab-btn-active' : 'tab-btn-idle'"
+                        style="border: none; padding: 6px 14px; font-size: 0.82rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
+                    <span>سیاهه تغییرات فیلدها (Audit Log)</span>
+                    <span style="background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 999px; font-size: 0.72rem;" class="fa-num" x-text="fieldChanges.length"></span>
+                </button>
+            </div>
+        </div>
 
     <!-- TAB 1: Stage Transitions & Electronic Signatures -->
     <div class="audit-timeline-container" x-show="auditActiveTab === 'stages'">
@@ -138,6 +170,8 @@
                 </div>
             </template>
         </div>
+    </div>
+    <!-- End Expandable Content Panel -->
     </div>
 </div>
 

@@ -469,6 +469,7 @@ document.addEventListener('alpine:init', () => {
     fieldChanges: [],
     stageSignatures: {},
     auditActiveTab: 'stages', // 'stages' or 'fields'
+    showAuditDetails: false, // Minimized to 1-liner by default
 
     // Red Form J Disqualification State
     isRejected: false,
@@ -481,6 +482,12 @@ document.addEventListener('alpine:init', () => {
     redLetterNumber: '',
     redLetterDate: '',
     redLetterReason: '',
+
+    // Red Form J Return for Correction State
+    showRedReturnModal: false,
+    redReturnStage: 0,
+    redReturnNotes: '',
+    redResetFormJ: true,
 
     init() {
       // 1. Set Persian Today Date dynamically
@@ -1102,6 +1109,66 @@ document.addEventListener('alpine:init', () => {
         }
       } catch (e) {
         console.error('Red rejection error:', e);
+        this.triggerToast('خطا در برقراری ارتباط با سرور.', 'error');
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
+    openRedReturnModal() {
+      this.redReturnStage = 0;
+      this.redReturnNotes = '';
+      this.redResetFormJ = true;
+      this.showRedReturnModal = true;
+    },
+
+    async confirmRedReturnForCorrection() {
+      if (!this.redReturnNotes || this.redReturnNotes.trim().length < 5) {
+        this.triggerToast('ثبت دستور اداری / علت بازگشت پرونده الزامی است (حداقل ۵ کاراکتر).', 'error');
+        return;
+      }
+
+      this.isSaving = true;
+      try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const res = await fetch(`/dossier/${this.archiveNumber}/return-red/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({
+            target_stage: this.redReturnStage,
+            notes: this.redReturnNotes,
+            reset_form_j: this.redResetFormJ
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          this.status = data.dossier_status || 'RETURNED';
+          this.isLocked = Boolean(data.is_locked);
+          this.isRejected = false;
+          this.currentStage = data.new_stage;
+          if (data.applicant_form_j_status) {
+            this.form.applicant_form_j_status = data.applicant_form_j_status;
+          }
+          if (data.spouse_form_j_status) {
+            this.form.spouse_form_j_status = data.spouse_form_j_status;
+          }
+          this.isRedFormJ = (this.form.applicant_form_j_status && this.form.applicant_form_j_status.includes('قرمز')) ||
+                            (this.form.spouse_form_j_status && this.form.spouse_form_j_status.includes('قرمز'));
+          this.showRedReturnModal = false;
+          this.triggerToast(data.message || 'پرونده با موفقیت بازگردانده شد و قفل آن باز گردید.', 'success');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          this.triggerToast(err.message || 'خطا در بازگشت پرونده جهت اصلاح.', 'error');
+        }
+      } catch (e) {
+        console.error('Red return error:', e);
         this.triggerToast('خطا در برقراری ارتباط با سرور.', 'error');
       } finally {
         this.isSaving = false;
