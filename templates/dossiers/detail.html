@@ -52,6 +52,55 @@
     </div>
 </template>
 
+<!-- Form J Red Disqualification Banner -->
+<template x-if="isRejected || isRedFormJ || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')) || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز'))">
+    <div style="background: #fff1f2; border: 2px solid #ef4444; border-right: 6px solid #dc2626; border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: 1.25rem; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.1);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div style="display: flex; gap: 0.85rem; align-items: center;">
+                <div style="width: 44px; height: 44px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.4rem;">
+                    🚫
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        <span style="font-weight: 900; color: #991b1b; font-size: 1.05rem;">
+                            وضعیت استعلام فرم «ج»: فاقد شرایط دریافت مسکن (کد قرمز)
+                        </span>
+                        <span style="background: #dc2626; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;" x-text="isRejected ? 'رد صلاحیت قطعی و بایگانی' : 'فاقد شرایط - ارجاع به رئیس مسکن'"></span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #7f1d1d; line-height: 1.6;">
+                        <template x-if="!isRejected">
+                            <span>به دلیل سوابق مالکیت ملکی قبلی یا تسهیلات دولتی، متقاضی واجد شرایط نبوده و پرونده جهت صدور ابلاغیه رد صلاحیت و بایگانی قطعی به کارتابل رئیس مسکن ارجاع گردید.</span>
+                        </template>
+                        <template x-if="isRejected">
+                            <span>این پرونده مستند به ابلاغیه رد صلاحیت شماره <strong class="fa-num" x-text="rejectionLetterNumber"></strong> مورخ <strong class="fa-num" x-text="rejectionLetterDate"></strong> به صورت قطعی رد گردیده و هیچ واحد مسکونی به متقاضی واگذار نمی‌شود.</span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons for Admin / Housing Chief -->
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <template x-if="(isChief || isSuperuser) && !isRejected">
+                    <button type="button" 
+                            @click="openRedRejectionModal()"
+                            style="padding: 0.6rem 1.25rem; font-size: 0.84rem; font-weight: 800; background: #dc2626; color: #ffffff; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(220,38,38,0.35);">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        <span>صدور ابلاغیه رد صلاحیت و بایگانی قطعی</span>
+                    </button>
+                </template>
+
+                <template x-if="isRejected">
+                    <a :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'" target="_blank"
+                       style="padding: 0.6rem 1.25rem; font-size: 0.84rem; font-weight: 800; background: #991b1b; color: #ffffff; border: none; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(153,27,27,0.35);">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        <span>چاپ رسمی نامه رد صلاحیت متقاضی</span>
+                    </a>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>
+
 <!-- Dossier Hero Header Card -->
 <div class="dossier-hero">
     <div class="dossier-hero-info">
@@ -140,9 +189,14 @@
 </div>
 
 <!-- Full-Width Digital Document Album & Scan Archive at the end of the page -->
-<section id="scans-album-section" style="margin-top: 2rem; margin-bottom: 7rem;">
+<section id="scans-album-section" style="margin-top: 2rem;">
     {% include 'components/attachments_card.html' %}
 </section>
+
+<!-- Full 3-Question Clarity Guide at Bottom of Page -->
+<div style="margin-bottom: 7rem;">
+    {% include 'components/stage_clarity_guide.html' %}
+</div>
 
 <!-- Sticky Workflow Bottom Action Bar -->
 <div class="sticky-action-bar">
@@ -203,9 +257,24 @@
                 <span x-text="isSaving ? 'در حال ذخیره‌سازی...' : 'ذخیره پیش‌نویس اطلاعات'"></span>
             </button>
 
-            <!-- Electronic Signature & Forward Button -->
+            <!-- Red Form J Rejection Print Button -->
+            <a :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'" target="_blank" class="btn btn-outline" x-show="isRejected" style="color: #dc2626; border-color: #fca5a5; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                <span>چاپ ابلاغیه رد صلاحیت (فرم «ج» قرمز)</span>
+            </a>
+
+            <!-- Red Form J Rejection Button for Admin -->
+            <button type="button" class="btn" 
+                    x-show="(isChief || isSuperuser) && !isRejected && (isRedFormJ || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')) || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')))"
+                    @click="openRedRejectionModal()"
+                    style="background: #dc2626; color: #fff; font-weight: 800; border: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                <span>صدور ابلاغیه رد صلاحیت (فرم ج قرمز)</span>
+            </button>
+
+            <!-- Electronic Signature & Forward Button (hidden if rejected) -->
             <button type="button" class="btn btn-success" 
-                    x-show="userCanAction && !isLocked"
+                    x-show="userCanAction && !isLocked && !isRejected"
                     @click="openSignatureModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20 6 9 17 4 12"></polyline>

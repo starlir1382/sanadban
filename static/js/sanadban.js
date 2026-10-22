@@ -470,6 +470,18 @@ document.addEventListener('alpine:init', () => {
     stageSignatures: {},
     auditActiveTab: 'stages', // 'stages' or 'fields'
 
+    // Red Form J Disqualification State
+    isRejected: false,
+    isRedFormJ: false,
+    rejectionLetterNumber: '',
+    rejectionLetterDate: '',
+    rejectionReason: '',
+    rejectedBy: '',
+    showRedRejectionModal: false,
+    redLetterNumber: '',
+    redLetterDate: '',
+    redLetterReason: '',
+
     init() {
       // 1. Set Persian Today Date dynamically
       this.todayDate = this.getTodayJalali();
@@ -488,6 +500,13 @@ document.addEventListener('alpine:init', () => {
           if (typeof serverData.return_from_stage !== 'undefined' && serverData.return_from_stage !== null) this.returnFromStage = serverData.return_from_stage;
           if (typeof serverData.user_can_action !== 'undefined') this.userCanAction = Boolean(serverData.user_can_action);
           if (typeof serverData.is_chief !== 'undefined') this.isChief = Boolean(serverData.is_chief);
+          if (typeof serverData.is_superuser !== 'undefined') this.isSuperuser = Boolean(serverData.is_superuser);
+          if (typeof serverData.is_rejected !== 'undefined') this.isRejected = Boolean(serverData.is_rejected);
+          if (typeof serverData.is_red_form_j !== 'undefined') this.isRedFormJ = Boolean(serverData.is_red_form_j);
+          if (serverData.rejection_letter_number) this.rejectionLetterNumber = serverData.rejection_letter_number;
+          if (serverData.rejection_letter_date) this.rejectionLetterDate = serverData.rejection_letter_date;
+          if (serverData.rejection_reason) this.rejectionReason = serverData.rejection_reason;
+          if (serverData.rejected_by) this.rejectedBy = serverData.rejected_by;
           if (serverData.form) {
             this.form = Object.assign({}, this.form, serverData.form);
           }
@@ -1036,6 +1055,56 @@ document.addEventListener('alpine:init', () => {
         this.triggerToast('خطا در ارسال درخواست بازگشت به سرور.', 'error');
       } finally {
         this.showReturnModal = false;
+      }
+    },
+
+    // Red Form J Disqualification & Archival Handler
+    openRedRejectionModal() {
+      this.redLetterNumber = this.rejectionLetterNumber || ('1403/رد/' + this.archiveNumber);
+      this.redLetterDate = this.rejectionLetterDate || this.getTodayJalali();
+      this.redLetterReason = this.rejectionReason || this.form.applicant_form_j_red_description || this.form.spouse_form_j_red_description || 'دارای سابقه مسکن دولتی و فاقد شرایط قانونی دریافت واحد';
+      this.showRedRejectionModal = true;
+    },
+
+    async confirmRedRejection() {
+      this.isSaving = true;
+      try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const res = await fetch(`/dossier/${this.archiveNumber}/reject-red/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({
+            letter_number: this.redLetterNumber,
+            letter_date: this.redLetterDate,
+            reason: this.redLetterReason
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          this.status = data.dossier_status || 'REJECTED_RED';
+          this.isLocked = Boolean(data.is_locked);
+          this.isRejected = true;
+          this.rejectionLetterNumber = data.rejection_letter_number;
+          this.rejectionLetterDate = data.rejection_letter_date;
+          this.rejectionReason = data.rejection_reason;
+          this.rejectedBy = data.rejected_by;
+          this.showRedRejectionModal = false;
+          this.triggerToast(data.message || 'نامه رد صلاحیت صادر و پرونده با موفقیت بایگانی گردید.', 'success');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          this.triggerToast(err.message || 'خطا در صدور ابلاغیه رد صلاحیت.', 'error');
+        }
+      } catch (e) {
+        console.error('Red rejection error:', e);
+        this.triggerToast('خطا در برقراری ارتباط با سرور.', 'error');
+      } finally {
+        this.isSaving = false;
       }
     },
 

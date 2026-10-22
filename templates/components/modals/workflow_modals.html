@@ -287,3 +287,56 @@
         </div>
     </div>
 </div>
+
+
+<!-- 4. Official Red Form J Disqualification & Archival Modal -->
+<div class="modal-overlay" x-show="showRedRejectionModal" x-cloak>
+    <div class="modal-dialog" style="max-width: 650px;" @click.away="showRedRejectionModal = false">
+        <div class="modal-header" style="background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%); border-bottom: 1.5px solid #fecaca;">
+            <div class="modal-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                <span>صدور ابلاغیه رسمی رد صلاحیت و بایگانی قطعی (فرم «ج» قرمز)</span>
+            </div>
+            <button type="button" class="modal-close" @click="showRedRejectionModal = false">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 1.5rem;">
+            <div style="background: #fff5f5; border: 1px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+                <div style="font-weight: 800; color: #991b1b; font-size: 0.88rem; margin-bottom: 0.35rem;">
+                    ⚠️ عدم احراز شرایط متقاضی بر اساس استعلام سامانه جامع مسکن
+                </div>
+                <div style="font-size: 0.82rem; color: #7f1d1d; line-height: 1.6;">
+                    به دلیل قرمز بودن وضعیت استعلام فرم «ج»، این متقاضی واجد شرایط دریافت مسکن دولتی نبوده و پرونده باید با صدور ابلاغیه رسمی، به طور قطعی مختومه و بایگانی گردد تا هیچ‌گونه تخصیص واحد یا انتقالی انجام نپذیرد.
+                </div>
+            </div>
+
+            <div class="fields-grid" style="margin-bottom: 1rem;">
+                <div class="field-group col-6">
+                    <label class="field-label"><span>شماره نامه رسمی رد صلاحیت</span></label>
+                    <input type="text" class="input-control fa-num" x-model="redLetterNumber" placeholder="مثال: 1403/رد/100001">
+                </div>
+                <div class="field-group col-6">
+                    <label class="field-label"><span>تاریخ ابلاغیه (شمسی)</span></label>
+                    <input type="text" class="input-control fa-num" x-model="redLetterDate" placeholder="1403/05/20">
+                </div>
+            </div>
+
+            <div class="field-group" style="margin-bottom: 1rem;">
+                <label class="field-label"><span>علت و شرح تفصیلی رد صلاحیت (درج در متن نامه ابلاغیه)</span></label>
+                <textarea class="input-control" rows="3" x-model="redLetterReason" placeholder="علت عدم احراز شرایط و مشخصات سوابق ملکی / تسهیلات دولتی متقاضی یا همسر..."></textarea>
+            </div>
+
+            <div style="font-size: 0.78rem; color: #64748b; line-height: 1.6; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                ℹ️ با تایید این دستور، وضعیت پرونده به «رد صلاحیت - کد قرمز فرم ج» تغییر یافته و قفل نهایی اعمال می‌گردد. همچنین امکان چاپ ابلاغیه با سربرگ رسمی وزارت راه و شهرسازی فعال می‌شود.
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <button type="button" class="btn btn-outline" @click="showRedRejectionModal = false">انصراف</button>
+            <button type="button" class="btn btn-primary" 
+                    style="background: #dc2626; border-color: #b91c1c; font-weight: 800; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);"
+                    @click="confirmRedRejection()" :disabled="isSaving">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span x-text="isSaving ? 'در حال صدور ابلاغیه...' : 'تایید، صدور ابلاغیه و بایگانی قطعی'"></span>
+            </button>
+        </div>
+    </div>
+</div>

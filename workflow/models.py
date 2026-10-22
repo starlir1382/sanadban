@@ -138,11 +138,18 @@ class HousingDossier(models.Model):
         ("IN_PROGRESS", "در جریان اقدام"),
         ("RETURNED", "برگشت‌خورده جهت اصلاح و بازبینی"),
         ("COMPLETED", "نهایی و بایگانی قطعی"),
+        ("REJECTED_RED", "رد صلاحیت - کد قرمز فرم «ج» (عدم واگذاری واحد)"),
     ]
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="IN_PROGRESS", db_index=True, verbose_name="وضعیت فرآیند")
     return_reason = models.TextField(blank=True, verbose_name="علت آخرین برگشت پرونده")
     return_by = models.CharField(max_length=150, blank=True, verbose_name="برگشت‌دهنده")
     return_from_stage = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="مرحله برگشت‌دهنده")
+    
+    # Red Form J Disqualification & Official Rejection Fields
+    rejection_letter_number = models.CharField(max_length=100, blank=True, verbose_name="شماره نامه رد صلاحیت")
+    rejection_letter_date = models.CharField(max_length=20, blank=True, verbose_name="تاریخ نامه رد صلاحیت")
+    rejection_reason = models.TextField(blank=True, verbose_name="علت و شرح رد صلاحیت")
+    rejected_by = models.CharField(max_length=150, blank=True, verbose_name="رد صلاحیت کننده")
 
     # Stage 1: Applicant, Spouse & Unit
     full_name = models.CharField(max_length=150, verbose_name="نام و نام خانوادگی متقاضی")
@@ -271,6 +278,14 @@ class HousingDossier(models.Model):
         return self.STAGE_ROLES.get(self.current_stage, ("-", "-", "-"))[2]
 
     @property
+    def is_red_form_j(self):
+        return ("قرمز" in (self.applicant_form_j_status or "")) or ("قرمز" in (self.spouse_form_j_status or ""))
+
+    @property
+    def is_rejected(self):
+        return self.status == "REJECTED_RED"
+
+    @property
     def formatted_equity(self):
         val = self.applicant_equity if self.applicant_equity is not None else self.base_cost_without_loan
         if val is None:
@@ -330,6 +345,7 @@ class WorkflowSignatureLog(models.Model):
         ("RETURN", "برگشت جهت اصلاح"),
         ("SMS", "ارسال پیامک اطلاع‌رسانی"),
         ("ARCHIVE", "بایگانی قطعی"),
+        ("REJECT_RED", "رد صلاحیت و بایگانی (فرم ج قرمز)"),
     ]
 
     dossier = models.ForeignKey(HousingDossier, on_delete=models.CASCADE, related_name="audit_logs")

@@ -306,6 +306,12 @@ def dossier_detail_view(request, pk):
         "current_stage": dossier.current_stage,
         "is_locked": dossier.is_locked,
         "status": dossier.status,
+        "is_red_form_j": dossier.is_red_form_j,
+        "is_rejected": dossier.is_rejected,
+        "rejection_letter_number": dossier.rejection_letter_number or "",
+        "rejection_letter_date": dossier.rejection_letter_date or "",
+        "rejection_reason": dossier.rejection_reason or "",
+        "rejected_by": dossier.rejected_by or "",
         "return_reason": dossier.return_reason,
         "return_by": dossier.return_by,
         "return_from_stage": dossier.return_from_stage,
@@ -928,6 +934,107 @@ def dossier_summary_print_view(request, pk):
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
     return render(request, "dossiers/print_summary.html", {"dossier": dossier})
+
+
+@login_required(login_url='login')
+@csrf_exempt
+@transaction.atomic
+def reject_red_form_j_action(request, pk):
+    """
+    Action for Housing Chief / Superadmin to formally reject a disqualified dossier
+    due to a Red Form J code (past housing subsidy or property ownership).
+    Sets status to REJECTED_RED, locks the dossier (archived), and logs the official letter.
+    """
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    profile = getattr(request.user, 'profile', None)
+    is_chief = bool(profile and profile.is_housing_chief)
+    if not (request.user.is_superuser or is_chief or request.user.is_staff):
+        return JsonResponse({
+            "status": "error",
+            "message": "تنها رئیس مسکن و مدیران سیستم مجاز به صدور ابلاغیه رد صلاحیت و بایگانی قطعی پرونده‌های دارای فرم «ج» قرمز می‌باشند."
+        }, status=403)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    letter_num = str(data.get("letter_number") or f"1403/رد/{dossier.archive_number}").strip()
+    letter_date = str(data.get("letter_date") or "").strip()
+    if not letter_date:
+        import jdatetime
+        letter_date = jdatetime.datetime.now().strftime("%Y/%m/%d")
+
+    reason = str(data.get("reason") or dossier.applicant_form_j_red_description or dossier.spouse_form_j_red_description or "دارای سابقه مسکن دولتی و فاقد شرایط دریافت واحد").strip()
+
+    actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+    actor_role = profile.role_title if profile and profile.role_title else "رئیس مسکن و شهرسازی"
+
+    # Update dossier state
+    old_status = dossier.status
+    dossier.status = "REJECTED_RED"
+    dossier.is_locked = True
+    dossier.rejection_letter_number = letter_num
+    dossier.rejection_letter_date = letter_date
+    dossier.rejection_reason = reason
+    dossier.rejected_by = actor_name
+    dossier.save()
+
+    # Log electronic audit trail
+    import hashlib
+    raw_hash = f"{dossier.archive_number}-REJECT_RED-{letter_num}-{letter_date}-{timezone.now().isoformat()}"
+    sig_hash = hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()
+
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+        to_stage="بایگانی پرونده‌های رد صلاحیت شده (کد قرمز فرم ج)",
+        actor=actor_name,
+        role=actor_role,
+        action="REJECT_RED",
+        action_label="رد صلاحیت قطعی و صدور نامه عدم احراز شرایط (فرم ج قرمز)",
+        notes=f"شماره ابلاغیه: {letter_num} | تاریخ: {letter_date} | علت: {reason}",
+        signature_hash=sig_hash
+    )
+
+    DossierFieldChangeLog.objects.create(
+        dossier=dossier,
+        field_name="status",
+        field_label="وضعیت فرآیند",
+        old_value=old_status,
+        new_value="رد صلاحیت - کد قرمز فرم «ج» (عدم واگذاری واحد)",
+        changed_by=actor_name,
+        role=actor_role,
+        stage=dossier.current_stage,
+        ip_address=request.META.get('REMOTE_ADDR'),
+        timestamp=timezone.now()
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"نامه رد صلاحیت به شماره {letter_num} صادر و پرونده با وضعیت فاقد شرایط مسکن بایگانی گردید.",
+        "dossier_status": dossier.status,
+        "is_locked": dossier.is_locked,
+        "is_rejected": True,
+        "rejection_letter_number": dossier.rejection_letter_number,
+        "rejection_letter_date": dossier.rejection_letter_date,
+        "rejection_reason": dossier.rejection_reason,
+        "rejected_by": dossier.rejected_by,
+    })
+
+
+@login_required(login_url='login')
+def red_rejection_letter_print_view(request, pk):
+    """
+    Print-ready view for Red Form J Rejection & Disqualification Letter.
+    """
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    import jdatetime
+    today_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d")
+    return render(request, "dossiers/print_red_rejection.html", {
+        "dossier": dossier,
+        "today_jalali": today_jalali
+    })
 
 
 @csrf_exempt

@@ -148,182 +148,33 @@
     </div>
 
     <!-- =========================================================================
-         THE CLARITY TRIAD: WHERE IS IT? • WHAT TO CHANGE? • WHO SHOULD CHANGE IT?
+         ONE-LINER QUICK JUMP STRIP (MIDDLE CHILD ONE-LINER)
          ========================================================================= -->
-    <div class="clarity-triad-card" style="margin-top: 1.25rem; background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(37,99,235,0.08);">
-        
-        <!-- Header Strip: Clean Light Theme -->
-        <div style="background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%); border-bottom: 1.5px solid #bfdbfe; color: #0f2744; padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-            <div style="display: flex; align-items: center; gap: 0.65rem;">
-                <span style="font-size: 1.25rem;">🧭</span>
-                <div>
-                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #0f2744;">راهنما و وضعیت شفافیت مرحله جاری پرونده</h4>
-                </div>
-            </div>
-            
-            <!-- Roadmap Toggle Button -->
+    <div style="margin-top: 1rem; background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 0.65rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-shadow: 0 2px 8px rgba(37,99,235,0.06);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <span style="font-size: 1.2rem;">🎯</span>
+            <span style="font-weight: 800; font-size: 0.9rem; color: #0f2744;">
+                پرش مستقیم به بخش مورد نیاز برای ثبت یا ویرایش در این مرحله
+            </span>
+            <span class="fa-num" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 6px; font-size: 0.76rem; font-weight: 700;" x-text="'(مرحله ' + currentStage + ': ' + getStageGuidance(currentStage).actionTitle + ')'"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" 
+                    @click="scrollToActiveSection(getStageGuidance(currentStage).targetSection)"
+                    style="padding: 0.45rem 1.1rem; font-size: 0.82rem; font-weight: 800; background: #2563eb; color: #ffffff; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; box-shadow: 0 2px 6px rgba(37,99,235,0.25);"
+                    onmouseover="this.style.background='#1d4ed8';"
+                    onmouseout="this.style.background='#2563eb';">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
+                <span>پرش به بخش فرم</span>
+            </button>
             <button type="button" 
                     @click="showRoadmap = !showRoadmap" 
-                    class="btn btn-outline" 
-                    style="padding: 0.35rem 0.85rem; font-size: 0.76rem; font-weight: 700; border-color: #93c5fd; background: #ffffff; color: #1d4ed8; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; box-shadow: 0 1px 3px rgba(37,99,235,0.08);">
+                    style="padding: 0.45rem 0.85rem; font-size: 0.78rem; font-weight: 700; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
-                <span x-text="showRoadmap ? 'بستن نقشه ۲۲ مرحله‌ای' : 'مشاهده نقشه کامل ۲۲ مرحله‌ای خط لوله'"></span>
+                <span x-text="showRoadmap ? 'بستن نقشه ۲۲ مرحله‌ای' : 'نقشه کامل ۲۲ مرحله‌ای'"></span>
             </button>
         </div>
-
-        <!-- 3-Column Triad Body -->
-        <div class="triad-grid" style="display: grid; grid-template-columns: 1fr 1.35fr 1.15fr; gap: 0; border-top: 1px solid #e2e8f0;">
-            
-            <!-- COLUMN 1: WHERE IS IT? (پرونده الان کجاست؟) -->
-            <div style="padding: 1.25rem; border-left: 1px solid #e2e8f0; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="display: inline-flex; width: 28px; height: 28px; border-radius: 50%; background: #dbeafe; color: #1e40af; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800;">۱</span>
-                        <strong style="font-size: 0.9rem; color: #0f2744;">پرونده الان کجاست؟</strong>
-                    </div>
-
-                    <!-- Stage Number & Title -->
-                    <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 3px;">مرحله و موقعیت فعلی:</div>
-                        <div style="font-size: 0.95rem; font-weight: 800; color: #1e3a8a; display: flex; align-items: center; gap: 0.4rem;">
-                            <span class="fa-num" style="background: #2563eb; color: #ffffff; padding: 0.1rem 0.5rem; border-radius: 6px; font-size: 0.8rem;" x-text="'مرحله ' + currentStage"></span>
-                            <span x-text="getStage(currentStage).title"></span>
-                        </div>
-                    </div>
-
-                    <!-- Organization & Location -->
-                    <div style="font-size: 0.8rem; color: #334155; line-height: 1.7; display: flex; flex-direction: column; gap: 0.35rem;">
-                        <div>
-                            <span style="color: #64748b;">سازمان متولی: </span>
-                            <strong :style="getStage(currentStage).unit === 'brokerage' ? 'color: #0284c7;' : 'color: #059669;'" 
-                                    x-text="getStage(currentStage).unit === 'brokerage' ? 'واحد کارگزاری نهضت ملی مسکن' : 'اداره کل راه و شهرسازی (معاونت مسکن)'"></strong>
-                        </div>
-                        <div>
-                            <span style="color: #64748b;">فاز کلان: </span>
-                            <span class="fa-num" style="font-weight: 700; color: #0f2744;" x-text="getPhaseName(currentStage)"></span>
-                        </div>
-                        <div>
-                            <span style="color: #64748b;">وضعیت گردش کار: </span>
-                            <span x-show="status === 'RETURNED'" style="color: #e11d48; font-weight: 800;">⚠️ برگشت‌خورده جهت اصلاح و بازبینی</span>
-                            <span x-show="status === 'IN_PROGRESS' && !isLocked" style="color: #0284c7; font-weight: 800;">● در جریان اقدام اداری</span>
-                            <span x-show="isLocked" style="color: #059669; font-weight: 800;">✓ مختومه و بایگانی قطعی</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="fa-num" style="font-size: 0.72rem; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-top: 0.75rem;">
-                    شماره پرونده: <strong>#<span x-text="archiveNumber"></span></strong> • کدملی متقاضی: <strong x-text="form.national_id"></strong>
-                </div>
-            </div>
-
-            <!-- COLUMN 2: WHAT NEEDS TO CHANGE? (چه چیزی باید تغییر کند؟) -->
-            <div style="padding: 1.25rem; border-left: 1px solid #e2e8f0; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="display: inline-flex; width: 28px; height: 28px; border-radius: 50%; background: #fef3c7; color: #92400e; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800;">۲</span>
-                            <strong style="font-size: 0.9rem; color: #0f2744;">چه چیزی باید ثبت یا تغییر کند؟</strong>
-                        </div>
-                        <span style="font-size: 0.7rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 2px 7px; border-radius: 4px; font-weight: 700;">اقدام الزامی</span>
-                    </div>
-
-                    <!-- Direct Action Summary Description -->
-                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.85rem; font-size: 0.82rem; color: #1e40af; line-height: 1.6;">
-                        <div style="font-weight: 800; margin-bottom: 3px;" x-text="getStageGuidance(currentStage).actionTitle"></div>
-                        <div x-text="getStageGuidance(currentStage).actionSummary"></div>
-                    </div>
-
-                    <!-- Detailed Checklist of What Needs Modification -->
-                    <div style="font-size: 0.78rem; color: #334155; margin-bottom: 0.75rem;">
-                        <div style="font-weight: 700; color: #475569; margin-bottom: 0.4rem;">فهرست اقلام و موارد نیازمند اقدام در این مرحله:</div>
-                        <ul style="margin: 0; padding-right: 1.25rem; display: flex; flex-direction: column; gap: 0.35rem;">
-                            <template x-for="item in getStageGuidance(currentStage).items" :key="item">
-                                <li style="line-height: 1.5;">
-                                    <span style="color: #2563eb; font-weight: 800;">•</span>
-                                    <span x-text="item"></span>
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Jump to Active Section Button -->
-                <button type="button" 
-                        @click="scrollToActiveSection(getStageGuidance(currentStage).targetSection)"
-                        style="width: 100%; padding: 0.55rem 0.85rem; font-size: 0.82rem; font-weight: 800; background: #f0f9ff; color: #0284c7; border: 1.5px solid #bae6fd; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s; margin-top: 0.75rem;"
-                        onmouseover="this.style.background='#e0f2fe'; this.style.borderColor='#0284c7';"
-                        onmouseout="this.style.background='#f0f9ff'; this.style.borderColor='#bae6fd';">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
-                    <span>پرش مستقیم به بخش تکمیل این مرحله در فرم</span>
-                </button>
-            </div>
-
-            <!-- COLUMN 3: WHO SHOULD CHANGE IT? (چه کسی باید تغییر دهد؟) -->
-            <div style="padding: 1.25rem; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                        <span style="display: inline-flex; width: 28px; height: 28px; border-radius: 50%; background: #dcfce7; color: #166534; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800;">۳</span>
-                        <strong style="font-size: 0.9rem; color: #0f2744;">چه کسی باید انجام دهد؟</strong>
-                    </div>
-
-                    <!-- Designated Responsible Role -->
-                    <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 2px;">سمت سازمانی اقدام‌کننده:</div>
-                        <div style="font-size: 0.85rem; font-weight: 800; color: #0f172a; line-height: 1.4;" x-text="getStage(currentStage).role"></div>
-                    </div>
-
-                    <!-- Current User Authorization Status Box -->
-                    <div style="margin-bottom: 0.75rem;">
-                        <!-- Case A: Chief of Housing -->
-                        <template x-if="isChief">
-                            <div style="background: #fefce8; border: 1.5px solid #fef08a; border-radius: 8px; padding: 0.7rem; font-size: 0.78rem; color: #854d0e; line-height: 1.5;">
-                                <div style="font-weight: 800; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 2px;">
-                                    <span>👑</span>
-                                    <span>ورود با اختیارات تام رئیس مسکن</span>
-                                </div>
-                                <div>شما مجاز به ویرایش کلیه فیلدها، بارگذاری اسناد، تایید امضا یا بازگردانی پرونده می‌باشید.</div>
-                            </div>
-                        </template>
-
-                        <!-- Case B: Authorized Expert -->
-                        <template x-if="!isChief && userCanAction && !isLocked">
-                            <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 0.7rem; font-size: 0.78rem; color: #166534; line-height: 1.5;">
-                                <div style="font-weight: 800; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 2px;">
-                                    <span>✓</span>
-                                    <span>دسترسی اقدام برای شما فعال است</span>
-                                </div>
-                                <div>شما به عنوان کارشناس این مرحله مجاز به ورود اطلاعات، اسکن و تایید امضای دیجیتال می‌باشید.</div>
-                            </div>
-                        </template>
-
-                        <!-- Case C: Read-Only / Unauthorized Expert -->
-                        <template x-if="!isChief && !userCanAction && !isLocked">
-                            <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.7rem; font-size: 0.78rem; color: #991b1b; line-height: 1.5;">
-                                <div style="font-weight: 800; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 2px;">
-                                    <span>🔒</span>
-                                    <span>فقط خواندنی (عدم دسترسی اقدام)</span>
-                                </div>
-                                <div>پرونده در کارپوشه کارشناس فوق قرار دارد. شما امکان ویرایش یا امضای این مرحله را ندارید.</div>
-                            </div>
-                        </template>
-
-                        <!-- Case D: Locked / Final Archive -->
-                        <template x-if="isLocked">
-                            <div style="background: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.7rem; font-size: 0.78rem; color: #475569; line-height: 1.5;">
-                                <div style="font-weight: 800; margin-bottom: 2px;">🔒 پرونده مختومه و بایگانی قطعی</div>
-                                <div>کلیه اطلاعات نهایی شده و غیرقابل تغییر است.</div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Instruction to Sign -->
-                <div style="font-size: 0.72rem; color: #64748b; line-height: 1.5; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-top: 0.5rem;">
-                    پس از تکمیل مقادیر، برای انتقال پرونده به مرحله بعد، روی دکمه سبز <strong>«تایید و امضای الکترونیکی»</strong> در پایین صفحه کلیک نمایید.
-                </div>
-            </div>
-
-        </div>
+    </div>
 
         <!-- =========================================================================
              EXPANDABLE FULL 22-STAGE INTERACTIVE VISUAL ROADMAP (CLEAN LIGHT THEME)

@@ -1,0 +1,208 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>ابلاغیه رسمی رد صلاحیت و عدم احراز شرایط مسکن (فرم ج قرمز) - پرونده {{ dossier.archive_number }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+    <link rel="stylesheet" href="{% static 'css/sanadban.css' %}">
+    <style>
+        body {
+            background-color: #f1f5f9;
+            color: #000;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+        .print-paper {
+            background: #ffffff;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm 22mm 25mm 22mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+            box-sizing: border-box;
+            border-top: 6px solid #dc2626;
+        }
+        @media print {
+            body {
+                background: #fff !important;
+                padding: 0 !important;
+            }
+            .print-paper {
+                box-shadow: none !important;
+                padding: 12mm 15mm !important;
+                width: 100% !important;
+                min-height: auto !important;
+                border-top: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        .top-action-bar-print {
+            position: fixed;
+            top: 1rem;
+            right: 2rem;
+            z-index: 100;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .official-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 9.5pt;
+        }
+        .official-table th, .official-table td {
+            border: 1px solid #334155;
+            padding: 8px 12px;
+            text-align: right;
+        }
+        .official-table th {
+            background: #f8fafc;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Non-Print Controls -->
+    <div class="top-action-bar-print no-print">
+        <button onclick="window.print()" class="btn btn-primary" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2); background: #dc2626; border-color: #b91c1c;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>چاپ رسمی ابلاغیه رد صلاحیت (Ctrl + P)</span>
+        </button>
+        <button onclick="window.close()" class="btn btn-outline" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+            <span>بستن پنجره</span>
+        </button>
+    </div>
+
+    <!-- Official A4 Letterhead Document -->
+    <div class="print-paper">
+        <!-- Letterhead Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 20px;">
+            <div style="width: 32%;">
+                <div style="font-weight: bold; font-size: 11pt;">جمهوری اسلامی ایران</div>
+                <div style="font-size: 9.5pt;">وزارت راه و شهرسازی</div>
+                <div style="font-size: 9.5pt;">اداره کل راه و شهرسازی استان</div>
+                <div style="font-size: 8.5pt; color: #475569;">معاونت مسکن و ساختمان - کارگروه پایش و واگذاری</div>
+            </div>
+
+            <div style="text-align: center; width: 36%;">
+                <div style="font-size: 10.5pt; font-weight: bold; margin-bottom: 5px;">«بسمه تعالی»</div>
+                <div style="margin-bottom: 6px;">
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.6">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                    </svg>
+                </div>
+                <h2 style="font-size: 12pt; font-weight: 900; margin: 0; color: #991b1b;">ابلاغیه رسمی عدم احراز شرایط و رد درخواست</h2>
+                <h3 style="font-size: 9pt; margin: 3px 0 0 0; color: #475569;">طرح نهضت ملی مسکن (سامانه سندبان)</h3>
+            </div>
+
+            <div class="fa-num" style="width: 32%; text-align: left; font-size: 8.5pt; line-height: 1.8;">
+                <div><strong>شماره ابلاغیه:</strong> {{ dossier.rejection_letter_number|default:'1403/رد/100001' }}</div>
+                <div><strong>تاریخ ابلاغ:</strong> {{ dossier.rejection_letter_date|default:today_jalali }}</div>
+                <div><strong>شماره پرونده:</strong> #{{ dossier.archive_number }}</div>
+                <div><strong>وضعیت:</strong> <span style="color: #dc2626; font-weight: bold;">رد صلاحیت قطعی (فرم ج قرمز)</span></div>
+            </div>
+        </div>
+
+        <!-- Addressee -->
+        <div style="margin: 20px 0 10px 0; font-size: 10.5pt; font-weight: bold; line-height: 1.8;">
+            جناب آقای / سرکار خانم: <span style="text-decoration: underline;">{{ dossier.full_name }}</span><br>
+            همسر محترم: <span>{{ dossier.spouse_full_name|default:'-' }}</span>
+        </div>
+
+        <div style="margin-bottom: 18px; font-size: 10.5pt; font-weight: bold; color: #1e3a8a;">
+            موضوع: اعلام رد صلاحیت متقاضی و مختومه شدن پرونده به علت وضعیت قرمز استعلام فرم «ج»
+        </div>
+
+        <!-- Formal Body Text -->
+        <div style="text-align: justify; line-height: 2; font-size: 10pt; margin-bottom: 20px;">
+            سلام علیکم؛<br>
+            احتراماً، پیرو درخواست و ثبت‌نام جنابعالی در طرح نهضت ملی مسکن به شماره بایگانی <strong class="fa-num">#{{ dossier.archive_number }}</strong>، به استحضار می‌رساند حسب استعلامات جامع و برخط به عمل آمده از سامانه وزارت راه و شهرسازی و بانک اطلاعاتی سازمان ملی زمین و مسکن، وضعیت استعلام فرم «ج» جنابعالی یا همسر محترمتان به شرح ذیل <strong>«قرمز» (دارای سابقه مسکن / مالکیت دولتی / استفاده از تسهیلات یارانه‌ای قبلی)</strong> اعلام گردیده است.
+            <br><br>
+            مستند به <strong>ماده (۱) آیین‌نامه اجرایی قانون ساماندهی و حمایت از تولید و عرضه مسکن</strong> و ضوابط ابلاغی وزارت راه و شهرسازی، فاقد مسکن بودن متقاضی و افراد تحت تکفل وی از شروط اساسی و غیرقابل چشم‌پوشی جهت بهره‌مندی از امکانات، اراضی و تسهیلات مسکن دولتی می‌باشد.
+        </div>
+
+        <!-- Rejection Details Box -->
+        <table class="official-table fa-num">
+            <thead>
+                <tr>
+                    <th colspan="4" style="text-align: center; background: #fee2e2; color: #991b1b; font-weight: 800;">
+                        خلاصه اطلاعات متقاضی و سوابق احراز شده منجر به رد صلاحیت
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="width: 22%; font-weight: bold;">نام و نام خانوادگی متقاضی:</td>
+                    <td style="width: 28%;">{{ dossier.full_name }} (فرزند: {{ dossier.father_name }})</td>
+                    <td style="width: 22%; font-weight: bold;">کد ملی متقاضی:</td>
+                    <td style="width: 28%;">{{ dossier.national_id }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">نام و مشخصات همسر:</td>
+                    <td>{{ dossier.spouse_full_name|default:'-' }} (کدملی: {{ dossier.spouse_national_id|default:'-' }})</td>
+                    <td style="font-weight: bold;">وضعیت استعلام فرم «ج»:</td>
+                    <td style="color: #dc2626; font-weight: 800;">
+                        متقاضی: {{ dossier.applicant_form_j_status }}<br>
+                        همسر: {{ dossier.spouse_form_j_status }}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;">پروژه و سایت اولیه:</td>
+                    <td>{{ dossier.site }} - {{ dossier.project }}</td>
+                    <td style="font-weight: bold;">واحد اولیه انتخابی:</td>
+                    <td>بلوک {{ dossier.block_name|default:'-' }} - واحد {{ dossier.unit_number|default:'-' }}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; background: #fff5f5; color: #991b1b;">علت و شرح سوابق ملکی احراز شده (کد قرمز):</td>
+                    <td colspan="3" style="background: #fff5f5; color: #7f1d1d; line-height: 1.8;">
+                        {{ dossier.rejection_reason|default:dossier.applicant_form_j_red_description|default:dossier.spouse_form_j_red_description|default:'دارای سابقه دریافت زمین، واحد مسکونی دولتی یا تسهیلات یارانه‌ای ساخت مسکن.' }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Final Decision -->
+        <div style="text-align: justify; line-height: 1.9; font-size: 9.8pt; margin: 18px 0; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 14px 18px;">
+            <strong>دستور مقام صادرکننده:</strong><br>
+            بنا به مراتب فوق، تخصیص هرگونه زمین یا واحد مسکونی به جنابعالی کان‌لم‌یکن تلقی گردیده و پرونده در سامانه جامع مسکن با وضعیت <strong>«رد صلاحیت قطعی و فاقد شرایط»</strong> مختومه و بایگانی دائم شد. واحد مسکونی مربوطه جهت تخصیص مجدد به متقاضیان واجد شرایط به بانک پروژه بازگردانده می‌شود.
+        </div>
+
+        <!-- Official Signatures -->
+        <div style="margin-top: 45px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 25px;">
+            <div style="text-align: center; width: 40%;">
+                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 5px;">تایید ممیزی و تطبیق ضوابط:</div>
+                <div style="font-weight: 700; font-size: 9.5pt;">کارشناس ارزیابی و استعلامات مسکن</div>
+                <div style="height: 55px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 8pt;">
+                    [امضای دیجیتال سیستمی ثبت شد]
+                </div>
+            </div>
+
+            <div style="text-align: center; width: 45%;">
+                <div style="font-size: 8.5pt; color: #64748b; margin-bottom: 5px;">مقام ابلاغ‌کننده و مختومه‌ساز:</div>
+                <div style="font-weight: 800; font-size: 10.5pt; color: #0f172a;">
+                    {{ dossier.rejected_by|default:'رئیس مسکن و شهرسازی' }}
+                </div>
+                <div style="font-size: 8.5pt; color: #475569; margin-top: 2px;">اداره کل راه و شهرسازی استان</div>
+                <div style="margin-top: 10px; border: 2px dashed #dc2626; border-radius: 50%; width: 90px; height: 90px; margin: 8px auto; display: flex; align-items: center; justify-content: center; color: #dc2626; font-size: 8pt; font-weight: 800; transform: rotate(-10deg);">
+                    مهر ابلاغ رسمی<br>رد صلاحیت
+                </div>
+            </div>
+        </div>
+
+        <!-- Watermark / Footer Security -->
+        <div class="fa-num" style="position: absolute; bottom: 12mm; right: 20mm; left: 20mm; border-top: 1px solid #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; font-size: 7.5pt; color: #64748b;">
+            <span>سامانه جامع پایش و ثبت قرارداد مسکن (سندبان) • سند رسمی غیرقابل تغییر</span>
+            <span>شناسه امنیتی: RED-{{ dossier.archive_number }}-{{ dossier.national_id }} • تاریخ صدور: {{ today_jalali }}</span>
+        </div>
+    </div>
+
+</body>
+</html>
