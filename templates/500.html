@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}خطای داخلی سرور (خطای ۵۰۰) | سامانه سندبان{% endblock %}
+
+{% block content %}
+<div style="min-height: 60vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 3rem 1rem;">
+    <div style="max-width: 520px; background: #ffffff; border-radius: 20px; border: 1.5px solid #fecaca; padding: 3rem 2rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
+        <div style="font-size: 5rem; font-weight: 900; color: #dc2626; line-height: 1; margin-bottom: 1rem; font-family: monospace;">
+            ۵۰۰
+        </div>
+        <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-bottom: 0.75rem;">
+            خطای موقت در پردازش درخواست
+        </h2>
+        <p style="font-size: 0.88rem; color: #64748b; line-height: 1.6; margin-bottom: 2rem;">
+            متأسفانه هنگام پردازش درخواست شما خطایی رخ داد. این رویداد در گزارشات امنیتی سرور ثبت گردید. لطفاً مجدداً تلاش فرمایید.
+        </p>
+        <div style="display: flex; gap: 0.75rem; justify-content: center;">
+            <button onclick="window.location.reload()" class="btn btn-outline" style="padding: 0.7rem 1.5rem; font-weight: 700;">
+                تلاش مجدد
+            </button>
+            <a href="{% url 'dossier_list' %}" class="btn btn-primary" style="padding: 0.7rem 1.75rem; font-weight: 700;">
+                بازگشت به داشبورد
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

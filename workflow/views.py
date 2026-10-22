@@ -6,10 +6,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.db import transaction, models
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project
+from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project, UserProfile
 
 DOSSIER_FIELD_LABELS = {
     "full_name": "نام و نام خانوادگی متقاضی",
@@ -124,6 +127,7 @@ def get_token_search_condition(token: str):
         
     return cond
 
+@login_required(login_url='login')
 def dossier_list_view(request):
     """
     Dashboard list view showing all housing dossiers with multi-field search and stage filtering.
@@ -170,6 +174,7 @@ def dossier_list_view(request):
     return render(request, "dossiers/list.html", context)
 
 
+@login_required(login_url='login')
 def dossier_detail_view(request, pk):
     """
     Main interactive workspace view for a single housing dossier across its 24-stage workflow.
@@ -325,11 +330,12 @@ def save_dossier_draft_view(request, pk):
 
     # Extract user identity and client IP
     if request.user.is_authenticated:
-        actor_name = request.user.get_full_name() or request.user.username
+        profile = getattr(request.user, 'profile', None)
+        actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+        actor_role = profile.role_title if profile and profile.role_title else str(data.get("role") or dossier.current_role).strip()
     else:
         actor_name = str(data.get("actor") or "کارشناس اقدام‌کننده").strip()
-
-    actor_role = str(data.get("role") or dossier.current_role).strip()
+        actor_role = str(data.get("role") or dossier.current_role).strip()
 
     x_forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded:
@@ -542,12 +548,20 @@ def electronic_sign_action(request, pk):
 
     notes = body_data.get("notes") or request.POST.get("notes", "تایید و امضای الکترونیکی با موفقیت انجام شد.")
 
+    if request.user.is_authenticated:
+        profile = getattr(request.user, 'profile', None)
+        actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+        actor_role = profile.role_title if profile and profile.role_title else current_role
+    else:
+        actor_name = "کارشناس اقدام‌کننده"
+        actor_role = current_role
+
     WorkflowSignatureLog.objects.create(
         dossier=dossier,
         from_stage=f"مرحله {current_idx}: {current_title}",
         to_stage=to_stage_str,
-        actor="کارشناس اقدام‌کننده",
-        role=current_role,
+        actor=actor_name,
+        role=actor_role,
         action=action,
         action_label=action_label,
         signature_hash=sig_hash,
@@ -611,12 +625,20 @@ def return_stage_action(request, pk):
     dossier.current_stage = target_stage
     dossier.save()
 
+    if request.user.is_authenticated:
+        profile = getattr(request.user, 'profile', None)
+        actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+        actor_role = profile.role_title if profile and profile.role_title else current_role
+    else:
+        actor_name = "کارشناس بررسی و ممیزی"
+        actor_role = current_role
+
     WorkflowSignatureLog.objects.create(
         dossier=dossier,
         from_stage=f"مرحله {current_idx}: {current_title}",
         to_stage=f"مرحله {target_stage}: {target_title}",
-        actor="کارشناس بررسی و ممیزی",
-        role=current_role,
+        actor=actor_name,
+        role=actor_role,
         action="RETURN",
         action_label="برگشت جهت اصلاح",
         signature_hash=sig_hash,
@@ -682,6 +704,7 @@ def lookup_preselected_unit_api(request):
         return JsonResponse({"status": "not_found", "message": "اطلاعاتی با این کد ملی در بانک انتخاب واحد یافت نشد."}, status=404)
 
 
+@login_required(login_url='login')
 def notary_letter_print_view(request, pk):
     """
     Print-ready view for Stage 23 & 24 (Notary Letter Introduction).
@@ -690,6 +713,7 @@ def notary_letter_print_view(request, pk):
     return render(request, "dossiers/print_notary.html", {"dossier": dossier})
 
 
+@login_required(login_url='login')
 def dossier_summary_print_view(request, pk):
     """
     Print-ready view for Stage 24 (Final Archival Summary Sheet).
@@ -747,6 +771,15 @@ def upload_scan_attachment_view(request, pk):
         else:
             file_hash = "SHA256: " + hashlib.sha256(f"{file_name}-{timezone.now().isoformat()}".encode()).hexdigest()[:24]
 
+    # Dynamic Actor Attribution
+    if request.user.is_authenticated:
+        profile = getattr(request.user, 'profile', None)
+        uploader_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+        uploader_role = profile.role_title if profile and profile.role_title else dossier.current_role
+    else:
+        uploader_name = f"کارشناس مرحله {dossier.current_stage}"
+        uploader_role = dossier.current_role
+
     attachment = DossierAttachment.objects.create(
         dossier=dossier,
         stage=dossier.current_stage,
@@ -754,7 +787,7 @@ def upload_scan_attachment_view(request, pk):
         title=title,
         file_name=file_name,
         file_sha256=file_hash,
-        uploaded_by=f"کارشناس مرحله {dossier.current_stage}",
+        uploaded_by=uploader_name,
         preview_url=saved_url
     )
 
@@ -762,8 +795,8 @@ def upload_scan_attachment_view(request, pk):
         dossier=dossier,
         from_stage=f"مرحله {dossier.current_stage}",
         to_stage=f"مرحله {dossier.current_stage}",
-        actor="کارشناس بارگذاری اسناد",
-        role=dossier.current_role,
+        actor=uploader_name,
+        role=uploader_role,
         action="SUBMIT",
         action_label=f"بارگذاری سند: {title}",
         signature_hash=file_hash,
@@ -786,3 +819,198 @@ def upload_scan_attachment_view(request, pk):
         }
     }
     return JsonResponse(data)
+
+
+# --------------------------------------------------------------------------------------------------
+# Enterprise Authentication & Profile Views
+# --------------------------------------------------------------------------------------------------
+
+def user_login_view(request):
+    """
+    Renders login view with branded UI and authenticates staff/experts.
+    """
+    if request.user.is_authenticated:
+        return redirect("dossier_list")
+
+    error = None
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "").strip()
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            if user.is_active:
+                login(request, user)
+                profile = getattr(user, 'profile', None)
+                display_name = profile.full_name if profile and profile.full_name else user.username
+                messages.success(request, f"خوش آمدید، {display_name}.")
+                if next_url and next_url.startswith("/"):
+                    return redirect(next_url)
+                return redirect("dossier_list")
+            else:
+                error = "حساب کاربری شما غیرفعال شده است. لطفاً با مدیر سیستم تماس بگیرید."
+        else:
+            error = "نام کاربری یا کلمه عبور وارد شده نامعتبر است."
+
+    return render(request, "auth/login.html", {"error": error, "next": next_url})
+
+
+def user_logout_view(request):
+    """
+    Terminates authenticated session and safely redirects to login page.
+    """
+    logout(request)
+    messages.info(request, "شما با موفقیت از سامانه خارج شدید.")
+    return redirect("login")
+
+
+@login_required(login_url='login')
+def user_profile_view(request):
+    """
+    Displays current user information, organizational credentials, and password management.
+    """
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "change_password":
+            old_password = request.POST.get("old_password", "")
+            new_password = request.POST.get("new_password", "")
+            confirm_password = request.POST.get("confirm_password", "")
+
+            if not request.user.check_password(old_password):
+                messages.error(request, "کلمه عبور فعلی نادرست وارد شده است.")
+            elif new_password != confirm_password:
+                messages.error(request, "تکرار کلمه عبور جدید مطابقت ندارد.")
+            elif len(new_password) < 6:
+                messages.error(request, "کلمه عبور جدید باید حداقل ۶ کاراکتر باشد.")
+            else:
+                request.user.set_password(new_password)
+                request.user.save()
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "کلمه عبور حساب کاربری شما با موفقیت بروزرسانی گردید.")
+                return redirect("user_profile")
+
+    return render(request, "auth/profile.html", {"user": request.user})
+
+
+# --------------------------------------------------------------------------------------------------
+# Staff & User Management Administration Views
+# --------------------------------------------------------------------------------------------------
+
+@login_required(login_url='login')
+def users_management_view(request):
+    """
+    Admin control panel to manage registered experts, review access rights, and monitor accounts.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "دسترسی به بخش مدیریت کاربران نیازمند مجوز مدیر سیستم است.")
+        return redirect("dossier_list")
+
+    users = User.objects.all().select_related("profile").order_by("id")
+    count_brokerage = 0
+    count_directorate = 0
+    count_system = 0
+
+    for u in users:
+        org = getattr(u, 'profile', None) and u.profile.organization
+        if org == "brokerage":
+            count_brokerage += 1
+        elif org == "directorate":
+            count_directorate += 1
+        else:
+            count_system += 1
+
+    context = {
+        "users": users,
+        "count_brokerage": count_brokerage,
+        "count_directorate": count_directorate,
+        "count_system": count_system,
+    }
+    return render(request, "admin/users_manage.html", context)
+
+
+@login_required(login_url='login')
+def create_user_action(request):
+    """
+    Creates a new expert / staff user account and associated UserProfile.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseBadRequest("مجوز غیرمجاز")
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "").strip()
+        full_name = request.POST.get("full_name", "").strip()
+        organization = request.POST.get("organization", "brokerage").strip()
+        role_title = request.POST.get("role_title", "").strip()
+        personnel_code = request.POST.get("personnel_code", "").strip()
+        phone_number = request.POST.get("phone_number", "").strip()
+        can_sign = bool(request.POST.get("can_sign"))
+
+        if not username or not password or not full_name:
+            messages.error(request, "تکمیل نام کاربری، کلمه عبور و نام کامل الزامی است.")
+            return redirect("users_management")
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, f"نام کاربری «{username}» قبلاً در سامانه ثبت شده است.")
+            return redirect("users_management")
+
+        is_staff = (organization == "system")
+        new_user = User.objects.create_user(
+            username=username,
+            password=password,
+            is_staff=is_staff
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=new_user)
+        profile.full_name = full_name
+        profile.organization = organization
+        profile.role_title = role_title or "کارشناس"
+        profile.personnel_code = personnel_code
+        profile.phone_number = phone_number
+        profile.can_sign = can_sign
+        profile.is_active_expert = True
+        profile.save()
+        messages.success(request, f"کارشناس جدید «{full_name}» با نام کاربری «{username}» با موفقیت افزوده شد.")
+
+    return redirect("users_management")
+
+
+@login_required(login_url='login')
+def toggle_user_status_action(request, user_id):
+    """
+    Toggles is_active flag for the specified user account.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseBadRequest("مجوز غیرمجاز")
+
+    target_user = get_object_or_404(User, id=user_id)
+    if target_user == request.user:
+        messages.warning(request, "امکان غیرفعال‌سازی حساب کاربری جاری خودتان وجود ندارد.")
+    else:
+        target_user.is_active = not target_user.is_active
+        target_user.save()
+        st_text = "فعال" if target_user.is_active else "غیرفعال"
+        messages.success(request, f"وضعیت حساب کاربر «{target_user.username}» به «{st_text}» تغییر یافت.")
+
+    return redirect("users_management")
+
+
+@login_required(login_url='login')
+def reset_user_password_action(request, user_id):
+    """
+    Resets the password for a selected user account.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseBadRequest("مجوز غیرمجاز")
+
+    target_user = get_object_or_404(User, id=user_id)
+    new_pw = request.POST.get("new_password", "").strip()
+    if len(new_pw) < 6:
+        messages.error(request, "کلمه عبور جدید باید حداقل ۶ کاراکتر باشد.")
+    else:
+        target_user.set_password(new_pw)
+        target_user.save()
+        messages.success(request, f"کلمه عبور کاربر «{target_user.username}» با موفقیت بازنشانی شد.")
+
+    return redirect("users_management")

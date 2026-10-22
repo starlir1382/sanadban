@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}پروفایل کاربری | سامانه سندبان{% endblock %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto 3rem;">
+
+    <!-- Breadcrumb -->
+    <nav style="display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; font-size: 0.82rem; color: #64748b;">
+        <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: #2563eb; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+            <span>میز کار</span>
+        </a>
+        <span>/</span>
+        <span style="font-weight: 700; color: #334155;">پروفایل کاربری و تنظیمات حساب</span>
+    </nav>
+
+    <!-- Header Hero -->
+    <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; box-shadow: 0 4px 20px rgba(15, 39, 68, 0.15);">
+        <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div style="width: 72px; height: 72px; border-radius: 50%; background: #38bdf8; color: #0f2744; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                {{ user.profile.full_name|default:user.username|slice:":2" }}
+            </div>
+            <div>
+                <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.25rem;">
+                    {{ user.profile.full_name|default:user.username }}
+                </h2>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: #93c5fd;">
+                    <span>نام کاربری: <strong style="color: #ffffff;">{{ user.username }}</strong></span>
+                    <span>•</span>
+                    <span>نقش: <strong>{{ user.profile.role_title }}</strong></span>
+                    <span>•</span>
+                    <span>سازمان: <strong>{{ user.profile.get_organization_display }}</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            {% if user.is_staff or user.is_superuser %}
+            <a href="{% url 'users_management' %}" class="btn btn-outline" style="background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.3); display: flex; align-items: center; gap: 0.4rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span>مدیریت کاربران و ادمین</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <!-- Profile Info Card -->
+        <div class="form-card" style="margin-bottom: 0;">
+            <div class="form-section-header">
+                <div class="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>مشخصات فردی و سازمانی</span>
+                </div>
+            </div>
+            <div class="form-section-body">
+                <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.88rem;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="color: #64748b;">کد پرسنلی / نظام مهندسی:</span>
+                        <strong class="fa-num">{{ user.profile.personnel_code|default:'ثبت‌نشده' }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="color: #64748b;">شماره تماس همراه:</span>
+                        <strong class="fa-num">{{ user.profile.phone_number|default:'ثبت‌نشده' }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="color: #64748b;">پست الکترونیک (ایمیل):</span>
+                        <strong>{{ user.email|default:'ثبت‌نشده' }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="color: #64748b;">مجوز امضای الکترونیکی:</span>
+                        <span style="color: #059669; font-weight: 700;">✓ دارای توکن و مجوز امضا</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-bottom: 0.25rem;">
+                        <span style="color: #64748b;">تاریخ عضویت در سامانه:</span>
+                        <span class="fa-num">{{ user.date_joined|date:"Y/m/d H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security / Password Card -->
+        <div class="form-card" style="margin-bottom: 0;">
+            <div class="form-section-header">
+                <div class="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>تغییر کلمه عبور حساب کاربری</span>
+                </div>
+            </div>
+            <div class="form-section-body">
+                <form method="POST" action="{% url 'user_profile' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_password">
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">کلمه عبور فعلی</label>
+                        <input type="password" name="old_password" required class="input-control" style="width: 100%; height: 40px; font-size: 0.88rem; direction: ltr;">
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">کلمه عبور جدید</label>
+                        <input type="password" name="new_password" required minlength="6" class="input-control" style="width: 100%; height: 40px; font-size: 0.88rem; direction: ltr;">
+                    </div>
+
+                    <div style="margin-bottom: 1.25rem;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">تکرار کلمه عبور جدید</label>
+                        <input type="password" name="confirm_password" required minlength="6" class="input-control" style="width: 100%; height: 40px; font-size: 0.88rem; direction: ltr;">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.65rem; font-size: 0.88rem; font-weight: 700;">
+                        بروزرسانی کلمه عبور
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

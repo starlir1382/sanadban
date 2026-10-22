@@ -2,6 +2,9 @@ import hashlib
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class Site(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="نام سایت")
@@ -325,4 +328,44 @@ class DossierFieldChangeLog(models.Model):
 
     def __str__(self):
         return f"{self.dossier.archive_number}: {self.field_label} ({self.old_value} -> {self.new_value}) توسط {self.changed_by}"
+
+
+class UserProfile(models.Model):
+    """
+    Expert and Administrator user profile tracking organization, role, credentials, and signing rights.
+    """
+    ORGANIZATION_CHOICES = [
+        ("brokerage", "واحد کارگزاری مسکن"),
+        ("directorate", "اداره کل راه و شهرسازی"),
+        ("system", "مدیریت فناوری و امنیت سامانه"),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", verbose_name="حساب کاربری")
+    full_name = models.CharField(max_length=150, verbose_name="نام و نام خانوادگی")
+    personnel_code = models.CharField(max_length=30, blank=True, verbose_name="کد پرسنلی / نظام مهندسی")
+    organization = models.CharField(max_length=20, choices=ORGANIZATION_CHOICES, default="brokerage", verbose_name="سازمان / نهاد متبوع")
+    role_title = models.CharField(max_length=100, default="کارشناس اقدام‌کننده", verbose_name="سمت / نقش سازمانی")
+    phone_number = models.CharField(max_length=20, blank=True, verbose_name="شماره تماس همراه")
+    national_id = models.CharField(max_length=10, blank=True, verbose_name="کد ملی کارشناس")
+    can_sign = models.BooleanField(default=True, verbose_name="مجوز امضای الکترونیکی")
+    is_active_expert = models.BooleanField(default=True, verbose_name="وضعیت فعالیت کارشناس")
+
+    class Meta:
+        verbose_name = "پروفایل کارشناس و کاربر"
+        verbose_name_plural = "کاربران و کارشناسان سامانه"
+
+    def __str__(self):
+        return f"{self.full_name} ({self.role_title})"
+
+
+@receiver(post_save, sender=User)
+def create_or_save_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(
+            user=instance,
+            full_name=instance.get_full_name() or instance.username,
+            role_title="مدیر سیستم (ادمین)" if instance.is_superuser else "کارشناس اقدام‌کننده",
+            organization="system" if instance.is_superuser else "brokerage"
+        )
+
 
