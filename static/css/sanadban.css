@@ -1962,3 +1962,183 @@ body {
   background: #2563eb;
   color: #ffffff;
 }
+
+/* ==========================================================================
+   Persian Date Picker Modal & Check Generator Controls
+   ========================================================================== */
+
+.btn-date-picker {
+  background: #ffffff;
+  border: 1.5px solid #fed7aa;
+  color: #c2410c;
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-date-picker:hover:not(:disabled) {
+  background: #ffedd5;
+  border-color: #ea580c;
+  transform: translateY(-1px);
+}
+
+.btn-date-picker:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.date-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.date-picker-modal-box {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: dpModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dpModalFadeIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.date-picker-header {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: #ffffff;
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.date-picker-preview-tag {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 0.3rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+}
+
+.date-picker-body {
+  padding: 1.25rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.date-picker-presets {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.date-picker-preset-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.date-picker-preset-btn:hover {
+  background: #fed7aa;
+  color: #9a3412;
+  border-color: #fdba74;
+}
+
+.date-picker-section-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #64748b;
+  margin-bottom: 0.45rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.date-picker-years-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  margin-bottom: 1rem;
+}
+
+.date-picker-months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 1rem;
+}
+
+.date-picker-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-bottom: 0.5rem;
+}
+
+.dp-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  border-radius: 8px;
+  padding: 0.4rem 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dp-btn:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.dp-btn.active {
+  background: #ea580c !important;
+  color: #ffffff !important;
+  border-color: #c2410c !important;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
+  font-weight: 800;
+}
+
+.date-picker-footer {
+  padding: 0.85rem 1.25rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

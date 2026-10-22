@@ -879,10 +879,11 @@
                     </datalist>
                 </div>
 
-                <!-- کارمزد خدمات چک -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('check_service_fee')}">
+                <!-- کارمزد خدمات چک (فقط برای مدیر کارگزاری چک و مدیران ارشد) -->
+                <div class="field-group col-3" x-show="isCheckAdmin" :class="{'field-locked': !isFieldEditable('check_service_fee')}">
                     <label class="field-label">
                         <span>کارمزد خدمات چک (ریال)</span>
+                        <span class="helper-badge" style="background: #e0e7ff; color: #3730a3;">مخصوص مدیر چک</span>
                     </label>
                     <input type="number" class="input-control fa-num" x-model="form.check_service_fee" :readonly="!isFieldEditable('check_service_fee')">
                 </div>
@@ -911,7 +912,86 @@
                     <label class="field-label">
                         <span>تاریخ تعهدنامه (شمسی)</span>
                     </label>
-                    <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.commitment_date" :readonly="!isFieldEditable('commitment_date')" placeholder="۱۴۰۳/۰۵/۱۵">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="text" class="input-control fa-num" style="direction: ltr; flex: 1;" x-model="form.commitment_date" :readonly="!isFieldEditable('commitment_date')" placeholder="۱۴۰۳/۰۵/۱۵">
+                        <button type="button"
+                                @click="openDatePicker('commitment_date', form.commitment_date, 'تاریخ تعهدنامه محضری')"
+                                :disabled="!isFieldEditable('commitment_date')"
+                                class="btn-date-picker"
+                                title="انتخاب تاریخ از تقویم">
+                            📅
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ابزار هوشمند تولید خودکار اقلام چک و تاریخ سررسید (BankCheckTracker) -->
+            <div class="check-generator-box" style="margin-bottom: 1.25rem; background: #fffaf0; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 1.15rem; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.04);">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.2rem;">⚡</span>
+                        <div>
+                            <strong style="color: #9a3412; font-size: 0.9rem; display: block;">تولید هوشمند و خودکار اقلام چک‌های صیادی (تسهیلات دهک)</strong>
+                            <span style="font-size: 0.76rem; color: #b45309;">تعیین تعداد چک‌ها، تولید ردیف‌ها با سررسید خودکار سالانه و مبالغ متوازن بر اساس سقف وام</span>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="button"
+                                @click="generateChecksAuto()"
+                                :disabled="!isFieldEditable('decile_loan_amount')"
+                                class="btn btn-primary"
+                                style="background: #ea580c; border-color: #c2410c; padding: 0.45rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            <span>تولید و تقسیط خودکار چک‌ها</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="fields-grid" style="align-items: flex-end;">
+                    <!-- تعداد چک‌ها -->
+                    <div class="field-group col-4">
+                        <label class="field-label">
+                            <span>تعداد چک‌ها جهت ایجاد:</span>
+                            <span class="helper-badge" style="background: #fed7aa; color: #9a3412;">۱ تا ۱۰ فقره</span>
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <input type="number" min="1" max="12" class="input-control fa-num" style="text-align: center; font-weight: 800; font-size: 0.95rem; width: 70px;" x-model.number="checkGenerator.count">
+                            <div style="display: flex; gap: 4px;">
+                                <button type="button" @click="checkGenerator.count = 3" class="btn btn-xs" :style="checkGenerator.count === 3 ? 'background:#ea580c;color:#fff;border-color:#ea580c;' : 'background:#fff;color:#78350f;border:1px solid #fed7aa;'">۳ چک</button>
+                                <button type="button" @click="checkGenerator.count = 4" class="btn btn-xs" :style="checkGenerator.count === 4 ? 'background:#ea580c;color:#fff;border-color:#ea580c;' : 'background:#fff;color:#78350f;border:1px solid #fed7aa;'">۴ چک</button>
+                                <button type="button" @click="checkGenerator.count = 5" class="btn btn-xs" :style="checkGenerator.count === 5 ? 'background:#ea580c;color:#fff;border-color:#ea580c;' : 'background:#fff;color:#78350f;border:1px solid #fed7aa;'">۵ چک</button>
+                                <button type="button" @click="checkGenerator.count = 6" class="btn btn-xs" :style="checkGenerator.count === 6 ? 'background:#ea580c;color:#fff;border-color:#ea580c;' : 'background:#fff;color:#78350f;border:1px solid #fed7aa;'">۶ چک</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- سررسید چک اول -->
+                    <div class="field-group col-4">
+                        <label class="field-label">
+                            <span>تاریخ سررسید چک اول:</span>
+                            <span class="helper-badge">مبنای توالی سالانه</span>
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="text" class="input-control fa-num" style="direction: ltr; text-align: center; font-weight: 700; flex: 1;" x-model="checkGenerator.startDate" placeholder="۱۴۰۶/۰۷/۳۰">
+                            <button type="button"
+                                    class="btn-date-picker"
+                                    @click="openDatePicker('checkGenerator.startDate', checkGenerator.startDate, 'تاریخ سررسید چک اول')"
+                                    title="انتخاب از تقویم شمسی">
+                                📅
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- فاصله زمانی چک‌ها -->
+                    <div class="field-group col-4">
+                        <label class="field-label">
+                            <span>فاصله اقساط و سررسیدها:</span>
+                        </label>
+                        <select class="input-control" x-model="checkGenerator.interval">
+                            <option value="1year">سالانه (+۱ سال برای هر چک صیادی)</option>
+                            <option value="6months">شش‌ماهه (+۶ ماه برای هر قسط)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -937,10 +1017,10 @@
                         <thead>
                             <tr>
                                 <th style="width: 70px; text-align: center;">ردیف</th>
-                                <th style="width: 22%;">تاریخ سررسید چک (شمسی)</th>
-                                <th style="width: 24%;">شناسه صیادی (۱۶ رقمی)</th>
+                                <th style="width: 26%;">تاریخ سررسید چک (شمسی)</th>
+                                <th style="width: 22%;">شناسه صیادی (۱۶ رقمی)</th>
                                 <th style="width: 22%;">نام بانک صادرکننده</th>
-                                <th style="width: 24%;">مبلغ چک (ریال)</th>
+                                <th style="width: 22%;">مبلغ چک (ریال)</th>
                                 <th style="width: 60px; text-align: center;">عملیات</th>
                             </tr>
                         </thead>
@@ -954,12 +1034,21 @@
 
                                     <!-- تاریخ سررسید -->
                                     <td>
-                                        <input type="text"
-                                               class="input-control fa-num"
-                                               style="direction: ltr; font-weight: 700; font-size: 0.84rem; text-align: center;"
-                                               x-model="check.cash_date"
-                                               :readonly="!isFieldEditable('decile_loan_amount')"
-                                               placeholder="مثال: ۱۴۰۴/۰۶/۱۵">
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <input type="text"
+                                                   class="input-control fa-num"
+                                                   style="direction: ltr; font-weight: 700; font-size: 0.84rem; text-align: center; flex: 1;"
+                                                   x-model="check.cash_date"
+                                                   :readonly="!isFieldEditable('decile_loan_amount')"
+                                                   placeholder="مثال: ۱۴۰۶/۰۷/۳۰">
+                                            <button type="button"
+                                                    @click="openDatePicker('check_' + idx, check.cash_date, 'سررسید چک ' + (idx + 1))"
+                                                    :disabled="!isFieldEditable('decile_loan_amount')"
+                                                    class="btn-date-picker"
+                                                    title="انتخاب تاریخ از تقویم شمسی">
+                                                📅
+                                            </button>
+                                        </div>
                                     </td>
 
                                     <!-- کد صیادی ۱۶ رقمی -->
@@ -1242,7 +1331,16 @@
                         <label class="field-label">
                             <span>تاریخ نامه راه و شهرسازی (شمسی)</span>
                         </label>
-                        <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.rah_letter_date" :readonly="!isFieldEditable('rah_letter_date')" placeholder="مثال: ۱۴۰۳/۰۴/۲۰">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="text" class="input-control fa-num" style="direction: ltr; flex: 1;" x-model="form.rah_letter_date" :readonly="!isFieldEditable('rah_letter_date')" placeholder="مثال: ۱۴۰۳/۰۴/۲۰">
+                            <button type="button"
+                                    @click="openDatePicker('rah_letter_date', form.rah_letter_date, 'تاریخ نامه راه و شهرسازی')"
+                                    :disabled="!isFieldEditable('rah_letter_date')"
+                                    class="btn-date-picker"
+                                    title="انتخاب تاریخ از تقویم">
+                                📅
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -454,6 +454,7 @@ def dossier_detail_view(request, pk):
 
     profile = getattr(request.user, 'profile', None)
     is_chief = bool(profile and profile.is_housing_chief)
+    is_check_admin = request.user.is_superuser or is_chief or bool(profile and getattr(profile, 'is_check_admin', False))
     user_can_action = request.user.is_superuser or is_chief or (profile and profile.can_action_stage(dossier.current_stage))
     can_view_audit = request.user.is_superuser or is_chief or (profile and profile.can_view_all_audit_logs())
 
@@ -500,6 +501,7 @@ def dossier_detail_view(request, pk):
     dossier_data["stage_signatures"] = stage_signatures
     dossier_data["user_can_action"] = user_can_action
     dossier_data["is_chief"] = is_chief
+    dossier_data["is_check_admin"] = is_check_admin
     dossier_data["current_role"] = dossier.current_role
     dossier_data["current_stage_title"] = dossier.current_stage_title
 
@@ -512,6 +514,7 @@ def dossier_detail_view(request, pk):
         "dossier_json": json.dumps(dossier_data, ensure_ascii=False),
         "user_can_action": user_can_action,
         "is_chief": is_chief,
+        "is_check_admin": is_check_admin,
         "can_view_audit": can_view_audit,
     }
     return render(request, "dossiers/detail.html", context)
@@ -668,6 +671,12 @@ def save_dossier_draft_view(request, pk):
         parsed_updates["total_check_amount"] = total_sum
         parsed_updates["check_count"] = len(cleaned_entries)
 
+        # Auto-calculate custody service fee (0.5% rounded half up from BankCheckTracker)
+        fee_base = total_sum if total_sum > 0 else (dossier.decile_loan_amount or 0)
+        calculated_fee = ((fee_base * 5 + 500) // 1000) if fee_base > 0 else 2000000
+        dossier.check_service_fee = calculated_fee
+        parsed_updates["check_service_fee"] = calculated_fee
+
         # Sync relational DossierCheck table
         dossier.check_items.all().delete()
         for item in cleaned_entries:
@@ -749,6 +758,8 @@ def save_dossier_draft_view(request, pk):
         "message": f"اطلاعات با موفقیت ذخیره شد. ({len(change_logs_to_create)} مورد تغییر در تاریخچه ثبت گردید)",
         "current_stage": dossier.current_stage,
         "applicant_equity": dossier.applicant_equity,
+        "check_service_fee": dossier.check_service_fee,
+        "total_check_amount": dossier.total_check_amount,
         "new_changes": recent_changes
     })
 

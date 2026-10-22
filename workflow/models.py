@@ -282,6 +282,13 @@ class HousingDossier(models.Model):
         total_loans = (self.fund_loan_amount or 0) + (self.decile_loan_amount or 0)
         self.applicant_equity = max(0, base_cost - total_loans)
 
+        # Auto-calculate Check Service Fee (0.5% custody fee from BankCheckTracker: 5 per 1000)
+        fee_base = self.total_check_amount if (self.total_check_amount and self.total_check_amount > 0) else (self.decile_loan_amount or 0)
+        if fee_base > 0:
+            self.check_service_fee = (fee_base * 5 + 500) // 1000
+        elif not self.check_service_fee:
+            self.check_service_fee = 2000000
+
         super().save(*args, **kwargs)
 
     @property
@@ -468,6 +475,7 @@ class UserProfile(models.Model):
 
     # Access Level Management & Housing Chief (رئیس مسکن)
     is_housing_chief = models.BooleanField(default=False, verbose_name="رئیس مسکن (اختیارات و دسترسی تام)")
+    is_check_admin = models.BooleanField(default=False, verbose_name="مدیر کارگزاری چک (دسترسی به کارمزد و امور مالی چک)")
     allowed_stages = models.CharField(max_length=150, default="all", verbose_name="مراحل مجاز (مثال: 0,1,2 یا all)")
 
     # Mandatory Security Onboarding & Signature

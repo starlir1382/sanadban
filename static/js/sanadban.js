@@ -509,9 +509,44 @@ document.addEventListener('alpine:init', () => {
     redReturnNotes: '',
     redResetFormJ: true,
 
+    // Check Admin Authorization (Superuser, Chief, or Kargozari Check Admin)
+    isCheckAdmin: false,
+
+    // Check Generator State (BankCheckTracker intelligent generation)
+    checkGenerator: {
+      count: 4,
+      startDate: '',
+      interval: '1year'
+    },
+
+    // Interactive Persian Date Picker Modal State
+    datePickerModal: {
+      isOpen: false,
+      targetField: '',
+      title: 'انتخاب تاریخ شمسی',
+      year: 1405,
+      month: 7,
+      day: 30,
+      yearsList: [1400, 1401, 1402, 1403, 1404, 1405, 1406, 1407, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415],
+      monthsList: [
+        { num: 1, name: 'فروردین', days: 31 },
+        { num: 2, name: 'اردیبهشت', days: 31 },
+        { num: 3, name: 'خرداد', days: 31 },
+        { num: 4, name: 'تیر', days: 31 },
+        { num: 5, name: 'مرداد', days: 31 },
+        { num: 6, name: 'شهریور', days: 31 },
+        { num: 7, name: 'مهر', days: 30 },
+        { num: 8, name: 'آبان', days: 30 },
+        { num: 9, name: 'آذر', days: 30 },
+        { num: 10, name: 'دی', days: 30 },
+        { num: 11, name: 'بهمن', days: 30 },
+        { num: 12, name: 'اسفند', days: 29 }
+      ]
+    },
+
     init() {
       // 1. Set Persian Today Date dynamically
-      this.todayDate = this.getTodayJalali();
+      this.todayDate = this.getTodayJalaliDisplay();
 
       // 2. Read real server data injected from database
       const serverDataEl = document.getElementById('dossier-server-json');
@@ -528,6 +563,7 @@ document.addEventListener('alpine:init', () => {
           if (typeof serverData.user_can_action !== 'undefined') this.userCanAction = Boolean(serverData.user_can_action);
           if (typeof serverData.is_chief !== 'undefined') this.isChief = Boolean(serverData.is_chief);
           if (typeof serverData.is_superuser !== 'undefined') this.isSuperuser = Boolean(serverData.is_superuser);
+          if (typeof serverData.is_check_admin !== 'undefined') this.isCheckAdmin = Boolean(serverData.is_check_admin);
           if (typeof serverData.is_rejected !== 'undefined') this.isRejected = Boolean(serverData.is_rejected);
           if (typeof serverData.is_red_form_j !== 'undefined') this.isRedFormJ = Boolean(serverData.is_red_form_j);
           if (serverData.rejection_letter_number) this.rejectionLetterNumber = serverData.rejection_letter_number;
@@ -561,9 +597,32 @@ document.addEventListener('alpine:init', () => {
         ];
       }
       this.recalculateChecks();
+
+      // Initialize Check Generator defaults from existing data or +1 year from today
+      const firstCheckDate = (this.form.check_entries && this.form.check_entries[0] && this.form.check_entries[0].cash_date) ? this.form.check_entries[0].cash_date : '';
+      this.checkGenerator.startDate = firstCheckDate || this.addYearsToJalali(this.getTodayJalali(), 1);
+      if (this.form.check_entries && this.form.check_entries.length > 0) {
+        this.checkGenerator.count = this.form.check_entries.length;
+      }
     },
 
     getTodayJalali() {
+      try {
+        const parts = new Intl.DateTimeFormat('en-US-u-ca-persian', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(new Date());
+        const y = parts.find(p => p.type === 'year')?.value || '1405';
+        const m = parts.find(p => p.type === 'month')?.value || '07';
+        const d = parts.find(p => p.type === 'day')?.value || '30';
+        return `${y}/${m}/${d}`;
+      } catch (e) {
+        return '1405/07/30';
+      }
+    },
+
+    getTodayJalaliDisplay() {
       try {
         const formatter = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { 
           weekday: 'long', 
@@ -576,6 +635,82 @@ document.addEventListener('alpine:init', () => {
       } catch (e) {
         return new Date().toLocaleDateString('fa-IR');
       }
+    },
+
+    isJalaliLeapYear(year) {
+      return [1, 5, 9, 13, 17, 22, 26, 30].includes(Number(year) % 33);
+    },
+
+    getDaysInJalaliMonth(year, month) {
+      const m = Number(month);
+      if (m <= 6) return 31;
+      if (m <= 11) return 30;
+      return this.isJalaliLeapYear(year) ? 30 : 29;
+    },
+
+    normalizeJalaliDigits(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/[۰٠]/g, '0')
+        .replace(/[۱١]/g, '1')
+        .replace(/[۲٢]/g, '2')
+        .replace(/[۳٣]/g, '3')
+        .replace(/[۴٤]/g, '4')
+        .replace(/[۵٥]/g, '5')
+        .replace(/[۶٦]/g, '6')
+        .replace(/[۷٧]/g, '7')
+        .replace(/[۸٨]/g, '8')
+        .replace(/[۹٩]/g, '9');
+    },
+
+    parseJalaliDate(dateStr) {
+      if (!dateStr) return null;
+      const clean = this.normalizeJalaliDigits(dateStr).replace(/[-.]/g, '/').trim();
+      const parts = clean.split('/');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+          return { year: y, month: m, day: d };
+        }
+      }
+      return null;
+    },
+
+    formatJalaliDate(y, m, d) {
+      const sy = String(y);
+      const sm = String(m).padStart(2, '0');
+      const sd = String(d).padStart(2, '0');
+      return `${sy}/${sm}/${sd}`;
+    },
+
+    addYearsToJalali(dateStr, yearsToAdd) {
+      const parsed = this.parseJalaliDate(dateStr) || this.parseJalaliDate(this.getTodayJalali());
+      const newYear = parsed.year + Number(yearsToAdd);
+      const month = parsed.month;
+      let day = parsed.day;
+      const maxDay = this.getDaysInJalaliMonth(newYear, month);
+      if (day > maxDay) day = maxDay;
+      return this.formatJalaliDate(newYear, month, day);
+    },
+
+    advanceJalaliDate(startDateStr, index, interval) {
+      if (index === 0) {
+        const p = this.parseJalaliDate(startDateStr);
+        return p ? this.formatJalaliDate(p.year, p.month, p.day) : this.getTodayJalali();
+      }
+      if (interval === '6months') {
+        const p = this.parseJalaliDate(startDateStr) || this.parseJalaliDate(this.getTodayJalali());
+        const totalMonths = (p.month - 1) + (index * 6);
+        const newYear = p.year + Math.floor(totalMonths / 12);
+        const newMonth = (totalMonths % 12) + 1;
+        let day = p.day;
+        const maxDay = this.getDaysInJalaliMonth(newYear, newMonth);
+        if (day > maxDay) day = maxDay;
+        return this.formatJalaliDate(newYear, newMonth, day);
+      }
+      return this.addYearsToJalali(startDateStr, index);
     },
 
     // Workflow stage is sticky - arbitrary jumping is prevented
@@ -963,17 +1098,76 @@ document.addEventListener('alpine:init', () => {
     // --------------------------------------------------------------------------
     // BankCheckTracker & TashilatCheck Dynamic Helpers
     // --------------------------------------------------------------------------
+    generateChecksAuto() {
+      const count = Math.max(1, Math.min(12, Number(this.checkGenerator.count) || 4));
+      const totalAmount = Number(this.form.decile_loan_amount) || Number(this.form.total_check_amount) || 0;
+      let startDate = this.checkGenerator.startDate;
+      if (!startDate) {
+        startDate = this.addYearsToJalali(this.getTodayJalali(), 1);
+        this.checkGenerator.startDate = startDate;
+      }
+
+      // BankCheckTracker rounding rule: each check floored to 10M rial (1M toman), remainder to last check
+      const ROUNDING_UNIT = 10000000;
+      let baseCheck = 0;
+      let lastCheck = 0;
+
+      if (totalAmount > 0) {
+        baseCheck = Math.floor(totalAmount / count / ROUNDING_UNIT) * ROUNDING_UNIT;
+        lastCheck = totalAmount - (baseCheck * (count - 1));
+        // Fallback if totalAmount is too small for 10M flooring
+        if (baseCheck <= 0 || lastCheck <= 0) {
+          baseCheck = Math.floor(totalAmount / count);
+          lastCheck = totalAmount - (baseCheck * (count - 1));
+        }
+      }
+
+      const newEntries = [];
+      for (let i = 0; i < count; i++) {
+        const dueDate = this.advanceJalaliDate(startDate, i, this.checkGenerator.interval);
+        const amt = (i === count - 1) ? lastCheck : baseCheck;
+        const existingSayadi = (this.form.check_entries && this.form.check_entries[i]) ? (this.form.check_entries[i].check_sayadi_code || '') : '';
+        newEntries.push({
+          row_number: i + 1,
+          cash_date: dueDate,
+          check_amount: amt,
+          check_sayadi_code: existingSayadi,
+          bank_name: this.form.decile_loan_bank || 'بانک مسکن'
+        });
+      }
+
+      this.form.check_entries = newEntries;
+      this.recalculateChecks();
+      this.triggerToast(`تعداد ${count} فقره چک با تاریخ‌های سررسید خودکار و مبالغ متوازن ایجاد گردید.`, 'success');
+    },
+
     addCheckEntry() {
       if (!this.form.check_entries) this.form.check_entries = [];
-      const nextNum = this.form.check_entries.length + 1;
+      const count = this.form.check_entries.length;
+      const lastEntry = count > 0 ? this.form.check_entries[count - 1] : null;
+      const firstEntry = count > 0 ? this.form.check_entries[0] : null;
+
+      let nextDate = '';
+      if (lastEntry && lastEntry.cash_date) {
+        nextDate = this.addYearsToJalali(lastEntry.cash_date, 1);
+      } else if (firstEntry && firstEntry.cash_date) {
+        nextDate = this.addYearsToJalali(firstEntry.cash_date, count);
+      } else {
+        nextDate = this.addYearsToJalali(this.getTodayJalali(), count + 1);
+      }
+
+      const nextAmount = lastEntry ? (lastEntry.check_amount || 0) : 0;
+      const nextBank = (lastEntry && lastEntry.bank_name) ? lastEntry.bank_name : (this.form.decile_loan_bank || 'بانک مسکن');
+
       this.form.check_entries.push({
-        row_number: nextNum,
-        cash_date: '',
-        check_amount: 0,
+        row_number: count + 1,
+        cash_date: nextDate,
+        check_amount: nextAmount,
         check_sayadi_code: '',
-        bank_name: this.form.decile_loan_bank || 'بانک مسکن'
+        bank_name: nextBank
       });
       this.recalculateChecks();
+      this.triggerToast(`چک ردیف ${count + 1} با سررسید خودکار (${nextDate}) اضافه گردید.`, 'info');
     },
 
     removeCheckEntry(idx) {
@@ -1006,6 +1200,105 @@ document.addEventListener('alpine:init', () => {
         this.form.check_amount = this.form.check_entries[0].check_amount || 0;
         this.form.last_check_amount = this.form.check_entries[this.form.check_entries.length - 1].check_amount || 0;
       }
+      // Auto-calculate custody service fee (0.5% rounded half up)
+      const feeBase = total > 0 ? total : (Number(this.form.decile_loan_amount) || 0);
+      if (feeBase > 0) {
+        this.form.check_service_fee = Math.floor((feeBase * 5 + 500) / 1000);
+      } else if (!this.form.check_service_fee) {
+        this.form.check_service_fee = 2000000;
+      }
+    },
+
+    // --------------------------------------------------------------------------
+    // Interactive Persian Date Picker Modal Handlers
+    // --------------------------------------------------------------------------
+    openDatePicker(targetField, currentValue, title) {
+      this.datePickerModal.targetField = targetField;
+      this.datePickerModal.title = title || 'انتخاب تاریخ شمسی';
+
+      const parsed = this.parseJalaliDate(currentValue) || this.parseJalaliDate(this.getTodayJalali());
+      this.datePickerModal.year = parsed.year;
+      this.datePickerModal.month = parsed.month;
+      this.datePickerModal.day = parsed.day;
+      this.normalizePickerDay();
+      this.datePickerModal.isOpen = true;
+    },
+
+    closeDatePicker() {
+      this.datePickerModal.isOpen = false;
+    },
+
+    normalizePickerDay() {
+      const maxD = this.getDaysInJalaliMonth(this.datePickerModal.year, this.datePickerModal.month);
+      if (this.datePickerModal.day > maxD) {
+        this.datePickerModal.day = maxD;
+      }
+    },
+
+    setPickerYear(y) {
+      this.datePickerModal.year = Number(y);
+      this.normalizePickerDay();
+    },
+
+    setPickerMonth(m) {
+      this.datePickerModal.month = Number(m);
+      this.normalizePickerDay();
+    },
+
+    setPickerDay(d) {
+      this.datePickerModal.day = Number(d);
+    },
+
+    setPickerPreset(preset) {
+      const today = this.parseJalaliDate(this.getTodayJalali());
+      if (preset === 'today') {
+        this.datePickerModal.year = today.year;
+        this.datePickerModal.month = today.month;
+        this.datePickerModal.day = today.day;
+      } else if (typeof preset === 'number' || (typeof preset === 'string' && preset.startsWith('+'))) {
+        const addYears = parseInt(String(preset).replace('+', '').replace('y', ''), 10) || 1;
+        this.datePickerModal.year = today.year + addYears;
+        this.datePickerModal.month = today.month;
+        this.datePickerModal.day = today.day;
+      }
+      this.normalizePickerDay();
+    },
+
+    applyDatePicker() {
+      const formatted = this.formatJalaliDate(
+        this.datePickerModal.year,
+        this.datePickerModal.month,
+        this.datePickerModal.day
+      );
+      const field = this.datePickerModal.targetField;
+      if (field.startsWith('check_')) {
+        const idx = parseInt(field.split('_')[1], 10);
+        if (this.form.check_entries && this.form.check_entries[idx]) {
+          this.form.check_entries[idx].cash_date = formatted;
+        }
+      } else if (field === 'checkGenerator.startDate') {
+        this.checkGenerator.startDate = formatted;
+      } else {
+        this.form[field] = formatted;
+      }
+      this.datePickerModal.isOpen = false;
+      this.triggerToast(`تاریخ (${formatted}) ثبت گردید.`, 'info');
+    },
+
+    clearDatePickerField() {
+      const field = this.datePickerModal.targetField;
+      if (field.startsWith('check_')) {
+        const idx = parseInt(field.split('_')[1], 10);
+        if (this.form.check_entries && this.form.check_entries[idx]) {
+          this.form.check_entries[idx].cash_date = '';
+        }
+      } else if (field === 'checkGenerator.startDate') {
+        this.checkGenerator.startDate = '';
+      } else {
+        this.form[field] = '';
+      }
+      this.datePickerModal.isOpen = false;
+      this.triggerToast('تاریخ پاک شد.', 'info');
     },
 
     getAppraisalCash() {

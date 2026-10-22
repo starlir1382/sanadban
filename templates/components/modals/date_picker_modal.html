@@ -1,0 +1,113 @@
+<!-- Interactive Persian Date Picker Modal Component -->
+<div class="date-picker-overlay"
+     x-show="datePickerModal.isOpen"
+     x-cloak
+     style="display: none;"
+     @click.self="closeDatePicker()"
+     @keydown.escape.window="closeDatePicker()">
+    <div class="date-picker-modal-box" role="dialog" aria-modal="true">
+        <!-- Header -->
+        <div class="date-picker-header">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span style="font-size: 1.4rem;">📅</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1rem; font-weight: 800;" x-text="datePickerModal.title || 'انتخاب تاریخ شمسی'"></h3>
+                    <span style="font-size: 0.74rem; opacity: 0.85;">تقویم و انتخاب‌گر هوشمند تاریخ‌های جلالی</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="date-picker-preview-tag fa-num">
+                    <span x-text="formatJalaliDate(datePickerModal.year, datePickerModal.month, datePickerModal.day)"></span>
+                </div>
+                <button type="button" 
+                        @click="closeDatePicker()" 
+                        style="background: transparent; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; padding: 2px 6px;">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="date-picker-body">
+            <!-- Quick Presets -->
+            <div class="date-picker-presets">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #475569; margin-left: 4px;">میانبرهای سریع:</span>
+                <button type="button" class="date-picker-preset-btn" @click="setPickerPreset('today')">امروز</button>
+                <button type="button" class="date-picker-preset-btn" @click="setPickerPreset('+1y')">+۱ سال (سررسید چک اول)</button>
+                <button type="button" class="date-picker-preset-btn" @click="setPickerPreset('+2y')">+۲ سال</button>
+                <button type="button" class="date-picker-preset-btn" @click="setPickerPreset('+3y')">+۳ سال</button>
+                <button type="button" class="date-picker-preset-btn" @click="setPickerPreset('+4y')">+۴ سال</button>
+                <button type="button" class="date-picker-preset-btn" @click="setPickerPreset('+5y')">+۵ سال</button>
+            </div>
+
+            <!-- Years Selector -->
+            <div style="margin-bottom: 0.85rem;">
+                <div class="date-picker-section-label">
+                    <span>انتخاب سال شمسی:</span>
+                    <span class="fa-num" style="color: #ea580c; font-weight: 800;" x-text="datePickerModal.year"></span>
+                </div>
+                <div class="date-picker-years-grid fa-num">
+                    <template x-for="yr in datePickerModal.yearsList" :key="yr">
+                        <button type="button"
+                                class="dp-btn"
+                                :class="{'active': datePickerModal.year === yr}"
+                                @click="setPickerYear(yr)"
+                                x-text="yr">
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Months Selector -->
+            <div style="margin-bottom: 0.85rem;">
+                <div class="date-picker-section-label">
+                    <span>انتخاب ماه:</span>
+                    <span style="color: #ea580c; font-weight: 800;" x-text="datePickerModal.monthsList[datePickerModal.month - 1] ? datePickerModal.monthsList[datePickerModal.month - 1].name : ''"></span>
+                </div>
+                <div class="date-picker-months-grid">
+                    <template x-for="m in datePickerModal.monthsList" :key="m.num">
+                        <button type="button"
+                                class="dp-btn"
+                                :class="{'active': datePickerModal.month === m.num}"
+                                @click="setPickerMonth(m.num)">
+                            <span x-text="m.name"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Days Selector Grid -->
+            <div>
+                <div class="date-picker-section-label">
+                    <span>انتخاب روز:</span>
+                    <span class="fa-num" style="color: #ea580c; font-weight: 800;" x-text="'روز ' + datePickerModal.day"></span>
+                </div>
+                <div class="date-picker-days-grid fa-num">
+                    <template x-for="d in getDaysInJalaliMonth(datePickerModal.year, datePickerModal.month)" :key="d">
+                        <button type="button"
+                                class="dp-btn"
+                                :class="{'active': datePickerModal.day === d}"
+                                @click="setPickerDay(d)"
+                                x-text="d">
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="date-picker-footer">
+            <button type="button" class="btn btn-outline" @click="clearDatePickerField()" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">
+                پاک کردن تاریخ
+            </button>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="button" class="btn btn-secondary" @click="closeDatePicker()" style="font-size: 0.8rem; padding: 0.4rem 0.95rem;">
+                    انصراف
+                </button>
+                <button type="button" class="btn btn-primary" @click="applyDatePicker()" style="background: #ea580c; border-color: #c2410c; font-weight: 800; font-size: 0.84rem; padding: 0.45rem 1.25rem;">
+                    تایید و درج تاریخ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
