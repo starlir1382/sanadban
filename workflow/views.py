@@ -365,6 +365,47 @@ def dossier_detail_view(request, pk):
     user_can_action = request.user.is_superuser or is_chief or (profile and profile.can_action_stage(dossier.current_stage))
     can_view_audit = request.user.is_superuser or is_chief or (profile and profile.can_view_all_audit_logs())
 
+    # Calculate Signatures for every stage: Signer Name + Date & Time
+    import re
+    import jdatetime
+    stage_signatures = {}
+    for log in dossier.audit_logs.filter(action__in=["SIGN", "APPROVE", "ARCHIVE"]).order_by("timestamp"):
+        m = re.search(r'مرحله\s+(\d+)', log.from_stage)
+        if m:
+            stg_idx = int(m.group(1))
+            try:
+                jdt = jdatetime.datetime.fromgregorian(datetime=log.timestamp)
+                date_str = jdt.strftime("%Y/%m/%d - %H:%M")
+            except Exception:
+                date_str = log.timestamp.strftime("%Y/%m/%d %H:%M")
+
+            stage_signatures[stg_idx] = {
+                "actor": log.actor,
+                "role": log.role or HousingDossier.STAGE_ROLES.get(stg_idx, ("-", "کارشناس اقدام", "-"))[1],
+                "date": date_str,
+                "action": log.action,
+                "action_label": log.action_label,
+            }
+
+    # For any stage < current_stage without an explicit signature record:
+    for stg_num in range(dossier.current_stage):
+        if stg_num not in stage_signatures:
+            default_role = HousingDossier.STAGE_ROLES.get(stg_num, ("-", "کارشناس اقدام‌کننده", "-"))[1]
+            try:
+                jdt = jdatetime.datetime.fromgregorian(datetime=dossier.created_at)
+                default_date = jdt.strftime("%Y/%m/%d")
+            except Exception:
+                default_date = dossier.created_at.strftime("%Y/%m/%d")
+            actor_name = default_role.split('(')[-1].replace(')', '').strip() if '(' in default_role else "کارشناس اقدام"
+            stage_signatures[stg_num] = {
+                "actor": actor_name,
+                "role": default_role,
+                "date": default_date,
+                "action": "SIGN",
+                "action_label": "تایید و امضای اولیه",
+            }
+
+    dossier_data["stage_signatures"] = stage_signatures
     dossier_data["user_can_action"] = user_can_action
     dossier_data["is_chief"] = is_chief
     dossier_data["current_role"] = dossier.current_role
@@ -1152,9 +1193,26 @@ def users_management_view(request):
             "stage_pills": stage_pills,
         })
 
+    # Calculate stage coverage for control by stage
+    stage_experts_count = {i: 0 for i in range(22)}
+    for ud in users_data:
+        raw = ud.get("allowed_stages", "")
+        if raw == "all" or ud.get("is_housing_chief") or ud.get("is_superuser"):
+            for i in range(22):
+                stage_experts_count[i] += 1
+        else:
+            nums = [int(s.strip()) for s in raw.split(',') if s.strip().isdigit()]
+            for s in nums:
+                if 0 <= s <= 21:
+                    stage_experts_count[s] += 1
+
+    for stg in all_stages_meta:
+        stg["experts_count"] = stage_experts_count.get(stg["id"], 0)
+
     context = {
         "users": users,
         "users_data": users_data,
+        "users_json": json.dumps(users_data, ensure_ascii=False),
         "all_stages_meta": all_stages_meta,
         "count_brokerage": count_brokerage,
         "count_directorate": count_directorate,
@@ -1252,7 +1310,25 @@ def create_user_action(request):
         phone_number = request.POST.get("phone_number", "").strip()
         can_sign = bool(request.POST.get("can_sign"))
         is_housing_chief = bool(request.POST.get("is_housing_chief"))
-        allowed_stages = request.POST.get("allowed_stages", "all").strip()
+        
+        stages_selected = request.POST.getlist("stages_selected")
+        stages_text = request.POST.get("allowed_stages", "").strip()
+
+        if is_housing_chief:
+            allowed_stages = "all"
+        elif stages_selected:
+            if "all" in stages_selected:
+                allowed_stages = "all"
+            else:
+                try:
+                    sorted_stages = sorted([int(s) for s in stages_selected if s.isdigit()])
+                    allowed_stages = ",".join(str(s) for s in sorted_stages)
+                except Exception:
+                    allowed_stages = ",".join(stages_selected)
+        elif stages_text:
+            allowed_stages = stages_text
+        else:
+            allowed_stages = "0"
 
         if not username or not password or not full_name:
             messages.error(request, "تکمیل نام کاربری، کلمه عبور و نام کامل الزامی است.")

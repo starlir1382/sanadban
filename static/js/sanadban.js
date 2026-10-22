@@ -451,6 +451,7 @@ document.addEventListener('alpine:init', () => {
 
     // Field-level Change Audit Trail
     fieldChanges: [],
+    stageSignatures: {},
     auditActiveTab: 'stages', // 'stages' or 'fields'
 
     init() {
@@ -482,6 +483,9 @@ document.addEventListener('alpine:init', () => {
           }
           if (Array.isArray(serverData.field_changes)) {
             this.fieldChanges = serverData.field_changes;
+          }
+          if (serverData.stage_signatures) {
+            this.stageSignatures = serverData.stage_signatures;
           }
         } catch (e) {
           console.error('Failed to parse server dossier data:', e);
@@ -549,6 +553,11 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Live Equity Auto-Calculation Formula
+    getStageSignature(stageId) {
+      if (!this.stageSignatures) return null;
+      return this.stageSignatures[stageId] || this.stageSignatures[String(stageId)] || null;
+    },
+
     recalculateEquity() {
       const baseCost = Number(this.form.base_cost_without_loan) || 0;
       const fundLoan = Number(this.form.fund_loan_amount) || 0;
