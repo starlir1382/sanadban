@@ -1,314 +1,508 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'base.html' %} {% load static %} {% block title %} پرونده مسکن
+متقاضی: {{ dossier.full_name|default:'علیرضا رضایی پور' }} (شماره بایگانی: {{
+dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% endblock %} {%
+block content %} {% csrf_token %}
+<script id="dossier-server-json" type="application/json">
+  {{ dossier_json|safe }}
+</script>
 
-{% block title %}
-پرونده مسکن متقاضی: {{ dossier.full_name|default:'علیرضا رضایی پور' }} (شماره بایگانی: {{ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار
-{% endblock %}
+<style>
+  .dt-banner {
+    border-radius: 12px;
+    padding: 0.8rem 1.1rem;
+    margin-bottom: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.84rem;
+  }
+  .dt-banner.warn {
+    background: #fff1f2;
+    border: 1.5px solid #fecdd3;
+    border-right: 6px solid #e11d48;
+    color: #881337;
+  }
+  .dt-banner.red {
+    background: #fff1f2;
+    border: 2px solid #ef4444;
+    border-right: 6px solid #dc2626;
+    color: #7f1d1d;
+  }
+  .dt-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .dt-hero h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #0f2744;
+  }
+  .dt-meta {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.35rem;
+    font-size: 0.76rem;
+    color: #475569;
+  }
+  .dt-meta span {
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 2px 8px;
+  }
+  .dt-id {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 0.3rem 0.8rem;
+    direction: ltr;
+  }
 
-{% block content %}
-{% csrf_token %}
-<script id="dossier-server-json" type="application/json">{{ dossier_json|safe }}</script>
+  /* Tabs */
+  .dt-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    z-index: 20;
+    padding-top: 0.25rem;
+  }
+  .dt-tab {
+    background: none;
+    border: none;
+    padding: 0.7rem 1.15rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .dt-tab:hover {
+    color: #1d4ed8;
+  }
+  .dt-tab.active {
+    color: #1d4ed8;
+    border-bottom-color: #2563eb;
+    font-weight: 800;
+  }
+  .dt-count {
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 0.7rem;
+    padding: 1px 7px;
+    border-radius: 99px;
+  }
+  .dt-tab.active .dt-count {
+    background: #2563eb;
+    color: #fff;
+  }
 
-<!-- Breadcrumb Navigation -->
-<nav style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; font-size: 0.82rem; color: #64748b;">
-    <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: #2563eb; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-        <span>میز کار و داشبورد پرونده‌ها</span>
-    </a>
-    <span style="color: #cbd5e1;">/</span>
-    <span style="color: #475569; font-weight: 700;">پرونده شماره #<span class="fa-num" x-text="archiveNumber"></span> (<span x-text="form.full_name"></span>)</span>
-</nav>
+  /* Roadmap */
+  .dt-map {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 0.6rem;
+  }
+  .dt-stage {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.65rem 0.8rem;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  .dt-stage.done {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+  .dt-stage.current {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.15);
+  }
+  .dt-stage.todo {
+    opacity: 0.7;
+  }
+  .dt-stage b {
+    display: block;
+    color: #0f172a;
+    margin: 0.2rem 0;
+  }
+  .dt-stage small {
+    color: #64748b;
+  }
 
-<!-- Returned for Correction Banner (if status == 'RETURNED') -->
-<template x-if="status === 'RETURNED'">
-    <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-right: 6px solid #e11d48; border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: 1.25rem; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.08);">
-        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-            <div style="display: flex; gap: 0.85rem; align-items: flex-start;">
-                <div style="width: 42px; height: 42px; border-radius: 50%; background: #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem;">
-                    ⚠️
-                </div>
-                <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                        <span style="font-weight: 800; color: #9f1239; font-size: 1.05rem;">
-                            پرونده جهت اصلاح و بازبینی به این مرحله برگشت داده شده است
-                        </span>
-                        <span style="background: #e11d48; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;">
-                            وضعیت: نیازمند اقدام اصلاحی
-                        </span>
-                    </div>
-                    <div style="font-size: 0.85rem; color: #4c0519; margin-bottom: 0.5rem;">
-                        این پرونده از <strong class="fa-num" x-text="'مرحله ' + (returnFromStage !== null ? returnFromStage : '')"></strong> توسط <strong x-text="returnBy || 'کارشناس ممیزی'"></strong> بازگردانده شده است.
-                    </div>
-                    <div style="background: #ffffff; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #fecdd3; font-size: 0.84rem; color: #881337; line-height: 1.6;">
-                        <span style="font-weight: 800;">علت بازگشت و نواقص اعلامی: </span>
-                        <span x-text="returnReason"></span>
-                    </div>
-                </div>
-            </div>
-            <div style="font-size: 0.8rem; color: #9f1239; background: #ffe4e6; padding: 0.5rem 0.85rem; border-radius: 8px; font-weight: 700; align-self: center;">
-                کارشناس محترم، پس از اصلاح مقادیر و مدارک مربوطه، دکمه «تایید و امضای الکترونیکی» را بفشارید تا پرونده مجدداً به مرحله بعد ارسال گردد.
-            </div>
+  /* More menu */
+  .dt-more {
+    position: relative;
+  }
+  .dt-menu {
+    position: absolute;
+    bottom: 110%;
+    left: 0;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    min-width: 260px;
+    padding: 0.35rem;
+    z-index: 60;
+  }
+  .dt-menu a,
+  .dt-menu button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: right;
+    padding: 0.55rem 0.75rem;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .dt-menu a:hover,
+  .dt-menu button:hover {
+    background: #f1f5f9;
+  }
+  .dt-menu .danger {
+    color: #b91c1c;
+  }
+</style>
+
+<!-- Page-level scope (inherits everything from the parent Alpine component) -->
+<div
+  x-data="{
+        tab: (location.hash || '#form').slice(1),
+        moreOpen: false,
+        get isRedJ() {
+          return isRedFormJ
+            || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز'))
+            || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز'));
+        },
+        go(t) { this.tab = t; history.replaceState(null, '', '#' + t); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+     }"
+  x-init="if (!['form','map','history','scans'].includes(tab)) tab = 'form'"
+  style="padding-bottom: 6rem"
+>
+  <!-- Breadcrumb -->
+  <nav style="margin-bottom: 0.75rem; font-size: 0.82rem">
+    <a
+      href="{% url 'dossier_list' %}"
+      style="color: #1e40af; font-weight: 700; text-decoration: none"
+      >← بازگشت به میز کار</a
+    >
+  </nav>
+
+  <!-- Returned banner -->
+  <template x-if="status === 'RETURNED'">
+    <div class="dt-banner warn">
+      <div>
+        <strong>برگشت جهت اصلاح</strong>
+        <span
+          class="fa-num"
+          x-text="' — از مرحله ' + (returnFromStage !== null ? returnFromStage : '') + ' توسط ' + (returnBy || 'کارشناس ممیزی')"
+        ></span>
+        <div style="margin-top: 0.3rem">
+          <b>علت: </b><span x-text="returnReason"></span>
         </div>
+      </div>
+      <div style="font-weight: 700">
+        پس از اصلاح، «تایید و امضای الکترونیکی» را بزنید.
+      </div>
     </div>
-</template>
+  </template>
 
-<!-- Form J Red Disqualification Banner -->
-<template x-if="isRejected || isRedFormJ || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')) || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز'))">
-    <div style="background: #fff1f2; border: 2px solid #ef4444; border-right: 6px solid #dc2626; border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: 1.25rem; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.1);">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-            <div style="display: flex; gap: 0.85rem; align-items: center;">
-                <div style="width: 44px; height: 44px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.4rem;">
-                    🚫
-                </div>
-                <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                        <span style="font-weight: 900; color: #991b1b; font-size: 1.05rem;">
-                            وضعیت استعلام فرم «ج»: فاقد شرایط دریافت مسکن (کد قرمز)
-                        </span>
-                        <span style="background: #dc2626; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;" x-text="isRejected ? 'رد صلاحیت قطعی و بایگانی' : 'فاقد شرایط - ارجاع به رئیس مسکن'"></span>
-                    </div>
-                    <div style="font-size: 0.85rem; color: #7f1d1d; line-height: 1.6;">
-                        <template x-if="!isRejected">
-                            <span>به دلیل سوابق مالکیت ملکی قبلی یا تسهیلات دولتی، متقاضی واجد شرایط نبوده و پرونده جهت صدور ابلاغیه رد صلاحیت و بایگانی قطعی به کارتابل رئیس مسکن ارجاع گردید.</span>
-                        </template>
-                        <template x-if="isRejected">
-                            <span>این پرونده مستند به ابلاغیه رد صلاحیت شماره <strong class="fa-num" x-text="rejectionLetterNumber"></strong> مورخ <strong class="fa-num" x-text="rejectionLetterDate"></strong> به صورت قطعی رد گردیده و هیچ واحد مسکونی به متقاضی واگذار نمی‌شود.</span>
-                        </template>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action buttons for Admin / Housing Chief -->
-            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                <template x-if="isChief || isSuperuser">
-                    <button type="button" 
-                            @click="openRedReturnModal()"
-                            style="padding: 0.6rem 1.25rem; font-size: 0.84rem; font-weight: 800; background: #fef3c7; color: #92400e; border: 1.5px solid #f59e0b; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 1px 4px rgba(245,158,11,0.2); transition: all 0.2s;">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>
-                        <span x-text="isRejected ? 'رفع قفل و بازگشت پرونده جهت اصلاح / استعلام مجدد' : 'بازگشت پرونده جهت اصلاح و استعلام مجدد فرم «ج»'"></span>
-                    </button>
-                </template>
-
-                <template x-if="(isChief || isSuperuser) && !isRejected">
-                    <button type="button" 
-                            @click="openRedRejectionModal()"
-                            style="padding: 0.6rem 1.25rem; font-size: 0.84rem; font-weight: 800; background: #dc2626; color: #ffffff; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(220,38,38,0.35);">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                        <span>صدور ابلاغیه رد صلاحیت و بایگانی قطعی</span>
-                    </button>
-                </template>
-
-                <template x-if="isRejected">
-                    <a :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'" target="_blank"
-                       style="padding: 0.6rem 1.25rem; font-size: 0.84rem; font-weight: 800; background: #991b1b; color: #ffffff; border: none; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(153,27,27,0.35);">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                        <span>چاپ رسمی نامه رد صلاحیت متقاضی</span>
-                    </a>
-                </template>
-            </div>
+  <!-- Red Form J banner -->
+  <template x-if="isRejected || isRedJ">
+    <div class="dt-banner red">
+      <div>
+        <strong>فرم «ج» قرمز — فاقد شرایط دریافت مسکن</strong>
+        <div style="margin-top: 0.25rem">
+          <template x-if="!isRejected"
+            ><span
+              >پرونده جهت صدور ابلاغیه رد صلاحیت به رئیس مسکن ارجاع شده
+              است.</span
+            ></template
+          >
+          <template x-if="isRejected">
+            <span
+              >رد قطعی طبق ابلاغیه
+              <b class="fa-num" x-text="rejectionLetterNumber"></b> مورخ
+              <b class="fa-num" x-text="rejectionLetterDate"></b
+            ></span>
+          </template>
         </div>
+      </div>
+      <span style="font-size: 0.78rem; font-weight: 700"
+        >اقدامات در منوی «بیشتر» نوار پایین</span
+      >
     </div>
-</template>
+  </template>
 
-<!-- Dossier Hero Header Card -->
-<div class="dossier-hero">
-    <div class="dossier-hero-info">
-        <!-- Archive Unique ID Badge (Auto-increment 100001+) -->
-        <div class="archive-id-badge">
-            <span class="label">شماره پرونده بایگانی</span>
-            <span class="value fa-num" x-text="archiveNumber"></span>
-        </div>
+  <!-- Hero (compact) -->
+  <div class="dt-hero">
+    <div>
+      <h2>
+        <span x-text="form.full_name"></span>
+        <small style="font-weight: 400; color: #64748b; font-size: 0.82rem"
+          >فرزند <span x-text="form.father_name"></span
+        ></small>
+      </h2>
+      <div class="dt-meta fa-num">
+        <span>کد ملی: <b x-text="form.national_id"></b></span>
+        <span>پروژه: <b x-text="form.project"></b></span>
+        <span>سایت: <b x-text="form.site"></b></span>
+        <span>واحد: <b x-text="form.unit_number"></b></span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.6rem">
+      <span x-show="isLocked" x-cloak class="dt-meta"
+        ><span style="background: #fef2f2; color: #991b1b"
+          >🔒 قفل نهایی (فقط خواندنی)</span
+        ></span
+      >
+      <div class="dt-id fa-num">#<span x-text="archiveNumber"></span></div>
+    </div>
+  </div>
 
-        <!-- Applicant & Registry Quick Meta -->
-        <div class="applicant-meta-block">
-            <h2>
-                <span x-text="form.full_name"></span>
-                <span style="font-size: 0.85rem; font-weight: normal; color: var(--color-text-muted);">
-                    فرزند <span x-text="form.father_name"></span>
-                </span>
-            </h2>
-            <div class="sub-tags">
-                <span class="meta-chip">
-                    <strong>کد ملی : </strong>
-                    <span class="fa-num" x-text="form.national_id"></span>
-                </span>
-                <span class="meta-chip">
-                    <strong>پروژه: </strong>
-                    <span x-text="form.project"></span>
-                </span>
-                <span class="meta-chip">
-                    <strong>سایت: </strong>
-                    <span x-text="form.site"></span>
-                </span>
-                <span class="meta-chip">
-                    <strong>واحد: </strong>
-                    <span class="fa-num" x-text="form.unit_number"></span>
-                </span>
+  <!-- Slim stepper -->
+  {% include 'components/pipeline_stepper.html' %}
+
+  <!-- Tabs -->
+  <div class="dt-tabs" role="tablist">
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='form'}"
+      @click="go('form')"
+    >
+      📝 فرم پرونده
+    </button>
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='map'}"
+      @click="go('map')"
+    >
+      🗺 نقشه مراحل
+    </button>
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='history'}"
+      @click="go('history')"
+    >
+      ✍ سوابق امضا
+      <span class="dt-count fa-num" x-text="auditLogs.length"></span>
+    </button>
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='scans'}"
+      @click="go('scans')"
+    >
+      📎 اسناد اسکن‌شده
+      <span class="dt-count fa-num" x-text="attachments.length"></span>
+    </button>
+  </div>
+
+  <!-- TAB: form (x-show keeps inputs alive when switching tabs) -->
+  <div x-show="tab === 'form'" id="form-sections">
+    {% include 'components/form_sections.html' %}
+  </div>
+
+  <!-- TAB: stage map -->
+  <div x-show="tab === 'map'" x-cloak>
+    <div class="dt-map">
+      <template x-for="stg in stages" :key="stg.id">
+        <div
+          class="dt-stage"
+          :class="stg.id === currentStage ? 'current' : (stg.id < currentStage ? 'done' : 'todo')"
+          @click="tab = 'form'; $nextTick(() => scrollToActiveSection(getStageGuidance(stg.id).targetSection))"
+        >
+          <span
+            class="fa-num"
+            style="font-weight: 800; color: #1d4ed8"
+            x-text="'مرحله ' + stg.id + (stg.id < currentStage ? ' ✓' : (stg.id === currentStage ? ' ← اینجا' : ''))"
+          ></span>
+          <b x-text="stg.title"></b>
+          <small x-text="stg.role"></small>
+          <template x-if="stg.id < currentStage">
+            <div
+              style="margin-top: 0.35rem; font-size: 0.72rem; color: #166534"
+            >
+              <span
+                x-text="'امضا: ' + (getStageSignature(stg.id)?.actor || 'کارشناس اقدام')"
+              ></span
+              ><br />
+              <span
+                class="fa-num"
+                x-text="getStageSignature(stg.id)?.date || '-'"
+              ></span>
             </div>
+          </template>
         </div>
+      </template>
     </div>
+  </div>
 
-    <!-- Active Stage & Pipeline Status Tag -->
-    <div class="dossier-hero-status">
-        <template x-if="isLocked">
-            <div style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <span>پرونده بایگانی و قفل نهایی گردیده است (فقط خواندنی)</span>
-            </div>
-        </template>
-        <div class="current-stage-tag">
-            <span style="width: 10px; height: 10px; border-radius: 50%; background: #2563eb; display: inline-block;"></span>
-            <span>مرحله فعال: </span>
-            <strong x-text="'مرحله ' + currentStage + ' - ' + (stages[currentStage] ? stages[currentStage].title : '')"></strong>
-        </div>
-    </div>
-</div>
+  <!-- TAB: signature history -->
+  <div x-show="tab === 'history'" x-cloak id="audit-timeline-section">
+    {% include 'components/audit_timeline.html' %}
+  </div>
 
-<!-- 22-Stage Pipeline Stepper Component -->
-{% include 'components/pipeline_stepper.html' %}
-
-<!-- Quick Workspace Navigation Bar -->
-<div class="workspace-quick-nav" style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: #ffffff; padding: 0.65rem 1rem; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-    <a href="#form-sections" class="workspace-nav-pill active" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.95rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; transition: all 0.2s;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-        <span>فهرست فیلدهای فرم قرارداد (مراحل ۰ تا ۲۱)</span>
-    </a>
-    <a href="#audit-timeline-section" @click="showAuditDetails = true" class="workspace-nav-pill" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.95rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; transition: all 0.2s;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-        <span>سوابق امضاها و گردش کار</span>
-        <span class="fa-num" style="background: #e2e8f0; color: #334155; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 10px;" x-text="auditLogs.length"></span>
-    </a>
-    <a href="#scans-album-section" class="workspace-nav-pill" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.95rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; transition: all 0.2s;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        <span>آلبوم اسناد و مدارک اسکن‌شده</span>
-        <span class="fa-num" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; padding: 0.1rem 0.5rem; border-radius: 10px; font-weight: 700;" x-text="attachments.length + ' سند'"></span>
-    </a>
-</div>
-
-<!-- Main Workspace Layout (Full-Width Form & Audit Timeline) -->
-<div class="workspace-grid" style="display: block; width: 100%;">
-    <div class="main-form-column" id="form-sections" style="width: 100%;">
-        {% include 'components/form_sections.html' %}
-        
-        <!-- Audit Trail / Signatures History Timeline -->
-        <div id="audit-timeline-section" style="margin-top: 1.5rem;">
-            {% include 'components/audit_timeline.html' %}
-        </div>
-    </div>
-</div>
-
-<!-- Full-Width Digital Document Album & Scan Archive at the end of the page -->
-<section id="scans-album-section" style="margin-top: 2rem;">
+  <!-- TAB: scanned documents -->
+  <div x-show="tab === 'scans'" x-cloak id="scans-album-section">
     {% include 'components/attachments_card.html' %}
-</section>
+  </div>
 
-<!-- Full 3-Question Clarity Guide at Bottom of Page -->
-<div style="margin-bottom: 7rem;">
-    {% include 'components/stage_clarity_guide.html' %}
-</div>
-
-<!-- Sticky Workflow Bottom Action Bar -->
-<div class="sticky-action-bar" x-cloak>
+  <!-- Sticky action bar (simplified: 3 main actions + "More" menu) -->
+  <div class="sticky-action-bar" x-cloak>
     <div class="action-bar-container">
-        <!-- Stage Status Description -->
-        <div class="action-status-hint">
-            <span class="role-pill" :class="stages[currentStage] ? stages[currentStage].unit : 'brokerage'" x-text="stages[currentStage] ? stages[currentStage].role : ''"></span>
-            <span style="font-weight: 600;">اقدام مرحله جاری: </span>
-            <span x-text="stages[currentStage] ? stages[currentStage].title : ''"></span>
+      <div class="action-status-hint">
+        <span
+          class="role-pill"
+          :class="stages[currentStage] ? stages[currentStage].unit : 'brokerage'"
+          x-text="stages[currentStage] ? stages[currentStage].role : ''"
+        ></span>
+        <span
+          x-text="stages[currentStage] ? stages[currentStage].title : ''"
+        ></span>
+      </div>
+
+      <div class="action-buttons-group">
+        <div
+          x-show="!userCanAction && !isLocked"
+          x-cloak
+          style="
+            display: none;
+            background: #fffbeb;
+            color: #92400e;
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid #fde68a;
+          "
+        >
+          🔒 فقط خواندنی: اقدام مختص کارشناس مربوطه یا رئیس مسکن است.
         </div>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons-group">
-            <!-- Read-only warning if user cannot action -->
-            <div x-show="!userCanAction && !isLocked" x-cloak style="display: none; align-items: center; gap: 0.5rem; background: #fffbeb; color: #92400e; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; border: 1px solid #fde68a;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <span>حالت فقط خواندنی: اقدام در این مرحله مختص کارشناس مربوطه یا رئیس مسکن است.</span>
-            </div>
-
-            <!-- Stage 20 & 21 Print Notary Letter Button -->
-            <a href="{% url 'notary_letter_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-print" x-show="currentStage >= 20" x-cloak style="display: none;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                </svg>
-                <span>چاپ معرفی‌نامه محضر (مرحله ۲۰)</span>
-            </a>
-
-            <!-- Stage 21 Final Dossier Print Summary -->
-            <a href="{% url 'dossier_summary_print' pk=dossier.archive_number %}" target="_blank" class="btn btn-outline" x-show="currentStage === 21 || isLocked" x-cloak style="display: none;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <span>چاپ شناسنامه جامع بایگانی (مرحله ۲۱)</span>
-            </a>
-
-            <!-- Return for Correction -->
-            <button type="button" class="btn btn-warning" 
-                    x-show="currentStage > 0 && userCanAction && !isLocked"
-                    x-cloak style="display: none;"
-                    @click="openReturnModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 14 4 9 9 4"></polyline>
-                    <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
-                </svg>
-                <span>برگشت جهت اصلاح...</span>
+        <!-- More menu -->
+        <div class="dt-more" @click.outside="moreOpen = false">
+          <button
+            type="button"
+            class="btn btn-outline"
+            @click="moreOpen = !moreOpen"
+          >
+            ⋯ بیشتر
+          </button>
+          <div class="dt-menu" x-show="moreOpen" x-cloak style="display: none">
+            <a
+              href="{% url 'dossier_summary_print' pk=dossier.archive_number %}"
+              target="_blank"
+              >🖨 چاپ فرم مراحل و امضاها (۱۴ امضا)</a
+            >
+            <a
+              href="{% url 'notary_letter_print' pk=dossier.archive_number %}"
+              target="_blank"
+              x-show="currentStage >= 20"
+              x-cloak
+              >🖨 چاپ معرفی‌نامه محضر</a
+            >
+            <a
+              :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'"
+              target="_blank"
+              x-show="isRejected"
+              x-cloak
+              class="danger"
+              >🖨 چاپ ابلاغیه رد صلاحیت</a
+            >
+            <button
+              type="button"
+              class="danger"
+              x-show="(isChief || isSuperuser) && !isRejected && isRedJ"
+              x-cloak
+              @click="moreOpen=false; openRedRejectionModal()"
+            >
+              ⛔ صدور ابلاغیه رد صلاحیت
             </button>
-
-            <!-- Save Draft -->
-            <button type="button" class="btn btn-outline" 
-                    x-show="userCanAction && !isLocked"
-                    x-cloak style="display: none;"
-                    @click="saveDossierDraft()" :disabled="isSaving" style="display: flex; align-items: center; gap: 0.4rem;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                </svg>
-                <span x-text="isSaving ? 'در حال ذخیره‌سازی...' : 'ذخیره پیش‌نویس اطلاعات'"></span>
-            </button>
-
-            <!-- Red Form J Rejection Print Button -->
-            <a :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'" target="_blank" class="btn btn-outline" x-show="isRejected" x-cloak style="display: none; color: #dc2626; border-color: #fca5a5; align-items: center; gap: 0.4rem;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                <span>چاپ ابلاغیه رد صلاحیت (فرم «ج» قرمز)</span>
-            </a>
-
-            <!-- Red Form J Rejection Button for Admin -->
-            <button type="button" class="btn" 
-                    x-show="(isChief || isSuperuser) && !isRejected && (isRedFormJ || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')) || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')))"
-                    x-cloak style="display: none; background: #dc2626; color: #fff; font-weight: 800; border: none; align-items: center; gap: 0.4rem;"
-                    @click="openRedRejectionModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                <span>صدور ابلاغیه رد صلاحیت (فرم ج قرمز)</span>
-            </button>
-
-            <!-- Red Form J Return Button for Admin / Chief -->
-            <button type="button" class="btn btn-warning" 
-                    x-show="(isChief || isSuperuser) && (isRejected || isRedFormJ || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')) || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')))"
-                    x-cloak style="display: none; align-items: center; gap: 0.4rem; background: #d97706; color: #fff; border-color: #b45309; font-weight: 700;"
-                    @click="openRedReturnModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></svg>
-                <span x-text="isRejected ? 'رفع قفل و بازگشت پرونده جهت اصلاح' : 'بازگشت جهت اصلاح فرم «ج»'"></span>
-            </button>
-
-            <!-- Electronic Signature & Forward Button (hidden if rejected) -->
-            <button type="button" class="btn btn-success" 
-                    x-show="userCanAction && !isLocked && !isRejected"
-                    x-cloak style="display: none;"
-                    @click="openSignatureModal()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                <span x-text="currentStage === 21 ? 'تایید و بایگانی قطعی پرونده' : 'تایید و امضای الکترونیکی'"></span>
-            </button>
+            <button
+              type="button"
+              x-show="(isChief || isSuperuser) && (isRejected || isRedJ)"
+              x-cloak
+              @click="moreOpen=false; openRedReturnModal()"
+              x-text="isRejected ? '↩ رفع قفل و بازگشت جهت اصلاح' : '↩ بازگشت جهت اصلاح فرم «ج»'"
+            ></button>
+          </div>
         </div>
+
+        <button
+          type="button"
+          class="btn btn-warning"
+          x-show="currentStage > 0 && userCanAction && !isLocked"
+          x-cloak
+          style="display: none"
+          @click="openReturnModal()"
+        >
+          <span>↩ برگشت جهت اصلاح</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-outline"
+          x-show="userCanAction && !isLocked"
+          x-cloak
+          style="display: none"
+          @click="saveDossierDraft()"
+          :disabled="isSaving"
+        >
+          <span
+            x-text="isSaving ? 'در حال ذخیره...' : '💾 ذخیره پیش‌نویس'"
+          ></span>
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-success"
+          x-show="userCanAction && !isLocked && !isRejected"
+          x-cloak
+          style="display: none"
+          @click="openSignatureModal()"
+        >
+          <span
+            x-text="currentStage === 21 ? '✓ تایید و بایگانی قطعی' : '✓ تایید و امضای الکترونیکی'"
+          ></span>
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
-<!-- Action Modals (Signature, Return, Scan Viewer & Persian Date Picker) -->
-{% include 'components/modals/workflow_modals.html' %}
-{% include 'components/modals/scan_viewer_modal.html' %}
-{% include 'components/modals/date_picker_modal.html' %}
-
-{% endblock %}
+<!-- Modals -->
+{% include 'components/modals/workflow_modals.html' %} {% include
+'components/modals/scan_viewer_modal.html' %} {% include
+'components/modals/date_picker_modal.html' %} {% endblock %}

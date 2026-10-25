@@ -2,7 +2,7 @@
 <div class="form-sections-wrapper">
 
     <!-- Stage 0 Auto-Lookup Fast Query Banner -->
-    <div class="stage0-lookup-box" x-show="currentStage === 0">
+    <div class="stage0-lookup-box" x-show="currentStage === 9 || currentStage === 10">
         <div class="lookup-text">
             <h4>واکشی خودکار اطلاعات متقاضی، همسر و انتخاب واحد (مرحله ۰)</h4>
             <p>با ورود کدملی ۱۰ رقمی متقاضی، مشخصات سجلی متقاضی و همسر، سایت، پروژه و واحد مسکونی بارگذاری می‌گردد.</p>
@@ -26,9 +26,33 @@
                 <span>بخش ۱: اطلاعات متقاضی، استعلام فرم «ج»، پروژه و واحد مسکونی (مرحله ۰)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <!-- Section Attachments & Quick Uploads -->
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <template x-if="isUploadAllowed()">
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <label class="btn-header-upload" title="بارگذاری اسکن کارت ملی متقاضی">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <span>+ کارت ملی</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('NATIONAL_ID', 'اسکن کارت ملی متقاضی', $event)">
+                            </label>
+                            <label class="btn-header-upload" title="بارگذاری برگه تاییدشده انتخاب واحد">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                <span>+ انتخاب واحد</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('UNIT_SELECTION', 'برگه انتخاب واحد تاییدشده', $event)">
+                            </label>
+                        </div>
+                    </template>
+                    <template x-if="getSectionAttachments(['NATIONAL_ID', 'UNIT_SELECTION']).length > 0">
+                        <button type="button" class="btn-header-docs" @click="scrollToCategory('identity')" title="مشاهده اسناد هویتی متقاضی در آلبوم پرونده">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <span>مدارک پیوست (<span class="fa-num" x-text="getSectionAttachments(['NATIONAL_ID', 'UNIT_SELECTION']).length"></span>)</span>
+                        </button>
+                    </template>
+                </div>
+
                 <template x-if="isSectionActive('section-applicant')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
@@ -39,7 +63,7 @@
         <div class="form-section-body">
             <!-- Sub-group: مشخصات فردی و هویتی متقاضی -->
             <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
-                <span>👤</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <span>مشخصات فردی، تماسی و استعلام فرم «ج» متقاضی (سرپرست خانوار)</span>
             </div>
             <div class="fields-grid" style="margin-bottom: 1.25rem;">
@@ -108,54 +132,162 @@
                     </select>
                 </div>
 
-                <!-- 8. applicant_form_j_status -->
-                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('applicant_form_j_status')}">
-                    <label class="field-label">
-                        <span>وضعیت استعلام فرم «ج» متقاضی</span>
-                        <span class="helper-badge" :style="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">فرم ج</span>
-                    </label>
-                    <select class="input-control" x-model="form.applicant_form_j_status" :disabled="!isFieldEditable('applicant_form_j_status')">
-                        <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
-                        <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
-                        <option value="در حال استعلام">در حال استعلام</option>
-                    </select>
-                </div>
-
-                <!-- 9. applicant_form_j_directorate_status -->
-                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('applicant_form_j_directorate_status')}">
-                    <label class="field-label">
-                        <span>استعلام اداره کل متقاضی</span>
-                        <span class="helper-badge text-blue-700">سامانه اداره کل</span>
-                    </label>
-                    <select class="input-control" x-model="form.applicant_form_j_directorate_status" :disabled="!isFieldEditable('applicant_form_j_directorate_status')">
-                        <option value="تایید نهایی اداره کل">تایید نهایی اداره کل</option>
-                        <option value="در حال بررسی">در حال بررسی</option>
-                        <option value="عدم تایید اداره کل">عدم تایید اداره کل</option>
-                    </select>
-                </div>
             </div>
 
-            <!-- Dynamic Red Code Alert Box for Applicant -->
-            <div x-show="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')"
-                 x-cloak
-                 style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-bottom: 1.25rem;"
-                 x-transition>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 1.1rem;">⚠️</span>
-                    <strong style="color: #991b1b; font-size: 0.88rem;">هشدار کد قرمز فرم «ج» متقاضی: دارای سابقه مالکیت دولتی یا فاقد شرایط</strong>
+            <!-- =========================================================================
+                 DEDICATED FORM J OFFICIAL INQUIRY & UPLOAD DOCUMENT CARD (مراحل ۳ و ۱۶)
+                 ========================================================================= -->
+            <div id="form-j-dedicated-card" style="margin: 1.25rem 0; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border: 1.5px solid #86efac; border-radius: 12px; padding: 1.25rem; box-shadow: 0 4px 14px rgba(22, 101, 52, 0.06);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px dashed #bbf7d0; padding-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-weight: 800;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; font-size: 0.95rem; color: #14532d; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>استعلام رسمی و بارگذاری صفحه فرم «ج» اداره کل</span>
+                                <span class="fa-num" style="font-size: 0.72rem; background: #bbf7d0; color: #166534; padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 700;">مراحل ۳ و ۱۶</span>
+                            </div>
+                            <div style="font-size: 0.76rem; color: #166534; margin-top: 2px;">
+                                بررسی وضعیت عدم مالکیت دولتی متقاضی و همسر، استعلام سوابق و بارگذاری برگه چاپی استعلام فرم ج
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Action Button -->
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <input type="file" 
+                               id="form-j-upload-input" 
+                               style="display: none;" 
+                               accept="image/*,application/pdf"
+                               @change="uploadSectionAttachment('FORM_J', 'تصویر و استعلام رسمی فرم (ج) اداره کل', $event)">
+
+                        <button type="button" 
+                                onclick="document.getElementById('form-j-upload-input').click()"
+                                class="btn btn-primary"
+                                style="background: #16a34a; border-color: #15803d; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);"
+                                :disabled="!isFieldEditable('applicant_form_j_status') && !isChief && !isSuperuser"
+                                title="بارگذاری فایل تصویر یا PDF استعلام فرم ج اداره کل">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span x-text="hasFormJ() ? 'بارگذاری مجدد / جایگزینی فرم ج' : 'بارگذاری صفحه استعلام فرم ج'"></span>
+                        </button>
+                    </div>
                 </div>
-                <label class="field-label" style="color: #7f1d1d; margin-bottom: 4px;">
-                    <span>علت و توضیحات تفصیلی کد قرمز متقاضی (سوابق زمین، مسکن مهر یا تسهیلات دولتی قبلی):</span>
-                </label>
-                <textarea class="input-control" rows="2" 
-                          x-model="form.applicant_form_j_red_description"
-                          :readonly="!isFieldEditable('applicant_form_j_red_description')"
-                          placeholder="توضیحات استعلام سوابق مسکن متقاضی، پلاک ثبتی یا زمین واگذاری قبلی..."></textarea>
+
+                <!-- 2-Column Layout: Status Selectors on Right, Document Preview Thumbnail on Left -->
+                <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; align-items: start;">
+                    <!-- Right Sub-Column: Form J Statuses & Fields -->
+                    <div>
+                        <div class="fields-grid" style="grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <!-- applicant_form_j_status -->
+                            <div class="field-group" :class="{'field-locked': !isFieldEditable('applicant_form_j_status')}">
+                                <label class="field-label" style="font-size: 0.82rem;">
+                                    <span>وضعیت فرم ج متقاضی</span>
+                                    <span class="helper-badge" :style="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">
+                                        <span x-text="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'کد قرمز' : 'کد سبز'"></span>
+                                    </span>
+                                </label>
+                                <select class="input-control" x-model="form.applicant_form_j_status" :disabled="!isFieldEditable('applicant_form_j_status')" style="font-size: 0.84rem;">
+                                    <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
+                                    <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
+                                    <option value="در حال استعلام">در حال استعلام</option>
+                                </select>
+                            </div>
+
+                            <!-- applicant_form_j_directorate_status -->
+                            <div class="field-group" :class="{'field-locked': !isFieldEditable('applicant_form_j_directorate_status')}">
+                                <label class="field-label" style="font-size: 0.82rem;">
+                                    <span>استعلام سامانه اداره کل</span>
+                                    <span class="helper-badge text-blue-700">سامانه جامع</span>
+                                </label>
+                                <select class="input-control" x-model="form.applicant_form_j_directorate_status" :disabled="!isFieldEditable('applicant_form_j_directorate_status')" style="font-size: 0.84rem;">
+                                    <option value="تایید نهایی اداره کل">تایید نهایی اداره کل</option>
+                                    <option value="در حال بررسی">در حال بررسی</option>
+                                    <option value="عدم تایید اداره کل">عدم تایید اداره کل</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Red Code Alert Box for Applicant -->
+                        <div x-show="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')"
+                             x-cloak
+                             style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-bottom: 0.5rem;"
+                             x-transition>
+                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                <strong style="color: #991b1b; font-size: 0.84rem;">هشدار کد قرمز فرم «ج» متقاضی (سوابق زمین / مسکن دولتی)</strong>
+                            </div>
+                            <textarea class="input-control" rows="2" 
+                                      x-model="form.applicant_form_j_red_description"
+                                      :readonly="!isFieldEditable('applicant_form_j_red_description')"
+                                      style="font-size: 0.82rem; background: #ffffff;"
+                                      placeholder="علت و توضیحات استعلام سوابق مسکن متقاضی، پلاک ثبتی یا زمین واگذاری قبلی..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Left Sub-Column: Document Thumbnail Preview Card -->
+                    <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; justify-content: center; min-height: 120px;">
+                        <!-- Case A: Form J Attachment Exists -->
+                        <template x-if="hasFormJ()">
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <div style="width: 70px; height: 95px; border-radius: 6px; border: 1px solid #cbd5e1; overflow: hidden; background: #f8fafc; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08); position: relative;"
+                                     @click="openScanViewer(getFormJAttachment())"
+                                     title="کلیک جهت مشاهده در ابعاد بزرگ">
+                                    <template x-if="isPdfFile(getFormJAttachment())">
+                                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #fee2e2; color: #dc2626;">
+                                            <span style="font-weight: 900; font-size: 0.74rem;">PDF</span>
+                                        </div>
+                                    </template>
+                                    <template x-if="!isPdfFile(getFormJAttachment())">
+                                        <img :src="getFormJAttachment().preview_url" 
+                                             alt="فرم ج" 
+                                             style="width: 100%; height: 100%; object-fit: cover;">
+                                    </template>
+                                    <div style="position: absolute; bottom: 0; inset-inline: 0; background: rgba(15,23,42,0.65); color: #fff; font-size: 0.65rem; text-align: center; padding: 1px 0;">
+                                        بزرگنمایی
+                                    </div>
+                                </div>
+                                <div style="flex: 1; font-size: 0.78rem; line-height: 1.6; color: #334155;">
+                                    <div style="font-weight: 800; color: #0f2744; font-size: 0.82rem; margin-bottom: 2px;" x-text="getFormJAttachment().title || 'تصویر استعلام فرم ج'"></div>
+                                    <div style="color: #64748b; font-size: 0.72rem;">
+                                        <span>تاریخ بارگذاری: </span>
+                                        <span class="fa-num" x-text="getFormJAttachment().uploadDate"></span>
+                                    </div>
+                                    <div style="color: #64748b; font-size: 0.72rem;">
+                                        <span>کارشناس: </span>
+                                        <span x-text="getFormJAttachment().uploader"></span>
+                                    </div>
+                                    <button type="button" 
+                                            @click="openScanViewer(getFormJAttachment())"
+                                            style="margin-top: 5px; padding: 0.25rem 0.6rem; font-size: 0.74rem; font-weight: 700; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <span>مشاهده تصویر فرم ج</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Case B: Form J Attachment NOT Yet Uploaded -->
+                        <template x-if="!hasFormJ()">
+                            <div style="text-align: center; padding: 0.75rem 0.5rem; color: #64748b;">
+                                <div style="width: 38px; height: 38px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.4rem auto; color: #94a3b8; border: 1px dashed #cbd5e1;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                                </div>
+                                <div style="font-weight: 700; font-size: 0.8rem; color: #475569;">سند اسکن فرم «ج» بارگذاری نشده است</div>
+                                <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">جهت الصاق سند، از دکمه سبز رنگ بالا استفاده فرمایید.</div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
 
             <!-- Sub-group: مشخصات سایت، پروژه و واحد مسکونی -->
             <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 0.85rem;">
-                <span>🏢</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;"><path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M10 11h2M10 15h2M14 11h2M14 15h2M18 11h2M18 15h2M9 7V3h6v4"></path></svg>
                 <span>مشخصات سایت، پروژه و واحد مسکونی</span>
             </div>
             <div class="fields-grid">
@@ -301,9 +433,26 @@
                 </span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <!-- Spouse Attachments & Quick Upload -->
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <template x-if="isUploadAllowed()">
+                        <label class="btn-header-upload" title="بارگذاری مدارک هویتی و سجلی همسر">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span>+ مدارک همسر</span>
+                            <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('SPOUSE_ID', 'اسکن مدارک هویتی همسر متقاضی', $event)">
+                        </label>
+                    </template>
+                    <template x-if="getSectionAttachments(['SPOUSE_ID']).length > 0">
+                        <button type="button" class="btn-header-docs" @click="scrollToCategory('identity')" title="مشاهده مدارک هویتی همسر در آلبوم پرونده">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <span>مدارک همسر (<span class="fa-num" x-text="getSectionAttachments(['SPOUSE_ID']).length"></span>)</span>
+                        </button>
+                    </template>
+                </div>
+
                 <template x-if="isSectionActive('section-spouse')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
@@ -315,7 +464,7 @@
             <!-- Alert banner about couples condition -->
             <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.2rem;">💍</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                     <span style="font-size: 0.88rem; color: #065f46; font-weight: 600;">
                         تطبیق ضوابط: این طرح مشمول زوجین قانونی است و افراد مجرد مجاز به دریافت واحد نمی‌باشند. کلیه مشخصات سجلی همسر استعلام و در قرارداد نهایی درج می‌گردد.
                     </span>
@@ -411,7 +560,7 @@
                  style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-top: 14px;"
                  x-transition>
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <span style="font-size: 1.1rem;">⚠️</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                     <strong style="color: #991b1b; font-size: 0.88rem;">هشدار کد قرمز فرم «ج» همسر: فاقد شرایط واگذاری دولتی</strong>
                 </div>
                 <label class="field-label" style="color: #7f1d1d; margin-bottom: 4px;">
@@ -436,13 +585,30 @@
                 <span>بخش ۲: کنترل و ورود اطلاعات ثبتی عرصه و پلاک (مراحل ۱ و ۱۲)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <!-- Plot & Cadastre Quick Upload -->
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <template x-if="isUploadAllowed()">
+                        <label class="btn-header-upload" title="بارگذاری اسکن سند مالکیت تک‌برگ کاداستری عرصه">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <span>+ سند کاداستری عرصه</span>
+                            <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('TITLE_DEED', 'اسکن سند مالکیت تک‌برگ کاداستری', $event)">
+                        </label>
+                    </template>
+                    <template x-if="getSectionAttachments(['TITLE_DEED']).length > 0">
+                        <button type="button" class="btn-header-docs" @click="scrollToCategory('deed')" title="مشاهده اسناد ثبتی و کاداستر در آلبوم پرونده">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <span>سند ثبتی (<span class="fa-num" x-text="getSectionAttachments(['TITLE_DEED']).length"></span>)</span>
+                        </button>
+                    </template>
+                </div>
+
                 <template x-if="isSectionActive('section-plot')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge" :class="isFieldEditable('registration_section') ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 1 ? 'مرحله ۱: کارشناسی اطلاعات' : (currentStage === 12 ? 'مرحله ۱۲: کارشناس فنی اداره کل' : 'ثبت‌شده')"></span>
+                    <span x-text="currentStage === 9 || currentStage === 10 ? 'مرحله ۱: کارشناسی اطلاعات' : (currentStage === 9 || currentStage === 102 ? 'مرحله ۱۲: کارشناس فنی اداره کل' : 'ثبت‌شده')"></span>
                 </div>
             </div>
         </div>
@@ -485,11 +651,11 @@
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-cost')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge" :class="isFieldEditable('base_cost_without_loan') ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 2 ? 'مرحله ۲: ورود مالی کارگزاری' : 'قفل شده'"></span>
+                    <span x-text="currentStage === 9 || currentStage === 10 ? 'مرحله ۲: ورود مالی کارگزاری' : 'قفل شده'"></span>
                 </div>
             </div>
         </div>
@@ -519,9 +685,13 @@
                         </div>
                     </div>
                     <div class="currency-input-wrapper">
-                        <input type="number" class="input-control fa-num" 
-                               x-model="form.bank_loan_amount" 
-                               :readonly="!isFieldEditable('bank_loan_amount')">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800; font-size: 0.95rem; color: #1e3a8a;"
+                               :value="form.bank_loan_amount ? formatNumber(form.bank_loan_amount) : ''"
+                               @input="updateFormattedAmount(form, 'bank_loan_amount', $event); recalculateEquity()"
+                               @blur="formatAmountOnBlur(form, 'bank_loan_amount', $event)"
+                               :readonly="!isFieldEditable('bank_loan_amount')"
+                               placeholder="۰">
                         <span class="currency-unit-tag">ریال</span>
                     </div>
                     <div class="currency-word-display" x-show="form.bank_loan_amount">
@@ -536,10 +706,13 @@
                         <span><span class="required-mark">*</span>قیمت تمام شده واحد بدون احتساب وام بانکی (ریال)</span>
                     </label>
                     <div class="currency-input-wrapper">
-                        <input type="number" class="input-control fa-num" 
-                               x-model="form.base_cost_without_loan" 
-                               @input="recalculateEquity()"
-                               :readonly="!isFieldEditable('base_cost_without_loan')">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800; font-size: 0.95rem; color: #0f172a;"
+                               :value="form.base_cost_without_loan ? formatNumber(form.base_cost_without_loan) : ''"
+                               @input="updateFormattedAmount(form, 'base_cost_without_loan', $event); recalculateEquity()"
+                               @blur="formatAmountOnBlur(form, 'base_cost_without_loan', $event)"
+                               :readonly="!isFieldEditable('base_cost_without_loan')"
+                               placeholder="۰">
                         <span class="currency-unit-tag">ریال</span>
                     </div>
                     <div class="currency-word-display" x-show="form.base_cost_without_loan">
@@ -552,7 +725,7 @@
             <!-- Total Estimated Price Summary Card -->
             <div style="margin-top: 1rem; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
                 <div style="display: flex; align-items: center; gap: 0.65rem;">
-                    <span style="font-size: 1.35rem;">💰</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="6" x2="12" y2="18"></line></svg>
                     <div>
                         <div style="font-size: 0.82rem; color: #64748b; font-weight: 600;">فرمول برآورد کل قیمت واحد مسکونی:</div>
                         <div style="font-size: 0.88rem; color: #0f172a; font-weight: 700;">
@@ -585,7 +758,7 @@
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-loans')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge editable">
@@ -602,10 +775,13 @@
                         <span class="helper-badge text-blue-700">وام صندوق مسکن</span>
                     </label>
                     <div class="currency-input-wrapper">
-                        <input type="number" class="input-control fa-num" 
-                               x-model="form.fund_loan_amount" 
-                               @input="recalculateEquity()"
-                               :readonly="!isFieldEditable('fund_loan_amount')">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800; color: #1d4ed8;"
+                               :value="form.fund_loan_amount ? formatNumber(form.fund_loan_amount) : ''"
+                               @input="updateFormattedAmount(form, 'fund_loan_amount', $event); recalculateEquity()"
+                               @blur="formatAmountOnBlur(form, 'fund_loan_amount', $event)"
+                               :readonly="!isFieldEditable('fund_loan_amount')"
+                               placeholder="۰">
                         <span class="currency-unit-tag">ریال</span>
                     </div>
                 </div>
@@ -617,9 +793,13 @@
                         <span class="helper-badge text-emerald-700">تایید اداره کل</span>
                     </label>
                     <div class="currency-input-wrapper">
-                        <input type="number" class="input-control fa-num" 
-                               x-model="form.contractor_letter_amount" 
-                               :readonly="!isFieldEditable('contractor_letter_amount')">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800; color: #047857;"
+                               :value="form.contractor_letter_amount ? formatNumber(form.contractor_letter_amount) : ''"
+                               @input="updateFormattedAmount(form, 'contractor_letter_amount', $event)"
+                               @blur="formatAmountOnBlur(form, 'contractor_letter_amount', $event)"
+                               :readonly="!isFieldEditable('contractor_letter_amount')"
+                               placeholder="۰">
                         <span class="currency-unit-tag">ریال</span>
                     </div>
                 </div>
@@ -631,10 +811,13 @@
                         <span class="helper-badge text-purple-700">تسهیلات دهک درآمدی</span>
                     </label>
                     <div class="currency-input-wrapper">
-                        <input type="number" class="input-control fa-num" 
-                               x-model="form.decile_loan_amount" 
-                               @input="recalculateEquity()"
-                               :readonly="!isFieldEditable('decile_loan_amount')">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800; color: #6b21a8;"
+                               :value="form.decile_loan_amount ? formatNumber(form.decile_loan_amount) : ''"
+                               @input="updateFormattedAmount(form, 'decile_loan_amount', $event); recalculateEquity(); recalculateChecks()"
+                               @blur="formatAmountOnBlur(form, 'decile_loan_amount', $event)"
+                               :readonly="!isFieldEditable('decile_loan_amount')"
+                               placeholder="۰">
                         <span class="currency-unit-tag">ریال</span>
                     </div>
                 </div>
@@ -654,7 +837,7 @@
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-equity')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge" style="background: #dcfce7; color: #15803d;">
@@ -666,7 +849,7 @@
             <div class="fields-grid">
                 <div class="field-group col-6 field-locked">
                     <label class="field-label">
-                        <span><span class="required-mark">⚡</span>مبلغ آورده نقدی متقاضی (محاسبه خودکار)</span>
+                        <span><span class="required-mark" style="color: #0284c7; font-weight: bold;">*</span>مبلغ آورده نقدی متقاضی (محاسبه خودکار)</span>
                         <span class="helper-badge">قیمت تمام‌شده منهای وام صندوق و دهک</span>
                     </label>
                     <div class="currency-input-wrapper">
@@ -720,12 +903,36 @@
                     <line x1="16" y1="2" x2="16" y2="6"></line>
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                 </svg>
-                <span>بخش ۶: ارسال و درج شماره نامه بانک و استعلام تسهیلات (مراحل ۸ و ۱۱)</span>
+                <span>بخش ۶: ارسال و درج شماره نامه بانک و استعلام تسهیلات (مراحل ۱۱ و ۱۳)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <!-- Bank Attachments & Quick Upload -->
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <template x-if="isUploadAllowed()">
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <label class="btn-header-upload" title="بارگذاری اسکن نامه معرفی بانک مسکن">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                <span>+ نامه بانک مسکن</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('BANK_LETTER', 'اسکن نامه معرفی بانک مسکن', $event)">
+                            </label>
+                            <label class="btn-header-upload" title="بارگذاری اسکن دفترچه اقساط بانک">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                                <span>+ دفترچه اقساط</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('BANK_BOOKLET', 'اسکن دفترچه اقساط بانک مسکن', $event)">
+                            </label>
+                        </div>
+                    </template>
+                    <template x-if="getSectionAttachments(['BANK_LETTER', 'BANK_BOOKLET']).length > 0">
+                        <button type="button" class="btn-header-docs" @click="scrollToCategory('bank')" title="مشاهده اسناد بانکی در آلبوم پرونده">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <span>مدارک بانکی (<span class="fa-num" x-text="getSectionAttachments(['BANK_LETTER', 'BANK_BOOKLET']).length"></span>)</span>
+                        </button>
+                    </template>
+                </div>
+
                 <template x-if="isSectionActive('section-bank')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge editable">
@@ -736,12 +943,41 @@
         <div class="form-section-body">
             <div class="fields-grid">
                 <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_number')}">
-                    <label class="field-label"><span>شماره نامه بانک (مرحله ۸)</span></label>
+                    <label class="field-label"><span>شماره نامه رسمی معرفی به بانک (مرحله ۱۱)</span></label>
                     <input type="text" class="input-control fa-num" x-model="form.bank_letter_number" :readonly="!isFieldEditable('bank_letter_number')">
                 </div>
                 <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_date')}">
                     <label class="field-label"><span>تاریخ نامه بانک (شمسی)</span></label>
                     <input type="text" class="input-control fa-num" x-model="form.bank_letter_date" :readonly="!isFieldEditable('bank_letter_date')">
+                </div>
+
+                <!-- Verified Bank Letter Status Box -->
+                <div class="col-12" style="margin-top: 0.65rem;">
+                    <div style="padding: 0.85rem 1.15rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s;"
+                         :style="form.is_sent_to_bank ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                <input type="checkbox" id="chk_is_sent_to_bank" x-model="form.is_sent_to_bank" :disabled="!isFieldEditable('bank_letter_number')" style="width: 19px; height: 19px; accent-color: #10b981; cursor: pointer;">
+                                <label for="chk_is_sent_to_bank" style="font-weight: 800; font-size: 0.88rem; cursor: pointer;">
+                                    <span x-show="form.is_sent_to_bank">نامه معرفی متقاضی به بانک مسکن صادر و ارسال گردیده است</span>
+                                    <span x-show="!form.is_sent_to_bank">در انتظار صدور و ارسال نامه معرفی به بانک مسکن</span>
+                                </label>
+                            </div>
+                            <template x-if="form.is_sent_to_bank && (form.bank_letter_number || form.bank_sent_letter_number)">
+                                <div style="display: flex; align-items: center; gap: 0.85rem; font-size: 0.8rem; background: #ffffff; padding: 0.35rem 0.85rem; border-radius: 6px; border: 1px solid #bbf7d0;" class="fa-num">
+                                    <span>شماره نامه: <strong style="color: #0f172a;" x-text="form.bank_letter_number || form.bank_sent_letter_number"></strong></span>
+                                    <span>تاریخ نامه: <strong style="color: #0f172a;" x-text="form.bank_letter_date || form.bank_sent_date"></strong></span>
+                                    <a :href="'{% url 'bank_letter_sender' %}?letter=' + encodeURIComponent(form.bank_letter_number || form.bank_sent_letter_number)" 
+                                       target="_blank"
+                                       style="margin-right: 0.5rem; text-decoration: none; font-size: 0.74rem; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 3px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #bae6fd;"
+                                       title="مشاهده و چاپ برگه رسمی نامه بانک این متقاضی">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <span>مشاهده برگه و سوابق نامه بانک</span>
+                                    </a>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -759,11 +995,11 @@
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-valuation')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge" :class="[17, 19].includes(currentStage) ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 17 ? 'ویرایش ارزیابی اداره کل (مرحله ۱۷)' : (currentStage === 19 ? 'تسویه پیمانکار (مرحله ۱۹)' : 'ممیزی اداره کل')"></span>
+                    <span x-text="currentStage === 9 || currentStage === 107 ? 'ویرایش ارزیابی اداره کل (مرحله ۱۷)' : (currentStage === 9 || currentStage === 109 ? 'تسویه پیمانکار (مرحله ۱۹)' : 'ممیزی اداره کل')"></span>
                 </div>
             </div>
         </div>
@@ -775,11 +1011,29 @@
                 </div>
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('past_years_rent')}">
                     <label class="field-label"><span>اجاره سنوات تا پایان سال جاری (ریال)</span></label>
-                    <input type="number" class="input-control fa-num" x-model="form.past_years_rent" :readonly="!isFieldEditable('past_years_rent')">
+                    <div class="currency-input-wrapper">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800;"
+                               :value="form.past_years_rent ? formatNumber(form.past_years_rent) : ''"
+                               @input="updateFormattedAmount(form, 'past_years_rent', $event)"
+                               @blur="formatAmountOnBlur(form, 'past_years_rent', $event)"
+                               :readonly="!isFieldEditable('past_years_rent')"
+                               placeholder="۰">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
                 </div>
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('current_year_rent')}">
                     <label class="field-label"><span>مبلغ اجاره سال جاری (ریال)</span></label>
-                    <input type="number" class="input-control fa-num" x-model="form.current_year_rent" :readonly="!isFieldEditable('current_year_rent')">
+                    <div class="currency-input-wrapper">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800;"
+                               :value="form.current_year_rent ? formatNumber(form.current_year_rent) : ''"
+                               @input="updateFormattedAmount(form, 'current_year_rent', $event)"
+                               @blur="formatAmountOnBlur(form, 'current_year_rent', $event)"
+                               :readonly="!isFieldEditable('current_year_rent')"
+                               placeholder="۰">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
                 </div>
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('land_lease_year')}">
                     <label class="field-label"><span>سال اجاره عرصه</span></label>
@@ -787,7 +1041,16 @@
                 </div>
                 <div class="field-group col-8" :class="{'field-locked': !isFieldEditable('preparation_cost')}">
                     <label class="field-label"><span>مبلغ آماده‌سازی (ریال)</span></label>
-                    <input type="number" class="input-control fa-num" x-model="form.preparation_cost" :readonly="!isFieldEditable('preparation_cost')">
+                    <div class="currency-input-wrapper">
+                        <input type="text" class="input-control fa-num" 
+                               style="direction: ltr; font-weight: 800;"
+                               :value="form.preparation_cost ? formatNumber(form.preparation_cost) : ''"
+                               @input="updateFormattedAmount(form, 'preparation_cost', $event)"
+                               @blur="formatAmountOnBlur(form, 'preparation_cost', $event)"
+                               :readonly="!isFieldEditable('preparation_cost')"
+                               placeholder="۰">
+                        <span class="currency-unit-tag">ریال</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -805,9 +1068,38 @@
                 <span>بخش ۸: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مرحله ۱۸)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <!-- Checks Scans Quick Upload -->
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <template x-if="isUploadAllowed()">
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <label class="btn-header-upload" title="بارگذاری اسکن اصل چک صیادی تسهیلات دهک">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <span>+ چک دهک</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('LOAN_CHECK', 'اسکن چک صیادی تسهیلات دهک', $event)">
+                            </label>
+                            <label class="btn-header-upload" title="بارگذاری اسکن اصل چک اقساط آماده‌سازی">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <span>+ چک آماده‌سازی</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('PREP_CHECK', 'اسکن چک‌های اقساط آماده‌سازی', $event)">
+                            </label>
+                            <label class="btn-header-upload" title="بارگذاری اسکن تعهدنامه محضری متقاضی">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                <span>+ تعهدنامه محضری</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('COMMITMENT_LETTER', 'اسکن تعهدنامه محضری متقاضی', $event)">
+                            </label>
+                        </div>
+                    </template>
+                    <template x-if="getSectionAttachments(['LOAN_CHECK', 'PREP_CHECK', 'COMMITMENT_LETTER']).length > 0">
+                        <button type="button" class="btn-header-docs" @click="scrollToCategory('checks')" title="مشاهده اسکن چک‌ها و رسیدها در آلبوم پرونده">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <span>چک‌ها و اسکن‌ها (<span class="fa-num" x-text="getSectionAttachments(['LOAN_CHECK', 'PREP_CHECK', 'COMMITMENT_LETTER']).length"></span>)</span>
+                        </button>
+                    </template>
+                </div>
+
                 <template x-if="isSectionActive('section-checks')">
                     <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span>🎯 اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
                 <div class="section-stage-badge editable" style="display: flex; align-items: center; gap: 0.5rem;">
@@ -817,7 +1109,7 @@
                             class="btn btn-xs" 
                             style="background: #ffffff; color: #0f2744; border: 1px solid #cbd5e1; font-weight: 800; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;"
                             title="چاپ فوری رسید چک‌های صیادی">
-                        <span>🖨️ چاپ رسید چک‌ها</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg><span>چاپ رسید چک‌ها</span>
                     </button>
                 </div>
             </div>
@@ -831,7 +1123,7 @@
             <div class="section-sub-banner amber-theme">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.55rem;">
-                        <span style="font-size: 1.25rem;">💳</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
                         <div>
                             <strong style="color: #92400e; font-size: 0.95rem; display: block;">۱. مشخصات تسهیلات و ثبت اقلام چک‌های وام دهک (BankCheckTracker)</strong>
                             <span style="font-size: 0.76rem; color: #b45309;">ثبت مشخصات نهاد حمایتی، بانک عامل، شماره تعهدنامه و جدول اقلام چک‌های صیادی متقاضی</span>
@@ -943,7 +1235,7 @@
                                 :disabled="!isFieldEditable('commitment_date')"
                                 class="btn-date-picker"
                                 title="انتخاب تاریخ از تقویم">
-                            📅
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                         </button>
                     </div>
                 </div>
@@ -953,7 +1245,7 @@
             <div class="check-generator-box" style="margin-bottom: 1.25rem; background: #fffaf0; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 1.15rem; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.04);">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 1.2rem;">⚡</span>
+                        <span style="color: #0284c7; font-weight: 700;">★</span>
                         <div>
                             <strong style="color: #9a3412; font-size: 0.9rem; display: block;">تولید هوشمند و خودکار اقلام چک‌های صیادی (تسهیلات دهک)</strong>
                             <span style="font-size: 0.76rem; color: #b45309;">تعیین تعداد چک‌ها، تولید ردیف‌ها با سررسید خودکار سالانه و مبالغ متوازن بر اساس سقف وام</span>
@@ -1001,7 +1293,7 @@
                                     class="btn-date-picker"
                                     @click="openDatePicker('checkGenerator.startDate', checkGenerator.startDate, 'تاریخ سررسید چک اول')"
                                     title="انتخاب از تقویم شمسی">
-                                📅
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                             </button>
                         </div>
                     </div>
@@ -1070,7 +1362,7 @@
                                                     :disabled="!isFieldEditable('decile_loan_amount')"
                                                     class="btn-date-picker"
                                                     title="انتخاب تاریخ از تقویم شمسی">
-                                                📅
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                                             </button>
                                         </div>
                                     </td>
@@ -1130,7 +1422,7 @@
                 <!-- خلاصه محاسباتی مجموع کل مبالغ چک‌ها -->
                 <div style="margin-top: 0.85rem; padding: 0.85rem 1.15rem; background: #fffaf0; border: 1.5px solid #fed7aa; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 1.1rem;">🧮</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>
                         <div>
                             <span style="font-size: 0.82rem; font-weight: 800; color: #9a3412;">مجموع کل مبالغ چک‌های ثبت‌شده:</span>
                             <div style="font-size: 0.72rem; color: #b45309;" class="fa-num">
@@ -1162,14 +1454,14 @@
                             </template>
                             <template x-if="(form.total_check_amount || 0) < (Number(form.decile_loan_amount) || 0)">
                                 <span style="color: #b45309; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #fef3c7; padding: 2px 8px; border-radius: 6px;">
-                                    <span>⚠️</span>
+                                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                                     <span>باقیمانده تا سقف وام دهک:</span>
                                     <strong x-text="formatNumber((Number(form.decile_loan_amount) || 0) - (form.total_check_amount || 0)) + ' ریال'"></strong>
                                 </span>
                             </template>
                             <template x-if="(form.total_check_amount || 0) > (Number(form.decile_loan_amount) || 0)">
                                 <span style="color: #b91c1c; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #fee2e2; padding: 2px 8px; border-radius: 6px;">
-                                    <span>⚠️</span>
+                                    <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                                     <span>مجموع چک‌ها بیش از سقف وام دهک است!</span>
                                 </span>
                             </template>
@@ -1182,7 +1474,7 @@
             <div style="background: #fffaf0; border: 1.5px dashed #ea580c; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                     <div style="display: flex; align-items: center; gap: 0.65rem;">
-                        <span style="font-size: 1.6rem;">📸</span>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                         <div>
                             <strong style="color: #9a3412; font-size: 0.9rem; display: block;">صدور رسید رسمی چک‌های وام دهک (تلفیق تصویر اسکن با سربرگ و امضاء)</strong>
                             <span style="font-size: 0.76rem; color: #b45309;">بارگذاری یا انتخاب اسکن چک‌ها، درج سربرگ اطلاعات متقاضی در بالا و کادر امضای دریافت‌کنندگان در پایین و ذخیره خودکار در اسناد اسکن‌شده</span>
@@ -1200,17 +1492,17 @@
                                 class="btn btn-primary"
                                 style="background: #ea580c; border-color: #c2410c; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);"
                                 title="بارگذاری فایل تصویر اسکن چک و تولید برگه رسید">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                            <span>📷 بارگذاری اسکن چک و تولید رسید</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            <span>بارگذاری اسکن چک و تولید رسید</span>
                         </button>
 
                         <button type="button" 
                                 @click="printExistingCheckScanReceipt('loan')" 
                                 class="btn btn-outline"
-                                style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #9a3412; border-color: #fdba74; background: #ffffff;"
+                                style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #9a3412; border-color: #fdba74; background: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem;"
                                 title="استفاده از اسکن موجود در پرونده و چاپ رسید رسمی">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                            <span>🖨️ چاپ با اسکن پرونده</span>
+                            <span>چاپ با اسکن پرونده</span>
                         </button>
                     </div>
                 </div>
@@ -1237,7 +1529,7 @@
             <div class="section-sub-banner emerald-theme">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.55rem;">
-                        <span style="font-size: 1.25rem;">📑</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                         <div>
                             <strong style="color: #065f46; font-size: 0.95rem; display: block;">۲. اقساط آماده‌سازی و اجاره عرصه (۲۰٪ نقد و ۸۰٪ اقساط - tashilatCheck)</strong>
                             <span style="font-size: 0.76rem; color: #047857;">ثبت مبالغ پرداختی اجاره عرصه، ۲۰٪ پیش‌پرداخت نقدی، ۸۰٪ اقساط آماده‌سازی و کدهای پیگیری فیش واریز</span>
@@ -1253,7 +1545,7 @@
             <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.15rem; margin-bottom: 1.25rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.45rem;">
-                        <span style="font-size: 1.1rem;">🏢</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M10 11h2M10 15h2M14 11h2M14 15h2M18 11h2M18 15h2M9 7V3h6v4"></path></svg>
                         <strong style="color: #0f2744; font-size: 0.88rem;">الف) مشخصات وصول اجاره عرصه</strong>
                     </div>
 
@@ -1316,7 +1608,7 @@
             <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.15rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.45rem;">
-                        <span style="font-size: 1.1rem;">🏗️</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>
                         <strong style="color: #0f2744; font-size: 0.88rem;">ب) مشخصات آماده‌سازی واحد (۲۰٪ نقد و ۸۰٪ اقساط)</strong>
                     </div>
 
@@ -1412,7 +1704,7 @@
                                     :disabled="!isFieldEditable('rah_letter_date')"
                                     class="btn-date-picker"
                                     title="انتخاب تاریخ از تقویم">
-                                📅
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                             </button>
                         </div>
                     </div>
@@ -1422,7 +1714,7 @@
                 <div class="check-generator-box" style="margin-top: 1.25rem; margin-bottom: 1.25rem; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 1.15rem; box-shadow: 0 2px 6px rgba(22, 101, 52, 0.04);">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 1.2rem;">🏗️</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>
                             <div>
                                 <strong style="color: #166534; font-size: 0.9rem; display: block;">تولید خودکار چک‌های صیادی اقساط آماده‌سازی (۸۰٪ غیرنقدی - tashilatCheck)</strong>
                                 <span style="font-size: 0.76rem; color: #15803d;">تعیین تعداد چک‌ها، تولید خودکار با سررسیدهای ۶ ماهه و تقسیط متوازن مبلغ ۸۰٪ آماده‌سازی</span>
@@ -1469,7 +1761,7 @@
                                         class="btn-date-picker"
                                         @click="openDatePicker('prepCheckGenerator.startDate', prepCheckGenerator.startDate, 'تاریخ سررسید چک اول آماده‌سازی')"
                                         title="انتخاب از تقویم شمسی">
-                                    📅
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                                 </button>
                             </div>
                         </div>
@@ -1537,7 +1829,7 @@
                                                         :disabled="!isFieldEditable('non_cash_preparation_amount')"
                                                         class="btn-date-picker"
                                                         title="انتخاب تاریخ از تقویم شمسی">
-                                                    📅
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                                                 </button>
                                             </div>
                                         </td>
@@ -1597,7 +1889,7 @@
                     <!-- خلاصه محاسباتی مجموع کل چک‌های آماده‌سازی -->
                     <div style="margin-top: 0.85rem; padding: 0.85rem 1.15rem; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 1.1rem;">🧮</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01"></path><path d="M12 10h.01"></path><path d="M8 10h.01"></path><path d="M12 14h.01"></path><path d="M8 14h.01"></path><path d="M12 18h.01"></path><path d="M8 18h.01"></path></svg>
                             <div>
                                 <span style="font-size: 0.82rem; font-weight: 800; color: #166534;">مجموع چک‌های آماده‌سازی ثبت‌شده:</span>
                                 <div style="font-size: 0.72rem; color: #15803d;" class="fa-num">
@@ -1629,14 +1921,14 @@
                                 </template>
                                 <template x-if="(form.total_preparation_check_amount || 0) < (Number(form.non_cash_preparation_amount) || 0)">
                                     <span style="color: #b45309; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #fef3c7; padding: 2px 8px; border-radius: 6px;">
-                                        <span>⚠️</span>
+                                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                                         <span>باقیمانده تا سقف ۸۰٪ آماده‌سازی:</span>
                                         <strong x-text="formatNumber((Number(form.non_cash_preparation_amount) || 0) - (form.total_preparation_check_amount || 0)) + ' ریال'"></strong>
                                     </span>
                                 </template>
                                 <template x-if="(form.total_preparation_check_amount || 0) > (Number(form.non_cash_preparation_amount) || 0)">
                                     <span style="color: #b91c1c; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #fee2e2; padding: 2px 8px; border-radius: 6px;">
-                                        <span>⚠️</span>
+                                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                                         <span>مجموع چک‌ها بیش از سقف ۸۰٪ آماده‌سازی است!</span>
                                     </span>
                                 </template>
@@ -1649,7 +1941,7 @@
                 <div style="background: #f0fdf4; border: 1.5px dashed #15803d; border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; margin-bottom: 0.85rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                         <div style="display: flex; align-items: center; gap: 0.65rem;">
-                            <span style="font-size: 1.6rem;">📸</span>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                             <div>
                                 <strong style="color: #166534; font-size: 0.9rem; display: block;">صدور رسید رسمی چک‌های آماده‌سازی (تلفیق تصویر اسکن با سربرگ و امضاء)</strong>
                                 <span style="font-size: 0.76rem; color: #15803d;">بارگذاری یا انتخاب اسکن چک‌ها، درج سربرگ اطلاعات در بالا و کادر امضای دریافت‌کنندگان در پایین و ذخیره خودکار در اسناد اسکن‌شده</span>
@@ -1667,17 +1959,17 @@
                                     class="btn btn-primary"
                                     style="background: #15803d; border-color: #166534; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);"
                                     title="بارگذاری فایل تصویر اسکن چک و تولید برگه رسید">
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                                <span>📷 بارگذاری اسکن چک و تولید رسید</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                <span>بارگذاری اسکن چک و تولید رسید</span>
                             </button>
 
                             <button type="button" 
                                     @click="printExistingCheckScanReceipt('prep')" 
                                     class="btn btn-outline"
-                                    style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #166534; border-color: #86efac; background: #ffffff;"
+                                    style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #166534; border-color: #86efac; background: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem;"
                                     title="استفاده از اسکن موجود در پرونده و چاپ رسید رسمی">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                                <span>🖨️ چاپ با اسکن پرونده</span>
+                                <span>چاپ با اسکن پرونده</span>
                             </button>
                         </div>
                     </div>
@@ -1697,9 +1989,8 @@
                     </div>
                 </div>
                 </div>
-            </div>
-
         </div>
+    </div>
     </div>
 
 </div>

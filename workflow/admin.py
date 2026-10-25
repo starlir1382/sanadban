@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Site, Project, PreSelectedUnit, HousingDossier, DossierAttachment, WorkflowSignatureLog
+from .models import Site, Project, PreSelectedUnit, HousingDossier, DossierAttachment, WorkflowSignatureLog, BankLetter
 
 @admin.register(Site)
 class SiteAdmin(admin.ModelAdmin):
@@ -47,3 +47,10 @@ class WorkflowSignatureLogAdmin(admin.ModelAdmin):
     list_filter = ("action",)
     search_fields = ("dossier__archive_number", "dossier__national_id", "actor")
     readonly_fields = [f.name for f in WorkflowSignatureLog._meta.fields]
+
+
+@admin.register(BankLetter)
+class BankLetterAdmin(admin.ModelAdmin):
+    list_display = ("letter_number", "letter_date", "project_name", "sender_name", "created_at")
+    search_fields = ("letter_number", "project_name", "sender_name")
+    filter_horizontal = ("dossiers",)

@@ -18,6 +18,8 @@ urlpatterns = [
     path("dossier/<int:pk>/checks/archive-receipt/", views.archive_check_receipt_api, name="archive_check_receipt_api"),
     path("dossier/<int:pk>/checks/upload-scan-and-create-receipt/", views.upload_check_scan_and_create_receipt_view, name="upload_check_scan_and_create_receipt"),
     path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="dossier_upload_scan"),
+    path("dossier/<int:pk>/attachment/<int:attachment_id>/delete/", views.delete_scan_attachment_view, name="dossier_delete_attachment"),
+    path("dossier/<int:pk>/upload-signature/", views.upload_dossier_signature_view, name="dossier_upload_signature"),
     path("api/lookup-unit/", views.lookup_preselected_unit_api, name="lookup_unit_api"),
 
     # Enterprise Authentication & Profile
@@ -35,4 +37,16 @@ urlpatterns = [
 
     # Comprehensive System Audit Trail (Super Admin & Housing Chief)
     path("audit-logs/", views.audit_logs_view, name="audit_logs"),
+
+    # Bulk Excel Dossier Operations (Admin & Housing Chief Only)
+    path("excel/template/create/", views.excel_template_create_view, name="excel_template_create"),
+    path("excel/template/update/", views.excel_template_update_view, name="excel_template_update"),
+    path("excel/upload/create/", views.excel_upload_create_view, name="excel_upload_create"),
+    path("excel/upload/update/", views.excel_upload_update_view, name="excel_upload_update"),
+path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
+    # Bank Letter Sender Component (ارسال دسته جمعی نامه بانک)
+    path("bank-letter/", views.bank_letter_sender_view, name="bank_letter_sender"),
+    path("bank-letter/send/", views.bank_letter_submit_api, name="bank_letter_submit"),
+    path("bank-letter/export-excel/", views.bank_letter_export_excel, name="bank_letter_export_excel"),
+
 ]

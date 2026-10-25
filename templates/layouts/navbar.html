@@ -2,18 +2,17 @@
 <!-- Top Administrative Navigation Bar -->
 <header class="sanadban-header">
     <div class="header-container">
-        <!-- Brand / Logo Area -->
-        <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.85rem;" title="بازگشت به داشبورد اصلی">
-            <div class="brand-logo-emblem">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
+        <!-- Brand / Logo Area with Official Home Emblem -->
+        <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.85rem;" title="داشبورد و میز کار سامانه مسکن یار">
+            <div class="brand-logo-emblem" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); overflow: hidden; transition: transform 0.2s;"
+                 onmouseover="this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.transform='scale(1)'">
+                <img src="{% static 'img/favicon.svg' %}" width="34" height="34" alt="لوگو مسکن یار" style="display: block;">
             </div>
             <div class="brand-titles">
                 <h1>
                     <span>سامانه مسکن یار</span>
-                    <span style="font-size: 0.65rem; background: var(--color-accent-600); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: normal;">نسخه ۲.۰</span>
+                    <span style="font-size: 0.65rem; background: #0284c7; padding: 0.15rem 0.45rem; border-radius: 5px; font-weight: 700; border: 1px solid rgba(255,255,255,0.25);">نسخه ۱.۰</span>
                 </h1>
                 <div class="subtitle">مدیریت اسناد، ارزیابی و گردش پرونده‌های نهضت ملی مسکن</div>
             </div>
@@ -40,6 +39,12 @@
                style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'users_management' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                 <span>کاربران</span>
+            </a>
+            <a href="{% url 'bank_letter_sender' %}" 
+               style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'bank_letter_sender' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}"
+               title="صدور و ارسال نامه معرفی متقاضیان به بانک مسکن">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                <span>ارسال نامه بانک</span>
             </a>
             <a href="{% url 'audit_logs' %}" 
                style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'audit_logs' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">

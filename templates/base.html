@@ -7,6 +7,8 @@
     <title>{% block title %}سامانه مسکن یار | مدیریت پرونده و گردش کار نهضت ملی مسکن{% endblock %}</title>
 
     <!-- Persian Typography (Vazirmatn) -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="alternate icon" href="{% static 'img/favicon.png' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 
     <!-- SanadBan Enterprise Design System -->
@@ -21,11 +23,13 @@
     </style>
 
     <!-- Alpine.js & HTMX Core Scripts -->
-    <script defer src="https://unpkg.com/alpinejs@3.14.0/dist/cdn.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="{% static 'js/vendor/htmx.min.js' %}"></script>
+    <script src="{% static 'js/sanadban.js' %}?v=3.1"></script>
+    <script defer src="{% static 'js/vendor/alpine.min.js' %}"></script>
+
     
     <!-- Application Logic -->
-    <script src="{% static 'js/sanadban.js' %}?v=3.0"></script>
+
 </head>
 <body x-data="sanadbanApp">
 

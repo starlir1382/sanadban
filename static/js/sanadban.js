@@ -1,6 +1,38 @@
+const FIELD_STAGE_MAP = {
+  national_id: [0, 1, 2, 10], full_name: [0, 1, 2, 10], father_name: [0, 1, 2, 10], birth_date: [0, 1, 2, 10], applicant_phone: [0, 1, 2, 10],
+  selection_rank: [0, 1, 2, 10], decile: [0, 6], marital_status: [0, 1, 2, 10], is_married_confirmed: [0, 1, 2, 10],
+  spouse_full_name: [0, 1, 2, 10], spouse_father_name: [0, 1, 2, 10], spouse_national_id: [0, 1, 2, 10],
+  spouse_birth_date: [0, 1, 2, 10], spouse_id_number: [0, 1, 2, 10], spouse_birth_place: [0, 1, 2, 10],
+  site: [0, 1, 2, 10], project: [0, 1, 2, 10], construction_type: [0, 1, 2, 10], block_name: [0, 1, 2, 10], block_code: [0, 1, 2, 10],
+  floor_number: [0, 1, 2, 10], unit_number: [0, 1, 2, 10], unit_code: [0, 1, 2, 10], bedroom_count: [0, 1, 2, 10], unit_direction: [0, 1, 2, 10],
+  net_unit_area: [0, 1, 2, 10], common_area: [0, 1, 2, 10], total_area: [0, 1, 2, 10], unit_area: [0, 1, 2, 10],
+  storage_number: [0, 1, 2, 10], storage_area: [0, 1, 2, 10], parking_number: [0, 1, 2, 10], parking_area: [0, 1, 2, 10], covered_parking_area: [0, 1, 2, 10],
+  registration_section: [0, 1, 12, 14], main_plaque: [0, 1, 12, 14], separated_plaque: [0, 1, 12, 14],
+  sub_plaque: [0, 1, 12, 14], plot_number: [0, 1, 12, 14],
+  base_cost_without_loan: [0, 2],
+  applicant_form_j_status: [3, 16], applicant_form_j_directorate_status: [3, 16], applicant_form_j_red_description: [3, 16],
+  spouse_form_j_status: [3, 16], spouse_form_j_directorate_status: [3, 16], spouse_form_j_red_description: [3, 16],
+  fund_loan_amount: [4],
+  contractor_letter_amount: [5, 19],
+  decile_loan_amount: [6],
+  applicant_equity: [7], is_sms_sent: [7], sms_sent_at: [7],
+  is_equity_funded: [7],
+  bank_loan_amount: [8, 11], bank_letter_number: [8, 11], bank_letter_date: [8, 11],
+  is_added_to_bank_shipment_list: [8, 11], is_sent_to_bank: [8, 11], bank_sent_date: [8, 11], bank_sent_letter_number: [8, 11],
+  total_land_share: [17], past_years_rent: [17], current_year_rent: [17], land_lease_year: [17], preparation_cost: [17],
+  decile_loan_bank: [18], supported_institution: [18], check_count: [18],
+  check_amount: [18], last_check_amount: [18], total_check_amount: [18], check_service_fee: [18],
+  commitment_number: [18], commitment_date: [18], check_entries_json: [18], is_decile_loan_confirmed: [18],
+  tenant_price: [18], tenant_code: [18], is_cash_rent_confirmed: [18],
+  cash_preparation_amount: [18], prepayment_code: [18], non_cash_preparation_amount: [18],
+  preparation_service_fee: [18], preparation_check_count: [18], total_preparation_check_amount: [18],
+  preparation_check_entries_json: [18], is_preparation_checks_confirmed: [18],
+  rah_letter: [20], rah_letter_date: [20]
+};
+
 /**
  * SanadBan (DeedFlow) - Interactive Logic Engine & Alpine.js Store
- * Full 24-Stage Housing Workflow & Interactive Scan Viewer
+ * Full 22-Stage Housing Workflow & Interactive Scan Viewer
  */
 
 // Persian Number to Words Converter Utility
@@ -58,47 +90,47 @@ const PersianNumberWords = {
   }
 };
 
-// Official 22-Stage Workflow Configuration (Stages 0 to 21)
+// Official 22-Stage Housing Workflow Configuration (Stages 0 to 21)
 const STAGES_22 = [
-  { id: 0, unit: 'brokerage', role: 'کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی', title: 'ثبت اطلاعات متقاضی و واحد', category: 'کارگزاری اولیه' },
-  { id: 1, unit: 'brokerage', role: 'کارشناس اطلاعات', title: 'کنترل اطلاعات پلاک ثبتی', category: 'کارگزاری اولیه' },
-  { id: 2, unit: 'brokerage', role: 'کارشناس اطلاعات (کارگزاری)', title: 'ورود مبلغ تمام شده', category: 'کارگزاری اولیه' },
-  { id: 3, unit: 'directorate', role: 'کارشناس بررسی فرم ج (عالمی)', title: 'بررسی فرم ج', category: 'اداره کل - استعلامات' },
-  { id: 4, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'ورود مبلغ وام صندوق', category: 'تسهیلات و مالی' },
-  { id: 5, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ نامه (کسر یا تخفیف) پیمانکار', category: 'تسهیلات و مالی' },
-  { id: 6, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ تسهیلات دهک', category: 'تسهیلات و مالی' },
-  { id: 7, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی)', title: 'تعیین مبلغ باقیمانده نقدی مورد نیاز', category: 'تسهیلات و مالی' },
-  { id: 8, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی / حیدری)', title: 'ارسال و درج شماره و تاریخ نامه بانک', category: 'امور بانکی و اسکن' },
-  { id: 9, unit: 'brokerage', role: 'کارشناس تشکیل پرونده کارگزاری', title: 'اسکن مدارک و دفترچه اقساط', category: 'امور بانکی و اسکن' },
-  { id: 10, unit: 'brokerage', role: 'مدیرعامل کارگزاری', title: 'تأیید مدیرعامل کارگزاری', category: 'کارگزاری اولیه' },
-  { id: 11, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی', title: 'بررسی استعلام تسهیلات بانکی', category: 'تاییدات اداره کل' },
-  { id: 12, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'بررسی مشخصات فنی، پلاک و عرصه', category: 'تاییدات اداره کل' },
-  { id: 13, unit: 'directorate', role: 'کارشناس املاک', title: 'بررسی و بارگذاری سند املاک', category: 'تاییدات اداره کل' },
-  { id: 14, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'بررسی اطلاعات بانک زمین', category: 'تاییدات اداره کل' },
-  { id: 15, unit: 'directorate', role: 'کارشناس حقوقی', title: 'بررسی حقوقی و استعلامات اراضی', category: 'تاییدات اداره کل' },
-  { id: 16, unit: 'directorate', role: 'کارشناس فرم ج', title: 'تطبیق نهایی فرم ج اداره کل', category: 'تاییدات اداره کل' },
-  { id: 17, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'ارزیابی قدرالسهم و اجاره عرصه', category: 'ارزیابی و وصول' },
-  { id: 18, unit: 'brokerage', role: 'کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک', title: 'اخذ اجاره، آماده‌سازی و چک دهک', category: 'ارزیابی و وصول' },
-  { id: 19, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'تسویه حساب با پیمانکار سازنده', category: 'تسویه و خاتمه' },
-  { id: 20, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'صدور نامه معرفی به دفتر اسناد رسمی (محضر)', category: 'صدور و بایگانی' },
-  { id: 21, unit: 'directorate', role: 'کارشناس بایگانی', title: 'مشاهده فرم نهایی و بایگانی قطعی پرونده', category: 'صدور و بایگانی' }
+  { id: 0, unit: 'brokerage', role: 'کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی', title: 'ورود اطلاعات متقاضی، همسر، واحد و پروژه', category: 'کارگزاری مسکن' },
+  { id: 1, unit: 'brokerage', role: 'کارشناس اطلاعات', title: 'کنترل اطلاعات پلاک ثبتی', category: 'کارگزاری مسکن' },
+  { id: 2, unit: 'brokerage', role: 'کارشناس اطلاعات (کارگزاری)', title: 'ورود مبلغ تمام شده واحد', category: 'کارگزاری مسکن' },
+  { id: 3, unit: 'directorate', role: 'کارشناس بررسی فرم ج (عالمی)', title: 'بررسی فرم ج', category: 'استعلامات و تسهیلات' },
+  { id: 4, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'ورود مبلغ وام صندوق', category: 'استعلامات و تسهیلات' },
+  { id: 5, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ نامه (کسر یا تخفیف) پیمانکار', category: 'استعلامات و تسهیلات' },
+  { id: 6, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ تسهیلات دهک', category: 'استعلامات و تسهیلات' },
+  { id: 7, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی)', title: 'تعیین مبلغ باقیمانده نقدی مورد نیاز', category: 'استعلامات و تسهیلات' },
+  { id: 8, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی / حیدری)', title: 'ارسال و درج شماره و تاریخ نامه معرفی به بانک', category: 'استعلامات و تسهیلات' },
+  { id: 9, unit: 'brokerage', role: 'کارشناس تشکیل پرونده کارگزاری', title: 'اسکن مدارک و دفترچه اقساط', category: 'کارگزاری مسکن' },
+  { id: 10, unit: 'brokerage', role: 'مدیرعامل کارگزاری', title: 'تأیید مدیرعامل کارگزاری', category: 'کارگزاری مسکن' },
+  { id: 11, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی', title: 'بررسی کارشناس نهضت ملی مسکن', category: 'تأییدات تخصصی اداره کل' },
+  { id: 12, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'بررسی کارشناس فنی و مهندسی', category: 'تأییدات تخصصی اداره کل' },
+  { id: 13, unit: 'directorate', role: 'کارشناس املاک', title: 'بررسی کارشناس املاک (بارگذاری سند)', category: 'تأییدات تخصصی اداره کل' },
+  { id: 14, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'بررسی کارشناس بانک زمین', category: 'تأییدات تخصصی اداره کل' },
+  { id: 15, unit: 'directorate', role: 'کارشناس حقوقی', title: 'بررسی کارشناس حقوقی', category: 'تأییدات تخصصی اداره کل' },
+  { id: 16, unit: 'directorate', role: 'کارشناس فرم ج', title: 'بررسی و آپلود صفحه فرم جیم اداره کل', category: 'تأییدات تخصصی اداره کل' },
+  { id: 17, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)', category: 'ارزیابی و وصول' },
+  { id: 18, unit: 'brokerage', role: 'کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک', title: 'وصول نقد، اقساط، چک‌های دهک و آماده‌سازی', category: 'ارزیابی و وصول' },
+  { id: 19, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'بررسی کارشناس تسویه با پیمانکار', category: 'تسویه و خاتمه' },
+  { id: 20, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'صدور و ثبت نامه محضر', category: 'صدور و بایگانی' },
+  { id: 21, unit: 'directorate', role: 'کارشناس بایگانی', title: 'مشاهده فرم نهایی و بایگانی قطعی', category: 'صدور و بایگانی' }
 ];
 
-// Comprehensive 22-Stage Workflow Guidance (Where, What, Who, Checklist & Target Sections)
+// Comprehensive 22-Stage Workflow Guidance (Stages 0 to 21)
 const STAGE_GUIDANCE = {
   0: {
-    actionTitle: 'ثبت اطلاعات متقاضی، همسر و واحد مسکونی',
-    actionSummary: 'واکشی استعلام پیش‌ثبت‌نام متقاضی، احراز زوجیت همسر (طرح زوجین)، مشخصات سایت و پروژه و بارگذاری اسکن کارت ملی.',
+    actionTitle: 'ورود اطلاعات متقاضی، همسر، واحد و پروژه',
+    actionSummary: 'واکشی استعلام پیش‌ثبت‌نام متقاضی، احراز زوجیت همسر، مشخصات سایت و پروژه و بارگذاری اسکن مدارک.',
     items: [
       'بررسی و ثبت کدملی، تاریخ تولد و مشخصات متقاضی',
       'تکمیل کامل مشخصات سجلی همسر (کدملی، شماره شناسنامه، تاریخ تولد)',
       'تایید مشخصات بلوک، طبقه و شماره واحد انتخابی',
-      'بارگذاری تصویر اسکن کارت هوشمند ملی و برگه انتخاب واحد در آلبوم'
+      'بارگذاری تصویر اسکن کارت هوشمند ملی و برگه انتخاب واحد'
     ],
     targetSection: '#section-applicant'
   },
   1: {
-    actionTitle: 'کنترل و ورود اطلاعات پلاک ثبتی',
+    actionTitle: 'کنترل اطلاعات پلاک ثبتی',
     actionSummary: 'تطبیق و ثبت اطلاعات بخش ثبتی، پلاک اصلی، پلاک مفروز، پلاک فرعی و شماره قطعه زمین پروژه.',
     items: [
       'کنترل و ثبت نام بخش ثبتی پروژه مسکونی',
@@ -108,27 +140,27 @@ const STAGE_GUIDANCE = {
     targetSection: '#section-plot'
   },
   2: {
-    actionTitle: 'ورود مبلغ تمام‌شده واحد مسکونی',
-    actionSummary: 'محاسبه و درج قیمت پایه ساخت واحد مسکونی بدون احتساب وام ۶۵۰ میلیونی طرح نهضت ملی مسکن (ریال).',
+    actionTitle: 'ورود مبلغ تمام شده واحد',
+    actionSummary: 'محاسبه و درج قیمت پایه ساخت واحد مسکونی بدون احتساب وام طرح نهضت ملی مسکن (ریال).',
     items: [
       'ورود مبلغ تمام‌شده بر مبنای قرارداد ساخت کارگزاری',
-      'بررسی عدم کسر تسهیلات ۶۵۰ میلیون تومانی در این مرحله',
+      'بررسی عدم کسر تسهیلات بانکی در این مرحله',
       'مشاهده مبلغ به حروف فارسی و تایید درستی ارقام'
     ],
     targetSection: '#section-cost'
   },
   3: {
-    actionTitle: 'بررسی وضعیت فرم (ج) متقاضی و همسر',
+    actionTitle: 'بررسی فرم ج',
     actionSummary: 'استعلام سیستمی از سامانه جامع مسکن جهت احراز عدم استفاده قبلی متقاضی یا همسر از زمین یا تسهیلات دولتی.',
     items: [
       'استعلام سبزبودن فرم ج متقاضی مسکن',
-      'استعلام وضعیت فرم ج همسر متقاضی (احراز شرط تاهل)',
+      'استعلام وضعیت فرم ج همسر متقاضی',
       'ثبت نتیجه استعلام به صورت تاییدشده و سبز'
     ],
     targetSection: '#section-spouse'
   },
   4: {
-    actionTitle: 'ورود مبلغ تسهیلات صندوق ملی مسکن',
+    actionTitle: 'ورود مبلغ وام صندوق',
     actionSummary: 'تعیین و درج میزان تسهیلات تخصیص‌یافته از محل صندوق ملی مسکن جهت کاهش تعهد آورده متقاضی.',
     items: [
       'بررسی مصوبه تخصیص صندوق ملی مسکن برای پروژه',
@@ -138,7 +170,7 @@ const STAGE_GUIDANCE = {
     targetSection: '#section-loans'
   },
   5: {
-    actionTitle: 'ورود مبلغ نامه تخفیف یا کسر پیمانکار',
+    actionTitle: 'مبلغ نامه (کسر یا تخفیف) پیمانکار',
     actionSummary: 'درج مبالغ تخفیفات، تعدیلات منفی یا کسورات پیمانکار سازنده بر اساس صورت‌وضعیت تاییدشده.',
     items: [
       'بررسی شماره و تاریخ نامه پیمانکار سازنده',
@@ -147,164 +179,164 @@ const STAGE_GUIDANCE = {
     targetSection: '#section-loans'
   },
   6: {
-    actionTitle: 'ورود مبلغ تسهیلات حمایتی دهک درآمدی',
-    actionSummary: 'بررسی رتبه دهک متقاضی (۱ تا ۱۰) و اعمال تسهیلات ویژه دهک‌های کم‌درآمد (دهک‌های ۱ تا ۴).',
+    actionTitle: 'مبلغ تسهیلات دهک',
+    actionSummary: 'بررسی رتبه دهک متقاضی (۱ تا ۱۰) و اعمال تسهیلات ویژه دهک‌های کم‌درآمد.',
     items: [
       'کنترل رتبه دهک درآمدی متقاضی در سامانه رفاه ایرانیان',
-      'ورود مبلغ تسهیلات دهک (تا سقف مصوب ۴ میلیارد ریال)',
+      'ورود مبلغ تسهیلات دهک (ریال)',
       'تطبیق با شرایط متقاضی جهت تقسیط بلندمدت'
     ],
     targetSection: '#section-loans'
   },
   7: {
-    actionTitle: 'محاسبه مانده آورده نقدی و ارسال پیامک',
-    actionSummary: 'محاسبه نهایی مانده سهم نقدی مورد نیاز، تایید مبلغ آورده و ارسال خودکار پیامک اطلاع‌رسانی به تلفن همراه متقاضی.',
+    actionTitle: 'تعیین مبلغ باقیمانده نقدی مورد نیاز',
+    actionSummary: 'محاسبه سیستمی آورده نقدی مورد نیاز متقاضی و ارسال پیامک اطلاع‌رسانی تکمیل واریزی.',
     items: [
-      'بررسی فرمول محاسبه خودکار: (مبلغ تمام‌شده) منهای (وام صندوق + وام دهک)',
-      'فشردن دکمه «ارسال پیامک آورده نقدی به متقاضی»',
-      'ثبت لاگ ارسال پیامک به شماره همراه سرپرست خانوار'
+      'بررسی محاسبه مانده بدهی آورده نقدی متقاضی',
+      'تایید وضعیت ارسال پیامک اطلاع‌رسانی به متقاضی',
+      'ثبت تاریخ ارسال پیامک اعلام واریزی آورده'
     ],
-    targetSection: '#section-equity'
+    targetSection: '#section-applicant-equity'
   },
   8: {
-    actionTitle: 'درج شماره و تاریخ نامه اعلام بانک مسکن',
-    actionSummary: 'ثبت اطلاعات نامه رسمی شعبه مرکزی بانک مسکن مبنی بر پذیرش پرونده و تخصیص تسهیلات.',
+    actionTitle: 'ارسال و درج شماره و تاریخ نامه معرفی به بانک',
+    actionSummary: 'ثبت اطلاعات معرفی‌نامه رسمی متقاضی به بانک عامل جهت تقسیط تسهیلات ساخت مسکن.',
     items: [
-      'درج شماره اندیکاتور نامه بانک عامل (بانک مسکن)',
-      'ثبت تاریخ صدور نامه رسمی بانک (تاریخ شمسی)',
-      'تطبیق مشخصات شعبه عامل با پرونده متقاضی'
+      'درج شماره نامه رسمی معرفی به بانک',
+      'ثبت تاریخ صدور نامه بانکی',
+      'تعیین وضعیت ارسال فیزیکی / سیستمی به شعبه بانک'
     ],
-    targetSection: '#section-bank'
+    targetSection: '#section-bank-letter'
   },
   9: {
-    actionTitle: 'اسکن مدارک هویتی و دفترچه اقساط بانک',
-    actionSummary: 'دریافت دفترچه اقساط بانک مسکن از متقاضی و بارگذاری تصویر باکیفیت آن در آلبوم دیجیتال پرونده.',
+    actionTitle: 'اسکن مدارک و دفترچه اقساط',
+    actionSummary: 'بارگذاری تصاویر اسکن‌شده قرارداد، مدارک هویتی و دفترچه فروش اقساطی صادره توسط بانک عامل.',
     items: [
-      'ورود به بخش آلبوم اسناد در انتهای صفحه',
-      'بارگذاری تصویر دفترچه اقساط بانک مسکن',
-      'تولید خودکار هش امنیتی SHA-256 و ثبت لاگ بارگذاری'
+      'بارگذاری تصویر صفحات اول و دوم دفترچه اقساط بانکی',
+      'کنترل وضوح تصویر و عدم خدشه در ارقام و مهر بانک',
+      'ثبت در آرشیو مدارک پیوست پرونده'
     ],
-    targetSection: '#scans-album-section'
+    targetSection: '#section-docs-installment'
   },
   10: {
-    actionTitle: 'بررسی و تایید رسمی مدیرعامل کارگزاری',
-    actionSummary: 'بازبینی کامل پرونده، بررسی صحت آورده نقدی و مدارک بارگذاری‌شده، و تایید نهایی توسط مدیرعامل کارگزاری.',
+    actionTitle: 'تأیید مدیرعامل کارگزاری',
+    actionSummary: 'بازبینی کامل پرونده، بررسی صحت مبالغ و مدارک کارگزاری، و تایید نهایی توسط مدیرعامل کارگزاری.',
     items: [
-      'کنترل رعایت کلیه ضوابط اجرایی مرحله اول تا نهم',
-      'بررسی تاییدیه مالی آورده نقدی و اقساط بانکی',
-      'ثبت امضای دیجیتال مدیرعامل کارگزاری جهت ارسال به اداره کل'
+      'کنترل رعایت کلیه ضوابط اجرایی مراحل ۰ تا ۹',
+      'بررسی تاییدیه مالی اولیه و اطلاعات ثبتی',
+      'ثبت امضای الکترونیک مدیرعامل کارگزاری جهت ارسال به اداره کل'
     ],
     targetSection: '#audit-timeline-section'
   },
   11: {
-    actionTitle: 'بررسی استعلام تسهیلات بانکی در اداره کل',
-    actionSummary: 'بررسی سامانه‌ای عدم بدهی معوق بانکی، استعلام اصالت تسهیلات و تایید صلاحیت توسط کارشناس نهضت ملی اداره کل.',
+    actionTitle: 'بررسی کارشناس اداره کل (نهضت ملی مسکن)',
+    actionSummary: 'بررسی کارشناسی و انطباق سوابق متقاضی در طرح نهضت ملی مسکن توسط کارشناس مربوطه در اداره کل.',
     items: [
-      'استعلام برخط وضعیت تسهیلات مسکن در شبکه بانکی',
-      'کنترل عدم وجود چک برگشتی یا بدهی بانکی مسدودکننده',
-      'تایید صلاحیت دریافت مسکن دولتی در کارپوشه اداره کل'
+      'بررسی ضوابط طرح نهضت ملی مسکن',
+      'تایید اصالت استعلام تسهیلات مسکن',
+      'ثبت امضای دیجیتال کارشناس نهضت ملی مسکن'
     ],
-    targetSection: '#section-bank'
+    targetSection: '#audit-timeline-section'
   },
   12: {
-    actionTitle: 'بررسی مشخصات فنی، پلاک ثبتی و عرصه',
-    actionSummary: 'ممیزی کارشناسی نقشه‌های ساختمانی، مساحت مفید واحد، متراژ انباری، پارکینگ و تایید اطلاعات کاداستری.',
+    actionTitle: 'بررسی کارشناس اداره کل (فنی و مهندسی)',
+    actionSummary: 'کنترل نقشه‌های معماری، پروانه ساختمانی، پایان‌کار و تایید مشخصات فنی و مهندسی واحد.',
     items: [
-      'تطبیق متراژ واحد و مشاعات با نقشه نظام مهندسی',
-      'کنترل پلاک ثبتی و شماره قطعه در نقشه تفکیکی',
-      'تایید انطباق مشخصات فنی با استانداردهای شهرسازی'
+      'بررسی پایان‌کار ساختمانی و مشخصات فنی اعیانی',
+      'کنترل متراژ مفید، مشاعات و ضرایب متعلقه',
+      'ثبت امضای دیجیتال تایید فنی و مهندسی'
     ],
     targetSection: '#section-plot'
   },
   13: {
-    actionTitle: 'بررسی و بارگذاری سند مالکیت کاداستری',
-    actionSummary: 'بررسی سند مالکیت تک‌برگ اراضی و بارگذاری تصویر رسمی سند کاداستری اداره کل ثبت اسناد و املاک.',
+    actionTitle: 'بررسی کارشناس اداره کل (املاک)',
+    actionSummary: 'تطبیق مشخصات ملک، بارگذاری تصویر سند رسمی مالکیت عرصه و احراز عدم تعارض مالکیتی.',
     items: [
-      'کنترل شناسه یکتای کاداستری سند تک‌برگ ملک',
-      'بارگذاری تصویر سند مالکیت در آلبوم اسناد پرونده',
-      'تطبیق شماره قطعه و کروکی اراضی با دفترچه سند'
-    ],
-    targetSection: '#scans-album-section'
-  },
-  14: {
-    actionTitle: 'بررسی و تطبیق اطلاعات در بانک زمین',
-    actionSummary: 'استعلام شماره پلاک و محدوده اراضی در سامانه جامع بانک زمین وزارت راه و شهرسازی.',
-    items: [
-      'جستجوی پلاک ثبتی در پایگاه اطلاعاتی بانک زمین',
-      'احراز مالکیت قانونی دولت و سازمان ملی زمین و مسکن',
-      'تایید وضعیت بلامعارض بودن عرصه پروژه'
+      'بارگذاری تصویر سند رسمی عرصه پروژه',
+      'تایید مالکیت دولت / اداره کل راه و شهرسازی بر عرصه',
+      'ثبت امضای دیجیتال کارشناس املاک اداره کل'
     ],
     targetSection: '#section-plot'
   },
-  15: {
-    actionTitle: 'بررسی حقوقی و استعلامات ثبتی و اراضی',
-    actionSummary: 'بررسی سوابق حقوقی، عدم وجود پرونده قضایی، وقفی نبودن و تاییدیه رسمی واحد حقوقی اداره کل.',
+  14: {
+    actionTitle: 'بررسی کارشناس اداره کل (بانک زمین)',
+    actionSummary: 'استعلام و تطبیق موقعیت جغرافیایی و ثبتی ملک در سامانه جامع بانک زمین اداره کل.',
     items: [
-      'بررسی استعلامات ثبتی اداره کل ثبت اسناد و املاک',
-      'احراز عدم وجود هرگونه توقیف، بازداشت یا معارض حقوقی',
-      'تاییدیه حقوقی جهت انتقال و واگذاری عرصه به متقاضی'
+      'بررسی کاداستر و مختصات UTM عرصه پروژه',
+      'تطبیق با بانک اطلاعات زمین سازمان ملی زمین و مسکن',
+      'ثبت امضای دیجیتال کارشناس بانک زمین'
+    ],
+    targetSection: '#audit-timeline-section'
+  },
+  15: {
+    actionTitle: 'بررسی کارشناس اداره کل (حقوقی)',
+    actionSummary: 'بررسی عدم موانع حقوقی، پرونده‌های مفتوح قضایی یا تعارضات مالکیتی و قراردادهای واگذاری.',
+    items: [
+      'استعلام وضعیت حقوقی و سوابق پرونده‌های قضایی زمین',
+      'تایید عدم وجود معارض و منع قانونی انتقال سندی',
+      'ثبت امضای دیجیتال کارشناس حقوقی اداره کل'
     ],
     targetSection: '#audit-timeline-section'
   },
   16: {
-    actionTitle: 'تطبیق نهایی فرم (ج) اداره کل راه و شهرسازی',
-    actionSummary: 'کنترل مجدد سامانه فرم ج و تایید عدم تغییر وضعیت متقاضی یا همسر در طول دوره ساخت پروژه.',
+    actionTitle: 'بررسی و آپلود صفحه فرم جیم اداره کل',
+    actionSummary: 'بارگذاری اسکن برگه استعلام رسمی فرم «ج» تاییدشده متقاضی و همسر از سامانه نهضت ملی اداره کل.',
     items: [
-      'استعلام نهایی وضعیت سه‌گانه متقاضی و همسر',
-      'کنترل قرمز نشدن فرم ج در بازه فرآیند ساخت',
-      'ثبت تاییدیه قطعی فرم ج جهت ارجاع به مرحله ارزیابی'
+      'بارگذاری اسکن تاییدیه نهایی فرم جیم صادره اداره کل',
+      'تطبیق وضعیت سبز قطعی متقاضی و همسر',
+      'ثبت امضای دیجیتال کارشناس فرم ج'
     ],
-    targetSection: '#section-applicant'
+    targetSection: '#form-j-dedicated-card'
   },
   17: {
-    actionTitle: 'ارزیابی قدرالسهم زمین، اجاره عرصه و آماده‌سازی',
-    actionSummary: 'تعیین رسمی ارزش قدرالسهم عرصه، محاسبه اجاره بهای ۹۹ ساله سال‌های گذشته و جاری و سهم آماده‌سازی زمین.',
+    actionTitle: 'کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)',
+    actionSummary: 'محاسبه قدرالسهم عرصه، اجاره سنواتی، اجاره سال جاری و هزینه‌های آماده‌سازی پروژه مسکونی.',
     items: [
-      'محاسبه و ثبت قدرالسهم عرصه واحد به متر مربع',
-      'محاسبه اجاره عرصه سال‌های گذشته و جاری (ریال)',
-      'تعیین کل هزینه آماده‌سازی زمین و سهم متقاضی'
+      'ورود متراژ دقیق قدرالسهم متقاضی از عرصه (متر مربع)',
+      'محاسبه و درج مبلغ اجاره سنوات گذشته و سال جاری (ریال)',
+      'تعیین مبلغ کل آماده‌سازی و تفکیک ۲۰٪ نقد و ۸۰٪ اقساط'
     ],
-    targetSection: '#section-valuation'
+    targetSection: '#section-valuation-rent'
   },
   18: {
-    actionTitle: 'اخذ چک‌های وام دهک، نقد و اقساط آماده‌سازی',
-    actionSummary: 'دریافت چک‌های بنفش صیادی تسهیلات دهک، مبالغ نقدی و تقسیط اجاره عرصه و آماده‌سازی زمین توسط کارگزاری.',
+    actionTitle: 'وصول نقد، اقساط، چک‌های دهک و آماده‌سازی',
+    actionSummary: 'دریافت، ثبت چک‌های اقساط و بارگذاری اسکن چک‌های تسهیلات دهک و آماده‌سازی.',
     items: [
-      'دریافت چک‌های صیادی تسهیلات دهک در وجه سازمان ملی زمین و مسکن',
-      'ثبت مبالغ نقد و اقساط اجاره عرصه و آماده‌سازی',
-      'بارگذاری اسکن چک‌های صیادی در آلبوم اسناد پرونده'
+      'دریافت و ثبت مشخصات چک‌های صیادی تسهیلات دهک درآمدی',
+      'دریافت فیش واریز نقدی و چک‌های اقساط آماده‌سازی و اجاره',
+      'بارگذاری اسکن چک‌ها و صدور رسید چاپی رسمی'
     ],
     targetSection: '#section-checks'
   },
   19: {
-    actionTitle: 'تسویه حساب مالی با پیمانکار سازنده',
-    actionSummary: 'بررسی صورت‌وضعیت قطعی پیمانکار، تایید عدم بدهی پروژه به سازنده و ثبت صورت‌جلسه تسویه حساب.',
+    actionTitle: 'بررسی کارشناس تسویه با پیمانکار',
+    actionSummary: 'بررسی صورت‌جلسه تسویه قطعی پیمانکار و صدور اجازه چاپ فرم مراحل و امضاها.',
     items: [
-      'بررسی تاییدیه مالی پیمانکار سازنده پروژه',
-      'ثبت وضعیت تسویه قطعی هزینه‌های ساخت واحد',
-      'تایید صورتجلسه تحویل فیزیکی جهت صدور معرفی‌نامه محضر'
+      'بررسی اسناد تسویه حساب مالی با شرکت پیمانکار سازنده',
+      'تایید تسویه و باز شدن قابلیت چاپ فرم مراحل و امضاها',
+      'ثبت امضای دیجیتال کارشناس تسویه پیمانکار'
     ],
-    targetSection: '#section-valuation'
+    targetSection: '#audit-timeline-section'
   },
   20: {
-    actionTitle: 'صدور معرفی‌نامه رسمی به دفتر اسناد رسمی (محضر)',
-    actionSummary: 'تولید، امضای الکترونیکی و چاپ معرفی‌نامه رسمی متقاضی به دفتر اسناد رسمی جهت تنظیم سند رسمی انتقال.',
+    actionTitle: 'صدور و ثبت نامه محضر',
+    actionSummary: 'تولید، ثبت شماره نامه در سوابق و چاپ معرفی‌نامه رسمی متقاضی به دفتر اسناد رسمی.',
     items: [
-      'بررسی شماره و مشخصات دفتر اسناد رسمی (محضر)',
-      'فشردن دکمه «چاپ معرفی‌نامه محضر (مرحله ۲۰)» در نوار پایین',
-      'ثبت امضای دیجیتال کارشناس صدور نامه محضر'
+      'بررسی و ثبت شماره و تاریخ نامه معرفی به محضر',
+      'تعیین شماره دفتر اسناد رسمی (محضر)',
+      'چاپ معرفی‌نامه محضر و ثبت امضای دیجیتال کارشناس'
     ],
-    targetSection: '#form-sections'
+    targetSection: '#section-notary'
   },
   21: {
-    actionTitle: 'مشاهده شناسنامه نهایی و بایگانی قطعی پرونده',
-    actionSummary: 'رویت کارنامه جامع سندی، چاپ شناسنامه بایگانی، اعمال قفل سیستمی دائم و اتمام فرآیند در آرشیو قطعی.',
+    actionTitle: 'مشاهده فرم نهایی و بایگانی قطعی',
+    actionSummary: 'رویت شناسنامه جامع سندی، چاپ فرم رسمی مراحل و امضاها (۱۴ امضا)، اعمال قفل سیستمی دائم و اتمام فرآیند در آرشیو قطعی.',
     items: [
-      'بررسی خلاصه سوابق و کلیه امضاهای ۲۱ مرحله گذشته',
-      'چاپ فرم شناسنامه جامع بایگانی پرونده مسکن',
+      'بررسی خلاصه سوابق و کلیه امضاهای مراحل پرونده',
+      'چاپ فرم رسمی مراحل و امضاها (۱۴ امضا)',
       'فشردن دکمه «تایید و بایگانی قطعی پرونده» جهت قفل ابدی پرونده'
     ],
-    targetSection: '#form-sections'
+    targetSection: '#audit-timeline-section'
   }
 };
 
@@ -312,7 +344,7 @@ const STAGE_GUIDANCE = {
 document.addEventListener('alpine:init', () => {
   Alpine.data('sanadbanApp', () => ({
     // Pipeline State
-    currentStage: 0,
+    currentStage: 1,
     status: 'IN_PROGRESS',
     returnReason: '',
     returnBy: '',
@@ -323,6 +355,7 @@ document.addEventListener('alpine:init', () => {
     userCanAction: true,
     isChief: false,
     showRoadmap: false,
+    stageDetails: {},
     selectedCategory: 'all',
     attachmentViewMode: 'album',
     todayDate: '',
@@ -517,6 +550,9 @@ document.addEventListener('alpine:init', () => {
 
     // Check Admin Authorization (Superuser, Chief, or Kargozari Check Admin)
     isCheckAdmin: false,
+    userAllowedStages: 'all',
+    isSuperuser: false,
+    signaturesList: [],
 
     // Check Generator State (BankCheckTracker intelligent generation)
     checkGenerator: {
@@ -577,8 +613,12 @@ document.addEventListener('alpine:init', () => {
           if (typeof serverData.is_chief !== 'undefined') this.isChief = Boolean(serverData.is_chief);
           if (typeof serverData.is_superuser !== 'undefined') this.isSuperuser = Boolean(serverData.is_superuser);
           if (typeof serverData.is_check_admin !== 'undefined') this.isCheckAdmin = Boolean(serverData.is_check_admin);
+          if (typeof serverData.user_allowed_stages !== 'undefined') this.userAllowedStages = serverData.user_allowed_stages;
+          if (typeof serverData.is_superuser !== 'undefined') this.isSuperuser = Boolean(serverData.is_superuser);
+          if (Array.isArray(serverData.signatures_list)) this.signaturesList = serverData.signatures_list;
           if (typeof serverData.is_rejected !== 'undefined') this.isRejected = Boolean(serverData.is_rejected);
           if (typeof serverData.is_red_form_j !== 'undefined') this.isRedFormJ = Boolean(serverData.is_red_form_j);
+          if (serverData.stage_details) this.stageDetails = serverData.stage_details;
           if (serverData.rejection_letter_number) this.rejectionLetterNumber = serverData.rejection_letter_number;
           if (serverData.rejection_letter_date) this.rejectionLetterDate = serverData.rejection_letter_date;
           if (serverData.rejection_reason) this.rejectionReason = serverData.rejection_reason;
@@ -771,11 +811,19 @@ document.addEventListener('alpine:init', () => {
       this.triggerToast('جابجایی دستی مرحله غیرفعال است. تغییر مرحله صرفاً از طریق تایید و امضای الکترونیک یا برگشت جهت اصلاح انجام می‌گیرد.', 'warning');
     },
 
+    // Get CSRF Token reliably from DOM or cookie
+    getCSRFToken() {
+      const input = document.querySelector('[name=csrfmiddlewaretoken]');
+      if (input && input.value) return input.value;
+      const match = document.cookie.match(/(?:^|;)\\s*csrftoken=([^;]+)/);
+      return match ? decodeURIComponent(match[1]) : '';
+    },
+
     // Save Dossier Draft Directly to Database
     async saveDossierDraft(notify = true) {
       this.isSaving = true;
       try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const csrfToken = this.getCSRFToken();
         const payload = Object.assign({}, this.form, { current_stage: this.currentStage });
         const res = await fetch(`/dossier/${this.archiveNumber}/save/`, {
           method: 'POST',
@@ -817,6 +865,7 @@ document.addEventListener('alpine:init', () => {
 
     setBankLoan(amount) {
       this.form.bank_loan_amount = Number(amount) || 0;
+      this.recalculateEquity();
     },
 
     recalculateEquity() {
@@ -826,9 +875,20 @@ document.addEventListener('alpine:init', () => {
       this.form.applicant_equity = Math.max(0, baseCost - (fundLoan + decileLoan));
     },
 
+    scrollToCategory(cat) {
+      this.selectedCategory = cat || 'all';
+      const album = document.getElementById('attachments-card');
+      if (album) {
+        album.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        album.classList.add('pulse-highlight');
+        setTimeout(() => album.classList.remove('pulse-highlight'), 1600);
+      }
+    },
+
     getFilteredAttachments() {
       if (!this.selectedCategory || this.selectedCategory === 'all') return this.attachments;
-      if (this.selectedCategory === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID');
+      if (this.selectedCategory === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID' || a.type === 'FORM_J' || a.doc_type === 'FORM_J');
+      if (this.selectedCategory === 'form_j') return this.attachments.filter(a => a.type === 'FORM_J' || a.doc_type === 'FORM_J');
       if (this.selectedCategory === 'bank') return this.attachments.filter(a => a.type === 'BANK_BOOKLET' || a.type === 'BANK_LETTER');
       if (this.selectedCategory === 'deed') return this.attachments.filter(a => a.type === 'TITLE_DEED' || a.type === 'UNIT_SELECTION');
       if (this.selectedCategory === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK' || a.type === 'CHECK_RECEIPT');
@@ -838,7 +898,8 @@ document.addEventListener('alpine:init', () => {
     getCategoryCount(cat) {
       if (!this.attachments) return 0;
       if (cat === 'all') return this.attachments.length;
-      if (cat === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID').length;
+      if (cat === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID' || a.type === 'FORM_J' || a.doc_type === 'FORM_J').length;
+      if (cat === 'form_j') return this.attachments.filter(a => a.type === 'FORM_J' || a.doc_type === 'FORM_J').length;
       if (cat === 'bank') return this.attachments.filter(a => a.type === 'BANK_BOOKLET' || a.type === 'BANK_LETTER').length;
       if (cat === 'deed') return this.attachments.filter(a => a.type === 'TITLE_DEED' || a.type === 'UNIT_SELECTION').length;
       if (cat === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK' || a.type === 'CHECK_RECEIPT').length;
@@ -873,6 +934,98 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Interactive Scan Viewer & Lightbox Methods
+    getSectionAttachments(types) {
+      if (!this.attachments || !Array.isArray(this.attachments)) return [];
+      if (!types) return this.attachments;
+      const typeList = Array.isArray(types) ? types : [types];
+      return this.attachments.filter(a => {
+        const t = a.type || a.doc_type;
+        return typeList.includes(t);
+      });
+    },
+
+    async uploadSectionAttachment(docType, defaultTitle, event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      this.triggerToast(`در حال بارگذاری «${defaultTitle || file.name}»...`, 'info');
+
+      try {
+        const formData = new FormData();
+        formData.append('title', defaultTitle || file.name);
+        formData.append('doc_type', docType || 'OTHER');
+        formData.append('file', file);
+
+        const csrfToken = this.getCSRFToken();
+        const res = await fetch(`/dossier/${this.archiveNumber}/upload-scan/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken
+          },
+          body: formData
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          if (data.attachment) {
+            const exists = this.attachments.some(a => a.id === data.attachment.id);
+            if (!exists) {
+              this.attachments.unshift(data.attachment);
+            }
+          }
+          const nowStr = new Date().toLocaleDateString('fa-IR') + ' ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+          this.auditLogs.unshift({
+            step: this.currentStage,
+            fromStage: `مرحله ${this.currentStage}`,
+            toStage: `مرحله ${this.currentStage}`,
+            actor: data.attachment ? data.attachment.uploader : 'کارشناس سامانه',
+            role: this.getStage(this.currentStage)?.role || 'کارشناس',
+            action: 'SUBMIT',
+            actionLabel: `بارگذاری سند: ${defaultTitle || file.name}`,
+            timestamp: nowStr,
+            hash: data.attachment ? data.attachment.sha256 : '',
+            notes: `سند «${defaultTitle || file.name}» با موفقیت در این بخش بارگذاری گردید.`
+          });
+          this.triggerToast(`مدرک «${defaultTitle || file.name}» با موفقیت بارگذاری و الصاق شد.`, 'success');
+        } else {
+          this.triggerToast(data.message || 'خطا در بارگذاری مدرک.', 'error');
+        }
+      } catch (err) {
+        console.error('Error uploading section attachment:', err);
+        this.triggerToast('خطا در برقراری ارتباط با سرور جهت بارگذاری مدرک.', 'error');
+      } finally {
+        event.target.value = '';
+      }
+    },
+
+    async deleteAttachment(attId) {
+      if (!confirm('آیا از حذف این مدرک از پرونده اطمینان دارید؟')) return;
+
+      try {
+        const csrfToken = this.getCSRFToken();
+        const res = await fetch(`/dossier/${this.archiveNumber}/attachment/${attId}/delete/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken
+          }
+        });
+
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          this.attachments = this.attachments.filter(a => a.id !== attId);
+          if (this.activeScan && this.activeScan.id === attId) {
+            this.closeScanViewer();
+          }
+          this.triggerToast(data.message || 'مدرک با موفقیت حذف گردید.', 'success');
+        } else {
+          this.triggerToast(data.message || 'خطا در حذف مدرک.', 'error');
+        }
+      } catch (err) {
+        console.error('Error deleting attachment:', err);
+        this.triggerToast('خطا در برقراری ارتباط با سرور جهت حذف مدرک.', 'error');
+      }
+    },
+
     openScanViewer(item) {
       this.activeScan = {
         ...item,
@@ -927,7 +1080,7 @@ document.addEventListener('alpine:init', () => {
       if (!file) return;
 
       const typeLabel = type === 'prep' ? 'اقساط آماده‌سازی' : 'تسهیلات وام دهک';
-      this.triggerToast(در حال بارگذاری اسکن و تولید برگه رسید چک‌های ..., 'info');
+      this.triggerToast(`در حال بارگذاری اسکن و تولید برگه رسید چک‌های ${typeLabel}...`, 'info');
 
       try {
         const formData = new FormData();
@@ -935,7 +1088,7 @@ document.addEventListener('alpine:init', () => {
         formData.append('check_type', type);
 
         const csrfToken = this.getCSRFToken();
-        const res = await fetch(/dossier//checks/upload-scan-and-create-receipt/, {
+        const res = await fetch(`/dossier/${this.archiveNumber}/checks/upload-scan-and-create-receipt/`, {
           method: 'POST',
           headers: {
             'X-CSRFToken': csrfToken
@@ -951,7 +1104,7 @@ document.addEventListener('alpine:init', () => {
               this.attachments.unshift(data.attachment);
             }
           }
-          this.triggerToast(تصویر اسکن دریافت، سربرگ و امضاها افزوده و به عنوان رسید چک‌ها ذخیره گردید ✓, 'success');
+          this.triggerToast('تصویر اسکن دریافت، سربرگ و امضاها افزوده و به عنوان رسید چک‌ها ذخیره گردید ✓', 'success');
           
           if (data.print_url) {
             window.open(data.print_url, '_blank');
@@ -980,15 +1133,13 @@ document.addEventListener('alpine:init', () => {
       let scanUrl = existingScan ? existingScan.preview_url : '';
 
       if (!scanUrl) {
-        this.triggerToast('پرونده فاقد فایل تصویر اسکن است. لطفاً ابتدا فایل اسکن چک را بارگذاری فرمایید.', 'warning');
-        const inputId = type === 'prep' ? 'prep-check-scan-input' : 'loan-check-scan-input';
-        const inputElem = document.getElementById(inputId);
-        if (inputElem) inputElem.click();
-        return;
+        if (!this.isLocked) {
+          this.triggerToast('رسید چاپی بدون تصویر اسکن باز می‌شود. در صورت تمایل می‌توانید فایل اسکن را نیز بارگذاری فرمایید.', 'info');
+        }
       }
 
       try {
-        const res = await fetch(/dossier//checks/archive-receipt/, {
+        const res = await fetch(`/dossier/${this.archiveNumber}/checks/archive-receipt/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1007,28 +1158,12 @@ document.addEventListener('alpine:init', () => {
         console.error('Error archiving existing check scan receipt:', e);
       }
 
-      const printUrl = /dossier//print/checks/?scan_url=&type=&auto_archive=0&auto_print=1;
+      const printUrl = `/dossier/${this.archiveNumber}/print/checks/?scan_url=${encodeURIComponent(scanUrl)}&type=${type}&auto_archive=0&auto_print=1`;
       window.open(printUrl, '_blank');
     },
 
     async printChecksReceipt(type = 'loan') {
       this.printExistingCheckScanReceipt(type);
-    },
-          body: JSON.stringify({ type: type })
-        });
-        const data = await res.json();
-        if (data.status === 'success' && data.attachment) {
-          const exists = this.attachments.some(a => a.id === data.attachment.id);
-          if (!exists) {
-            this.attachments.unshift(data.attachment);
-          }
-          this.triggerToast(`رسید رسمی چک‌های ${typeLabel} با موفقیت صادر و به آلبوم اسناد اسکن‌شده افزوده شد ✓`, 'success');
-        }
-      } catch (err) {
-        console.error('Error auto-archiving check receipt:', err);
-      }
-      const printUrl = `/dossier/${this.archiveNumber}/print/checks/?type=${type}&auto_archive=0&auto_print=1`;
-      window.open(printUrl, '_blank');
     },
 
     isImageFile(item) {
@@ -1042,15 +1177,7 @@ document.addEventListener('alpine:init', () => {
 
     isUploadAllowed() {
       if (this.isLocked) return false;
-      if (!this.userCanAction && !this.isChief) return false;
-      // Stages dedicated to scanning/uploading in the 22-stage workflow:
-      // Stage 0: Applicant & Spouse ID, Unit Selection
-      // Stage 1: Plot verification & Applicant data
-      // Stage 9: Bank Installment booklet & facility letter
-      // Stage 13: Cadastral Title Deed
-      // Stage 18: Decile Checks & Preparation
-      const ALLOWED = [0, 1, 9, 13, 18];
-      return this.isChief || ALLOWED.includes(Number(this.currentStage));
+      return Boolean(this.userCanAction || this.isChief);
     },
 
     // Upload & Scanner Controller Methods
@@ -1066,6 +1193,9 @@ document.addEventListener('alpine:init', () => {
       if (this.currentStage <= 1) {
         defaultTitle = 'اسکن کارت ملی و مدارک سجلی';
         defaultType = 'NATIONAL_ID';
+      } else if (this.currentStage === 3 || this.currentStage === 16) {
+        defaultTitle = 'تصویر و استعلام رسمی فرم (ج) اداره کل';
+        defaultType = 'FORM_J';
       } else if (this.currentStage === 9) {
         defaultTitle = 'اسکن دفترچه اقساط تسهیلات بانک مسکن';
         defaultType = 'BANK_BOOKLET';
@@ -1260,9 +1390,28 @@ document.addEventListener('alpine:init', () => {
     // Permission Checker: all fields are editable across stages if user has permission, locked upon final archive
     isFieldEditable(fieldName) {
       if (this.isLocked) return false;
-      if (typeof this.userCanAction !== 'undefined' && !this.userCanAction) return false;
-      return true;
+      if (this.isSuperuser || this.isChief || this.userAllowedStages === 'all') {
+        return true;
+      }
+      if (typeof this.userCanAction !== 'undefined' && !this.userCanAction) {
+        return false;
+      }
+      const fieldStages = FIELD_STAGE_MAP[fieldName];
+      if (!fieldStages) {
+        return false;
+      }
+      const allowed = Array.isArray(this.userAllowedStages) ? this.userAllowedStages : [];
+      return fieldStages.some(stg => allowed.includes(stg));
     },
+
+    getFormJAttachment() {
+      return (this.attachments || []).find(a => (a.type === 'FORM_J' || a.doc_type === 'FORM_J'));
+    },
+    hasFormJ() {
+      return Boolean(this.getFormJAttachment());
+    },
+
+
 
     // --------------------------------------------------------------------------
     // BankCheckTracker & TashilatCheck Dynamic Helpers

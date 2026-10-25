@@ -12,7 +12,18 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project, UserProfile, DossierCheck
+from .field_permissions import (
+    FIELD_STAGE_MAP,
+    SLOT_TO_STAGES,
+    SLOT_TITLES,
+    STAGE_TO_DEFAULT_SLOT,
+    get_user_allowed_stages_set,
+    can_user_edit_field,
+    can_user_upload_signature,
+    filter_allowed_updates,
+)
+from .models import DossierSignature
+from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project, UserProfile, DossierCheck, BankLetter
 
 DOSSIER_FIELD_LABELS = {
     "full_name": "نام و نام خانوادگی متقاضی",
@@ -70,6 +81,10 @@ DOSSIER_FIELD_LABELS = {
     "is_equity_funded": "تأیید تأمین آورده نقدی",
     "bank_letter_number": "شماره نامه بانک",
     "bank_letter_date": "تاریخ نامه بانک",
+    "is_added_to_bank_shipment_list": "اضافه کردن به لیست ارسالی‌ها به بانک",
+    "is_sent_to_bank": "ارسال شده به بانک",
+    "bank_sent_date": "تاریخ ارسال به بانک",
+    "bank_sent_letter_number": "شماره نامه ارسال به بانک",
     "total_land_share": "جمع کل قدرالسهم (م²)",
     "past_years_rent": "اجاره سنوات تا پایان سال جاری (ریال)",
     "current_year_rent": "اجاره سال جاری (ریال)",
@@ -180,6 +195,8 @@ def dossier_list_view(request):
     
     is_full_admin = is_super or is_staff or is_chief or is_system or is_all_stages
 
+    sort = request.GET.get('sort', 'stage_asc').strip()
+
     dossiers = HousingDossier.objects.all()
 
     # Stage restriction for regular experts
@@ -187,7 +204,7 @@ def dossier_list_view(request):
     if not is_full_admin:
         if profile and profile.allowed_stages:
             user_allowed_stages = [int(s.strip()) for s in profile.allowed_stages.split(',') if s.strip().isdigit()]
-        dossiers = dossiers.filter(current_stage__in=user_allowed_stages)
+        dossiers = dossiers.filter(models.Q(current_stage__in=user_allowed_stages) | models.Q(is_locked=True))
 
     if query:
         whole_cond = get_token_search_condition(query)
@@ -244,8 +261,24 @@ def dossier_list_view(request):
 
     user_allowed_titles = [f"مرحله {i} ({HousingDossier.STAGE_ROLES[i][2]})" for i in user_allowed_stages if i in HousingDossier.STAGE_ROLES]
 
+    if sort == 'stage_asc':
+        dossiers = dossiers.order_by('current_stage', 'archive_number')
+    elif sort == 'stage_desc':
+        dossiers = dossiers.order_by('-current_stage', 'archive_number')
+    elif sort == 'archive_asc':
+        dossiers = dossiers.order_by('archive_number')
+    elif sort == 'archive_desc':
+        dossiers = dossiers.order_by('-archive_number')
+    elif sort == 'name_asc':
+        dossiers = dossiers.order_by('full_name')
+    elif sort == 'date_desc':
+        dossiers = dossiers.order_by('-updated_at')
+    else:
+        dossiers = dossiers.order_by('current_stage', 'archive_number')
+
     context = {
         "dossiers": dossiers,
+        "current_sort": sort,
         "query": query,
         "stage_filter": stage_filter,
         "stages_meta": stages_meta,
@@ -276,7 +309,7 @@ def dossier_detail_view(request, pk):
     is_all_stages = bool(profile and profile.allowed_stages == 'all')
     is_full_admin = is_super or is_staff or is_chief or is_system or is_all_stages
 
-    if not is_full_admin:
+    if not is_full_admin and not dossier.is_locked:
         user_allowed = [int(s.strip()) for s in profile.allowed_stages.split(',') if s.strip().isdigit()] if profile and profile.allowed_stages else []
         if dossier.current_stage not in user_allowed:
             messages.warning(
@@ -292,6 +325,7 @@ def dossier_detail_view(request, pk):
             "id": att.id,
             "stage": att.stage,
             "type": att.doc_type,
+            "doc_type": att.doc_type,
             "title": att.title,
             "fileName": att.file_name,
             "uploader": att.uploaded_by,
@@ -431,6 +465,10 @@ def dossier_detail_view(request, pk):
             "is_equity_funded": dossier.is_equity_funded,
             "bank_letter_number": dossier.bank_letter_number,
             "bank_letter_date": dossier.bank_letter_date,
+            "is_added_to_bank_shipment_list": dossier.is_added_to_bank_shipment_list,
+            "is_sent_to_bank": dossier.is_sent_to_bank,
+            "bank_sent_date": dossier.bank_sent_date or "",
+            "bank_sent_letter_number": dossier.bank_sent_letter_number or "",
             "total_land_share": float(dossier.total_land_share) if dossier.total_land_share else None,
             "past_years_rent": dossier.past_years_rent,
             "current_year_rent": dossier.current_year_rent,
@@ -509,7 +547,7 @@ def dossier_detail_view(request, pk):
             }
 
     # For any stage < current_stage without an explicit signature record:
-    for stg_num in range(dossier.current_stage):
+    for stg_num in range(1, dossier.current_stage):
         if stg_num not in stage_signatures:
             default_role = HousingDossier.STAGE_ROLES.get(stg_num, ("-", "کارشناس اقدام‌کننده", "-"))[1]
             try:
@@ -533,8 +571,16 @@ def dossier_detail_view(request, pk):
     dossier_data["current_role"] = dossier.current_role
     dossier_data["current_stage_title"] = dossier.current_stage_title
 
+    # 14 Archival Signatures & Stage Permission Setup
+    user_allowed_stages = get_user_allowed_stages_set(request.user)
+    dossier_data["user_allowed_stages"] = "all" if user_allowed_stages == "all" else list(user_allowed_stages)
+    dossier_data["is_superuser"] = request.user.is_superuser
+    dossier_data["stage_details"] = HousingDossier.STAGE_DETAILS
+
     context = {
         "dossier": dossier,
+        "form_j_attachment": dossier.form_j_attachment,
+        "stage_details": HousingDossier.STAGE_DETAILS,
         "attachments": attachments,
         "audit_logs": audit_logs,
         "field_changes": dossier.field_changes.all().order_by("-timestamp")[:500],
@@ -614,7 +660,8 @@ def save_dossier_draft_view(request, pk):
         "unit_code", "unit_direction", "registration_section",
         "bank_letter_number", "bank_letter_date", "land_lease_year",
         "decile_loan_bank", "supported_institution", "commitment_number", "commitment_date",
-        "tenant_code", "prepayment_code", "rah_letter", "rah_letter_date"
+        "tenant_code", "prepayment_code", "rah_letter", "rah_letter_date",
+        "bank_sent_date", "bank_sent_letter_number"
     ]:
         if field in data and data[field] is not None:
             parsed_updates[field] = str(data[field]).strip()
@@ -664,13 +711,16 @@ def save_dossier_draft_view(request, pk):
                     pass
 
     # Boolean fields
-    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed"]:
+    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed", "is_added_to_bank_shipment_list", "is_sent_to_bank"]:
         if field in data:
             val = data[field]
             parsed_updates[field] = bool(val) if not isinstance(val, str) else val.lower() in ("true", "1")
 
+    # Enforce role-based field restrictions: everyone can only change what is related to him
+    parsed_updates = filter_allowed_updates(request.user, parsed_updates)
+
     # Sync and persist Check entries list from BankCheckTracker
-    if "check_entries" in data and isinstance(data["check_entries"], list):
+    if "check_entries" in data and isinstance(data["check_entries"], list) and can_user_edit_field(request.user, "check_entries_json"):
         entries_data = data["check_entries"]
         cleaned_entries = []
         total_sum = 0
@@ -719,7 +769,7 @@ def save_dossier_draft_view(request, pk):
             )
 
     # Sync and persist Preparation Check entries list from tashilatCheck
-    if "preparation_check_entries" in data and isinstance(data["preparation_check_entries"], list):
+    if "preparation_check_entries" in data and isinstance(data["preparation_check_entries"], list) and can_user_edit_field(request.user, "preparation_check_entries_json"):
         prep_entries_data = data["preparation_check_entries"]
         cleaned_prep_entries = []
         prep_total_sum = 0
@@ -888,7 +938,13 @@ def electronic_sign_action(request, pk):
     raw_stamp = f"{dossier.archive_number}-{current_idx}-{next_stage}-{timezone.now().isoformat()}"
     sig_hash = "SHA256: " + hashlib.sha256(raw_stamp.encode()).hexdigest()[:24]
 
-    if next_stage <= 21:
+    if current_idx >= 21:
+        dossier.is_locked = True
+        dossier.status = "COMPLETED"
+        action = "ARCHIVE"
+        action_label = "بایگانی قطعی پرونده"
+        to_stage_str = "بایگانی نهایی (مختومه)"
+    else:
         dossier.current_stage = next_stage
         dossier.status = "IN_PROGRESS"
         dossier.return_reason = ""
@@ -897,12 +953,6 @@ def electronic_sign_action(request, pk):
         action = "SIGN"
         action_label = "تایید و امضای الکترونیکی"
         to_stage_str = f"مرحله {next_stage}: {dossier.STAGE_ROLES.get(next_stage, ('','',f'مرحله {next_stage}'))[2]}"
-    else:
-        dossier.is_locked = True
-        dossier.status = "COMPLETED"
-        action = "ARCHIVE"
-        action_label = "بایگانی قطعی پرونده"
-        to_stage_str = "بایگانی نهایی (مختومه)"
 
     dossier.save()
 
@@ -927,6 +977,43 @@ def electronic_sign_action(request, pk):
         signature_hash=sig_hash,
         notes=notes
     )
+
+    # Auto-link expert profile signature to official archival slots (شناسنامه جامع بایگانی)
+    stage_to_slots = {
+        0: ["brokerage"],
+        3: ["form_j"],
+        4: ["other_facilities"],
+        5: ["contractor_settlement"],
+        6: ["decile_facility"],
+        7: ["applicant_settlement"],
+        8: ["bank_facility"],
+        10: ["brokerage"],
+        11: ["national_housing"],
+        12: ["technical"],
+        13: ["real_estate"],
+        14: ["land_bank"],
+        15: ["legal"],
+        16: ["form_j"],
+        17: ["evaluation"],
+        18: ["revenue"],
+        19: ["contractor_settlement"],
+    }
+    target_slots = stage_to_slots.get(current_idx, [])
+    import jdatetime
+    try:
+        now_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d - %H:%M")
+    except Exception:
+        now_jalali = timezone.now().strftime("%Y/%m/%d %H:%M")
+
+    for slot_key in target_slots:
+        sig_obj, _ = DossierSignature.objects.get_or_create(dossier=dossier, slot_key=slot_key)
+        sig_obj.signer_name = actor_name
+        sig_obj.signer_title = actor_role
+        sig_obj.signed_date = now_jalali
+        sig_obj.uploaded_by = request.user.username if request.user.is_authenticated else actor_name
+        if profile and profile.signature_image:
+            sig_obj.signature_image = profile.signature_image
+        sig_obj.save()
 
     if request.headers.get("HX-Request"):
         return redirect("dossier_detail", pk=dossier.archive_number)
@@ -956,7 +1043,7 @@ def return_stage_action(request, pk):
     # Permission check for active stage
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or (profile and profile.is_housing_chief)
-    user_can_action = is_chief_or_admin or (profile and profile.can_action_stage(dossier.current_stage))
+    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(16)))))
     if not user_can_action:
         return JsonResponse({
             "status": "error",
@@ -990,9 +1077,9 @@ def return_stage_action(request, pk):
 
     current_idx = dossier.current_stage
 
-    if current_idx == 0 and target_stage == 0 and is_chief_or_admin:
+    if current_idx == 1 and target_stage == 1 and is_chief_or_admin:
         pass
-    elif target_stage >= current_idx or target_stage < 0:
+    elif target_stage >= current_idx or target_stage < 1:
         return JsonResponse({"status": "error", "message": "مرحله برگشت باید از مرحله فعلی کوچکتر یا مرحله جاری جهت بازبینی باشد."}, status=400)
 
     current_title = dossier.current_stage_title
@@ -1104,6 +1191,8 @@ def lookup_preselected_unit_api(request):
             "plot_number": unit.plot_number,
         }
         return JsonResponse(data)
+
+
     except PreSelectedUnit.DoesNotExist:
         return JsonResponse({"status": "not_found", "message": "اطلاعاتی با این کد ملی در بانک انتخاب واحد یافت نشد."}, status=404)
 
@@ -1117,36 +1206,131 @@ def notary_letter_print_view(request, pk):
     return render(request, "dossiers/print_notary.html", {"dossier": dossier})
 
 
+def get_dossier_signatures_summary(dossier):
+    """
+    Returns (signatures_map, signed_count) for the 14 official archival slots.
+    Prioritizes DossierSignature, and synchronizes from WorkflowSignatureLog and UserProfile.
+    """
+    import re
+    import jdatetime
+    
+    sigs = {s.slot_key: s for s in dossier.signatures.all()}
+    
+    stage_to_slots = {
+        0: ["brokerage"],
+        3: ["form_j"],
+        4: ["other_facilities"],
+        5: ["contractor_settlement"],
+        6: ["decile_facility"],
+        7: ["applicant_settlement"],
+        8: ["bank_facility"],
+        10: ["brokerage"],
+        11: ["national_housing"],
+        12: ["technical"],
+        13: ["real_estate"],
+        14: ["land_bank"],
+        15: ["legal"],
+        16: ["form_j"],
+        17: ["evaluation"],
+        18: ["revenue"],
+        19: ["contractor_settlement"],
+    }
+    
+    # Check WorkflowSignatureLog to find if stages were signed
+    for log in dossier.audit_logs.filter(action__in=["SIGN", "APPROVE", "ARCHIVE"]).order_by("timestamp"):
+        m = re.search(r'مرحله\s+(\d+)', log.from_stage)
+        if not m:
+            continue
+        stg_num = int(m.group(1))
+        target_slots = stage_to_slots.get(stg_num, [])
+        for slot_key in target_slots:
+            sig_obj = sigs.get(slot_key)
+            try:
+                jdt = jdatetime.datetime.fromgregorian(datetime=log.timestamp)
+                date_str = jdt.strftime("%Y/%m/%d - %H:%M")
+            except Exception:
+                date_str = log.timestamp.strftime("%Y/%m/%d - %H:%M")
+
+            user_profile = UserProfile.objects.filter(full_name=log.actor).first()
+            if not user_profile:
+                user_match = User.objects.filter(username=log.actor).first()
+                if user_match:
+                    user_profile = getattr(user_match, 'profile', None)
+
+            if not sig_obj:
+                sig_img = user_profile.signature_image if user_profile else None
+                sig_obj = DossierSignature(
+                    dossier=dossier,
+                    slot_key=slot_key,
+                    signer_name=log.actor,
+                    signer_title=log.role or "کارشناس اقدام‌کننده",
+                    signed_date=date_str,
+                    signature_image=sig_img,
+                    uploaded_by=log.actor
+                )
+                try:
+                    sig_obj.save()
+                except Exception:
+                    pass
+                sigs[slot_key] = sig_obj
+            else:
+                if not sig_obj.signed_date:
+                    sig_obj.signed_date = date_str
+                if not sig_obj.signature_image and user_profile and user_profile.signature_image:
+                    sig_obj.signature_image = user_profile.signature_image
+                    try:
+                        sig_obj.save()
+                    except Exception:
+                        pass
+
+    # Count how many of the 14 slots have been signed
+    ALL_SLOTS = [
+        "brokerage", "national_housing", "bank_facility", "decile_facility",
+        "contractor_settlement", "applicant_settlement", "other_facilities",
+        "legal", "form_j", "evaluation", "technical", "real_estate", "land_bank", "revenue"
+    ]
+    signed_count = sum(1 for k in ALL_SLOTS if k in sigs and sigs[k].signed_date)
+    return sigs, signed_count
+
 @login_required(login_url='login')
 def dossier_summary_print_view(request, pk):
     """
     Print-ready view for Stage 24 (Final Archival Summary Sheet).
+    Passes the 14 official archival signatures and Jalali report date.
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
-    return render(request, "dossiers/print_summary.html", {"dossier": dossier})
+    import jdatetime
+    try:
+        today_jalali = jdatetime.date.today().strftime("%Y/%m/%d")
+    except Exception:
+        today_jalali = dossier.stage_entry_date_jalali
+    
+    signatures_map, signed_count = get_dossier_signatures_summary(dossier)
+    return render(request, "dossiers/print_summary.html", {
+        "dossier": dossier,
+        "signatures_map": signatures_map,
+        "signed_count": signed_count,
+        "today_jalali": today_jalali
+    })
 
 
 def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=""):
     """
     Creates or retrieves the official check receipt attachment in DossierAttachment
-    so that printed check receipts are automatically tracked in the Scan Album.
+    only when a real physical scan image is provided. Never registers broken HTML print URLs.
     """
+    if not scan_url:
+        return None
+
     check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
     doc_type = "PREP_CHECK" if check_type_norm == "prep" else "LOAN_CHECK"
     type_label = "اقساط آماده‌سازی و اجاره" if check_type_norm == "prep" else "تسهیلات وام دهک"
-    title = f"رسید رسمی و برگه تحویل چک‌های {type_label}"
-    file_name = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
-    
-    import urllib.parse
-    preview_url = f"/dossier/{dossier.archive_number}/print/checks/?type={check_type_norm}&auto_archive=0"
-    if scan_url:
-        preview_url += f"&scan_url={urllib.parse.quote(scan_url)}"
+    title = f"اسکن چک‌ها و رسید {type_label}"
+    file_name = os.path.basename(scan_url)
+    preview_url = scan_url
     
     # Check if this receipt attachment already exists
     att = dossier.attachments.filter(preview_url=preview_url).first()
-    if not att:
-        att = dossier.attachments.filter(doc_type=doc_type, title=title).first()
-        
     if att:
         return att
         
@@ -1248,6 +1432,8 @@ def dossier_print_checks_view(request, pk):
 
     context = {
         "dossier": dossier,
+        "form_j_attachment": dossier.form_j_attachment,
+        "stage_details": HousingDossier.STAGE_DETAILS,
         "check_type": check_type_norm,
         "today_jalali": now_j,
         "loan_checks": loan_checks,
@@ -1646,19 +1832,11 @@ def upload_scan_attachment_view(request, pk):
 
     # 2. User authorization & role check
     profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
-    is_chief_or_admin = request.user.is_superuser or (profile and profile.is_housing_chief)
-    user_can_action = is_chief_or_admin or (profile and profile.can_action_stage(dossier.current_stage))
+    is_chief_or_admin = request.user.is_superuser or (profile and (profile.is_housing_chief or profile.organization == 'system' or profile.allowed_stages == 'all'))
+    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(16)))))
 
     if not user_can_action:
         return JsonResponse({"status": "error", "message": "عدم دسترسی اقدام: شما مجوز بارگذاری یا تغییر اسناد در مرحله جاری را ندارید."}, status=403)
-
-    # 3. Stage-gated upload check: only Stages 0, 1, 9, 13, 18 are designated scanning stages
-    ALLOWED_STAGES = [0, 1, 9, 13, 18]
-    if not is_chief_or_admin and dossier.current_stage not in ALLOWED_STAGES:
-        return JsonResponse({
-            "status": "error",
-            "message": f"بارگذاری مدارک در مرحله {dossier.current_stage} مجاز نمی‌باشد. بارگذاری اسناد صرفاً در مراحل ۰، ۱، ۹، ۱۳ و ۱۸ امکان‌پذیر است."
-        }, status=400)
     
     title = request.POST.get("title", "").strip() or "مدرک بارگذاری‌شده"
     doc_type = request.POST.get("doc_type", "OTHER")
@@ -1734,6 +1912,7 @@ def upload_scan_attachment_view(request, pk):
         "attachment": {
             "id": attachment.id,
             "stage": attachment.stage,
+            "type": attachment.doc_type,
             "doc_type": attachment.doc_type,
             "title": attachment.title,
             "fileName": attachment.file_name,
@@ -1745,6 +1924,59 @@ def upload_scan_attachment_view(request, pk):
         }
     }
     return JsonResponse(data)
+
+
+@csrf_exempt
+def delete_scan_attachment_view(request, pk, attachment_id):
+    """
+    Deletes an attachment from the dossier and physically removes the file from disk if present.
+    Authorized for housing chief, admin, uploader, or experts assigned to this stage.
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
+
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    if dossier.is_locked:
+        return JsonResponse({"status": "error", "message": "این پرونده نهایی و بایگانی شده است و امکان حذف اسناد وجود ندارد."}, status=400)
+
+    attachment = get_object_or_404(DossierAttachment, id=attachment_id, dossier=dossier)
+
+    profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
+    is_chief_or_admin = request.user.is_superuser or (profile and (profile.is_housing_chief or profile.organization == 'system' or profile.allowed_stages == 'all'))
+    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(16)))))
+
+    if not user_can_action:
+        return JsonResponse({"status": "error", "message": "شما مجوز حذف مدارک در این پرونده را ندارید."}, status=403)
+
+    # Physical file cleanup if inside MEDIA_ROOT
+    if attachment.preview_url and attachment.preview_url.startswith("/uploads/"):
+        rel_path = attachment.preview_url[len("/uploads/"):].lstrip("/")
+        file_disk_path = os.path.join(settings.MEDIA_ROOT, rel_path)
+        if os.path.exists(file_disk_path) and os.path.isfile(file_disk_path):
+            try:
+                os.remove(file_disk_path)
+            except Exception:
+                pass
+
+    att_title = attachment.title
+    att_id = attachment.id
+    attachment.delete()
+
+    actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username if request.user.is_authenticated else "کاربر سامانه")
+    actor_role = profile.role_title if profile and profile.role_title else dossier.current_role
+
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage=f"مرحله {dossier.current_stage}",
+        to_stage=f"مرحله {dossier.current_stage}",
+        actor=actor_name,
+        role=actor_role,
+        action="DELETE",
+        action_label=f"حذف مدرک: {att_title}",
+        notes=f"مدرک پیوست «{att_title}» (شناسه {att_id}) از پرونده حذف گردید."
+    )
+
+    return JsonResponse({"status": "success", "message": f"مدرک «{att_title}» با موفقیت حذف گردید.", "attachment_id": att_id})
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1823,9 +2055,33 @@ def user_profile_view(request):
             if sig_file:
                 profile = getattr(request.user, 'profile', None)
                 if profile:
-                    profile.signature_image = sig_file
-                    profile.save()
-                    messages.success(request, "تصویر امضای الکترونیکی شما با موفقیت بروزرسانی شد.")
+                    try:
+                        from PIL import Image
+                        from io import BytesIO
+                        from django.core.files.uploadedfile import InMemoryUploadedFile
+
+                        img = Image.open(sig_file).convert("RGBA")
+                        w, h = img.size
+                        min_side = min(w, h)
+                        left = (w - min_side) // 2
+                        top = (h - min_side) // 2
+                        cropped = img.crop((left, top, left + min_side, top + min_side)).resize((320, 320), Image.Resampling.LANCZOS)
+
+                        buf = BytesIO()
+                        cropped.save(buf, format="PNG")
+                        buf.seek(0)
+
+                        processed_file = InMemoryUploadedFile(
+                            buf, None, f"sig_{request.user.id}_{int(timezone.now().timestamp())}.png",
+                            'image/png', buf.getbuffer().nbytes, None
+                        )
+                        profile.signature_image = processed_file
+                        profile.save()
+                        messages.success(request, "تصویر امضای الکترونیکی با نسبت استاندارد ۱:۱ ذخیره و بهینه‌سازی شد.")
+                    except Exception:
+                        profile.signature_image = sig_file
+                        profile.save()
+                        messages.success(request, "تصویر امضای الکترونیکی شما با موفقیت بروزرسانی شد.")
             else:
                 messages.error(request, "لطفاً یک فایل تصویر امضا انتخاب فرمایید.")
             return redirect("user_profile")
@@ -1951,16 +2207,16 @@ def users_management_view(request):
         })
 
     # Calculate stage coverage for control by stage
-    stage_experts_count = {i: 0 for i in range(22)}
+    stage_experts_count = {i: 0 for i in range(1, 25)}
     for ud in users_data:
         raw = ud.get("allowed_stages", "")
         if raw == "all" or ud.get("is_housing_chief") or ud.get("is_superuser"):
-            for i in range(22):
+            for i in range(1, 25):
                 stage_experts_count[i] += 1
         else:
             nums = [int(s.strip()) for s in raw.split(',') if s.strip().isdigit()]
             for s in nums:
-                if 0 <= s <= 21:
+                if 1 <= s <= 24:
                     stage_experts_count[s] += 1
 
     for stg in all_stages_meta:
@@ -2207,3 +2463,563 @@ def audit_logs_view(request):
         "archive_number": archive_num,
     }
     return render(request, "admin/audit_logs.html", context)
+
+
+# =========================================================================
+# Excel Bulk Import & Update Management Views (Admin Only)
+# =========================================================================
+
+def _check_admin_access(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    profile = getattr(user, 'profile', None)
+    if profile and (profile.is_housing_chief or profile.role == "SYSTEM_ADMIN" or profile.allowed_stages == "ALL"):
+        return True
+    return False
+
+@login_required
+def excel_template_create_view(request):
+    """Download Excel template for adding new dossiers."""
+    if not _check_admin_access(request.user):
+        messages.error(request, "دسترسی غیرمجاز: این قابلیت صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد.")
+        return redirect("dossier_list")
+    from .excel_service import generate_create_template
+    return generate_create_template()
+
+@login_required
+def excel_template_update_view(request):
+    """Download Excel template for bulk-updating existing dossiers by national_id."""
+    if not _check_admin_access(request.user):
+        messages.error(request, "دسترسی غیرمجاز: این قابلیت صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد.")
+        return redirect("dossier_list")
+    from .excel_service import generate_update_template
+    return generate_update_template()
+
+@login_required
+def excel_upload_create_view(request):
+    """Upload Excel file to create new dossiers."""
+    if not _check_admin_access(request.user):
+        return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+    
+    excel_file = request.FILES.get("file")
+    if not excel_file:
+        return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
+    
+    is_preview = request.POST.get("preview") in ["true", "1", True]
+    try:
+        from .excel_service import process_create_excel
+        res = process_create_excel(excel_file, user=request.user, is_preview=is_preview)
+        return JsonResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": f"خطا در ایجاد پرونده‌ها از اکسل: {str(e)}"}, status=500)
+
+@login_required
+def excel_upload_update_view(request):
+    """Upload Excel file to bulk-update dossiers matched by national_id."""
+    if not _check_admin_access(request.user):
+        return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+    
+    excel_file = request.FILES.get("file")
+    if not excel_file:
+        return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
+    
+    is_preview = request.POST.get("preview") in ["true", "1", True]
+    try:
+        from .excel_service import process_update_excel
+        res = process_update_excel(excel_file, user=request.user, is_preview=is_preview)
+        return JsonResponse(res)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"success": False, "error": f"خطا در پردازش فایل بروزرسانی اکسل: {str(e)}"}, status=500)
+
+
+
+@login_required
+def excel_export_all_view(request):
+    """Export all dossiers (with optional search query/stage filter) to comprehensive Excel."""
+    if not _check_admin_access(request.user):
+        messages.error(request, "دسترسی غیرمجاز: این قابلیت صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد.")
+        return redirect("dossier_list")
+
+    from .excel_service import generate_dossiers_export
+    from django.db.models import Q
+
+    query = request.GET.get("q", "").strip()
+    stage_val = request.GET.get("stage", "").strip()
+
+    qs = HousingDossier.objects.all().order_by("-archive_number")
+    if query:
+        q_filter = (
+            Q(national_id__icontains=query)
+            | Q(full_name__icontains=query)
+            | Q(spouse_national_id__icontains=query)
+            | Q(spouse_full_name__icontains=query)
+            | Q(project__icontains=query)
+            | Q(site__icontains=query)
+            | Q(block_name__icontains=query)
+            | Q(applicant_phone__icontains=query)
+        )
+        if query.isdigit():
+            q_filter |= Q(archive_number=int(query))
+        qs = qs.filter(q_filter)
+
+    if stage_val and stage_val.isdigit():
+        qs = qs.filter(current_stage=int(stage_val))
+
+    return generate_dossiers_export(qs)
+
+@csrf_exempt
+@login_required(login_url='login')
+def upload_dossier_signature_view(request, pk):
+    """
+    Handles uploading a signature/stamp image for one of the 14 official archival signature slots.
+    Enforces role/stage permission matrix: users can only upload for slots related to them.
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
+
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    profile = getattr(request.user, 'profile', None)
+    is_chief_or_admin = request.user.is_superuser or (profile and profile.is_housing_chief)
+    if dossier.is_locked and not is_chief_or_admin:
+        return JsonResponse({"status": "error", "message": "این پرونده نهایی و بایگانی قطعی شده است و تغییرات در آن مسدود می‌باشد."}, status=400)
+
+    slot_key = request.POST.get("slot_key", "").strip()
+    if slot_key not in SLOT_TITLES:
+        return JsonResponse({"status": "error", "message": f"جایگاه امضای «{slot_key}» نامعتبر است."}, status=400)
+
+    # Permission check: user can only upload signature for what is related to them (or admin/chief)
+    if not can_user_upload_signature(request.user, slot_key):
+        return JsonResponse({
+            "status": "error",
+            "message": f"شما دسترسی مجاز برای بارگذاری امضا در جایگاه «{SLOT_TITLES.get(slot_key)}» را ندارید."
+        }, status=403)
+
+    profile = getattr(request.user, 'profile', None)
+    uploader_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+    signer_name = request.POST.get("signer_name", "").strip() or uploader_name
+    signer_title = request.POST.get("signer_title", "").strip() or (profile.role_title if profile else "کارشناس مسئول")
+    
+    import jdatetime
+    try:
+        now_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+    except Exception:
+        now_jalali = timezone.now().strftime("%Y/%m/%d %H:%M")
+    
+    signed_date = request.POST.get("signed_date", "").strip() or now_jalali
+
+    uploaded_file = request.FILES.get("signature_file")
+    signature_base64 = request.POST.get("signature_base64", "").strip()
+
+    sig_obj, _ = DossierSignature.objects.get_or_create(dossier=dossier, slot_key=slot_key)
+    sig_obj.signer_name = signer_name
+    sig_obj.signer_title = signer_title
+    sig_obj.signed_date = signed_date
+    sig_obj.uploaded_by = uploader_name
+
+    if uploaded_file:
+        sig_obj.signature_image = uploaded_file
+        sig_obj.save()
+    elif signature_base64 and signature_base64.startswith("data:image"):
+        try:
+            import base64
+            from django.core.files.base import ContentFile
+            format_part, imgstr = signature_base64.split(';base64,')
+            ext = format_part.split('/')[-1]
+            data = base64.b64decode(imgstr)
+            file_name = f"sig_{dossier.archive_number}_{slot_key}.{ext}"
+            sig_obj.signature_image.save(file_name, ContentFile(data), save=True)
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": f"خطا در پردازش تصویر: {str(e)}"}, status=400)
+    else:
+        sig_obj.save()
+
+    img_url = sig_obj.signature_image.url if sig_obj.signature_image else ""
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"امضای «{SLOT_TITLES.get(slot_key)}» با موفقیت ذخیره و در شناسنامه بایگانی درج گردید.",
+        "slot_key": slot_key,
+        "image_url": img_url,
+        "signer_name": sig_obj.signer_name,
+        "signed_date": sig_obj.signed_date
+    })
+
+
+# ==================================================================================================
+# BANK LETTER SENDER COMPONENT (ارسال دسته جمعی نامه معرفی متقاضیان به بانک مسکن)
+# ==================================================================================================
+
+def split_persian_name(full_name):
+    if not full_name:
+        return ("", "")
+    parts = full_name.strip().split()
+    if not parts:
+        return ("", "")
+    if len(parts) == 1:
+        return (parts[0], "")
+    if parts[0] in ["سید", "سیده", "میر", "حاج", "حاجیه"] and len(parts) >= 2:
+        return (" ".join(parts[:2]), " ".join(parts[2:]))
+    return (parts[0], " ".join(parts[1:]))
+
+@login_required(login_url='login')
+def bank_letter_sender_view(request):
+    """
+    Admin component to prepare, preview and send official Bank Introduction Letter batches.
+    Displays the standard selection table exactly matching the official project unit sheet.
+    Provides complete historical archive of all issued bank letters.
+    """
+    profile = getattr(request.user, 'profile', None)
+    is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
+    can_action_bank = profile and (profile.can_action_stage(8) or profile.can_action_stage(11))
+    
+    if not (is_chief_or_admin or can_action_bank):
+        messages.error(request, "دسترسی به بخش ارسال نامه بانک نیازمند مجوز کارشناس بانک یا مدیر سیستم است.")
+        return redirect("dossier_list")
+
+    # All available dossiers
+    all_dossiers = HousingDossier.objects.all().order_by("archive_number")
+    
+    # Projects for dropdown filter
+    projects = list(HousingDossier.objects.exclude(project="").values_list("project", flat=True).distinct())
+
+    # Default today Jalali date
+    try:
+        import jdatetime
+        today_jalali = jdatetime.date.today().strftime("%Y/%m/%d")
+    except Exception:
+        today_jalali = timezone.now().strftime("%Y/%m/%d")
+
+    # Sync any sent dossiers into BankLetter if not already present
+    sent_dossiers = HousingDossier.objects.filter(is_sent_to_bank=True).exclude(bank_letter_number="")
+    for d in sent_dossiers:
+        num = (d.bank_letter_number or d.bank_sent_letter_number or "").strip()
+        if num:
+            bl_obj, _ = BankLetter.objects.get_or_create(
+                letter_number=num,
+                defaults={
+                    "letter_date": d.bank_letter_date or d.bank_sent_date or today_jalali,
+                    "project_name": d.project or "پروژه مسکونی",
+                    "sender_name": "کارشناس تسهیلات بانکی",
+                    "sender_role": "واحد تسهیلات و بانک مسکن",
+                }
+            )
+            if not bl_obj.dossiers.filter(id=d.id).exists():
+                bl_obj.dossiers.add(d)
+
+    # Fetch Letter History
+    letters_qs = BankLetter.objects.all().prefetch_related("dossiers").order_by("-created_at", "-id")
+    letter_history_list = []
+    for l in letters_qs:
+        d_objs = list(l.dossiers.all().order_by("archive_number"))
+        try:
+            import jdatetime
+            dt_jalali = jdatetime.datetime.fromgregorian(datetime=l.created_at).strftime("%Y/%m/%d - %H:%M")
+        except Exception:
+            dt_jalali = l.created_at.strftime("%Y/%m/%d %H:%M") if l.created_at else ""
+
+        letter_history_list.append({
+            "id": l.id,
+            "letter_number": l.letter_number,
+            "letter_date": l.letter_date,
+            "project_name": l.project_name or (d_objs[0].project if d_objs else "پروژه مسکونی"),
+            "sender_name": l.sender_name or "کارشناس تسهیلات",
+            "sender_role": l.sender_role or "واحد تسهیلات و بانک مسکن",
+            "notes": l.notes or "",
+            "created_at_jalali": dt_jalali,
+            "dossier_count": len(d_objs),
+            "dossier_archives": [d.archive_number for d in d_objs],
+            "dossiers": [
+                {
+                    "archive_number": d.archive_number,
+                    "full_name": d.full_name or "-",
+                    "national_id": d.national_id or "-",
+                    "block_code": d.block_code or d.block_name or "-",
+                    "floor_number": d.floor_number or "-",
+                    "unit_code": d.unit_code or d.unit_number or "-",
+                    "total_area": str(d.total_area or "-"),
+                    "applicant_phone": d.applicant_phone or "-",
+                }
+                for d in d_objs
+            ]
+        })
+
+    # Serialize dossiers for Alpine.js store
+    dossiers_json_list = []
+    for d in all_dossiers:
+        fn, ln = split_persian_name(d.full_name)
+        dossiers_json_list.append({
+            "id": d.id,
+            "archive_number": d.archive_number,
+            "national_id": d.national_id or "",
+            "first_name": fn,
+            "last_name": ln,
+            "full_name": d.full_name or "",
+            "selection_rank": d.selection_rank or "-",
+            "applicant_phone": d.applicant_phone or "",
+            "block_code": d.block_code or d.block_name or "-",
+            "floor_number": d.floor_number or "-",
+            "unit_code": d.unit_code or d.unit_number or "-",
+            "covered_parking_area": str(d.covered_parking_area or "-"),
+            "parking_number": str(d.parking_number or "-"),
+            "storage_area": str(d.storage_area or "-"),
+            "storage_number": str(d.storage_number or "-"),
+            "bedroom_count": str(d.bedroom_count or "-"),
+            "common_area": str(d.common_area or "-"),
+            "net_unit_area": str(d.net_unit_area or "-"),
+            "unit_direction": d.unit_direction or "-",
+            "total_area": str(d.total_area or "-"),
+            "project": d.project or "",
+            "site": d.site or "",
+            "current_stage": d.current_stage,
+            "current_stage_title": d.current_stage_title,
+            "is_sent_to_bank": d.is_sent_to_bank,
+            "bank_letter_number": d.bank_letter_number or d.bank_sent_letter_number or "",
+            "bank_letter_date": d.bank_letter_date or d.bank_sent_date or "",
+        })
+
+    initial_letter = request.GET.get("letter", "").strip()
+
+    context = {
+        "dossiers_json": json.dumps(dossiers_json_list, ensure_ascii=False),
+        "letters_history_json": json.dumps(letter_history_list, ensure_ascii=False),
+        "letters_count": len(letter_history_list),
+        "projects": projects,
+        "today_jalali": today_jalali,
+        "default_project": projects[0] if projects else "پروژه ۲۸۵ واحدی فراگیر ملی سانیار آفرین ایرانیان",
+        "initial_letter": initial_letter,
+    }
+    return render(request, "admin/bank_letter_sender.html", context)
+
+
+@login_required(login_url='login')
+def bank_letter_submit_api(request):
+    """
+    Processes the batch Bank Letter submission:
+    Updates is_sent_to_bank, letter number and date, creates BankLetter archive entity,
+    and advances Stage 11 dossiers to Stage 12.
+    """
+    profile = getattr(request.user, 'profile', None)
+    is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
+    can_action_bank = profile and (profile.can_action_stage(8) or profile.can_action_stage(11))
+    
+    if not (is_chief_or_admin or can_action_bank):
+        return JsonResponse({"status": "error", "message": "دسترسی غیرمجاز."}, status=403)
+
+    try:
+        body = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except Exception:
+        body = request.POST
+
+    archive_numbers = body.get("archive_numbers", [])
+    letter_number = (body.get("letter_number") or "").strip()
+    letter_date = (body.get("letter_date") or "").strip()
+    notes = (body.get("notes") or "").strip()
+
+    if not archive_numbers:
+        return JsonResponse({"status": "error", "message": "هیچ پرونده‌ای انتخاب نشده است."}, status=400)
+    if not letter_number:
+        return JsonResponse({"status": "error", "message": "شماره نامه بانک الزامی است."}, status=400)
+    if not letter_date:
+        return JsonResponse({"status": "error", "message": "تاریخ نامه بانک الزامی است."}, status=400)
+
+    # Normalize archive numbers list
+    clean_archives = []
+    for item in archive_numbers:
+        try:
+            clean_archives.append(int(str(item).strip()))
+        except ValueError:
+            continue
+
+    dossiers = HousingDossier.objects.filter(archive_number__in=clean_archives)
+    updated_count = 0
+    updated_archives = []
+
+    actor_name = profile.full_name if profile and profile.full_name else request.user.username
+    actor_role = profile.role_title if profile and profile.role_title else "کارشناس تسهیلات بانکی"
+
+    for d in dossiers:
+        d.is_sent_to_bank = True
+        d.bank_letter_number = letter_number
+        d.bank_letter_date = letter_date
+        d.bank_sent_letter_number = letter_number
+        d.bank_sent_date = letter_date
+        d.is_added_to_bank_shipment_list = True
+        d.bank_shipment_list_added_at = timezone.now()
+
+        from_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
+        if d.current_stage == 11:
+            d.current_stage = 12
+            to_stage_str = f"مرحله ۱۲: {d.current_stage_title}"
+        else:
+            to_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
+
+        d.save()
+        updated_count += 1
+        updated_archives.append(d.archive_number)
+
+        # Log audit trail
+        WorkflowSignatureLog.objects.create(
+            dossier=d,
+            from_stage=from_stage_str,
+            to_stage=to_stage_str,
+            actor=actor_name,
+            role=actor_role,
+            action="BANK_LETTER",
+            action_label="ارسال نامه معرفی به بانک",
+            notes=f"نامه معرفی به بانک صادره به شماره {letter_number} مورخ {letter_date}. {notes}".strip(),
+            signature_hash=f"BANK-LETTER-{d.archive_number}-{letter_number}"
+        )
+
+    # Record or update BankLetter archive entity
+    project_title = dossiers.first().project if dossiers.exists() and dossiers.first().project else "پروژه مسکونی"
+    bank_letter, created = BankLetter.objects.get_or_create(
+        letter_number=letter_number,
+        defaults={
+            "letter_date": letter_date,
+            "project_name": project_title,
+            "sender_user": request.user,
+            "sender_name": actor_name,
+            "sender_role": actor_role,
+            "notes": notes,
+        }
+    )
+    bank_letter.letter_date = letter_date
+    if notes:
+        bank_letter.notes = notes
+    bank_letter.sender_name = actor_name
+    bank_letter.sender_role = actor_role
+    bank_letter.dossiers.add(*dossiers)
+    bank_letter.save()
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"نامه بانک با شماره {letter_number} برای {updated_count} پرونده با موفقیت ثبت و وضعیت پرونده‌ها به‌روزرسانی شد.",
+        "updated_count": updated_count,
+        "updated_archives": updated_archives,
+        "letter_number": letter_number,
+        "letter_date": letter_date,
+        "letter_id": bank_letter.id
+    })
+
+
+@login_required(login_url='login')
+def bank_letter_export_excel(request):
+    """
+    Exports the Bank Introduction Letter table to Excel (.xlsx) exactly matching the official project sheet format.
+    """
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from django.http import HttpResponse
+
+    archive_str = request.GET.get("archives", "")
+    project_title = request.GET.get("project", "پروژه ۲۸۵ واحدی فراگیر ملی سانیار آفرین ایرانیان")
+    letter_number = request.GET.get("letter", "").strip()
+    letter_date = request.GET.get("date", "").strip()
+
+    if archive_str:
+        arch_list = [int(a.strip()) for a in archive_str.split(",") if a.strip().isdigit()]
+        dossiers = HousingDossier.objects.filter(archive_number__in=arch_list).order_by("archive_number")
+    elif letter_number:
+        dossiers = HousingDossier.objects.filter(bank_letter_number=letter_number).order_by("archive_number")
+    else:
+        dossiers = HousingDossier.objects.all().order_by("archive_number")
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "نامه بانک"
+    ws.views.sheetView[0].rightToLeft = True
+
+    # Title Banner (Row 1)
+    sheet_title = f"محاسبه قیمت تمام شده انتخاب واحد پروژه {project_title}"
+    if letter_number:
+        sheet_title += f" (نامه رسمی بانک: {letter_number} مورخ {letter_date})"
+
+    ws.merge_cells("A1:R1")
+    title_cell = ws["A1"]
+    title_cell.value = sheet_title
+    title_cell.font = Font(name="Tahoma", size=13, bold=True, color="000000")
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    title_cell.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    ws.row_dimensions[1].height = 36
+
+    # Header Row (Row 2) - Exact 18 columns from image
+    headers = [
+        "ردیف", "نام", "نام خانوادگی", "رتبه", "کدملی", "شماره تماس",
+        "کد بلوک", "طبقه", "کدواحد", "متراژ پارکینگ مسقف", "شماره پارکینگ",
+        "متراژ انباری", "شماره انباری", "تعداد خواب", "مشاعات", "متراژ مفید",
+        "جهت", "جمع متراژ"
+    ]
+
+    thin_border = Border(
+        left=Side(style='thin', color='475569'),
+        right=Side(style='thin', color='475569'),
+        top=Side(style='thin', color='475569'),
+        bottom=Side(style='thin', color='475569')
+    )
+
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_idx, value=h)
+        cell.font = Font(name="Tahoma", size=10, bold=True, color="000000")
+        cell.fill = PatternFill(start_color="CBD5E1", end_color="CBD5E1", fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+
+    ws.row_dimensions[2].height = 28
+
+    # Data Rows
+    row_idx = 3
+    for idx, d in enumerate(dossiers, 1):
+        fn, ln = split_persian_name(d.full_name)
+        row_vals = [
+            idx,
+            fn or d.full_name,
+            ln,
+            d.selection_rank or "",
+            d.national_id or "",
+            d.applicant_phone or "",
+            d.block_code or d.block_name or "",
+            d.floor_number or "",
+            d.unit_code or d.unit_number or "",
+            float(d.covered_parking_area) if d.covered_parking_area else "",
+            d.parking_number or "",
+            float(d.storage_area) if d.storage_area else "",
+            d.storage_number or "",
+            d.bedroom_count or "",
+            float(d.common_area) if d.common_area else "",
+            float(d.net_unit_area) if d.net_unit_area else "",
+            d.unit_direction or "",
+            float(d.total_area) if d.total_area else "",
+        ]
+
+        for col_idx, val in enumerate(row_vals, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = Font(name="Tahoma", size=9)
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.border = thin_border
+
+        ws.row_dimensions[row_idx].height = 22
+        row_idx += 1
+
+    # Column widths
+    col_widths = [8, 14, 18, 10, 16, 16, 12, 8, 10, 16, 14, 14, 14, 12, 12, 12, 14, 14]
+    for idx, width in enumerate(col_widths, 1):
+        col_letter = openpyxl.utils.get_column_letter(idx)
+        ws.column_dimensions[col_letter].width = width
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    filename = f"Bank_Letter_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response

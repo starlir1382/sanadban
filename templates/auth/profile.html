@@ -73,7 +73,7 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
                         <span style="color: #64748b;">مجوز امضای الکترونیکی:</span>
-                        <span style="color: #059669; font-weight: 700;">✓ دارای توکن و مجوز امضا</span>
+                        <span style="color: #059669; font-weight: 700;">✓ دارای مجوز رسمی امضای الکترونیک</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 0.25rem;">
                         <span style="color: #64748b;">تاریخ عضویت در سامانه:</span>
@@ -126,34 +126,57 @@
                     <span>نمونه امضای الکترونیک سازمانی (Digital Signature)</span>
                 </div>
             </div>
-            <div class="form-section-body" style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.35rem;">تصویر امضای فعال در سامانه:</div>
+            <div class="form-section-body" style="display: flex; gap: 2.5rem; align-items: flex-start; flex-wrap: wrap;" x-data="{ previewUrl: null }">
+                <!-- Current Active Signature Preview in 1:1 Ratio -->
+                <div style="text-align: center;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.45rem;">تصویر امضای فعال (نسبت ۱:۱ مربع):</div>
                     {% if user.profile.signature_image %}
-                    <div style="border: 1.5px dashed #0284c7; padding: 0.85rem 1.5rem; border-radius: 10px; background: #f0f9ff; text-align: center;">
-                        <img src="{{ user.profile.signature_image.url }}" alt="امضا" style="max-height: 75px; max-width: 220px; object-fit: contain;">
-                        <div style="font-size: 0.72rem; color: #0369a1; font-weight: 700; margin-top: 0.25rem;">امضای تاییدشده سازمانی</div>
+                    <div style="border: 2px dashed #0284c7; width: 110px; height: 110px; border-radius: 12px; background: #f0f9ff; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12); position: relative;">
+                        <img src="{{ user.profile.signature_image.url }}" alt="امضا" style="width: 85px; height: 85px; object-fit: contain; mix-blend-mode: multiply;">
+                        <div style="position: absolute; bottom: 4px; font-size: 0.62rem; color: #0284c7; font-weight: 800;">تأییدشده ✓</div>
                     </div>
                     {% else %}
-                    <div style="border: 1.5px dashed #cbd5e1; padding: 1rem 1.5rem; border-radius: 10px; background: #f8fafc; color: #94a3b8; font-size: 0.82rem;">
-                        هنوز تصویری بارگذاری نشده است
+                    <div style="border: 2px dashed #cbd5e1; width: 110px; height: 110px; border-radius: 12px; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.76rem; margin: 0 auto;">
+                        <span>فاقد امضا</span>
                     </div>
                     {% endif %}
                 </div>
 
-                <div style="flex: 1; min-width: 260px;">
+                <!-- Upload & 1:1 Live Crop / Preview Area -->
+                <div style="flex: 1; min-width: 280px;">
                     <form method="POST" action="{% url 'user_profile' %}" enctype="multipart/form-data">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="update_signature">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">
-                            بارگذاری تصویر امضای جدید (PNG یا JPG):
-                        </label>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="file" name="signature_image" accept="image/*" required class="input-control" style="flex: 1; height: 42px; padding: 6px;">
-                            <button type="submit" class="btn btn-primary" style="font-weight: 700; white-space: nowrap;">
-                                ذخیره امضای جدید
-                            </button>
+                        
+                        <div style="margin-bottom: 0.75rem;">
+                            <label style="display: block; font-size: 0.84rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">
+                                انتخاب و بارگذاری تصویر نمونه امضا (PNG یا JPG):
+                            </label>
+                            <div style="font-size: 0.74rem; color: #64748b; line-height: 1.5; margin-bottom: 0.65rem;">
+                                سیستم به طور خودکار تصویر امضا را در کادر مربع (۱:۱) تنظیم و برش می‌زند تا در شناسنامه جامع بایگانی و نامه‌های رسمی بدون به‌هم‌ریختگی متون درج گردد.
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="file" name="signature_image" accept="image/*" required class="input-control" style="flex: 1; height: 42px; padding: 6px;"
+                                       @change="const f = $event.target.files[0]; if(f){ previewUrl = URL.createObjectURL(f); }">
+                                <button type="submit" class="btn btn-primary" style="font-weight: 700; white-space: nowrap; height: 42px; padding: 0 1.25rem;">
+                                    برش و ذخیره امضا
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- 1:1 Live Crop Preview Box -->
+                        <div x-show="previewUrl" style="margin-top: 0.85rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 80px; height: 80px; border: 2px dashed #3b82f6; border-radius: 8px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                <img :src="previewUrl" style="width: 70px; height: 70px; object-fit: contain; mix-blend-mode: multiply;">
+                            </div>
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 800; color: #1d4ed8;">پیش‌نمایش نسبت ۱:۱ در فرم رسمی</div>
+                                <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">
+                                    تصویر انتخاب‌شده به صورت متقارن و مربع ۱:۱ پردازش خواهد شد.
+                                </div>
+                            </div>
+                        </div>
+
                     </form>
                 </div>
             </div>

@@ -16,15 +16,15 @@
       <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
         {% if is_full_admin %}
           <span style="background: linear-gradient(135deg, #15803d 0%, #166534 100%); color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.25rem 0.75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 6px rgba(22,101,52,0.25);">
-            <span>👑</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             <span>پنل نظارتی مدیران ارشد و رئیس مسکن</span>
           </span>
           <span style="background: #e0f2fe; color: #0369a1; font-size: 0.74rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px;">
-            دسترسی به تمامی ۲۲ مرحله
+            دسترسی به تمامی ۲۲ مرحله (۰ تا ۲۱)
           </span>
         {% else %}
           <span style="background: #2563eb; color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.25rem 0.75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.35rem;">
-            <span>📋</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
             <span>کارپوشه تخصصی اقدام</span>
           </span>
           <span style="background: #f1f5f9; color: #334155; font-size: 0.74rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px;" class="fa-num">
@@ -42,7 +42,7 @@
       </h2>
       <p style="font-size: 0.88rem; color: #475569; margin: 0;">
         {% if is_full_admin %}
-          دید کلی بر گردش کار ۲۲ مرحله‌ای نهضت ملی مسکن؛ رصد مرحله توقف هر پرونده، علت برگشت احتمالی و بررسی عملکرد واحدها.
+          دید کلی بر گردش کار ۲۲ مرحله‌ای نهضت ملی مسکن (مراحل ۰ تا ۲۱)؛ رصد مرحله توقف هر پرونده، علت برگشت احتمالی و بررسی عملکرد واحدها.
         {% else %}
           شما در این کارپوشه صرفاً پرونده‌هایی را مشاهده می‌کنید که هم‌اکنون در مرحله تخصصی شما متوقف شده و منتظر اقدام و تصمیم‌گیری شما هستند.
         {% endif %}
@@ -63,15 +63,19 @@
     </div>
   </div>
 
+  {% if is_full_admin %}
+    {% include 'components/admin_excel_manager.html' %}
+  {% endif %}
+
   <!-- =========================================================================
        UNIFIED PIPELINE STAGE TRACK (WITH STUCK-DOSSIER COUNT BADGES)
        ========================================================================= -->
   <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.1rem 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; flex-wrap: wrap; gap: 0.5rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style="font-size: 1.1rem;">📍</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         <span style="font-weight: 800; font-size: 0.9rem; color: #0f2744;">
-          {% if is_full_admin %}گردش کار ۲۲ مرحله‌ای و موقعیت توقف پرونده‌ها:{% else %}مراحل مجاز تخصصی شما:{% endif %}
+          {% if is_full_admin %}گردش کار ۲۲ مرحله‌ای و موقعیت توقف پرونده‌ها (مراحل ۰ تا ۲۱):{% else %}مراحل مجاز تخصصی شما:{% endif %}
         </span>
       </div>
       <div style="font-size: 0.78rem; color: #64748b;">
@@ -81,7 +85,7 @@
 
     <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.4rem; align-items: center;">
       <!-- All Dossiers Pill -->
-      <a href="{% url 'dossier_list' %}{% if query %}?q={{ query }}{% endif %}"
+      <a href="{% url 'dossier_list' %}?{% if query %}q={{ query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}{% endif %}"
          style="text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; transition: all 0.15s; border: 1.5px solid {% if stage_filter == '' %}#2563eb; background: #2563eb; color: #ffffff;{% else %}#cbd5e1; background: #f8fafc; color: #334155;{% endif %} display: inline-flex; align-items: center; gap: 0.4rem;"
          class="fa-num">
         <span>{% if is_full_admin %}همه پرونده‌ها{% else %}همه پرونده‌های مجاز من{% endif %}</span>
@@ -92,7 +96,7 @@
 
       <!-- Stages with stuck count badge -->
       {% for stg in stages_meta %}
-      <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query }}{% endif %}"
+      <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
          style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.45rem; border: 1.5px solid {% if stage_filter == stg.id|stringformat:'i' %}#2563eb; background: #2563eb; color: #ffffff;{% elif stg.count > 0 %}#fed7aa; background: #fffaf0; color: #9a3412;{% else %}#e2e8f0; background: #ffffff; color: #475569;{% endif %}"
          class="fa-num">
         <span>مرحله {{ stg.id }}: {{ stg.title }} ({{ stg.role }})</span>
@@ -138,6 +142,22 @@
                 title="پاکسازی جستجو">✕</button>
       </div>
 
+      <!-- Sort Selector Dropdown -->
+      <div style="display: flex; align-items: center; gap: 0.4rem; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.65rem 0.85rem;">
+        <label for="sort-select" style="font-size: 0.82rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          <span>مرتب‌سازی:</span>
+        </label>
+        <select id="sort-select" name="sort" onchange="document.getElementById('dossier-search-form').submit()"
+                style="background: transparent; border: none; font-size: 0.84rem; font-weight: 800; color: #1e3a8a; outline: none; cursor: pointer;">
+          <option value="stage_asc" {% if current_sort == 'stage_asc' %}selected{% endif %}>مرحله گردش کار (۰ به ۲۱) [پیش‌فرض]</option>
+          <option value="stage_desc" {% if current_sort == 'stage_desc' %}selected{% endif %}>مرحله گردش کار (۲۱ به ۰)</option>
+          <option value="archive_asc" {% if current_sort == 'archive_asc' %}selected{% endif %}>شماره پرونده (#100001+ صعودی)</option>
+          <option value="archive_desc" {% if current_sort == 'archive_desc' %}selected{% endif %}>شماره پرونده (نزولی)</option>
+          <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>نام متقاضی (الفبایی)</option>
+        </select>
+      </div>
+
       <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.88rem; font-weight: 800; display: flex; align-items: center; gap: 0.45rem;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <span>جستجو</span>
@@ -154,6 +174,38 @@
           {% endif %}
         </span>
       </div>
+      <!-- Bank Letter Sender Link -->
+      {% if is_full_admin or request.user.profile.is_housing_chief %}
+      <a href="{% url 'bank_letter_sender' %}"
+         class="btn btn-outline"
+         style="display: flex; align-items: center; gap: 0.45rem; padding: 0.65rem 1.15rem; border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 800; font-size: 0.85rem; border-radius: 8px; text-decoration: none; white-space: nowrap; box-shadow: 0 1px 3px rgba(37,99,235,0.12);"
+         title="ارسال دسته جمعی نامه معرفی متقاضیان به بانک مسکن">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+        <span>ارسال نامه بانک</span>
+      </a>
+      {% endif %}
+
+      <!-- Quick Excel Export Button -->
+      {% if is_full_admin %}
+      <a href="{% url 'excel_export_all' %}{% if query %}?q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}"
+         class="btn btn-outline"
+         style="display: flex; align-items: center; gap: 0.45rem; padding: 0.65rem 1.15rem; border-color: #10b981; color: #047857; background: #ecfdf5; font-weight: 800; font-size: 0.85rem; border-radius: 8px; text-decoration: none; white-space: nowrap; box-shadow: 0 1px 3px rgba(16,185,129,0.12); transition: all 0.2s;"
+         onmouseover="this.style.background='#dcfce7'; this.style.borderColor='#059669';"
+         onmouseout="this.style.background='#ecfdf5'; this.style.borderColor='#10b981';"
+         title="دانلود خروجی فایل اکسل پرونده‌های این لیست">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="12" y1="18" x2="12" y2="12"></line>
+          <line x1="9" y1="15" x2="12" y2="18"></line>
+          <line x1="15" y1="15" x2="12" y2="18"></line>
+        </svg>
+        <span>خروجی اکسل</span>
+      </a>
+      {% endif %}
 
       {% if query %}
       <a href="{% url 'dossier_list' %}{% if stage_filter %}?stage={{ stage_filter }}{% endif %}" class="btn btn-outline" style="padding: 0.75rem 1.1rem; font-size: 0.82rem; color: #dc2626; border-color: #fca5a5; display: flex; align-items: center; gap: 0.35rem;" title="حذف فیلتر و نمایش همه">
@@ -274,6 +326,8 @@
                 <!-- Line 2: Single Balanced Metadata Bar (Date on Right, Status on Left) -->
                 <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 22px; gap: 0.4rem; direction: rtl;">
                   
+
+
                   <!-- Arrival Date (Right) -->
                   <div style="font-size: 0.74rem; color: #64748b; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; direction: rtl;" class="fa-num" title="تاریخ ورود پرونده به این مرحله">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" style="flex-shrink: 0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -285,12 +339,12 @@
                   <div style="display: inline-flex; align-items: center; flex-shrink: 0;">
                     {% if d.status == 'REJECTED_RED' %}
                       <span style="font-size: 0.68rem; color: #991b1b; font-weight: 800; background: #fee2e2; border: 1px solid #fecaca; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">
-                        <span>🚫</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
                         <span>رد صلاحیت</span>
                       </span>
                     {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
                       <span style="font-size: 0.68rem; color: #c2410c; font-weight: 800; background: #ffedd5; border: 1px solid #fed7aa; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">
-                        <span>⚠️</span>
+                        <span style="color: #dc2626;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                         <span>فرم «ج» قرمز</span>
                       </span>
                     {% elif d.current_stage == 21 %}
@@ -300,7 +354,7 @@
                       </span>
                     {% elif d.status == 'RETURNED' %}
                       <span style="font-size: 0.68rem; color: #b91c1c; font-weight: 800; background: #fee2e2; border: 1px solid #fca5a5; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; cursor: help;" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">
-                        <span>⚠️</span>
+                        <span style="color: #dc2626;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                         <span>برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
                       </span>
                     {% endif %}
@@ -338,11 +392,16 @@
             </td>
 
             <!-- 8. Action Button -->
-            <td style="padding: 0.95rem 0.75rem; text-align: center; vertical-align: middle;">
-              <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="btn-open-dossier" style="padding: 0.45rem 0.8rem; font-size: 0.82rem; white-space: nowrap;" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
-                <span>ورود به پرونده</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow-icon"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              </a>
+            <td style="padding: 0.95rem 0.75rem; text-align: center; vertical-align: middle; white-space: nowrap;">
+              <div style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;">
+                <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="btn-open-dossier" style="padding: 0.45rem 0.8rem; font-size: 0.82rem; white-space: nowrap;" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
+                  <span>ورود به پرونده</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow-icon"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </a>
+                <a href="{% url 'dossier_summary_print' pk=d.archive_number %}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; text-decoration: none; transition: all 0.15s; flex-shrink: 0;" title="چاپ فرم مراحل و امضاها (۱۴ امضا)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </a>
+              </div>
             </td>
           </tr>
 
@@ -351,7 +410,7 @@
           <tr id="server-empty-row">
             <td colspan="8" style="text-align: center; padding: 4.5rem 1.5rem; color: #64748b;">
               {% if is_full_admin %}
-                <div style="font-size: 2.5rem; margin-bottom: 0.65rem;">🔍</div>
+                <div style="margin-bottom: 0.65rem; color: #94a3b8;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
                 <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b;">
                   هیچ پرونده‌ای منطبق با فیلتر یا جستجوی شما یافت نشد
                 </div>
@@ -386,7 +445,7 @@
           <!-- Client-side Instant Filter No-Results Row (Hidden by default) -->
           <tr id="client-empty-row" style="display: none;">
             <td colspan="8" style="text-align: center; padding: 3.5rem 1.5rem; color: #94a3b8;">
-              <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+              <div style="margin-bottom: 0.5rem; color: #94a3b8;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
               <div style="font-weight: 800; font-size: 1.05rem; color: #334155;">
                 پرونده‌ای منطبق با عبارت واردشده در این کارپوشه یافت نشد
               </div>

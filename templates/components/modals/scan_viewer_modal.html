@@ -59,8 +59,8 @@
 
             <!-- 0A. REAL UPLOADED PDF & HTML DOCUMENT VIEWER (IF USER UPLOADED A PDF OR CHECK RECEIPT) -->
             <template x-if="activeScan.preview_url && (isPdfFile(activeScan) || isHtmlDoc(activeScan))">
-                <div style="width: 100%; min-height: 580px; display: flex; flex-direction: column; align-items: center; background: #0f172a; border-radius: 10px; overflow: hidden; padding: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <iframe :src="activeScan.preview_url" style="width: 100%; height: 540px; border: none; border-radius: 6px; background: #ffffff;"></iframe>
+                <div style="width: 100%; min-height: 820px; display: flex; flex-direction: column; align-items: center; background: #0f172a; border-radius: 10px; overflow: hidden; padding: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <iframe :src="activeScan.preview_url" style="width: 100%; height: 780px; border: none; border-radius: 6px; background: #ffffff;"></iframe>
                     <div style="display: flex; gap: 0.85rem; margin-top: 0.75rem; align-items: center; justify-content: center; flex-wrap: wrap;">
                         <a :href="activeScan.preview_url" target="_blank" download class="toolbar-btn" style="background: #2563eb; color: #ffffff; text-decoration: none; padding: 0.45rem 1.15rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -77,11 +77,11 @@
             <template x-if="activeScan.preview_url && !isPdfFile(activeScan) && !isHtmlDoc(activeScan)">
                 <div style="text-align: center; padding: 1rem;">
                     <img :src="activeScan.preview_url" 
-                         style="max-width: 100%; max-height: 580px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); object-fit: contain;"
+                         style="max-width: 100%; max-height: 800px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); object-fit: contain;"
                          @error="$el.style.display='none'; if ($el.nextElementSibling) $el.nextElementSibling.style.display='block'">
                     <!-- Error fallback -->
                     <div style="display: none; padding: 2.5rem; background: #1e293b; border-radius: 8px; color: #f87171; border: 1px solid #334155; margin: 1rem auto; max-width: 500px;">
-                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 0.5rem;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                         <div style="font-weight: 800; font-size: 1rem; color: #ffffff;">خطا در دریافت فایل تصویر</div>
                         <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 0.4rem;">فایل مدرک در سرور یافت نشد یا در دسترس نمی‌باشد.</div>
                     </div>

@@ -33,14 +33,14 @@
                         style="padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.35rem;"
                         :style="attachmentViewMode === 'album' ? 'background: #ffffff; color: #0f2744; box-shadow: 0 2px 6px rgba(0,0,0,0.15);' : 'background: transparent; color: #cbd5e1;'"
                         @click="attachmentViewMode = 'album'">
-                    <span>🎴</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                     <span>آلبوم تصویری</span>
                 </button>
                 <button type="button" 
                         style="padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 700; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.35rem;"
                         :style="attachmentViewMode === 'table' ? 'background: #ffffff; color: #0f2744; box-shadow: 0 2px 6px rgba(0,0,0,0.15);' : 'background: transparent; color: #cbd5e1;'"
                         @click="attachmentViewMode = 'table'">
-                    <span>📋</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     <span>جدول رسمی</span>
                 </button>
             </div>
@@ -54,7 +54,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 <span x-show="isLocked">بایگانی قطعی و قفل سندی</span>
                 <span x-show="!isLocked && !userCanAction && !isChief">فقط مشاهده (عدم دسترسی اقدام)</span>
-                <span x-show="!isLocked && (userCanAction || isChief) && ![0, 1, 9, 13, 18].includes(Number(currentStage))">بارگذاری اسناد فقط در مراحل ۰، ۹، ۱۳، ۱۸ مجاز است</span>
+                
             </div>
         </div>
     </div>
@@ -75,36 +75,43 @@
                     :class="selectedCategory === 'identity' ? 'active' : ''"
                     style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'identity'">
-                <span>🪪 هویتی (متقاضی و همسر)</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>هویتی (متقاضی و همسر)</span>
                 <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('identity')"></span>
+            </button>
+            <button type="button" class="stage-tab-pill" 
+                    :class="selectedCategory === 'form_j' ? 'active' : ''"
+                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
+                    @click="selectedCategory = 'form_j'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg><span>استعلام فرم (ج)</span>
+                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('form_j')"></span>
             </button>
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'bank' ? 'active' : ''"
                     style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'bank'">
-                <span>🏦 بانکی و دفترچه قسط</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2L2 7h20L12 2z"></path></svg><span>بانکی و اقساط</span>
                 <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('bank')"></span>
             </button>
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'deed' ? 'active' : ''"
                     style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'deed'">
-                <span>📜 سند مالکیت و انتخاب واحد</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg><span>سند کاداستری و انتخاب واحد</span>
                 <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('deed')"></span>
             </button>
             <button type="button" class="stage-tab-pill" 
                     :class="selectedCategory === 'checks' ? 'active' : ''"
                     style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
                     @click="selectedCategory = 'checks'">
-                <span>💳 چک‌های صیادی و تضامین</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg><span>چک‌های صیادی و تضامین</span>
                 <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('checks')"></span>
             </button>
         </div>
 
-        <!-- Strict Stage-Ownership Lock Rule -->
-        <span class="lock-pill strict-rule" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.76rem; padding: 0.3rem 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 0.4rem;" title="مدارک بارگذاری شده توسط سایر مراحل قابل حذف نمی‌باشد">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            <span>حفاظت سندی: عدم امکان حذف مدارک مراحل پیشین</span>
+        <!-- Digital Archive Pill -->
+        <span class="lock-pill" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.76rem; padding: 0.3rem 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 0.4rem;" title="اسناد معتبر ثبت شده در سامانه مسکن یار">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <span>بایگانی دیجیتال اسناد و تصاویر مدارک پرونده</span>
         </span>
     </div>
 
@@ -170,7 +177,7 @@
                     </div>
 
                     <!-- Visual Document Realistic Preview Stage (200px Height) -->
-                    <div style="height: 195px; background: #0f172a; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                    <div style="height: 230px; background: #0f172a; position: relative; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center;"
                          @click="openScanViewer(item)">
                         
                         <!-- 1. Dedicated PDF Document Card Preview (for .pdf files) -->
@@ -178,8 +185,7 @@
                             <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; position: relative;">
                                 <!-- Top Red PDF Pill -->
                                 <div style="position: absolute; top: 10px; right: 10px; background: #dc2626; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 4px; box-shadow: 0 2px 6px rgba(220,38,38,0.4); display: flex; align-items: center; gap: 3px;">
-                                    <span>PDF</span>
-                                    <span>📄</span>
+                                    <span>PDF سند رسمی</span>
                                 </div>
 
                                 <!-- PDF Document Icon -->
@@ -208,7 +214,6 @@
                                 <!-- Top Purple Pill -->
                                 <div style="position: absolute; top: 10px; right: 10px; background: #7c3aed; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 4px; box-shadow: 0 2px 6px rgba(124,58,237,0.4); display: flex; align-items: center; gap: 3px;">
                                     <span>رسید چاپی صیاد</span>
-                                    <span>💳</span>
                                 </div>
 
                                 <!-- Receipt Icon -->
@@ -240,7 +245,7 @@
                                      @error="$el.style.display='none'; if ($el.nextElementSibling) $el.nextElementSibling.style.display='flex'">
                                 <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; background: #0f172a; padding: 0.75rem;">
                                     <div style="text-align: center; color: #94a3b8; font-size: 0.78rem;">
-                                        <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">📄</div>
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 0.35rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                                         <div style="color: #ffffff; font-weight: 700;" x-text="item.title"></div>
                                         <div class="fa-num" style="font-size: 0.7rem; color: #38bdf8; margin-top: 3px;">سند رسمی تاییدشده</div>
                                     </div>
@@ -429,12 +434,20 @@
                             </div>
                         </div>
 
-                        <!-- Click-to-View Action Button -->
-                        <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 700; margin-top: 0.4rem; border-color: #cbd5e1; background: #ffffff; color: #1e3a8a;" 
-                                @click="openScanViewer(item)">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>مشاهده در اندازه کامل و چاپ</span>
-                        </button>
+                        <!-- Card Actions: View & Delete -->
+                        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
+                            <button type="button" class="btn btn-outline" style="flex: 1; justify-content: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 700; border-color: #cbd5e1; background: #ffffff; color: #1e3a8a;" 
+                                    @click="openScanViewer(item)">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                <span>مشاهده و چاپ</span>
+                            </button>
+                            <button type="button" x-show="!isLocked && (userCanAction || isChief)" 
+                                    @click.stop="deleteAttachment(item.id)" 
+                                    style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 8px; padding: 0.5rem 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                                    title="حذف این سند از پرونده">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
                     </div>
 
                 </div>
@@ -485,12 +498,24 @@
                             <div style="display: flex; align-items: center; gap: 0.85rem;">
                                 <div style="width: 40px; height: 40px; border-radius: 8px; background: #eff6ff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; border: 1px solid #bfdbfe; cursor: pointer;"
                                      @click="openScanViewer(item)">
-                                    <span x-show="item.type === 'NATIONAL_ID' || item.type === 'SPOUSE_ID'">🪪</span>
-                                    <span x-show="item.type === 'UNIT_SELECTION'">📑</span>
-                                    <span x-show="item.type === 'BANK_BOOKLET' || item.type === 'BANK_LETTER'">🏦</span>
-                                    <span x-show="item.type === 'TITLE_DEED'">📜</span>
-                                    <span x-show="item.type === 'LOAN_CHECK' || item.type === 'PREP_CHECK'">💳</span>
-                                    <span x-show="!['NATIONAL_ID','SPOUSE_ID','UNIT_SELECTION','BANK_BOOKLET','BANK_LETTER','TITLE_DEED','LOAN_CHECK','PREP_CHECK'].includes(item.type)">📄</span>
+                                    <span x-show="item.type === 'NATIONAL_ID' || item.type === 'SPOUSE_ID'" style="color: #2563eb;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    </span>
+                                    <span x-show="item.type === 'UNIT_SELECTION'" style="color: #0284c7;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                    </span>
+                                    <span x-show="item.type === 'BANK_BOOKLET' || item.type === 'BANK_LETTER'" style="color: #ea580c;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2L2 7h20L12 2z"></path></svg>
+                                    </span>
+                                    <span x-show="item.type === 'TITLE_DEED'" style="color: #059669;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline></svg>
+                                    </span>
+                                    <span x-show="item.type === 'LOAN_CHECK' || item.type === 'PREP_CHECK'" style="color: #7c3aed;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                                    </span>
+                                    <span x-show="!['NATIONAL_ID','SPOUSE_ID','UNIT_SELECTION','BANK_BOOKLET','BANK_LETTER','TITLE_DEED','LOAN_CHECK','PREP_CHECK'].includes(item.type)" style="color: #64748b;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+                                    </span>
                                 </div>
                                 <div>
                                     <div style="font-weight: 800; color: #0f172a; cursor: pointer; transition: color 0.15s;" 
@@ -532,17 +557,13 @@
                                     <span>مشاهده</span>
                                 </button>
 
-                                <!-- Stage-Gated Delete -->
-                                <button type="button" x-show="currentStage === item.stage && !isLocked" 
-                                        @click="attachments = attachments.filter(a => a.id !== item.id); triggerToast('مدرک با موفقیت حذف گردید.', 'warning');"
+                                <!-- Delete Button -->
+                                <button type="button" x-show="!isLocked && (userCanAction || isChief)" 
+                                        @click="deleteAttachment(item.id)"
                                         style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.4rem 0.65rem; cursor: pointer; transition: background 0.15s;" 
-                                        title="حذف مدرک (فقط در مرحله جاری مجاز است)">
+                                        title="حذف این سند از پرونده">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
-
-                                <span x-show="currentStage !== item.stage" title="سند در مراحل قبلی ثبت شده و طبق ضوابط قابل حذف نیست" style="color: #94a3b8; font-size: 0.74rem; display: flex; align-items: center; gap: 3px;">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                </span>
                             </div>
                         </td>
                     </tr>

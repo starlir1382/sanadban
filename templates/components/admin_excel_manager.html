@@ -1,0 +1,441 @@
+<!-- Component: Admin Excel Batch Operations (Add & Bulk Update) -->
+<div x-data="{
+    showExcelCreateModal: false,
+    showExcelUpdateModal: false,
+    isProcessing: false,
+    
+    // Create Excel state
+    createFile: null,
+    createFileName: '',
+    createResult: null,
+    
+    // Update Excel state
+    updateFile: null,
+    updateFileName: '',
+    updateResult: null,
+
+    getCSRF() {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input && input.value) return input.value;
+        const match = document.cookie.match(/(?:^|;)\s*csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    },
+
+    handleCreateFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        this.createFile = file;
+        this.createFileName = file.name;
+        this.createResult = null;
+    },
+
+    handleUpdateFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        this.updateFile = file;
+        this.updateFileName = file.name;
+        this.updateResult = null;
+    },
+
+    async submitExcelCreate(isPreview = false) {
+        if (!this.createFile) {
+            alert('لطفاً ابتدا فایل اکسل را انتخاب نمایید.');
+            return;
+        }
+        this.isProcessing = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', this.createFile);
+            if (isPreview) formData.append('preview', 'true');
+            
+            const csrfToken = this.getCSRF();
+            const res = await fetch('{% url 'excel_upload_create' %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            });
+            let data;
+            try {
+                data = await res.json();
+            } catch (jsonErr) {
+                throw new Error('پاسخ سرور نامعتبر است (وضعیت ' + res.status + ')');
+            }
+            this.createResult = data;
+            if (!isPreview && data.success) {
+                setTimeout(() => { window.location.reload(); }, 1800);
+            }
+        } catch(e) {
+            alert('خطا در برقراری ارتباط با سرور: ' + (e.message || e));
+        } finally {
+            this.isProcessing = false;
+        }
+    },
+
+    async submitExcelUpdate(isPreview = false) {
+        if (!this.updateFile) {
+            alert('لطفاً ابتدا فایل اکسل را انتخاب نمایید.');
+            return;
+        }
+        this.isProcessing = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', this.updateFile);
+            if (isPreview) formData.append('preview', 'true');
+            
+            const csrfToken = this.getCSRF();
+            const res = await fetch('{% url 'excel_upload_update' %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            });
+            let data;
+            try {
+                data = await res.json();
+            } catch (jsonErr) {
+                throw new Error('پاسخ سرور نامعتبر است (وضعیت ' + res.status + ')');
+            }
+            this.updateResult = data;
+            if (!isPreview && data.success) {
+                setTimeout(() => { window.location.reload(); }, 1800);
+            }
+        } catch(e) {
+            alert('خطا در برقراری ارتباط با سرور: ' + (e.message || e));
+        } finally {
+            this.isProcessing = false;
+        }
+    }
+}" style="margin-bottom: 1.5rem;">
+    {% csrf_token %}
+
+    <!-- Admin Excel Control Bar -->
+    <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); border-radius: 14px; padding: 1.25rem 1.5rem; color: #ffffff; box-shadow: 0 4px 15px rgba(15, 39, 68, 0.15); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        
+        <!-- Header Info -->
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(56, 189, 248, 0.18); border: 1.5px solid rgba(56, 189, 248, 0.35); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="8" y1="13" x2="16" y2="13"></line>
+                    <line x1="8" y1="17" x2="16" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    <span style="background: #38bdf8; color: #0f2744; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;">
+                        ویژه مدیران سیستم
+                    </span>
+                    <h3 style="font-size: 1.1rem; font-weight: 800; margin: 0; color: #ffffff;">
+                        مدیریت دسته‌جمعی و هوشمند اکسل پرونده‌ها
+                    </h3>
+                </div>
+                <p style="font-size: 0.8rem; color: #cbd5e1; margin: 3px 0 0 0;">
+                    دریافت قالب‌ها، ثبت دسته‌جمعی پرونده‌های متقاضیان و یا بروزرسانی سراسری فیلدها با تطبیق کدملی
+                </p>
+            </div>
+        </div>
+
+        <!-- The 4 Buttons -->
+        <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+            
+            <!-- Button 1: Download Create Template -->
+            <a href="{% url 'excel_template_create' %}" 
+               class="btn btn-outline" 
+               style="background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-decoration: none; border-radius: 8px; transition: all 0.2s;"
+               onmouseover="this.style.background='rgba(255,255,255,0.25)'"
+               onmouseout="this.style.background='rgba(255,255,255,0.12)'"
+               title="دانلود فایل اکسل خام شامل کلیه فیلدهای پرونده جهت ورود اطلاعات جدید">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>۱. دانلود قالب ثبت پرونده</span>
+            </a>
+
+            <!-- Button 2: Upload Excel to Create -->
+            <button type="button" 
+                    class="btn" 
+                    @click="showExcelCreateModal = true; createResult = null;" 
+                    style="background: #10b981; color: #ffffff; border: none; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.95rem; font-size: 0.82rem; font-weight: 800; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(16,185,129,0.35); transition: all 0.2s;"
+                    onmouseover="this.style.background='#059669'"
+                    onmouseout="this.style.background='#10b981'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>۲. بارگذاری اکسل و ایجاد پرونده‌ها</span>
+            </button>
+
+            <!-- Button 3: Download Update Template -->
+            <a href="{% url 'excel_template_update' %}" 
+               class="btn btn-outline" 
+               style="background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-decoration: none; border-radius: 8px; transition: all 0.2s;"
+               onmouseover="this.style.background='rgba(255,255,255,0.25)'"
+               onmouseout="this.style.background='rgba(255,255,255,0.12)'"
+               title="دانلود قالب بروزرسانی شامل ستون کلیدی کد ملی و برگ راهنمای استفاده">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>۳. دانلود قالب بروزرسانی (با کدملی)</span>
+            </a>
+
+            <!-- Button 4: Upload Excel to Update -->
+            <button type="button" 
+                    class="btn" 
+                    @click="showExcelUpdateModal = true; updateResult = null;" 
+                    style="background: #f59e0b; color: #ffffff; border: none; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.95rem; font-size: 0.82rem; font-weight: 800; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(245,158,11,0.35); transition: all 0.2s;"
+                    onmouseover="this.style.background='#d97706'"
+                    onmouseout="this.style.background='#f59e0b'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>۴. بارگذاری اکسل و بروزرسانی با کدملی</span>
+            </button>
+            <!-- Button 5: Full Excel Export of All Dossiers -->
+            <a href="{% url 'excel_export_all' %}" 
+               class="btn" 
+               style="background: #0284c7; color: #ffffff; border: none; display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 800; border-radius: 8px; text-decoration: none; cursor: pointer; box-shadow: 0 2px 8px rgba(2,132,199,0.35); transition: all 0.2s;"
+               onmouseover="this.style.background='#0369a1'"
+               onmouseout="this.style.background='#0284c7'"
+               title="دریافت فایل اکسل جامع کلیه پرونده‌های سامانه شامل تمام کدها، مقادیر، مبالغ و مشخصات ثبتی">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>۵. خروجی کامل اکسل پرونده‌ها</span>
+            </a>
+
+
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 1: Upload Excel & Create Dossiers
+         ========================================================================= -->
+    <div class="modal-overlay" x-show="showExcelCreateModal" x-cloak @click.self="showExcelCreateModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+        <div class="modal-dialog" @click.stop style="max-width: 720px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); animation: modal-appear 0.2s ease-out;">
+            
+            <div style="background: linear-gradient(135deg, #0f2744 0%, #15803d 100%); color: #ffffff; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>ثبت و ایجاد پرونده‌های جدید از طریق فایل اکسل</span>
+                </div>
+                <button type="button" @click="showExcelCreateModal = false" style="background: none; border: none; color: #cbd5e1; font-size: 1.25rem; cursor: pointer;">✕</button>
+            </div>
+
+            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
+                <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #166534; line-height: 1.6;">
+                    <strong>راهنما:</strong> ستون «کد ملی متقاضی» الزامی بوده و نباید تکراری باشد. کلیه ستون‌های دیگر اختیاری هستند. شماره بایگانی پرونده‌ها به صورت خودکار از آخرین شماره موجود تخصیص داده می‌شود.
+                </div>
+
+                <!-- File Chooser Area -->
+                <div style="border: 2px dashed #86efac; border-radius: 12px; padding: 1.75rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.25rem;"
+                     onmouseover="this.style.background = '#f0fdf4'; this.style.borderColor = '#10b981';"
+                     onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#86efac';"
+                     @click="$refs.createFileInput.click()">
+                    
+                    <input type="file" x-ref="createFileInput" @change="handleCreateFileSelect($event)" accept=".xlsx,.xls" style="display: none;">
+                    
+                    <div style="width: 52px; height: 52px; border-radius: 50%; background: #dcfce7; color: #15803d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.65rem;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </div>
+
+                    <div style="font-weight: 800; font-size: 0.95rem; color: #064e3b; margin-bottom: 0.25rem;">
+                        <span x-show="!createFileName">برای انتخاب فایل اکسل ثبت پرونده اینجا کلیک کنید</span>
+                        <span x-show="createFileName" x-text="'فایل انتخاب شده: ' + createFileName" style="direction: ltr; font-family: monospace;"></span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #64748b;">
+                        فرمت مجاز: فایل اکسل (.xlsx) با سرستون‌های استاندارد سامانه
+                    </div>
+                </div>
+
+                <!-- Preview / Results Display -->
+                <template x-if="createResult">
+                    <div>
+                        <!-- Error Banner -->
+                        <div x-show="!createResult.success && createResult.error" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; color: #991b1b; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span x-text="createResult.error"></span>
+                        </div>
+
+                        <!-- Success Banner -->
+                        <div x-show="createResult.success && !createResult.preview" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 1rem; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 1rem;">
+                            ✓ تعداد <span class="fa-num" x-text="createResult.created_count"></span> پرونده با موفقیت در سامانه ایجاد و ثبت گردید. صفحه در حال بارگذاری مجدد است...
+                        </div>
+
+                        <!-- Preview Counts -->
+                        <div x-show="createResult.preview" style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div style="flex: 1; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #065f46;">ردیف‌های معتبر آماده ثبت</div>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: #047857;" class="fa-num" x-text="createResult.valid_count"></div>
+                            </div>
+                            <div style="flex: 1; background: #fef2f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #991b1b;">ردیف‌های دارای خطا یا تکراری</div>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: #b91c1c;" class="fa-num" x-text="createResult.failed_count"></div>
+                            </div>
+                        </div>
+
+                        <!-- Error List if any -->
+                        <div x-show="createResult.errors && createResult.errors.length > 0" style="max-height: 180px; overflow-y: auto; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
+                            <div style="font-weight: 800; color: #9f1239; margin-bottom: 0.4rem;">گزارش خطاهای ردیف‌ها:</div>
+                            <template x-for="err in createResult.errors" :key="err.row">
+                                <div style="padding: 0.35rem 0; border-bottom: 1px dashed #fecdd3; color: #881337;">
+                                    ردیف <span class="fa-num" x-text="err.row"></span> (کدملی: <span class="fa-num" x-text="err.national_id"></span> - <span x-text="err.name"></span>):
+                                    <strong x-text="err.reasons.join(' | ')"></strong>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" @click="showExcelCreateModal = false" class="btn btn-outline">بستن</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn btn-outline" :disabled="isProcessing || !createFile" @click="submitExcelCreate(true)" style="font-weight: 700;">
+                        پیش‌نمایش و بررسی صحت فایل
+                    </button>
+                    <button type="button" class="btn btn-success" :disabled="isProcessing || !createFile" @click="submitExcelCreate(false)" style="font-weight: 800;">
+                        <span x-show="!isProcessing">تایید و ثبت نهایی پرونده‌ها</span>
+                        <span x-show="isProcessing">در حال پردازش و ثبت...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 2: Upload Excel & Bulk Update by National ID
+         ========================================================================= -->
+    <div class="modal-overlay" x-show="showExcelUpdateModal" x-cloak @click.self="showExcelUpdateModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+        <div class="modal-dialog" @click.stop style="max-width: 760px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); animation: modal-appear 0.2s ease-out;">
+            
+            <div style="background: linear-gradient(135deg, #0f2744 0%, #b45309 100%); color: #ffffff; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    <span>بروزرسانی دسته‌جمعی پرونده‌ها با تطبیق کد ملی</span>
+                </div>
+                <button type="button" @click="showExcelUpdateModal = false" style="background: none; border: none; color: #cbd5e1; font-size: 1.25rem; cursor: pointer;">✕</button>
+            </div>
+
+            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
+                <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #92400e; line-height: 1.6;">
+                    <strong>قانون بروزرسانی هوشمند:</strong> ستون اول باید «کد ملی متقاضی» باشد. هر رکوردی که با این کدملی در سیستم یافت شود، فیلدهای غیرخالی آن بروزرسانی می‌شوند. خانه‌های خالی در فایل اکسل بدون تغییر می‌مانند و مقادیر قبلی را پاک نمی‌کنند.
+                </div>
+
+                <!-- File Chooser Area -->
+                <div style="border: 2px dashed #fcd34d; border-radius: 12px; padding: 1.75rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.25rem;"
+                     onmouseover="this.style.background = '#fffbeb'; this.style.borderColor = '#f59e0b';"
+                     onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#fcd34d';"
+                     @click="$refs.updateFileInput.click()">
+                    
+                    <input type="file" x-ref="updateFileInput" @change="handleUpdateFileSelect($event)" accept=".xlsx,.xls" style="display: none;">
+                    
+                    <div style="width: 52px; height: 52px; border-radius: 50%; background: #fef3c7; color: #b45309; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.65rem;">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </div>
+
+                    <div style="font-weight: 800; font-size: 0.95rem; color: #78350f; margin-bottom: 0.25rem;">
+                        <span x-show="!updateFileName">برای انتخاب فایل اکسل بروزرسانی اینجا کلیک کنید</span>
+                        <span x-show="updateFileName" x-text="'فایل انتخاب شده: ' + updateFileName" style="direction: ltr; font-family: monospace;"></span>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #64748b;">
+                        ستون A: کد ملی متقاضی (کلید جستجو) • ستون‌های دیگر: فیلدهای دلخواه برای بروزرسانی
+                    </div>
+                </div>
+
+                <!-- Preview / Results Display -->
+                <template x-if="updateResult">
+                    <div>
+                        <!-- Error Banner -->
+                        <div x-show="!updateResult.success && updateResult.error" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; color: #991b1b; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span x-text="updateResult.error"></span>
+                        </div>
+
+                        <!-- Success Banner -->
+                        <div x-show="updateResult.success && !updateResult.preview" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 1rem; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 1rem;">
+                            ✓ تعداد <span class="fa-num" x-text="updateResult.updated_count"></span> پرونده با موفقیت در سامانه بروزرسانی شد. صفحه در حال بارگذاری مجدد است...
+                        </div>
+
+                        <!-- Preview Counts -->
+                        <div x-show="updateResult.preview" style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div style="flex: 1; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #065f46;">پرونده‌های دارای تغییر</div>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: #047857;" class="fa-num" x-text="updateResult.valid_count"></div>
+                            </div>
+                            <div style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #475569;">پرونده‌های بدون تغییر</div>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: #334155;" class="fa-num" x-text="updateResult.unchanged_count"></div>
+                            </div>
+                            <div style="flex: 1; background: #fef2f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #991b1b;">یافت‌نشده یا دارای خطا</div>
+                                <div style="font-size: 1.3rem; font-weight: 800; color: #b91c1c;" class="fa-num" x-text="updateResult.failed_count"></div>
+                            </div>
+                        </div>
+
+                        <!-- Changes Preview Table -->
+                        <div x-show="updateResult.updates_preview && updateResult.updates_preview.length > 0" style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1rem;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: right;">
+                                <thead style="background: #f1f5f9; color: #334155; position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="padding: 6px 10px;">کد ملی</th>
+                                        <th style="padding: 6px 10px;">نام متقاضی</th>
+                                        <th style="padding: 6px 10px;">فیلدهای در حال تغییر</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="item in updateResult.updates_preview" :key="item.national_id">
+                                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                                            <td style="padding: 6px 10px; font-family: monospace;" class="fa-num" x-text="item.national_id"></td>
+                                            <td style="padding: 6px 10px; font-weight: 700;" x-text="item.name"></td>
+                                            <td style="padding: 6px 10px;">
+                                                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                                    <template x-for="ch in item.diff_display" :key="ch.field">
+                                                        <span style="background: #fef3c7; color: #92400e; padding: 1px 5px; border-radius: 4px; font-size: 0.7rem;">
+                                                            <strong x-text="ch.label"></strong>: <span x-text="ch.new"></span>
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Error List if any -->
+                        <div x-show="updateResult.errors && updateResult.errors.length > 0" style="max-height: 150px; overflow-y: auto; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
+                            <div style="font-weight: 800; color: #9f1239; margin-bottom: 0.4rem;">گزارش کدهای ملی یافت‌نشده یا خطاها:</div>
+                            <template x-for="err in updateResult.errors" :key="err.row">
+                                <div style="padding: 0.35rem 0; border-bottom: 1px dashed #fecdd3; color: #881337;">
+                                    ردیف <span class="fa-num" x-text="err.row"></span> (کدملی: <span class="fa-num" x-text="err.national_id"></span>):
+                                    <strong x-text="err.reasons.join(' | ')"></strong>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" @click="showExcelUpdateModal = false" class="btn btn-outline">بستن</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn btn-outline" :disabled="isProcessing || !updateFile" @click="submitExcelUpdate(true)" style="font-weight: 700;">
+                        پیش‌نمایش تغییرات
+                    </button>
+                    <button type="button" class="btn btn-primary" :disabled="isProcessing || !updateFile" @click="submitExcelUpdate(false)" style="background: #d97706; border-color: #b45309; font-weight: 800;">
+                        <span x-show="!isProcessing">تایید و اعمال بروزرسانی</span>
+                        <span x-show="isProcessing">در حال اعمال تغییرات...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2744" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect width="64" height="64" rx="16" fill="url(#bgGrad)" />
+  <rect width="62" height="62" x="1" y="1" rx="15" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" />
+
+  <!-- Modern Architectural House Roof Peak -->
+  <path d="M12 28 L32 11 L52 28" fill="none" stroke="url(#roofGrad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
+  <!-- Chimney -->
+  <path d="M43 20 V15 H47 V23" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Document / Official Deed Sheet -->
+  <g filter="url(#glow)">
+    <!-- Document Body with Folded Top-Right Corner -->
+    <path d="M20 25 H38 L44 31 V51 C44 52.1 43.1 53 42 53 H20 C18.9 53 18 52.1 18 51 V27 C18 25.9 18.9 25 20 25 Z" fill="#ffffff" />
+    <!-- Folded Corner Triangle -->
+    <path d="M38 25 V31 H44 Z" fill="#cbd5e1" />
+    
+    <!-- Document Text Lines -->
+    <line x1="22" y1="33" x2="34" y2="33" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" />
+    <line x1="22" y1="38" x2="40" y2="38" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" />
+    <line x1="22" y1="43" x2="33" y2="43" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" />
+    <line x1="22" y1="48" x2="28" y2="48" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" />
+
+    <!-- Official Green Verification Stamp Seal -->
+    <circle cx="38" cy="46" r="6" fill="#10b981" />
+    <path d="M35.5 46 L37.2 47.7 L40.5 44.5" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>

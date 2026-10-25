@@ -100,9 +100,9 @@
                 <div style="font-size: 0.78rem; color: #64748b; font-weight: 700;">سطح دسترسی ممیزی</div>
                 <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">
                     {% if request.user.is_superuser %}
-                    🛡️ مدیر ارشد کل سامانه
+                     مدیر ارشد کل سامانه
                     {% elif request.user.profile.is_housing_chief %}
-                    👑 رئیس مسکن با اختیارات تام
+                     رئیس مسکن با اختیارات تام
                     {% else %}
                     کارشناس مجاز
                     {% endif %}
@@ -278,7 +278,7 @@
                             </span>
                             {% elif s.action == 'ARCHIVE' %}
                             <span style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 0.78rem;">
-                                📁 {{ s.action_label }}
+                                 {{ s.action_label }}
                             </span>
                             {% else %}
                             <span style="background: #f8fafc; color: #475569; padding: 3px 8px; border-radius: 6px; font-size: 0.78rem;">

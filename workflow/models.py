@@ -103,28 +103,185 @@ class HousingDossier(models.Model):
     Merged from Excel specifications & National Housing Directorate stages.
     """
     STAGE_ROLES = {
-        0: ("brokerage", "کارشناس ثبت متقاضی و واحد انتخابی", "ثبت اطلاعات متقاضی و واحد"),
+        0: ("brokerage", "کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی", "ثبت اطلاعات متقاضی، همسر، واحد و پروژه"),
         1: ("brokerage", "کارشناس اطلاعات", "کنترل اطلاعات پلاک ثبتی"),
-        2: ("brokerage", "کارشناس اطلاعات (کارگزاری)", "ورود مبلغ تمام شده"),
+        2: ("brokerage", "کارشناس اطلاعات (کارگزاری)", "ورود مبلغ تمام شده واحد"),
         3: ("directorate", "کارشناس بررسی فرم ج (عالمی)", "بررسی فرم ج"),
         4: ("directorate", "کارشناس برنامه ریزی مسکن (حیدری)", "ورود مبلغ وام صندوق"),
         5: ("directorate", "کارشناس برنامه ریزی مسکن (حیدری)", "مبلغ نامه (کسر یا تخفیف) پیمانکار"),
         6: ("directorate", "کارشناس برنامه ریزی مسکن (حیدری)", "مبلغ تسهیلات دهک"),
         7: ("directorate", "کارشناس برنامه ریزی مسکن (وصالی)", "تعیین مبلغ باقیمانده نقدی مورد نیاز"),
-        8: ("directorate", "کارشناس برنامه ریزی مسکن (وصالی / حیدری)", "ارسال و درج شماره و تاریخ نامه بانک"),
+        8: ("directorate", "کارشناس برنامه ریزی مسکن (وصالی / حیدری)", "ارسال و درج شماره و تاریخ نامه معرفی به بانک"),
         9: ("brokerage", "کارشناس تشکیل پرونده کارگزاری", "اسکن مدارک و دفترچه اقساط"),
         10: ("brokerage", "مدیرعامل کارگزاری", "تأیید مدیرعامل کارگزاری"),
-        11: ("directorate", "کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی", "بررسی استعلام تسهیلات بانکی"),
-        12: ("directorate", "کارشناس فنی و مهندسی", "بررسی مشخصات فنی، پلاک و عرصه"),
-        13: ("directorate", "کارشناس املاک", "بررسی و بارگذاری سند املاک"),
-        14: ("directorate", "کارشناس بانک زمین", "بررسی اطلاعات بانک زمین"),
-        15: ("directorate", "کارشناس حقوقی", "بررسی حقوقی و استعلامات اراضی"),
-        16: ("directorate", "کارشناس فرم ج", "تطبیق نهایی فرم ج اداره کل"),
-        17: ("directorate", "کارشناس ارزیابی", "ارزیابی قدرالسهم و اجاره عرصه"),
-        18: ("brokerage", "کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک", "اخذ اجاره، آماده‌سازی و چک دهک"),
-        19: ("directorate", "کارشناس تسویه با پیمانکار", "تسویه حساب با پیمانکار سازنده"),
-        20: ("directorate", "کارشناس صدور نامه محضر", "صدور نامه معرفی به دفتر اسناد رسمی (محضر)"),
-        21: ("directorate", "کارشناس بایگانی", "مشاهده فرم نهایی و بایگانی قطعی پرونده"),
+        11: ("directorate", "کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی", "بررسی کارشناس نهضت ملی مسکن"),
+        12: ("directorate", "کارشناس فنی و مهندسی", "بررسی کارشناس فنی و مهندسی"),
+        13: ("directorate", "کارشناس املاک", "بررسی کارشناس املاک (بارگذاری سند)"),
+        14: ("directorate", "کارشناس بانک زمین", "بررسی کارشناس بانک زمین"),
+        15: ("directorate", "کارشناس حقوقی", "بررسی کارشناس حقوقی"),
+        16: ("directorate", "کارشناس فرم ج", "بررسی و آپلود صفحه فرم جیم اداره کل"),
+        17: ("directorate", "کارشناس ارزیابی", "کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)"),
+        18: ("brokerage", "کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک", "وصول نقد، اقساط، چک‌های دهک و آماده‌سازی"),
+        19: ("directorate", "کارشناس تسویه با پیمانکار", "بررسی کارشناس تسویه با پیمانکار"),
+        20: ("directorate", "کارشناس صدور نامه محضر", "صدور و ثبت نامه محضر"),
+        21: ("directorate", "کارشناس بایگانی", "مشاهده فرم نهایی و بایگانی قطعی"),
+    }
+
+    STAGE_DETAILS = {
+        0: {
+            "title": "ثبت اطلاعات",
+            "actor": "کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی",
+            "action": "ورود اطلاعات متقاضی، همسر، واحد و پروژه",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "اطلاعات انتخاب واحد از قبل روی سامانه موجود است. شماره پیش نویس فرم، کدملی متقاضی است. شماره بایگانی از 100001 شروع شود. دکمه اسکن مدارک گذاشته شود. مدارک بارگذاری شده توسط بقیه مراحل قابل حذف نباشد."
+        },
+        1: {
+            "title": "کنترل اطلاعات پلاک ثبتی",
+            "actor": "کارشناس اطلاعات",
+            "action": "تایید و ارسال به مرحله بعد",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "قابلیت ویرایش مرحله صفر وجود دارد."
+        },
+        2: {
+            "title": "ورود مبلغ تمام شده",
+            "actor": "کارشناس اطلاعات (کارگزاری)",
+            "action": "تایید و ارسال به مرحله بعد",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "قابلیت ویرایش مرحله صفر وجود دارد."
+        },
+        3: {
+            "title": "بررسی فرم ج",
+            "actor": "کارشناس بررسی فرم ج (عالمی)",
+            "action": "تایید و ارسال به مرحله بعد",
+            "next": "فرم به مرحله بعد ارسال می شود..اداره کل",
+            "notes": "در صورت قرمز بودن فرم ج پرونده ارجاع میشود به واحد حقوقی برای ارسال اظهارنامه و به معاونت مسکن جهت جایگزینی و پرونده متقاضی بایگانی می گردد. در صورت رد امکان درج توضیحات برای کارشناس داشته باشد."
+        },
+        4: {
+            "title": "ورود مبلغ وام صندوق",
+            "actor": "کارشناس برنامه ریزی مسکن (حیدری)",
+            "action": "تایید و ارسال به مرحله بعد",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": ""
+        },
+        5: {
+            "title": "مبلغ نامه (کسر یا تخفیف) پیمانکار",
+            "actor": "کارشناس برنامه ریزی مسکن (حیدری)",
+            "action": "تایید و ارسال به مرحله بعد",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت تائید یک نامه به واحد مالی می بایست ارسال گردد."
+        },
+        6: {
+            "title": "مبلغ تسهیلات دهک",
+            "actor": "کارشناس برنامه ریزی مسکن (حیدری)",
+            "action": "تایید و ارسال به مرحله بعد",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": ""
+        },
+        7: {
+            "title": "تعیین مبلغ باقیمانده نقدی مورد نیاز",
+            "actor": "کارشناس برنامه ریزی مسکن (وصالی)",
+            "action": "در صورت تسویه تایید می گردد و در صورت وجود بدهی از سوی متقاضی پیامک تکمیل آورده ارسال گردد.",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "سیستم به صورت خودکار مبلغ را محاسبه می نماید و نیازی به مرحله جداگانه نیست."
+        },
+        8: {
+            "title": "ارسال و درج شماره و تاریخ نامه معرفی به بانک",
+            "actor": "کارشناس برنامه ریزی مسکن (وصالی / حیدری)",
+            "action": "پیامک شماره نامه معرفی به بانک ارسال می گردد.",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "صدور نامه معرفی به بانک مسکن و درج مشخصات انتخاب واحد"
+        },
+        9: {
+            "title": "اسکن مدارک و دفترچه اقساط",
+            "actor": "کارشناس تشکیل پرونده کارگزاری",
+            "action": "بارگذاری مدارک و اسکن دفترچه اقساط",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": ""
+        },
+        10: {
+            "title": "تائید مدیرعامل کارگزاری",
+            "actor": "مدیرعامل کارگزاری",
+            "action": "تایید و امضا الکترونیکی",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "قابلیت ویرایش مرحله صفر وجود دارد."
+        },
+        11: {
+            "title": "بررسی کارشناس اداره کل (نهضت ملی مسکن)",
+            "actor": "کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی",
+            "action": "تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله صفر",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود. دکمه اسکن مدارک گذاشته شود. مدارک بارگذاری شده توسط بقیه مراحل قابل حذف نباشد."
+        },
+        12: {
+            "title": "بررسی کارشناس اداره کل (فنی و مهندسی)",
+            "actor": "کارشناس فنی و مهندسی",
+            "action": "تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود. قابلیت ویرایش مشخصات پلاک و عرصه وجود دارد."
+        },
+        13: {
+            "title": "بررسی کارشناس اداره کل (املاک)",
+            "actor": "کارشناس املاک",
+            "action": "سند بارگذاری می شود. تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبلی",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود. دکمه اسکن سند گذاشته شود."
+        },
+        14: {
+            "title": "بررسی کارشناس اداره کل (بانک زمین)",
+            "actor": "کارشناس بانک زمین",
+            "action": "تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود."
+        },
+        15: {
+            "title": "بررسی کارشناس اداره کل (حقوقی)",
+            "actor": "کارشناس حقوقی",
+            "action": "تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود."
+        },
+        16: {
+            "title": "بررسی کارشناس اداره کل (فرم ج)",
+            "actor": "کارشناس فرم ج",
+            "action": "تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل همچنین آپلود فرم صفحه فرم جیم اداره",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود. دکمه آپلود فرم صفحه فرم جیم اداره فعال باشد."
+        },
+        17: {
+            "title": "بررسی کارشناس اداره کل (ارزیابی)",
+            "actor": "کارشناس ارزیابی",
+            "action": "کارشناس ارزیابی قدرالسهم به مترمربع را وارد می کند. مبلغ اجاره سنوات و اجاره سال جاری و آماده سازی وارد می شود. تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود."
+        },
+        18: {
+            "title": "بررسی کارشناس کارگزاری (اخذ اجاره و آماده سازی و تسهیلات دهک)",
+            "actor": "کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک",
+            "action": "مبلغ نقدی و غیرنقدی آماده سازی وارد می شود. مبلغ نقدی اجاره تایید می شود. مبلغ اخذ شده تسهیلات دهک تایید می شود. تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود. دکمه بارگزاری چک های آماده سازی فعال می شود. دکمه بارگذاری چک های تسهیلات دهک فعال می شود. مدرک بارگذاری شده غیرقابل حذف توسط سایر مراحل می باشد."
+        },
+        19: {
+            "title": "بررسی کارشناس اداره کل (تسویه با پیمانکار)",
+            "actor": "کارشناس تسویه با پیمانکار",
+            "action": "تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل",
+            "next": "فرم به مرحله بعد ارسال می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود. در صورت تائید چاپ فرم مراحل."
+        },
+        20: {
+            "title": "بررسی کارشناس اداره کل (صدور نامه محضر)",
+            "actor": "کارشناس صدور نامه محضر",
+            "action": "تایید و امضا الکترونیکی / برگشت جهت اصلاح به مرحله انتخابی قبل",
+            "next": "فرم تمام و ثبت و صدور می شود.",
+            "notes": "در صورت نیاز به اصلاح، گزینه توضیحات باز شود. در این مرحله فرم قابلیت چاپ دارد. کارشناس صدور نامه محضر این نامه را در سوابق نامه محضر درج می نماید."
+        },
+        21: {
+            "title": "بررسی کارشناس اداره کل (بایگانی)",
+            "actor": "کارشناس بایگانی",
+            "action": "مشاهده فرم نهایی و نامه محضر صادر شده",
+            "next": "فرم بایگانی می شود.",
+            "notes": "در این مرحله قابلیت چاپ فرم و نامه صادر شده محضر وجود دارد."
+        }
     }
 
     # Identifiers
@@ -230,6 +387,13 @@ class HousingDossier(models.Model):
     bank_letter_number = models.CharField(max_length=100, blank=True, verbose_name="شماره نامه بانک")
     bank_letter_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ نامه بانک (شمسی)")
 
+    # Bank Shipment & Tracking Ticks (Two-stage Bank Workflow)
+    is_added_to_bank_shipment_list = models.BooleanField(default=False, verbose_name="اضافه کردن به لیست ارسالی‌ها به بانک")
+    bank_shipment_list_added_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان افزودن به لیست ارسالی‌ها")
+    is_sent_to_bank = models.BooleanField(default=False, verbose_name="به بانک ارسال شده")
+    bank_sent_date = models.CharField(max_length=20, blank=True, verbose_name="تاریخ ارسال به بانک (شمسی)")
+    bank_sent_letter_number = models.CharField(max_length=50, blank=True, verbose_name="شماره نامه ارسال به بانک")
+
     # Stage 19: Valuation Fields
     total_land_share = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="جمع کل قدرالسهم (م²)")
     past_years_rent = models.BigIntegerField(default=0, verbose_name="مبلغ اجاره سنوات تا پایان سال جاری")
@@ -304,6 +468,10 @@ class HousingDossier(models.Model):
         return self.STAGE_ROLES.get(self.current_stage, ("-", "-", "-"))[1]
 
     @property
+    def form_j_attachment(self):
+        return self.attachments.filter(doc_type="FORM_J").order_by("-uploaded_at").first()
+
+    @property
     def current_stage_title(self):
         return self.STAGE_ROLES.get(self.current_stage, ("-", "-", "-"))[2]
 
@@ -334,6 +502,13 @@ class HousingDossier(models.Model):
         if val is None:
             return "0"
         return f"{val:,}"
+
+    @property
+    def signatures_map(self):
+        """
+        Returns a dict of slot_key -> DossierSignature instance.
+        """
+        return {s.slot_key: s for s in self.signatures.all()}
 
     def __str__(self):
         return f"{self.full_name} (#{self.archive_number} - کد: {self.national_id})"
@@ -374,6 +549,7 @@ class DossierAttachment(models.Model):
         ("NATIONAL_ID", "اسکن کارت ملی و شناسنامه متقاضی"),
         ("SPOUSE_ID", "اسکن مدارک هویتی همسر"),
         ("UNIT_SELECTION", "برگه انتخاب واحد تاییدشده"),
+        ("FORM_J", "تصویر و استعلام رسمی فرم (ج) اداره کل"),
         ("BANK_BOOKLET", "اسکن دفترچه اقساط بانک مسکن"),
         ("BANK_LETTER", "نامه معرفی تسهیلات بانک"),
         ("TITLE_DEED", "اسکن سند مالکیت تک‌برگ عرصه و اعیان"),
@@ -398,9 +574,6 @@ class DossierAttachment(models.Model):
         verbose_name_plural = "پیوست‌های پرونده"
 
     def delete(self, *args, **kwargs):
-        # Strict Rule: Documents uploaded in any stage CANNOT be deleted by other stages
-        if self.dossier.current_stage != self.stage:
-            raise ValidationError(f"مدارک بارگذاری شده در مرحله {self.stage} توسط سایر مراحل قابل حذف نمی‌باشد.")
         super().delete(*args, **kwargs)
 
     def __str__(self):
@@ -463,6 +636,64 @@ class DossierFieldChangeLog(models.Model):
         return f"{self.dossier.archive_number}: {self.field_label} ({self.old_value} -> {self.new_value}) توسط {self.changed_by}"
 
 
+
+class DossierSignature(models.Model):
+    """
+    Tracks the 14 official archival signatures and uploaded signature/stamp images
+    for the comprehensive archival summary sheet (شناسنامه جامع بایگانی).
+    """
+    SLOT_CHOICES = [
+        ("brokerage", "۱. مهر و امضاء کارگزاری (مهندسین مشاور ره آزرم بین‌الملل)"),
+        ("national_housing", "۲. کارشناس نهضت ملی"),
+        ("bank_facility", "۳. استعلام تسهیلات بانکی"),
+        ("decile_facility", "۴. تسهیلات دهک"),
+        ("contractor_settlement", "۵. تسویه با پیمانکار"),
+        ("applicant_settlement", "۶. تسویه با متقاضی"),
+        ("other_facilities", "۷. سایر تسهیلات"),
+        ("legal", "۸. کارشناس حقوقی"),
+        ("form_j", "۹. کارشناس فرم ج"),
+        ("evaluation", "۱۰. کارشناس ارزیابی"),
+        ("technical", "۱۱. کارشناس فنی و مهندسی"),
+        ("real_estate", "۱۲. کارشناس املاک"),
+        ("land_bank", "۱۳. کارشناس بانک زمین"),
+        ("revenue", "۱۴. اداره درآمد (مسئول وصول و درآمد)"),
+    ]
+
+    SLOT_TO_STAGES = {
+        "brokerage": [0, 1, 2, 9, 10],
+        "national_housing": [11],
+        "bank_facility": [8, 11],
+        "decile_facility": [6, 18],
+        "contractor_settlement": [5, 19],
+        "applicant_settlement": [7],
+        "other_facilities": [4],
+        "legal": [15],
+        "form_j": [3, 16],
+        "evaluation": [17],
+        "technical": [12],
+        "real_estate": [13],
+        "land_bank": [14],
+        "revenue": [18],
+    }
+
+    dossier = models.ForeignKey(HousingDossier, on_delete=models.CASCADE, related_name="signatures", verbose_name="پرونده")
+    slot_key = models.CharField(max_length=50, choices=SLOT_CHOICES, db_index=True, verbose_name="جایگاه امضا")
+    signer_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی امضاکننده")
+    signer_title = models.CharField(max_length=150, blank=True, verbose_name="سمت / نقش سازمانی")
+    signed_date = models.CharField(max_length=50, blank=True, verbose_name="تاریخ و ساعت امضا")
+    signature_image = models.ImageField(upload_to="dossier_signatures/", blank=True, null=True, verbose_name="تصویر امضا / مهر")
+    uploaded_by = models.CharField(max_length=150, blank=True, verbose_name="کاربر بارگذاری‌کننده")
+    uploaded_at = models.DateTimeField(auto_now=True, verbose_name="زمان بارگذاری")
+
+    class Meta:
+        verbose_name = "امضای پرونده مسکن"
+        verbose_name_plural = "امضاهای ۱۴ گانه پرونده مسکن"
+        unique_together = ("dossier", "slot_key")
+
+    def __str__(self):
+        return f"امضای {self.get_slot_key_display()} پرونده #{self.dossier.archive_number}"
+
+
 class UserProfile(models.Model):
     """
     Expert and Administrator user profile tracking organization, role, credentials, and signing rights.
@@ -520,6 +751,29 @@ class UserProfile(models.Model):
     def __str__(self):
         chief_tag = " [رئیس مسکن]" if self.is_housing_chief else ""
         return f"{self.full_name} ({self.role_title}){chief_tag}"
+
+
+class BankLetter(models.Model):
+    """
+    Official Bank Introduction Letters archive and batch tracking.
+    """
+    letter_number = models.CharField(max_length=100, unique=True, verbose_name="شماره نامه رسمی بانک")
+    letter_date = models.CharField(max_length=20, verbose_name="تاریخ نامه بانک (شمسی)")
+    project_name = models.CharField(max_length=250, blank=True, verbose_name="عنوان پروژه")
+    sender_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="کاربر ثبت‌کننده")
+    sender_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی ثبت‌کننده")
+    sender_role = models.CharField(max_length=150, blank=True, verbose_name="سمت اداری ثبت‌کننده")
+    notes = models.TextField(blank=True, verbose_name="توضیحات و رونوشت")
+    dossiers = models.ManyToManyField(HousingDossier, related_name="bank_letters", blank=True, verbose_name="پرونده‌های این نامه")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان ثبت در سامانه")
+
+    class Meta:
+        verbose_name = "نامه معرفی به بانک"
+        verbose_name_plural = "سوابق و بایگانی نامه‌های بانک"
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"نامه {self.letter_number} مورخ {self.letter_date}"
 
 
 @receiver(post_save, sender=User)
