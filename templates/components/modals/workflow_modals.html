@@ -50,14 +50,14 @@
 
                 </div>
 
-                <!-- Action Impact Checklist -->
-                <div style="font-size: 0.8rem; color: #065f46; line-height: 1.6; border-top: 1px dashed #6ee7b7; padding-top: 0.65rem;">
-                    <div style="font-weight: 800; margin-bottom: 4px;">تاثیرات و جزئیات ثبت این امضا:</div>
-                    <div style="display: flex; flex-direction: column; gap: 3px;">
-                        <span>• اطلاعات و فیلدهای مرحله <strong class="fa-num" x-text="currentStage"></strong> به طور کامل قفل شده و صرفاً توسط مدیر ارشد قابل ویرایش خواهد بود.</span>
-                        <span>• پرونده جهت ادامه فرآیند به صورت خودکار به مرحله بعدی منتقل می‌گردد.</span>
-                        <span>• کد رمزنگاری SHA-256 جهت غیرقابل‌انکار بودن امضای کاربر تولید و جزئیات تراکنش در سیاهه ممیزی ثبت می‌گردد.</span>
+                <!-- Plain-language confirmation box -->
+                <div style="background: #ffffff; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 0.85rem 1rem; margin-top: 0.75rem;">
+                    <div style="font-size: 0.9rem; font-weight: 800; color: #064e3b; margin-bottom: 0.3rem;">
+                        آیا از ارسال این پرونده به مرحله بعد مطمئن هستید؟
                     </div>
+                    <p style="font-size: 0.82rem; color: #047857; margin: 0; line-height: 1.6;">
+                        پس از ثبت امضا، پرونده از کارتابل شما خارج شده و در کارپوشه مسئول مرحله بعد قرار می‌گیرد و دیگر برای شما قابل ویرایش نخواهد بود.
+                    </p>
                 </div>
             </div>
 
@@ -82,13 +82,14 @@
                 <span>صحت و انطباق کلیه اطلاعات و مستندات این مرحله را با ضوابط اجرایی تایید می‌نمایم.</span>
             </label>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-outline" @click="showSignatureModal = false">انصراف</button>
-            <button type="button" class="btn btn-success" 
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn btn-outline" style="padding: 0.65rem 1.25rem; font-size: 0.88rem; font-weight: 700; border-radius: 8px;" @click="showSignatureModal = false">انصراف</button>
+            <button type="button" class="btn btn-primary" 
+                    style="padding: 0.7rem 1.5rem; font-size: 0.92rem; font-weight: 800; border-radius: 8px; background: #2563eb; color: #ffffff; display: flex; align-items: center; gap: 0.5rem; border: none; box-shadow: 0 4px 12px rgba(37,99,235,0.3);"
                     :disabled="!signAgreement"
                     @click="confirmElectronicSignature()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>ثبت امضای دیجیتال و ارسال به مرحله بعد</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span x-text="currentStage === 21 ? 'تایید نهایی و بایگانی قطعی پرونده' : 'تأیید و ارسال به مرحله بعد ←'"></span>
             </button>
         </div>
     </div>

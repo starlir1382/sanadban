@@ -1,9 +1,9 @@
 {% load static %}
-<!-- Top Administrative Navigation Bar -->
+<!-- Top Administrative Navigation Bar (Minimal & Focused) -->
 <header class="sanadban-header">
     <div class="header-container">
         <!-- Brand / Logo Area with Official Home Emblem -->
-        <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.85rem;" title="داشبورد و میز کار سامانه مسکن یار">
+        <a href="{% url 'dossier_list' %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.85rem;" title="کارتابل و میز کار سامانه مسکن یار">
             <div class="brand-logo-emblem" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); overflow: hidden; transition: transform 0.2s;"
                  onmouseover="this.style.transform='scale(1.05)'"
                  onmouseout="this.style.transform='scale(1)'">
@@ -12,53 +12,77 @@
             <div class="brand-titles">
                 <h1>
                     <span>سامانه مسکن یار</span>
-                    <span style="font-size: 0.65rem; background: #0284c7; padding: 0.15rem 0.45rem; border-radius: 5px; font-weight: 700; border: 1px solid rgba(255,255,255,0.25);">نسخه ۱.۰</span>
+                    <span style="font-size: 0.65rem; background: #0284c7; padding: 0.15rem 0.45rem; border-radius: 5px; font-weight: 700; border: 1px solid rgba(255,255,255,0.25);">گردش ۲۱ مرحله</span>
                 </h1>
                 <div class="subtitle">مدیریت اسناد، ارزیابی و گردش پرونده‌های نهضت ملی مسکن</div>
             </div>
         </a>
 
-        <!-- Quick Top Nav Links -->
-        <nav style="display: flex; gap: 0.4rem; align-items: center;" class="hide-mobile">
+        <!-- Top Navigation Links (2-3 items for experts; Consolidated Management Menu for Admins) -->
+        <nav style="display: flex; gap: 0.5rem; align-items: center;" class="hide-mobile">
+            <!-- 1. My Dossiers / Inbox -->
             <a href="{% url 'dossier_list' %}" 
-               style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'dossier_list' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                <span>میز کار (داشبورد)</span>
+               style="text-decoration: none; font-size: 0.84rem; font-weight: 700; padding: 0.45rem 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 0.45rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'dossier_list' %}background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.3);{% else %}color: #cbd5e1;{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>{% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_housing_chief %}کارتابل و داشبورد نظارتی{% else %}کارتابل من{% endif %}</span>
             </a>
             
             {% if dossier %}
             <a href="{% url 'dossier_detail' pk=dossier.archive_number %}" 
-               style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'dossier_detail' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+               style="text-decoration: none; font-size: 0.84rem; font-weight: 700; padding: 0.45rem 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 0.45rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'dossier_detail' %}background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.3);{% else %}color: #cbd5e1;{% endif %}"
+               class="fa-num">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                 <span>پرونده جاری (#{{ dossier.archive_number }})</span>
             </a>
             {% endif %}
 
+            <!-- Consolidated Management Menu (Admin & Chief Only) -->
             {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_housing_chief %}
-            <a href="{% url 'users_management' %}" 
-               style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'users_management' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                <span>کاربران</span>
-            </a>
-            <a href="{% url 'bank_letter_sender' %}" 
-               style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'bank_letter_sender' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}"
-               title="صدور و ارسال نامه معرفی متقاضیان به بانک مسکن">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                <span>ارسال نامه بانک</span>
-            </a>
-            <a href="{% url 'audit_logs' %}" 
-               style="text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if request.resolver_match.url_name == 'audit_logs' %}background: rgba(255,255,255,0.15); color: #ffffff;{% else %}color: #cbd5e1;{% endif %}">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                <span>ممیزی و لاگ‌ها</span>
-            </a>
+            <div style="position: relative;" x-data="{ mgmtOpen: false }">
+                <button type="button" 
+                        @click="mgmtOpen = !mgmtOpen" 
+                        style="background: transparent; border: 1px solid rgba(255,255,255,0.2); font-size: 0.84rem; font-weight: 700; padding: 0.45rem 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 0.45rem; cursor: pointer; color: #ffffff; font-family: inherit; transition: all 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.12)'"
+                        onmouseout="this.style.background='transparent'">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>مدیریت سامانه</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+
+                <div x-show="mgmtOpen" @click.away="mgmtOpen = false" x-cloak
+                     style="position: absolute; right: 0; top: calc(100% + 8px); width: 230px; background: #ffffff; border-radius: 12px; border: 1.5px solid #e2e8f0; box-shadow: 0 12px 30px rgba(0,0,0,0.18); z-index: 110; padding: 0.5rem; color: #1e293b;">
+                    <a href="{% url 'users_management' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #2563eb; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span>مدیریت کاربران و مراحل</span>
+                    </a>
+                    <a href="{% url 'bank_letter_sender' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #0284c7; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                        <span>ارسال دسته‌جمعی به بانک</span>
+                    </a>
+                    <a href="{% url 'audit_logs' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #047857; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background='transparent'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        <span>ممیزی و ردگیری لاگ‌ها</span>
+                    </a>
+                    <a href="{% url 'excel_export_all' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #b45309; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='transparent'">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="12" y2="18"></line><line x1="15" y1="15" x2="12" y2="18"></line></svg>
+                        <span>خروجی جامع اکسل</span>
+                    </a>
+                    <div style="border-top: 1px solid #f1f5f9; margin-top: 0.35rem; padding-top: 0.35rem;">
+                        <a href="/admin/" target="_blank" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.78rem; color: #64748b; text-decoration: none; border-radius: 6px;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                            <span>پنل ادمین جنگو ↗</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
             {% endif %}
         </nav>
 
-        <!-- Meta & User Role Information -->
+        <!-- Meta & User Profile -->
         <div class="header-meta">
             <!-- Jalali Date -->
             <div class="jalali-badge">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                     <line x1="16" y1="2" x2="16" y2="6"></line>
                     <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -73,12 +97,6 @@
                 <span>{{ request.user.profile.get_organization_display|default:'واحد کارگزاری مسکن' }}</span>
                 <span>•</span>
                 <span>{{ request.user.profile.role_title|default:'کارشناس اقدام‌کننده' }}</span>
-            </div>
-            {% else %}
-            <div class="role-pill" :class="stages[currentStage] ? stages[currentStage].unit : 'brokerage'">
-                <span x-text="stages[currentStage] ? (stages[currentStage].unit === 'brokerage' ? 'واحد کارگزاری مسکن' : 'اداره کل راه و شهرسازی') : 'واحد کارگزاری مسکن'"></span>
-                <span>•</span>
-                <span x-text="stages[currentStage] ? stages[currentStage].role : 'کارشناس اقدام‌کننده'"></span>
             </div>
             {% endif %}
 
@@ -98,35 +116,20 @@
 
                 <!-- Dropdown Menu -->
                 <div x-show="userMenuOpen" @click.away="userMenuOpen = false" x-cloak
-                     style="position: absolute; left: 0; top: calc(100% + 8px); width: 220px; background: #ffffff; border-radius: 12px; border: 1.5px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; padding: 0.5rem; color: #1e293b;">
+                     style="position: absolute; left: 0; top: calc(100% + 8px); width: 200px; background: #ffffff; border-radius: 12px; border: 1.5px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 100; padding: 0.5rem; color: #1e293b;">
                     <div style="padding: 0.5rem 0.75rem; border-bottom: 1px solid #f1f5f9; font-size: 0.75rem; color: #64748b;">
                         ورود به عنوان: <strong style="color: #0f172a;">{{ request.user.username }}</strong>
                     </div>
                     
                     <a href="{% url 'user_profile' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #334155; text-decoration: none; border-radius: 6px; font-weight: 600;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        <span>پروفایل کاربری</span>
+                        <span>پروفایل کاربری من</span>
                     </a>
-
-                    {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_housing_chief %}
-                    <a href="{% url 'users_management' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #2563eb; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='transparent'">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        <span>مدیریت کاربران و ادمین</span>
-                    </a>
-                    <a href="{% url 'audit_logs' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #0284c7; text-decoration: none; border-radius: 6px; font-weight: 700;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                        <span>ممیزی و ردگیری تغییرات</span>
-                    </a>
-                    <a href="/admin/" target="_blank" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #475569; text-decoration: none; border-radius: 6px;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        <span>داشبورد تفصیلی جنگو</span>
-                    </a>
-                    {% endif %}
 
                     <div style="border-top: 1px solid #f1f5f9; margin-top: 0.35rem; padding-top: 0.35rem;">
                         <a href="{% url 'logout' %}" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; font-size: 0.82rem; color: #dc2626; text-decoration: none; border-radius: 6px; font-weight: 600;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                            <span>خروج از حساب</span>
+                            <span>خروج از سامانه</span>
                         </a>
                     </div>
                 </div>

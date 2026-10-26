@@ -313,7 +313,7 @@ def dossier_list_view(request):
 @login_required(login_url='login')
 def dossier_detail_view(request, pk):
     """
-    Main interactive workspace view for a single housing dossier across its 22-stage workflow.
+    Main interactive workspace view for a single housing dossier across its 21-stage workflow.
     Restricts access so experts can ONLY open dossiers currently stuck at their permitted stage.
     Admins, superusers, and Housing Chief have full access to inspect all dossiers.
     """
@@ -1039,14 +1039,32 @@ def electronic_sign_action(request, pk):
             sig_obj.signature_image = profile.signature_image
         sig_obj.save()
 
+    from django.urls import reverse
+    is_full_admin = request.user.is_superuser or request.user.is_staff or bool(profile and (profile.is_housing_chief or profile.allowed_stages == 'all'))
+    can_access_next = is_full_admin or bool(profile and profile.can_action_stage(dossier.current_stage))
+
+    if can_access_next:
+        redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.archive_number})
+    else:
+        redirect_url = reverse("dossier_list")
+        stage_title = dossier.current_stage_title
+        try:
+            if dossier.is_locked or dossier.current_stage == 21:
+                messages.success(request, f"پرونده #{dossier.archive_number} تایید و به بایگانی نهایی منتقل گردید.")
+            else:
+                messages.success(request, f"پرونده #{dossier.archive_number} با موفقیت به مرحله {dossier.current_stage} ({stage_title}) ارسال گردید.")
+        except Exception:
+            pass
+
     if request.headers.get("HX-Request"):
-        return redirect("dossier_detail", pk=dossier.archive_number)
+        return redirect(redirect_url)
 
     return JsonResponse({
         "status": "success",
         "new_stage": dossier.current_stage,
         "is_locked": dossier.is_locked,
         "hash": sig_hash,
+        "redirect_url": redirect_url,
         "message": f"پرونده با موفقیت به مرحله {dossier.current_stage} منتقل گردید."
     })
 
@@ -1056,7 +1074,7 @@ def electronic_sign_action(request, pk):
 def return_stage_action(request, pk):
     """
     Handles backward routing / rejection for correction (select_for_update).
-    Supports all 22 stages: any stage > 0 can return to any prior stage >= 0.
+    Supports all 21 stages: any stage > 1 can return to any prior stage >= 1.
     Enforces role-based permissions unless user is Superadmin or Housing Chief.
     """
     if request.method != "POST":
@@ -1140,8 +1158,19 @@ def return_stage_action(request, pk):
         notes=notes
     )
 
+    from django.urls import reverse
+    can_access_target = is_chief_or_admin or bool(profile and profile.can_action_stage(target_stage))
+    if can_access_target:
+        redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.archive_number})
+    else:
+        redirect_url = reverse("dossier_list")
+        try:
+            messages.info(request, f"پرونده #{dossier.archive_number} جهت اصلاح به مرحله {target_stage} ({target_title}) بازگردانده شد.")
+        except Exception:
+            pass
+
     if request.headers.get("HX-Request"):
-        return redirect("dossier_detail", pk=dossier.archive_number)
+        return redirect(redirect_url)
 
     return JsonResponse({
         "status": "success",
@@ -1151,6 +1180,7 @@ def return_stage_action(request, pk):
         "return_by": dossier.return_by,
         "return_from_stage": dossier.return_from_stage,
         "hash": sig_hash,
+        "redirect_url": redirect_url,
         "message": f"پرونده جهت بازبینی به مرحله {target_stage} برگشت داده شد."
     })
 

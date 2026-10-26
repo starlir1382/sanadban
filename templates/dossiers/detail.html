@@ -262,6 +262,17 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     </div>
   </template>
 
+  <!-- Top Navigation Bar: Back to My Inbox -->
+  <div style="margin-bottom: 0.9rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+    <a href="{% url 'dossier_list' %}" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #ffffff; padding: 0.5rem 1.1rem; font-weight: 700; font-size: 0.85rem; border-color: #cbd5e1; border-radius: 8px; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.04); text-decoration: none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <span>← بازگشت به کارتابل من</span>
+    </a>
+    <div style="font-size: 0.82rem; color: #64748b;" class="fa-num">
+      شماره بایگانی: <strong style="color: #0f172a;">#<span x-text="archiveNumber"></span></strong>
+    </div>
+  </div>
+
   <!-- Hero (compact) -->
   <div class="dt-hero">
     <div>
@@ -508,6 +519,7 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
 </div>
 
 <!-- Modals -->
-{% include 'components/modals/workflow_modals.html' %} {% include
-'components/modals/scan_viewer_modal.html' %} {% include
-'components/modals/date_picker_modal.html' %} {% endblock %}
+{% include 'components/modals/workflow_modals.html' %}
+{% include 'components/modals/scan_viewer_modal.html' %}
+{% include 'components/modals/date_picker_modal.html' %}
+{% endblock %}

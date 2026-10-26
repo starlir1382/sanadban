@@ -37,14 +37,14 @@
         {% if is_full_admin %}
           داشبورد نظارتی جامع: رصد تمامی پرونده‌ها و گلوگاه‌های توقف
         {% else %}
-          کارپوشه اقدام: پرونده‌های در انتظار بررسی شما ({{ user_profile.role_title|default:'کارشناس اقدام' }})
+          پرونده‌های در انتظار اقدام شما (<span class="fa-num">{{ dossiers_count }}</span> پرونده)
         {% endif %}
       </h2>
       <p style="font-size: 0.88rem; color: #475569; margin: 0;">
         {% if is_full_admin %}
           دید کلی بر گردش کار ۲۱ مرحله‌ای نهضت ملی مسکن (مراحل ۱ تا ۲۱)؛ رصد مرحله توقف هر پرونده، علت برگشت احتمالی و بررسی عملکرد واحدها.
         {% else %}
-          شما در این کارپوشه صرفاً پرونده‌هایی را مشاهده می‌کنید که هم‌اکنون در مرحله تخصصی شما متوقف شده و منتظر اقدام و تصمیم‌گیری شما هستند.
+          پرونده‌هایی که هم‌اکنون در مرحله تخصصی شما قرار دارند و منتظر بررسی و امضای الکترونیکی شما هستند.
         {% endif %}
       </p>
     </div>
@@ -67,8 +67,9 @@
     {% include 'components/admin_excel_manager.html' %}
   {% endif %}
 
+  {% if is_full_admin %}
   <!-- =========================================================================
-       UNIFIED PIPELINE STAGE TRACK (WITH STUCK-DOSSIER COUNT BADGES)
+       UNIFIED PIPELINE STAGE TRACK (ADMIN SUPERVISION)
        ========================================================================= -->
   <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.1rem 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; flex-wrap: wrap; gap: 0.5rem;">
@@ -109,6 +110,7 @@
       {% endfor %}
     </div>
   </div>
+  {% endif %}
 
   <!-- =========================================================================
        DEDICATED SEARCH & FILTER BOX
@@ -129,7 +131,7 @@
                name="q"
                value="{{ query|default:'' }}"
                oninput="filterDossierTable(this.value)"
-               placeholder="جستجوی آنی: شماره بایگانی (#100001)، کدملی متقاضی یا همسر، نام، پروژه، مرحله جاری..."
+               {% if is_full_admin %}placeholder="جستجوی آنی: شماره بایگانی (#100001)، کدملی متقاضی یا همسر، نام، پروژه، مرحله جاری..."{% else %}placeholder="جستجوی سریع در کارتابل: نام متقاضی، کد ملی، شماره بایگانی..."{% endif %}
                class="fa-num"
                style="width: 100%; padding: 0.75rem 2.85rem 0.75rem 2.5rem; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; outline: none; transition: all 0.2s; background: #f8fafc;"
                onfocus="this.style.borderColor = '#2563eb'; this.style.background = '#ffffff'; this.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';"
@@ -142,7 +144,8 @@
                 title="پاکسازی جستجو">✕</button>
       </div>
 
-      <!-- Sort Selector Dropdown -->
+      {% if is_full_admin %}
+      <!-- Sort Selector Dropdown (Admin) -->
       <div style="display: flex; align-items: center; gap: 0.4rem; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.65rem 0.85rem;">
         <label for="sort-select" style="font-size: 0.82rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
@@ -150,13 +153,14 @@
         </label>
         <select id="sort-select" name="sort" onchange="document.getElementById('dossier-search-form').submit()"
                 style="background: transparent; border: none; font-size: 0.84rem; font-weight: 800; color: #1e3a8a; outline: none; cursor: pointer;">
-          <option value="stage_asc" {% if current_sort == 'stage_asc' %}selected{% endif %}>مرحله گردش کار (۰ به ۲۱) [پیش‌فرض]</option>
-          <option value="stage_desc" {% if current_sort == 'stage_desc' %}selected{% endif %}>مرحله گردش کار (۲۱ به ۰)</option>
+          <option value="stage_asc" {% if current_sort == 'stage_asc' %}selected{% endif %}>مرحله گردش کار (۱ به ۲۱) [پیش‌فرض]</option>
+          <option value="stage_desc" {% if current_sort == 'stage_desc' %}selected{% endif %}>مرحله گردش کار (۲۱ به ۱)</option>
           <option value="archive_asc" {% if current_sort == 'archive_asc' %}selected{% endif %}>شماره پرونده (#100001+ صعودی)</option>
           <option value="archive_desc" {% if current_sort == 'archive_desc' %}selected{% endif %}>شماره پرونده (نزولی)</option>
           <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>نام متقاضی (الفبایی)</option>
         </select>
       </div>
+      {% endif %}
 
       <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.88rem; font-weight: 800; display: flex; align-items: center; gap: 0.45rem;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -391,16 +395,18 @@
               </div>
             </td>
 
-            <!-- 8. Action Button -->
+            <!-- 8. Action Button (Single Prominent Button for Experts) -->
             <td style="padding: 0.95rem 0.75rem; text-align: center; vertical-align: middle; white-space: nowrap;">
               <div style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="btn-open-dossier" style="padding: 0.45rem 0.8rem; font-size: 0.82rem; white-space: nowrap;" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
-                  <span>ورود به پرونده</span>
+                <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="btn-open-dossier" style="padding: 0.5rem 1rem; font-size: 0.84rem; font-weight: 800; white-space: nowrap; border-radius: 8px;" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
+                  <span>اقدام روی پرونده</span>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow-icon"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </a>
-                <a href="{% url 'dossier_summary_print' pk=d.archive_number %}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; text-decoration: none; transition: all 0.15s; flex-shrink: 0;" title="چاپ فرم مراحل و امضاها (۱۴ امضا)">
+                {% if is_full_admin %}
+                <a href="{% url 'dossier_summary_print' pk=d.archive_number %}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; text-decoration: none; transition: all 0.15s; flex-shrink: 0;" title="چاپ فرم مراحل و امضاها">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 </a>
+                {% endif %}
               </div>
             </td>
           </tr>

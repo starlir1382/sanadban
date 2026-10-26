@@ -34,7 +34,7 @@ const FIELD_STAGE_MAP = {
 
 /**
  * SanadBan (DeedFlow) - Interactive Logic Engine & Alpine.js Store
- * Full 22-Stage Housing Workflow & Interactive Scan Viewer
+ * Full 21-Stage Housing Workflow & Interactive Scan Viewer
  */
 
 // Persian Number to Words Converter Utility
@@ -1846,8 +1846,12 @@ document.addEventListener('alpine:init', () => {
 
           this.triggerToast(data.message || `پرونده به مرحله ${this.currentStage} منتقل شد.`, 'success');
           setTimeout(() => {
-            window.location.reload();
-          }, 500);
+            if (data.redirect_url) {
+              window.location.href = data.redirect_url;
+            } else {
+              window.location.reload();
+            }
+          }, 600);
         } else {
           const errData = await res.json().catch(() => ({}));
           this.triggerToast(errData.message || 'خطا در ثبت امضای الکترونیکی.', 'error');
@@ -1916,8 +1920,12 @@ document.addEventListener('alpine:init', () => {
 
           this.triggerToast(data.message || `پرونده به مرحله ${targetStage} بازگشت داده شد.`, 'warning');
           setTimeout(() => {
-            window.location.reload();
-          }, 500);
+            if (data.redirect_url) {
+              window.location.href = data.redirect_url;
+            } else {
+              window.location.reload();
+            }
+          }, 600);
         } else {
           const errData = await res.json().catch(() => ({}));
           this.triggerToast(errData.message || 'خطا در ثبت بازگشت پرونده.', 'error');
