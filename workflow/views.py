@@ -168,7 +168,7 @@ def get_token_search_condition(token: str):
     if digits:
         num = int(digits)
         cond |= models.Q(archive_number=num)
-        if 0 <= num <= 21:
+        if 1 <= num <= 21:
             cond |= models.Q(current_stage=num)
         
     if matched_stages:
@@ -626,7 +626,7 @@ def save_dossier_draft_view(request, pk):
     if "current_stage" in data:
         try:
             stg = int(data.get("current_stage"))
-            if 0 <= stg <= 21:
+            if 1 <= stg <= 21:
                 dossier.current_stage = stg
         except (ValueError, TypeError):
             pass
@@ -980,23 +980,22 @@ def electronic_sign_action(request, pk):
 
     # Auto-link expert profile signature to official archival slots (شناسنامه جامع بایگانی)
     stage_to_slots = {
-        0: ["brokerage"],
+        1: ["brokerage"],
         3: ["form_j"],
-        4: ["other_facilities"],
-        5: ["contractor_settlement"],
-        6: ["decile_facility"],
-        7: ["applicant_settlement"],
-        8: ["bank_facility"],
-        10: ["brokerage"],
-        11: ["national_housing"],
-        12: ["technical"],
-        13: ["real_estate"],
-        14: ["land_bank"],
-        15: ["legal"],
-        16: ["form_j"],
-        17: ["evaluation"],
-        18: ["revenue"],
-        19: ["contractor_settlement"],
+        4: ["other_facilities", "decile_facility"],
+        5: ["applicant_settlement"],
+        6: ["bank_facility"],
+        8: ["brokerage"],
+        9: ["national_housing", "bank_facility"],
+        10: ["form_j"],
+        11: ["technical"],
+        12: ["real_estate"],
+        13: ["land_bank"],
+        14: ["legal"],
+        15: ["evaluation"],
+        16: ["decile_facility"],
+        17: ["revenue"],
+        18: ["contractor_settlement"],
     }
     target_slots = stage_to_slots.get(current_idx, [])
     import jdatetime
@@ -1043,7 +1042,7 @@ def return_stage_action(request, pk):
     # Permission check for active stage
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or (profile and profile.is_housing_chief)
-    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(16)))))
+    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or profile.can_action_stage(3) or profile.can_action_stage(10)))
     if not user_can_action:
         return JsonResponse({
             "status": "error",
@@ -1217,23 +1216,22 @@ def get_dossier_signatures_summary(dossier):
     sigs = {s.slot_key: s for s in dossier.signatures.all()}
     
     stage_to_slots = {
-        0: ["brokerage"],
+        1: ["brokerage"],
         3: ["form_j"],
-        4: ["other_facilities"],
-        5: ["contractor_settlement"],
-        6: ["decile_facility"],
-        7: ["applicant_settlement"],
-        8: ["bank_facility"],
-        10: ["brokerage"],
-        11: ["national_housing"],
-        12: ["technical"],
-        13: ["real_estate"],
-        14: ["land_bank"],
-        15: ["legal"],
-        16: ["form_j"],
-        17: ["evaluation"],
-        18: ["revenue"],
-        19: ["contractor_settlement"],
+        4: ["other_facilities", "decile_facility"],
+        5: ["applicant_settlement"],
+        6: ["bank_facility"],
+        8: ["brokerage"],
+        9: ["national_housing", "bank_facility"],
+        10: ["form_j"],
+        11: ["technical"],
+        12: ["real_estate"],
+        13: ["land_bank"],
+        14: ["legal"],
+        15: ["evaluation"],
+        16: ["decile_facility"],
+        17: ["revenue"],
+        18: ["contractor_settlement"],
     }
     
     # Check WorkflowSignatureLog to find if stages were signed
@@ -1349,9 +1347,10 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=
     raw_hash = f"{dossier.archive_number}-CHECK-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}"
     file_sha = "SHA256: " + hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()[:24]
 
+    target_chk_stage = 16 if check_type_norm == "loan" else 17
     att = DossierAttachment.objects.create(
         dossier=dossier,
-        stage=18,
+        stage=target_chk_stage,
         doc_type=doc_type,
         title=title,
         file_name=file_name,
@@ -1362,8 +1361,8 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=
 
     WorkflowSignatureLog.objects.create(
         dossier=dossier,
-        from_stage="مرحله ۱۸: دریافت چک‌های صیادی",
-        to_stage="مرحله ۱۸: دریافت چک‌های صیادی",
+        from_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
+        to_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
         actor=uploader_name,
         role=uploader_role,
         action="PRINT_RECEIPT",
@@ -1534,10 +1533,11 @@ def upload_check_scan_and_create_receipt_view(request, pk):
     file_sha = "SHA256: " + hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()[:24]
 
     # 1. Create raw scan attachment if file was uploaded
+    target_chk_stage = 16 if check_type_norm == "loan" else 17
     if file_obj and saved_url:
         DossierAttachment.objects.create(
             dossier=dossier,
-            stage=18,
+            stage=target_chk_stage,
             doc_type=doc_type,
             title=f"اسکن اصل چک‌های صیادی {type_label}",
             file_name=file_obj.name,
@@ -1557,7 +1557,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
     receipt_att = DossierAttachment.objects.create(
         dossier=dossier,
-        stage=18,
+        stage=target_chk_stage,
         doc_type=doc_type,
         title=receipt_title,
         file_name=receipt_filename,
@@ -1568,8 +1568,8 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
     WorkflowSignatureLog.objects.create(
         dossier=dossier,
-        from_stage="مرحله ۱۸: دریافت چک‌های صیادی",
-        to_stage="مرحله ۱۸: دریافت چک‌های صیادی",
+        from_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
+        to_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
         actor=uploader_name,
         role=uploader_role,
         action="SUBMIT_AND_PRINT",
@@ -1831,15 +1831,15 @@ def upload_scan_attachment_view(request, pk):
         return JsonResponse({"status": "error", "message": "این پرونده نهایی و بایگانی شده است و امکان بارگذاری مدارک جدید وجود ندارد."}, status=400)
 
     # 2. User authorization & role check
+    title = request.POST.get("title", "").strip() or "مدرک بارگذاری‌شده"
+    doc_type = request.POST.get("doc_type", "OTHER")
+
     profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
     is_chief_or_admin = request.user.is_superuser or (profile and (profile.is_housing_chief or profile.organization == 'system' or profile.allowed_stages == 'all'))
-    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(16)))))
+    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(10)))))
 
     if not user_can_action:
         return JsonResponse({"status": "error", "message": "عدم دسترسی اقدام: شما مجوز بارگذاری یا تغییر اسناد در مرحله جاری را ندارید."}, status=403)
-    
-    title = request.POST.get("title", "").strip() or "مدرک بارگذاری‌شده"
-    doc_type = request.POST.get("doc_type", "OTHER")
     preview_url = request.POST.get("preview_url", "")
     uploaded_file = request.FILES.get("file")
 
@@ -1940,10 +1940,11 @@ def delete_scan_attachment_view(request, pk, attachment_id):
         return JsonResponse({"status": "error", "message": "این پرونده نهایی و بایگانی شده است و امکان حذف اسناد وجود ندارد."}, status=400)
 
     attachment = get_object_or_404(DossierAttachment, id=attachment_id, dossier=dossier)
+    doc_type = attachment.doc_type
 
     profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
     is_chief_or_admin = request.user.is_superuser or (profile and (profile.is_housing_chief or profile.organization == 'system' or profile.allowed_stages == 'all'))
-    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(16)))))
+    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(10)))))
 
     if not user_can_action:
         return JsonResponse({"status": "error", "message": "شما مجوز حذف مدارک در این پرونده را ندارید."}, status=403)
@@ -2182,7 +2183,7 @@ def users_management_view(request):
         allowed_raw = p.allowed_stages if p else "all"
         if allowed_raw == "all" or is_chief or u.is_superuser:
             parsed_stages = "all"
-            stage_pills = [{"id": "all", "title": "کلیه ۲۲ مرحله (اختیارات تام)"}]
+            stage_pills = [{"id": "all", "title": "کلیه ۲۱ مرحله (اختیارات تام)"}]
         else:
             nums = [int(s.strip()) for s in allowed_raw.split(',') if s.strip().isdigit()]
             stage_pills = [{"id": s, "title": f"مرحله {s}: {HousingDossier.STAGE_ROLES.get(s, ('','',f'مرحله {s}'))[2]}"} for s in nums]
@@ -2207,16 +2208,16 @@ def users_management_view(request):
         })
 
     # Calculate stage coverage for control by stage
-    stage_experts_count = {i: 0 for i in range(1, 25)}
+    stage_experts_count = {i: 0 for i in range(1, 22)}
     for ud in users_data:
         raw = ud.get("allowed_stages", "")
         if raw == "all" or ud.get("is_housing_chief") or ud.get("is_superuser"):
-            for i in range(1, 25):
+            for i in range(1, 22):
                 stage_experts_count[i] += 1
         else:
             nums = [int(s.strip()) for s in raw.split(',') if s.strip().isdigit()]
             for s in nums:
-                if 1 <= s <= 24:
+                if 1 <= s <= 21:
                     stage_experts_count[s] += 1
 
     for stg in all_stages_meta:
@@ -2680,7 +2681,7 @@ def bank_letter_sender_view(request):
     """
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
-    can_action_bank = profile and (profile.can_action_stage(8) or profile.can_action_stage(11))
+    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(9))
     
     if not (is_chief_or_admin or can_action_bank):
         messages.error(request, "دسترسی به بخش ارسال نامه بانک نیازمند مجوز کارشناس بانک یا مدیر سیستم است.")
@@ -2810,7 +2811,7 @@ def bank_letter_submit_api(request):
     """
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
-    can_action_bank = profile and (profile.can_action_stage(8) or profile.can_action_stage(11))
+    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(9))
     
     if not (is_chief_or_admin or can_action_bank):
         return JsonResponse({"status": "error", "message": "دسترسی غیرمجاز."}, status=403)
@@ -2857,9 +2858,9 @@ def bank_letter_submit_api(request):
         d.bank_shipment_list_added_at = timezone.now()
 
         from_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
-        if d.current_stage == 11:
-            d.current_stage = 12
-            to_stage_str = f"مرحله ۱۲: {d.current_stage_title}"
+        if d.current_stage == 6:
+            d.current_stage = 7
+            to_stage_str = f"مرحله ۷: {d.current_stage_title}"
         else:
             to_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
 
