@@ -1,33 +1,33 @@
 const FIELD_STAGE_MAP = {
-  national_id: [0, 1, 2, 10], full_name: [0, 1, 2, 10], father_name: [0, 1, 2, 10], birth_date: [0, 1, 2, 10], applicant_phone: [0, 1, 2, 10],
-  selection_rank: [0, 1, 2, 10], decile: [0, 6], marital_status: [0, 1, 2, 10], is_married_confirmed: [0, 1, 2, 10],
-  spouse_full_name: [0, 1, 2, 10], spouse_father_name: [0, 1, 2, 10], spouse_national_id: [0, 1, 2, 10],
-  spouse_birth_date: [0, 1, 2, 10], spouse_id_number: [0, 1, 2, 10], spouse_birth_place: [0, 1, 2, 10],
-  site: [0, 1, 2, 10], project: [0, 1, 2, 10], construction_type: [0, 1, 2, 10], block_name: [0, 1, 2, 10], block_code: [0, 1, 2, 10],
-  floor_number: [0, 1, 2, 10], unit_number: [0, 1, 2, 10], unit_code: [0, 1, 2, 10], bedroom_count: [0, 1, 2, 10], unit_direction: [0, 1, 2, 10],
-  net_unit_area: [0, 1, 2, 10], common_area: [0, 1, 2, 10], total_area: [0, 1, 2, 10], unit_area: [0, 1, 2, 10],
-  storage_number: [0, 1, 2, 10], storage_area: [0, 1, 2, 10], parking_number: [0, 1, 2, 10], parking_area: [0, 1, 2, 10], covered_parking_area: [0, 1, 2, 10],
-  registration_section: [0, 1, 12, 14], main_plaque: [0, 1, 12, 14], separated_plaque: [0, 1, 12, 14],
-  sub_plaque: [0, 1, 12, 14], plot_number: [0, 1, 12, 14],
-  base_cost_without_loan: [0, 2],
-  applicant_form_j_status: [3, 16], applicant_form_j_directorate_status: [3, 16], applicant_form_j_red_description: [3, 16],
-  spouse_form_j_status: [3, 16], spouse_form_j_directorate_status: [3, 16], spouse_form_j_red_description: [3, 16],
-  fund_loan_amount: [4],
-  contractor_letter_amount: [5, 19],
-  decile_loan_amount: [6],
-  applicant_equity: [7], is_sms_sent: [7], sms_sent_at: [7],
-  is_equity_funded: [7],
-  bank_loan_amount: [8, 11], bank_letter_number: [8, 11], bank_letter_date: [8, 11],
-  is_added_to_bank_shipment_list: [8, 11], is_sent_to_bank: [8, 11], bank_sent_date: [8, 11], bank_sent_letter_number: [8, 11],
-  total_land_share: [17], past_years_rent: [17], current_year_rent: [17], land_lease_year: [17], preparation_cost: [17],
-  decile_loan_bank: [18], supported_institution: [18], check_count: [18],
-  check_amount: [18], last_check_amount: [18], total_check_amount: [18], check_service_fee: [18],
-  commitment_number: [18], commitment_date: [18], check_entries_json: [18], is_decile_loan_confirmed: [18],
-  tenant_price: [18], tenant_code: [18], is_cash_rent_confirmed: [18],
-  cash_preparation_amount: [18], prepayment_code: [18], non_cash_preparation_amount: [18],
-  preparation_service_fee: [18], preparation_check_count: [18], total_preparation_check_amount: [18],
-  preparation_check_entries_json: [18], is_preparation_checks_confirmed: [18],
-  rah_letter: [20], rah_letter_date: [20]
+  national_id: [1, 8], full_name: [1, 8], father_name: [1, 8], birth_date: [1, 8], applicant_phone: [1, 8],
+  selection_rank: [1, 8], decile: [1, 4], marital_status: [1, 8], is_married_confirmed: [1, 8],
+  spouse_full_name: [1, 8], spouse_father_name: [1, 8], spouse_national_id: [1, 8],
+  spouse_birth_date: [1, 8], spouse_id_number: [1, 8], spouse_birth_place: [1, 8],
+  site: [1, 8], project: [1, 8], construction_type: [1, 8], block_name: [1, 8], block_code: [1, 8],
+  floor_number: [1, 8], unit_number: [1, 8], unit_code: [1, 8], bedroom_count: [1, 8], unit_direction: [1, 8],
+  net_unit_area: [1, 8], common_area: [1, 8], total_area: [1, 8], unit_area: [1, 8],
+  storage_number: [1, 8], storage_area: [1, 8], parking_number: [1, 8], parking_area: [1, 8], covered_parking_area: [1, 8],
+  registration_section: [2, 11, 13], main_plaque: [2, 11, 13], separated_plaque: [2, 11, 13],
+  sub_plaque: [2, 11, 13], plot_number: [2, 11, 13],
+  base_cost_without_loan: [2, 18],
+  applicant_form_j_status: [3, 10], applicant_form_j_directorate_status: [3, 10], applicant_form_j_red_description: [3, 10],
+  spouse_form_j_status: [3, 10], spouse_form_j_directorate_status: [3, 10], spouse_form_j_red_description: [3, 10],
+  fund_loan_amount: [4, 18],
+  contractor_letter_amount: [4, 18],
+  decile_loan_amount: [4, 18],
+  applicant_equity: [5], is_sms_sent: [5], sms_sent_at: [5],
+  is_equity_funded: [5],
+  bank_loan_amount: [6, 9], bank_letter_number: [6, 9], bank_letter_date: [6, 9],
+  is_added_to_bank_shipment_list: [6, 9], is_sent_to_bank: [6, 9], bank_sent_date: [6, 9], bank_sent_letter_number: [6, 9],
+  total_land_share: [15], past_years_rent: [15], current_year_rent: [15], land_lease_year: [15], preparation_cost: [15],
+  decile_loan_bank: [16], supported_institution: [16], check_count: [16],
+  check_amount: [16], last_check_amount: [16], total_check_amount: [16], check_service_fee: [16],
+  commitment_number: [16], commitment_date: [16], check_entries_json: [16], is_decile_loan_confirmed: [16],
+  tenant_price: [17], tenant_code: [17], is_cash_rent_confirmed: [17],
+  cash_preparation_amount: [17], prepayment_code: [17], non_cash_preparation_amount: [17],
+  preparation_service_fee: [17], preparation_check_count: [17], total_preparation_check_amount: [17],
+  preparation_check_entries_json: [17], is_preparation_checks_confirmed: [17],
+  rah_letter: [19], rah_letter_date: [19]
 };
 
 /**
@@ -90,35 +90,34 @@ const PersianNumberWords = {
   }
 };
 
-// Official 22-Stage Housing Workflow Configuration (Stages 0 to 21)
-const STAGES_22 = [
-  { id: 0, unit: 'brokerage', role: 'کارشناس ثبت اطلاعات متقاضی و واحد انتخابی و پلاک ثبتی', title: 'ورود اطلاعات متقاضی، همسر، واحد و پروژه', category: 'کارگزاری مسکن' },
-  { id: 1, unit: 'brokerage', role: 'کارشناس اطلاعات', title: 'کنترل اطلاعات پلاک ثبتی', category: 'کارگزاری مسکن' },
-  { id: 2, unit: 'brokerage', role: 'کارشناس اطلاعات (کارگزاری)', title: 'ورود مبلغ تمام شده واحد', category: 'کارگزاری مسکن' },
-  { id: 3, unit: 'directorate', role: 'کارشناس بررسی فرم ج (عالمی)', title: 'بررسی فرم ج', category: 'استعلامات و تسهیلات' },
-  { id: 4, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'ورود مبلغ وام صندوق', category: 'استعلامات و تسهیلات' },
-  { id: 5, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ نامه (کسر یا تخفیف) پیمانکار', category: 'استعلامات و تسهیلات' },
-  { id: 6, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'مبلغ تسهیلات دهک', category: 'استعلامات و تسهیلات' },
-  { id: 7, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی)', title: 'تعیین مبلغ باقیمانده نقدی مورد نیاز', category: 'استعلامات و تسهیلات' },
-  { id: 8, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی / حیدری)', title: 'ارسال و درج شماره و تاریخ نامه معرفی به بانک', category: 'استعلامات و تسهیلات' },
-  { id: 9, unit: 'brokerage', role: 'کارشناس تشکیل پرونده کارگزاری', title: 'اسکن مدارک و دفترچه اقساط', category: 'کارگزاری مسکن' },
-  { id: 10, unit: 'brokerage', role: 'مدیرعامل کارگزاری', title: 'تأیید مدیرعامل کارگزاری', category: 'کارگزاری مسکن' },
-  { id: 11, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی', title: 'بررسی کارشناس نهضت ملی مسکن', category: 'تأییدات تخصصی اداره کل' },
-  { id: 12, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'بررسی کارشناس فنی و مهندسی', category: 'تأییدات تخصصی اداره کل' },
-  { id: 13, unit: 'directorate', role: 'کارشناس املاک', title: 'بررسی کارشناس املاک (بارگذاری سند)', category: 'تأییدات تخصصی اداره کل' },
-  { id: 14, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'بررسی کارشناس بانک زمین', category: 'تأییدات تخصصی اداره کل' },
-  { id: 15, unit: 'directorate', role: 'کارشناس حقوقی', title: 'بررسی کارشناس حقوقی', category: 'تأییدات تخصصی اداره کل' },
-  { id: 16, unit: 'directorate', role: 'کارشناس فرم ج', title: 'بررسی و آپلود صفحه فرم جیم اداره کل', category: 'تأییدات تخصصی اداره کل' },
-  { id: 17, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)', category: 'ارزیابی و وصول' },
-  { id: 18, unit: 'brokerage', role: 'کارشناس اخذ اجاره و آماده سازی و تسهیلات دهک', title: 'وصول نقد، اقساط، چک‌های دهک و آماده‌سازی', category: 'ارزیابی و وصول' },
-  { id: 19, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'بررسی کارشناس تسویه با پیمانکار', category: 'تسویه و خاتمه' },
-  { id: 20, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'صدور و ثبت نامه محضر', category: 'صدور و بایگانی' },
-  { id: 21, unit: 'directorate', role: 'کارشناس بایگانی', title: 'مشاهده فرم نهایی و بایگانی قطعی', category: 'صدور و بایگانی' }
+// Official 21-Stage Housing Workflow Configuration (Stages 1 to 21)
+const STAGES_21 = [
+  { id: 1, unit: 'brokerage', role: 'کارشناس ثبت اطلاعات متقاضی، همسر و واحد انتخابی', title: 'ورود اطلاعات انتخاب واحد متقاضی', category: 'کارگزاری مسکن' },
+  { id: 2, unit: 'brokerage', role: 'کارشناس اطلاعات (کارگزاری)', title: 'ورود اطلاعات پلاک ثبتی و قیمت تمام شده', category: 'کارگزاری مسکن' },
+  { id: 3, unit: 'directorate', role: 'کارشناس بررسی فرم ج (عالمی)', title: 'بررسی فرم ج متقاضی و همسر', category: 'استعلامات و تسهیلات' },
+  { id: 4, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'ورود مبلغ وام صندوق، نامه پیمانکار و وام دهک', category: 'استعلامات و تسهیلات' },
+  { id: 5, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی)', title: 'ارسال پیامک تعیین آورده نقدی و ثبت تاریخ', category: 'استعلامات و تسهیلات' },
+  { id: 6, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی / حیدری)', title: 'تایید واریز و ثبت نامه معرفی به بانک', category: 'استعلامات و تسهیلات' },
+  { id: 7, unit: 'brokerage', role: 'کارشناس تشکیل پرونده کارگزاری', title: 'اسکن مدارک، دفترچه اقساط و ثبت شماره فرم ج', category: 'کارگزاری مسکن' },
+  { id: 8, unit: 'brokerage', role: 'مدیرعامل کارگزاری', title: 'تأیید مدیرعامل کارگزاری', category: 'کارگزاری مسکن' },
+  { id: 9, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی', title: 'بررسی و تایید کارشناس نهضت ملی مسکن', category: 'تأییدات تخصصی اداره کل' },
+  { id: 10, unit: 'directorate', role: 'کارشناس ثبت فرم ج اداره کل', title: 'ثبت و بارگذاری استعلام فرم ج اداره کل', category: 'تأییدات تخصصی اداره کل' },
+  { id: 11, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'بررسی کارشناس فنی و مهندسی', category: 'تأییدات تخصصی اداره کل' },
+  { id: 12, unit: 'directorate', role: 'کارشناس املاک', title: 'بررسی کارشناس املاک (بارگذاری سند مالکیت)', category: 'تأییدات تخصصی اداره کل' },
+  { id: 13, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'بررسی و استعلام کارشناس بانک زمین', category: 'تأییدات تخصصی اداره کل' },
+  { id: 14, unit: 'directorate', role: 'کارشناس حقوقی', title: 'بررسی و تایید کارشناس حقوقی اداره کل', category: 'تأییدات تخصصی اداره کل' },
+  { id: 15, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)', category: 'ارزیابی و وصول' },
+  { id: 16, unit: 'brokerage', role: 'کارشناس دریافت چک‌های وام دهک', title: 'دریافت و اسکن چک‌های تسهیلات دهک', category: 'ارزیابی و وصول' },
+  { id: 17, unit: 'brokerage', role: 'کارشناس وصول درآمد، اجاره و آماده‌سازی', title: 'دریافت نقد و اقساط آماده‌سازی و اجاره عرصه', category: 'ارزیابی و وصول' },
+  { id: 18, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'بررسی کارشناس تسویه با پیمانکار', category: 'تسویه و خاتمه' },
+  { id: 19, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'تأیید نهایی فرم مراحل و صدور نامه محضر', category: 'صدور و بایگانی' },
+  { id: 20, unit: 'directorate', role: 'کارشناس اسکن قرارداد اجاره و چاپ فرم مراحل', title: 'اسکن قرارداد اجاره عرصه و چاپ فرم‌های رسمی', category: 'صدور و بایگانی' },
+  { id: 21, unit: 'directorate', role: 'مسئول بایگانی نهایی اسناد', title: 'مشاهده فرم نهایی و بایگانی قطعی پرونده', category: 'صدور و بایگانی' }
 ];
 
-// Comprehensive 22-Stage Workflow Guidance (Stages 0 to 21)
+// Comprehensive 21-Stage Workflow Guidance (Stages 1 to 21)
 const STAGE_GUIDANCE = {
-  0: {
+  1: {
     actionTitle: 'ورود اطلاعات متقاضی، همسر، واحد و پروژه',
     actionSummary: 'واکشی استعلام پیش‌ثبت‌نام متقاضی، احراز زوجیت همسر، مشخصات سایت و پروژه و بارگذاری اسکن مدارک.',
     items: [
@@ -129,25 +128,15 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#section-applicant'
   },
-  1: {
-    actionTitle: 'کنترل اطلاعات پلاک ثبتی',
-    actionSummary: 'تطبیق و ثبت اطلاعات بخش ثبتی، پلاک اصلی، پلاک مفروز، پلاک فرعی و شماره قطعه زمین پروژه.',
-    items: [
-      'کنترل و ثبت نام بخش ثبتی پروژه مسکونی',
-      'درج شماره پلاک اصلی و پلاک مفروز',
-      'درج شماره پلاک فرعی و قطعه مربوط به پروژه'
-    ],
-    targetSection: '#section-plot'
-  },
   2: {
-    actionTitle: 'ورود مبلغ تمام شده واحد',
-    actionSummary: 'محاسبه و درج قیمت پایه ساخت واحد مسکونی بدون احتساب وام طرح نهضت ملی مسکن (ریال).',
+    actionTitle: 'کنترل پلاک ثبتی و ورود مبلغ تمام شده واحد',
+    actionSummary: 'تطبیق و ثبت اطلاعات بخش و پلاک ثبتی، و درج قیمت پایه ساخت بدون تسهیلات بانکی.',
     items: [
-      'ورود مبلغ تمام‌شده بر مبنای قرارداد ساخت کارگزاری',
-      'بررسی عدم کسر تسهیلات بانکی در این مرحله',
+      'کنترل و ثبت نام بخش ثبتی، پلاک اصلی، مفروز، فرعی و شماره قطعه',
+      'ورود مبلغ تمام‌شده واحد بر مبنای قرارداد کارگزاری بدون کسر وام',
       'مشاهده مبلغ به حروف فارسی و تایید درستی ارقام'
     ],
-    targetSection: '#section-cost'
+    targetSection: '#section-plot'
   },
   3: {
     actionTitle: 'بررسی فرم ج',
@@ -160,126 +149,66 @@ const STAGE_GUIDANCE = {
     targetSection: '#section-spouse'
   },
   4: {
-    actionTitle: 'ورود مبلغ وام صندوق',
-    actionSummary: 'تعیین و درج میزان تسهیلات تخصیص‌یافته از محل صندوق ملی مسکن جهت کاهش تعهد آورده متقاضی.',
+    actionTitle: 'ورود مبلغ وام صندوق، نامه پیمانکار و وام دهک',
+    actionSummary: 'تعیین مبالغ تسهیلات صندوق ملی، تخفیفات پیمانکار و وام ویژه دهک‌های درآمدی.',
     items: [
-      'بررسی مصوبه تخصیص صندوق ملی مسکن برای پروژه',
       'درج رقم مصوب تسهیلات صندوق ملی مسکن (ریال)',
-      'کنترل تاثیر مستقیم بر کاهش مانده سهم آورده نقدی متقاضی'
+      'ثبت مبلغ کسر یا تخفیف ابلاغی پیمانکار سازنده (ریال)',
+      'ورود مبلغ تسهیلات ویژه دهک متقاضی (ریال)'
     ],
     targetSection: '#section-loans'
   },
   5: {
-    actionTitle: 'مبلغ نامه (کسر یا تخفیف) پیمانکار',
-    actionSummary: 'درج مبالغ تخفیفات، تعدیلات منفی یا کسورات پیمانکار سازنده بر اساس صورت‌وضعیت تاییدشده.',
-    items: [
-      'بررسی شماره و تاریخ نامه پیمانکار سازنده',
-      'ثبت مبلغ کسر یا تخفیف ابلاغی پیمانکار (ریال)'
-    ],
-    targetSection: '#section-loans'
-  },
-  6: {
-    actionTitle: 'مبلغ تسهیلات دهک',
-    actionSummary: 'بررسی رتبه دهک متقاضی (۱ تا ۱۰) و اعمال تسهیلات ویژه دهک‌های کم‌درآمد.',
-    items: [
-      'کنترل رتبه دهک درآمدی متقاضی در سامانه رفاه ایرانیان',
-      'ورود مبلغ تسهیلات دهک (ریال)',
-      'تطبیق با شرایط متقاضی جهت تقسیط بلندمدت'
-    ],
-    targetSection: '#section-loans'
-  },
-  7: {
-    actionTitle: 'تعیین مبلغ باقیمانده نقدی مورد نیاز',
+    actionTitle: 'ارسال پیامک تعیین آورده نقدی و ثبت تاریخ',
     actionSummary: 'محاسبه سیستمی آورده نقدی مورد نیاز متقاضی و ارسال پیامک اطلاع‌رسانی تکمیل واریزی.',
     items: [
       'بررسی محاسبه مانده بدهی آورده نقدی متقاضی',
-      'تایید وضعیت ارسال پیامک اطلاع‌رسانی به متقاضی',
-      'ثبت تاریخ ارسال پیامک اعلام واریزی آورده'
+      'ارسال پیامک اعلام واریزی به متقاضی و ثبت تاریخ'
     ],
     targetSection: '#section-applicant-equity'
   },
-  8: {
-    actionTitle: 'ارسال و درج شماره و تاریخ نامه معرفی به بانک',
+  6: {
+    actionTitle: 'تایید واریز و ثبت نامه معرفی به بانک',
     actionSummary: 'ثبت اطلاعات معرفی‌نامه رسمی متقاضی به بانک عامل جهت تقسیط تسهیلات ساخت مسکن.',
     items: [
       'درج شماره نامه رسمی معرفی به بانک',
       'ثبت تاریخ صدور نامه بانکی',
-      'تعیین وضعیت ارسال فیزیکی / سیستمی به شعبه بانک'
+      'تعیین وضعیت ارسال به شعبه بانک'
     ],
     targetSection: '#section-bank-letter'
   },
-  9: {
-    actionTitle: 'اسکن مدارک و دفترچه اقساط',
-    actionSummary: 'بارگذاری تصاویر اسکن‌شده قرارداد، مدارک هویتی و دفترچه فروش اقساطی صادره توسط بانک عامل.',
+  7: {
+    actionTitle: 'اسکن مدارک، دفترچه اقساط و ثبت شماره فرم ج',
+    actionSummary: 'بارگذاری تصاویر اسکن‌شده مدارک هویتی، دفترچه اقساط بانکی و ثبت شماره رسمی فرم ج.',
     items: [
-      'بارگذاری تصویر صفحات اول و دوم دفترچه اقساط بانکی',
-      'کنترل وضوح تصویر و عدم خدشه در ارقام و مهر بانک',
-      'ثبت در آرشیو مدارک پیوست پرونده'
+      'بارگذاری تصویر صفحات دفترچه اقساط بانکی',
+      'ثبت شماره فرم ج و کنترل کامل بودن مدارک پرونده',
+      'تولید لیبل پوشه با شماره بایگانی پرونده'
     ],
     targetSection: '#section-docs-installment'
   },
-  10: {
+  8: {
     actionTitle: 'تأیید مدیرعامل کارگزاری',
     actionSummary: 'بازبینی کامل پرونده، بررسی صحت مبالغ و مدارک کارگزاری، و تایید نهایی توسط مدیرعامل کارگزاری.',
     items: [
-      'کنترل رعایت کلیه ضوابط اجرایی مراحل ۰ تا ۹',
-      'بررسی تاییدیه مالی اولیه و اطلاعات ثبتی',
+      'کنترل رعایت کلیه ضوابط اجرایی مراحل ۱ تا ۷',
+      'بررسی تاییدیه مالی اولیه و اطلاعات ثبتی (امکان ویرایش مرحله ۱)',
       'ثبت امضای الکترونیک مدیرعامل کارگزاری جهت ارسال به اداره کل'
     ],
     targetSection: '#audit-timeline-section'
   },
-  11: {
-    actionTitle: 'بررسی کارشناس اداره کل (نهضت ملی مسکن)',
-    actionSummary: 'بررسی کارشناسی و انطباق سوابق متقاضی در طرح نهضت ملی مسکن توسط کارشناس مربوطه در اداره کل.',
+  9: {
+    actionTitle: 'بررسی و تایید کارشناس نهضت ملی مسکن',
+    actionSummary: 'بررسی کارشناسی و انطباق سوابق متقاضی در طرح نهضت ملی مسکن و تایید احراز زوجیت و دفترچه‌های اقساط.',
     items: [
-      'بررسی ضوابط طرح نهضت ملی مسکن',
-      'تایید اصالت استعلام تسهیلات مسکن',
+      'بررسی ضوابط طرح نهضت ملی مسکن و احراز تاهل',
+      'تایید اصالت استعلام و دفترچه‌های اقساط',
       'ثبت امضای دیجیتال کارشناس نهضت ملی مسکن'
     ],
     targetSection: '#audit-timeline-section'
   },
-  12: {
-    actionTitle: 'بررسی کارشناس اداره کل (فنی و مهندسی)',
-    actionSummary: 'کنترل نقشه‌های معماری، پروانه ساختمانی، پایان‌کار و تایید مشخصات فنی و مهندسی واحد.',
-    items: [
-      'بررسی پایان‌کار ساختمانی و مشخصات فنی اعیانی',
-      'کنترل متراژ مفید، مشاعات و ضرایب متعلقه',
-      'ثبت امضای دیجیتال تایید فنی و مهندسی'
-    ],
-    targetSection: '#section-plot'
-  },
-  13: {
-    actionTitle: 'بررسی کارشناس اداره کل (املاک)',
-    actionSummary: 'تطبیق مشخصات ملک، بارگذاری تصویر سند رسمی مالکیت عرصه و احراز عدم تعارض مالکیتی.',
-    items: [
-      'بارگذاری تصویر سند رسمی عرصه پروژه',
-      'تایید مالکیت دولت / اداره کل راه و شهرسازی بر عرصه',
-      'ثبت امضای دیجیتال کارشناس املاک اداره کل'
-    ],
-    targetSection: '#section-plot'
-  },
-  14: {
-    actionTitle: 'بررسی کارشناس اداره کل (بانک زمین)',
-    actionSummary: 'استعلام و تطبیق موقعیت جغرافیایی و ثبتی ملک در سامانه جامع بانک زمین اداره کل.',
-    items: [
-      'بررسی کاداستر و مختصات UTM عرصه پروژه',
-      'تطبیق با بانک اطلاعات زمین سازمان ملی زمین و مسکن',
-      'ثبت امضای دیجیتال کارشناس بانک زمین'
-    ],
-    targetSection: '#audit-timeline-section'
-  },
-  15: {
-    actionTitle: 'بررسی کارشناس اداره کل (حقوقی)',
-    actionSummary: 'بررسی عدم موانع حقوقی، پرونده‌های مفتوح قضایی یا تعارضات مالکیتی و قراردادهای واگذاری.',
-    items: [
-      'استعلام وضعیت حقوقی و سوابق پرونده‌های قضایی زمین',
-      'تایید عدم وجود معارض و منع قانونی انتقال سندی',
-      'ثبت امضای دیجیتال کارشناس حقوقی اداره کل'
-    ],
-    targetSection: '#audit-timeline-section'
-  },
-  16: {
-    actionTitle: 'بررسی و آپلود صفحه فرم جیم اداره کل',
+  10: {
+    actionTitle: 'ثبت و بارگذاری استعلام فرم ج اداره کل',
     actionSummary: 'بارگذاری اسکن برگه استعلام رسمی فرم «ج» تاییدشده متقاضی و همسر از سامانه نهضت ملی اداره کل.',
     items: [
       'بارگذاری اسکن تاییدیه نهایی فرم جیم صادره اداره کل',
@@ -288,53 +217,113 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#form-j-dedicated-card'
   },
-  17: {
+  11: {
+    actionTitle: 'بررسی کارشناس اداره کل (فنی و مهندسی)',
+    actionSummary: 'کنترل نقشه‌های معماری، پایان‌کار و تایید مشخصات فنی (با قابلیت ویرایش پلاک ثبتی).',
+    items: [
+      'بررسی پایان‌کار ساختمانی و مشخصات فنی اعیانی',
+      'کنترل متراژ مفید، مشاعات و ضرایب متعلقه',
+      'ویرایش یا اصلاح پلاک ثبتی در صورت لزوم'
+    ],
+    targetSection: '#section-plot'
+  },
+  12: {
+    actionTitle: 'بررسی کارشناس اداره کل (املاک)',
+    actionSummary: 'تطبیق مشخصات ملک، بارگذاری تصویر سند رسمی تک‌برگ مالکیت عرصه و احراز عدم تعارض.',
+    items: [
+      'بارگذاری تصویر سند رسمی مالکیت عرصه پروژه',
+      'تایید مالکیت دولت / اداره کل راه و شهرسازی',
+      'ثبت امضای دیجیتال کارشناس املاک اداره کل'
+    ],
+    targetSection: '#section-plot'
+  },
+  13: {
+    actionTitle: 'بررسی و استعلام کارشناس بانک زمین',
+    actionSummary: 'استعلام و تطبیق موقعیت جغرافیایی و ثبتی ملک در سامانه جامع بانک زمین اداره کل.',
+    items: [
+      'بررسی کاداستر و مختصات UTM عرصه پروژه',
+      'تطبیق با بانک اطلاعات زمین سازمان ملی مسکن',
+      'ثبت امضای دیجیتال کارشناس بانک زمین'
+    ],
+    targetSection: '#audit-timeline-section'
+  },
+  14: {
+    actionTitle: 'بررسی و تایید کارشناس حقوقی اداره کل',
+    actionSummary: 'بررسی عدم موانع حقوقی، پرونده‌های مفتوح قضایی یا تعارضات مالکیتی و قراردادهای واگذاری.',
+    items: [
+      'استعلام وضعیت حقوقی و سوابق پرونده‌های قضایی زمین',
+      'تایید عدم وجود معارض و منع قانونی انتقال سندی',
+      'ثبت امضای دیجیتال کارشناس حقوقی اداره کل'
+    ],
+    targetSection: '#audit-timeline-section'
+  },
+  15: {
     actionTitle: 'کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)',
     actionSummary: 'محاسبه قدرالسهم عرصه، اجاره سنواتی، اجاره سال جاری و هزینه‌های آماده‌سازی پروژه مسکونی.',
     items: [
       'ورود متراژ دقیق قدرالسهم متقاضی از عرصه (متر مربع)',
       'محاسبه و درج مبلغ اجاره سنوات گذشته و سال جاری (ریال)',
-      'تعیین مبلغ کل آماده‌سازی و تفکیک ۲۰٪ نقد و ۸۰٪ اقساط'
+      'تولید فرم رسمی ارزیابی و تعیین هزینه آماده‌سازی'
     ],
     targetSection: '#section-valuation-rent'
   },
-  18: {
-    actionTitle: 'وصول نقد، اقساط، چک‌های دهک و آماده‌سازی',
-    actionSummary: 'دریافت، ثبت چک‌های اقساط و بارگذاری اسکن چک‌های تسهیلات دهک و آماده‌سازی.',
+  16: {
+    actionTitle: 'دریافت و اسکن چک‌های تسهیلات دهک',
+    actionSummary: 'دریافت، ثبت و بارگذاری اسکن چک‌های صیادی تسهیلات دهک درآمدی متقاضی.',
     items: [
-      'دریافت و ثبت مشخصات چک‌های صیادی تسهیلات دهک درآمدی',
-      'دریافت فیش واریز نقدی و چک‌های اقساط آماده‌سازی و اجاره',
-      'بارگذاری اسکن چک‌ها و صدور رسید چاپی رسمی'
+      'دریافت چک‌های صیادی تسهیلات دهک درآمدی',
+      'ثبت مشخصات و مبالغ و سررسید چک‌ها',
+      'بارگذاری اسکن چک‌ها و صدور رسید تحویل چک'
     ],
     targetSection: '#section-checks'
   },
-  19: {
+  17: {
+    actionTitle: 'دریافت نقد و اقساط آماده‌سازی و اجاره عرصه',
+    actionSummary: 'دریافت وجه نقد اجاره و آماده‌سازی (۲۰٪ نقد و ۸۰٪ اقساط) و بارگذاری فیش‌ها و چک‌ها.',
+    items: [
+      'دریافت فیش واریز نقدی اجاره عرصه و پیش‌پرداخت آماده‌سازی',
+      'دریافت چک‌های اقساط ۸۰٪ آماده‌سازی',
+      'بارگذاری اسکن و تایید وصول مالی'
+    ],
+    targetSection: '#section-checks'
+  },
+  18: {
     actionTitle: 'بررسی کارشناس تسویه با پیمانکار',
-    actionSummary: 'بررسی صورت‌جلسه تسویه قطعی پیمانکار و صدور اجازه چاپ فرم مراحل و امضاها.',
+    actionSummary: 'بررسی صورت‌جلسه تسویه قطعی پیمانکار با قابلیت ویرایش مراحل ۲ و ۴.',
     items: [
       'بررسی اسناد تسویه حساب مالی با شرکت پیمانکار سازنده',
-      'تایید تسویه و باز شدن قابلیت چاپ فرم مراحل و امضاها',
+      'امکان بازبینی و اصلاح مبالغ مرحله ۲ و ۴',
       'ثبت امضای دیجیتال کارشناس تسویه پیمانکار'
     ],
     targetSection: '#audit-timeline-section'
   },
-  20: {
-    actionTitle: 'صدور و ثبت نامه محضر',
-    actionSummary: 'تولید، ثبت شماره نامه در سوابق و چاپ معرفی‌نامه رسمی متقاضی به دفتر اسناد رسمی.',
+  19: {
+    actionTitle: 'تأیید نهایی فرم مراحل و صدور نامه محضر',
+    actionSummary: 'بررسی و تایید نهایی فرم مراحل و صدور رسمی نامه معرفی متقاضی به دفتر اسناد رسمی.',
     items: [
-      'بررسی و ثبت شماره و تاریخ نامه معرفی به محضر',
-      'تعیین شماره دفتر اسناد رسمی (محضر)',
-      'چاپ معرفی‌نامه محضر و ثبت امضای دیجیتال کارشناس'
+      'تایید نهایی فرم مراحل و امضاها',
+      'صدور و ثبت شماره و تاریخ نامه محضر',
+      'تولید معرفی‌نامه رسمی دفتر اسناد رسمی'
     ],
     targetSection: '#section-notary'
   },
+  20: {
+    actionTitle: 'اسکن قرارداد اجاره عرصه و چاپ فرم‌های رسمی',
+    actionSummary: 'بارگذاری اسکن قرارداد اجاره عرصه امضاشده و چاپ فرم رسمی مراحل و فرم ارزیابی.',
+    items: [
+      'بارگذاری اسکن قرارداد اجاره عرصه منعقدشده',
+      'چاپ فرم رسمی مراحل و امضاها',
+      'چاپ فرم ارزیابی تکمیل‌شده'
+    ],
+    targetSection: '#audit-timeline-section'
+  },
   21: {
-    actionTitle: 'مشاهده فرم نهایی و بایگانی قطعی',
-    actionSummary: 'رویت شناسنامه جامع سندی، چاپ فرم رسمی مراحل و امضاها (۱۴ امضا)، اعمال قفل سیستمی دائم و اتمام فرآیند در آرشیو قطعی.',
+    actionTitle: 'مشاهده فرم نهایی و بایگانی قطعی پرونده',
+    actionSummary: 'رویت شناسنامه جامع سندی، اعمال قفل سیستمی دائم و اتمام فرآیند در آرشیو قطعی اداره کل.',
     items: [
       'بررسی خلاصه سوابق و کلیه امضاهای مراحل پرونده',
-      'چاپ فرم رسمی مراحل و امضاها (۱۴ امضا)',
-      'فشردن دکمه «تایید و بایگانی قطعی پرونده» جهت قفل ابدی پرونده'
+      'چاپ برگه خلاصه نهایی و رسیدهای مربوطه',
+      'فشردن دکمه «تایید و بایگانی قطعی پرونده» جهت بایگانی نهایی'
     ],
     targetSection: '#audit-timeline-section'
   }
@@ -349,7 +338,7 @@ document.addEventListener('alpine:init', () => {
     returnReason: '',
     returnBy: '',
     returnFromStage: null,
-    stages: STAGES_22,
+    stages: STAGES_21,
     archiveNumber: 100001,
     isLocked: false,
     userCanAction: true,
@@ -1190,21 +1179,27 @@ document.addEventListener('alpine:init', () => {
       let defaultTitle = 'مدرک پیوست مرحله ' + this.currentStage;
       let defaultType = 'OTHER';
 
-      if (this.currentStage <= 1) {
+      if (this.currentStage === 1) {
         defaultTitle = 'اسکن کارت ملی و مدارک سجلی';
         defaultType = 'NATIONAL_ID';
-      } else if (this.currentStage === 3 || this.currentStage === 16) {
+      } else if (this.currentStage === 3 || this.currentStage === 10) {
         defaultTitle = 'تصویر و استعلام رسمی فرم (ج) اداره کل';
         defaultType = 'FORM_J';
-      } else if (this.currentStage === 9) {
+      } else if (this.currentStage === 7) {
         defaultTitle = 'اسکن دفترچه اقساط تسهیلات بانک مسکن';
         defaultType = 'BANK_BOOKLET';
-      } else if (this.currentStage === 13) {
+      } else if (this.currentStage === 12) {
         defaultTitle = 'اسکن سند مالکیت تک‌برگ عرصه و اعیان';
         defaultType = 'TITLE_DEED';
-      } else if (this.currentStage === 18) {
+      } else if (this.currentStage === 16) {
         defaultTitle = 'اسکن چک صیادی تسهیلات دهک';
         defaultType = 'LOAN_CHECK';
+      } else if (this.currentStage === 17) {
+        defaultTitle = 'اسکن چک‌های آماده‌سازی و اجاره';
+        defaultType = 'PREP_CHECK';
+      } else if (this.currentStage === 20) {
+        defaultTitle = 'اسکن قرارداد اجاره عرصه';
+        defaultType = 'OTHER';
       }
 
       this.uploadForm = {
@@ -1368,16 +1363,16 @@ document.addEventListener('alpine:init', () => {
     isSectionActive(sectionId) {
       const stg = Number(this.currentStage);
       const mapping = {
-        'section-applicant': [0, 3, 16],
-        'section-spouse': [0, 3, 16],
-        'section-plot': [1, 12, 14, 15],
-        'section-cost': [2],
-        'section-loans': [4, 5, 6],
-        'section-equity': [7],
-        'section-bank': [8, 9, 11],
-        'section-valuation': [17, 19],
-        'section-checks': [18],
-        'scans-album-section': [0, 9, 13, 18]
+        'section-applicant': [1, 3, 10],
+        'section-spouse': [1, 3, 10],
+        'section-plot': [2, 11, 13, 14],
+        'section-cost': [2, 18],
+        'section-loans': [4, 18],
+        'section-equity': [5],
+        'section-bank': [6, 7, 9],
+        'section-valuation': [15, 18],
+        'section-checks': [16, 17],
+        'scans-album-section': [1, 7, 12, 16, 17, 20]
       };
       return mapping[sectionId] ? mapping[sectionId].includes(stg) : false;
     },
@@ -1864,7 +1859,7 @@ document.addEventListener('alpine:init', () => {
 
     // Return Modal
     openReturnModal() {
-      this.selectedReturnStage = Math.max(0, this.currentStage - 1);
+      this.selectedReturnStage = Math.max(1, this.currentStage - 1);
       this.returnNotes = '';
       this.showReturnModal = true;
     },
