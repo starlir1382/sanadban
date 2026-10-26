@@ -462,6 +462,67 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Server-Side Pagination Bar -->
+    {% if paginator.num_pages > 1 %}
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="font-size: 0.82rem; color: #64748b; font-weight: 600;" class="fa-num">
+        نمایش پرونده‌های <strong style="color: #0f172a;">{{ page_obj.start_index }}</strong> تا <strong style="color: #0f172a;">{{ page_obj.end_index }}</strong> از مجموع <strong style="color: #0f172a;">{{ paginator.count }}</strong> پرونده
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;" class="fa-num">
+        <!-- First & Prev Page -->
+        {% if page_obj.has_previous %}
+        <a href="?page=1{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
+           class="btn btn-outline"
+           style="padding: 0.35rem 0.65rem; font-size: 0.8rem; background: #ffffff;"
+           title="صفحه اول">
+          « اول
+        </a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
+           class="btn btn-outline"
+           style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #ffffff;"
+           title="صفحه قبل">
+          قبلی
+        </a>
+        {% endif %}
+
+        <!-- Numbered Pages with Ellipsis -->
+        {% for p in elided_page_range %}
+          {% if p == paginator.ELLIPSIS %}
+            <span style="padding: 0.35rem 0.5rem; color: #94a3b8; font-weight: 700;">…</span>
+          {% elif p == page_obj.number %}
+            <span style="padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 800; background: #2563eb; color: #ffffff; border: 1.5px solid #2563eb; box-shadow: 0 2px 6px rgba(37,99,235,0.25);">
+              {{ p }}
+            </span>
+          {% else %}
+            <a href="?page={{ p }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
+               style="text-decoration: none; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: #ffffff; color: #334155; border: 1.5px solid #cbd5e1; transition: all 0.15s;"
+               onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8';"
+               onmouseout="this.style.background='#ffffff'; this.style.borderColor='#cbd5e1'; this.style.color='#334155';">
+              {{ p }}
+            </a>
+          {% endif %}
+        {% endfor %}
+
+        <!-- Next & Last Page -->
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
+           class="btn btn-outline"
+           style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #ffffff;"
+           title="صفحه بعد">
+          بعدی
+        </a>
+        <a href="?page={{ paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
+           class="btn btn-outline"
+           style="padding: 0.35rem 0.65rem; font-size: 0.8rem; background: #ffffff;"
+           title="صفحه آخر">
+          آخر »
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 

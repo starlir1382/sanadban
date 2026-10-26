@@ -312,327 +312,391 @@ def generate_update_template() -> HttpResponse:
 # 3. Process Upload & Create New Dossiers
 # ---------------------------------------------------------
 def process_create_excel(excel_file, user=None, is_preview: bool = False) -> dict[str, Any]:
+    wb = None
     try:
-        wb = openpyxl.load_workbook(excel_file, data_only=True)
+        # Use read_only=True for memory efficiency on massive datasets (e.g. 35,000+ rows)
+        wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
         ws = cast(Worksheet, wb.active)
+        if ws is None:
+            return {"success": False, "error": "کاربرگ اکسل یافت نشد."}
     except Exception as e:
         return {"success": False, "error": f"فرمت فایل اکسل نامعتبر است: {str(e)}"}
 
-    rows = list(ws.iter_rows(values_only=True))
-    if not rows:
-        return {"success": False, "error": "فایل اکسل ارسالی خالی است."}
+    try:
+        row_iter = ws.iter_rows(values_only=True)
+        try:
+            header_row = next(row_iter)
+        except StopIteration:
+            return {"success": False, "error": "فایل اکسل ارسالی خالی است."}
 
-    header_row = rows[0]
-    col_map: dict[int, tuple[str, str]] = {}
-    for idx, cell in enumerate(header_row):
-        norm = _normalize_header(cell)
-        if norm in FIELD_BY_NORMALIZED_HEADER:
-            col_map[idx] = FIELD_BY_NORMALIZED_HEADER[norm]
+        col_map: dict[int, tuple[str, str]] = {}
+        for idx, cell in enumerate(header_row):
+            norm = _normalize_header(cell)
+            if norm in FIELD_BY_NORMALIZED_HEADER:
+                col_map[idx] = FIELD_BY_NORMALIZED_HEADER[norm]
 
-    if not col_map:
-        return {"success": False, "error": "هیچ سرستون منطبقی در فایل اکسل یافت نشد."}
+        if not col_map:
+            return {"success": False, "error": "هیچ سرستون منطبقی در فایل اکسل یافت نشد."}
 
-    existing_national_ids = set(HousingDossier.objects.values_list("national_id", flat=True))
-    
-    # Calculate next archive number
-    last_archive = HousingDossier.objects.order_by("-archive_number").values_list("archive_number", flat=True).first()
-    next_archive = (last_archive or 100000) + 1
+        existing_national_ids = set(HousingDossier.objects.values_list("national_id", flat=True))
+        
+        # Calculate next archive number
+        last_archive = HousingDossier.objects.order_by("-archive_number").values_list("archive_number", flat=True).first()
+        next_archive = (last_archive or 100000) + 1
 
-    valid_rows = []
-    errors = []
-    seen_in_batch = set()
+        valid_rows = []
+        errors = []
+        seen_in_batch = set()
 
-    for row_idx, row_values in enumerate(rows[1:], start=2):
-        if not any(row_values):
-            continue
+        for row_idx, row_values in enumerate(row_iter, start=2):
+            if not row_values or not any(row_values):
+                continue
 
-        row_data = {}
-        for col_idx, (field_name, field_type) in col_map.items():
-            if col_idx < len(row_values):
-                val = row_values[col_idx]
-                if val is not None and str(val).strip() != "":
-                    if field_type == "str":
-                        row_data[field_name] = _clean_str(val)
-                    elif field_type == "int":
-                        row_data[field_name] = _clean_int(val)
-                    elif field_type == "decimal":
-                        row_data[field_name] = _clean_decimal(val)
-                    elif field_type == "price":
-                        row_data[field_name] = _clean_price(val)
-                    elif field_type == "bool":
-                        row_data[field_name] = _clean_bool(val)
+            row_data = {}
+            for col_idx, (field_name, field_type) in col_map.items():
+                if col_idx < len(row_values):
+                    val = row_values[col_idx]
+                    if val is not None and str(val).strip() != "":
+                        if field_type == "str":
+                            row_data[field_name] = _clean_str(val)
+                        elif field_type == "int":
+                            row_data[field_name] = _clean_int(val)
+                        elif field_type == "decimal":
+                            row_data[field_name] = _clean_decimal(val)
+                        elif field_type == "price":
+                            row_data[field_name] = _clean_price(val)
+                        elif field_type == "bool":
+                            row_data[field_name] = _clean_bool(val)
 
-        nat_id = _clean_national_id(row_data.get("national_id", ""))
-        row_errors = []
+            nat_id = _clean_national_id(row_data.get("national_id", ""))
+            row_errors = []
 
-        if not nat_id:
-            row_errors.append("کد ملی متقاضی الزامی است.")
-        elif len(nat_id) != 10:
-            row_errors.append("کد ملی متقاضی باید دقیقاً ۱۰ رقم باشد.")
-        elif nat_id in seen_in_batch:
-            row_errors.append("کد ملی در همین فایل اکسل تکراری است.")
-        elif nat_id in existing_national_ids:
-            row_errors.append("این کد ملی قبلاً در سامانه ثبت شده است.")
+            if not nat_id:
+                row_errors.append("کد ملی متقاضی الزامی است.")
+            elif len(nat_id) != 10:
+                row_errors.append("کد ملی متقاضی باید دقیقاً ۱۰ رقم باشد.")
+            elif nat_id in seen_in_batch:
+                row_errors.append("کد ملی در همین فایل اکسل تکراری است.")
+            elif nat_id in existing_national_ids:
+                row_errors.append("این کد ملی قبلاً در سامانه ثبت شده است.")
 
-        if row_errors:
-            errors.append({
-                "row": row_idx,
-                "national_id": nat_id or "نامشخص",
-                "name": row_data.get("full_name", "نامشخص"),
-                "reasons": row_errors
+            if row_errors:
+                errors.append({
+                    "row": row_idx,
+                    "national_id": nat_id or "نامشخص",
+                    "name": row_data.get("full_name", "نامشخص"),
+                    "reasons": row_errors
+                })
+            else:
+                seen_in_batch.add(nat_id)
+                row_data["national_id"] = nat_id
+                row_data["archive_number"] = next_archive
+                next_archive += 1
+                valid_rows.append({"row": row_idx, "data": row_data})
+
+        capped_errors = errors[:100]
+        if len(errors) > 100:
+            capped_errors.append({
+                "row": "...",
+                "national_id": "...",
+                "name": "",
+                "reasons": [f"و {len(errors) - 100} خطای دیگر..."]
             })
-        else:
-            seen_in_batch.add(nat_id)
-            row_data["national_id"] = nat_id
-            row_data["archive_number"] = next_archive
-            next_archive += 1
-            valid_rows.append({"row": row_idx, "data": row_data})
 
-    if is_preview:
+        if is_preview:
+            return {
+                "success": True,
+                "preview": True,
+                "valid_count": len(valid_rows),
+                "failed_count": len(errors),
+                "valid_rows": valid_rows[:50],  # sample preview
+                "errors": capped_errors
+            }
+
+        # Execute DB Insertion in Batches of 1,000 to avoid DB locks & memory pressure
+        created_count = 0
+        CHUNK_SIZE = 1000
+        actor_name = user.get_full_name() or user.username if user else "مدیر ارشد سامانه"
+        
+        for i in range(0, len(valid_rows), CHUNK_SIZE):
+            chunk = valid_rows[i:i + CHUNK_SIZE]
+            with transaction.atomic():
+                dossier_objs = [HousingDossier(**item["data"]) for item in chunk]
+                # batch_size=500 keeps parameter count well below SQLite limit
+                created_dossiers = HousingDossier.objects.bulk_create(dossier_objs, batch_size=500)
+
+                # Bulk create signature logs
+                now_ts = timezone.now().timestamp()
+                log_objs = []
+                for dossier in created_dossiers:
+                    sig_hash = hashlib.sha256(f"excel_create:{dossier.id}:{now_ts}".encode('utf-8')).hexdigest()
+                    log_objs.append(WorkflowSignatureLog(
+                        dossier=dossier,
+                        from_stage=f"مرحله {dossier.current_stage}",
+                        to_stage=f"مرحله {dossier.current_stage}",
+                        actor=actor_name,
+                        role="مدیر سیستم (بارگذاری اکسل)",
+                        action="CREATE",
+                        action_label="ایجاد پرونده از طریق بارگذاری فایل اکسل",
+                        signature_hash=sig_hash,
+                        notes="پرونده به صورت گروهی از طریق ماژول اکسل در سامانه ثبت گردید."
+                    ))
+                WorkflowSignatureLog.objects.bulk_create(log_objs, batch_size=500)
+                created_count += len(created_dossiers)
+
         return {
             "success": True,
-            "preview": True,
-            "valid_count": len(valid_rows),
+            "preview": False,
+            "created_count": created_count,
             "failed_count": len(errors),
-            "valid_rows": valid_rows[:50],  # sample preview
-            "errors": errors
+            "errors": capped_errors
         }
-
-    # Execute DB Insertion
-    created_count = 0
-    with transaction.atomic():
-        for item in valid_rows:
-            d = item["data"]
-            dossier = HousingDossier.objects.create(**d)
-            # Create Audit Log
-            sig_hash = hashlib.sha256(f"excel_create:{dossier.id}:{timezone.now().timestamp()}".encode('utf-8')).hexdigest()
-            WorkflowSignatureLog.objects.create(
-                dossier=dossier,
-                from_stage=f"مرحله {dossier.current_stage}",
-                to_stage=f"مرحله {dossier.current_stage}",
-                actor=user.get_full_name() or user.username if user else "مدیر ارشد سامانه",
-                role="مدیر سیستم (بارگذاری اکسل)",
-                action="CREATE",
-                action_label="ایجاد پرونده از طریق بارگذاری فایل اکسل",
-                signature_hash=sig_hash,
-                notes="پرونده به صورت گروهی از طریق ماژول اکسل در سامانه ثبت گردید."
-            )
-            created_count += 1
-
-    return {
-        "success": True,
-        "preview": False,
-        "created_count": created_count,
-        "failed_count": len(errors),
-        "errors": errors
-    }
+    finally:
+        if wb is not None:
+            try:
+                wb.close()
+            except Exception:
+                pass
 
 # ---------------------------------------------------------
 # 4. Process Upload & Bulk Update by National ID
 # ---------------------------------------------------------
 def process_update_excel(excel_file, user=None, is_preview: bool = False) -> dict[str, Any]:
+    wb = None
     try:
-        wb = openpyxl.load_workbook(excel_file, data_only=True)
+        # Use read_only=True for memory efficiency on massive datasets (e.g. 35,000+ rows)
+        wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
         ws = cast(Worksheet, wb.active)
+        if ws is None:
+            return {"success": False, "error": "کاربرگ اکسل یافت نشد."}
     except Exception as e:
         return {"success": False, "error": f"فرمت فایل اکسل نامعتبر است: {str(e)}"}
 
-    rows = list(ws.iter_rows(values_only=True))
-    if not rows:
-        return {"success": False, "error": "فایل اکسل ارسالی خالی است."}
+    try:
+        row_iter = ws.iter_rows(values_only=True)
+        try:
+            header_row = next(row_iter)
+        except StopIteration:
+            return {"success": False, "error": "فایل اکسل ارسالی خالی است."}
 
-    header_row = rows[0]
-    
-    # Dynamic National ID Column Search (supports both Column A and Column B after archive_number)
-    nid_col_idx = None
-    for idx, cell in enumerate(header_row):
-        norm = _normalize_header(cell)
-        if norm in FIELD_BY_NORMALIZED_HEADER and FIELD_BY_NORMALIZED_HEADER[norm][0] == "national_id":
-            nid_col_idx = idx
-            break
-        if "کد ملی" in norm:
-            nid_col_idx = idx
-            break
+        # Dynamic National ID Column Search (supports both Column A and Column B after archive_number)
+        nid_col_idx = None
+        for idx, cell in enumerate(header_row):
+            norm = _normalize_header(cell)
+            if norm in FIELD_BY_NORMALIZED_HEADER and FIELD_BY_NORMALIZED_HEADER[norm][0] == "national_id":
+                nid_col_idx = idx
+                break
+            if "کد ملی" in norm:
+                nid_col_idx = idx
+                break
 
-    if nid_col_idx is None:
-        return {"success": False, "error": "ستونی با سرستون «کد ملی متقاضی» در فایل اکسل یافت نشد."}
+        if nid_col_idx is None:
+            return {"success": False, "error": "ستونی با سرستون «کد ملی متقاضی» در فایل اکسل یافت نشد."}
 
-    col_map: dict[int, tuple[str, str]] = {}
-    for idx, cell in enumerate(header_row):
-        norm = _normalize_header(cell)
-        if norm in FIELD_BY_NORMALIZED_HEADER:
-            col_map[idx] = FIELD_BY_NORMALIZED_HEADER[norm]
+        col_map: dict[int, tuple[str, str]] = {}
+        for idx, cell in enumerate(header_row):
+            norm = _normalize_header(cell)
+            if norm in FIELD_BY_NORMALIZED_HEADER:
+                col_map[idx] = FIELD_BY_NORMALIZED_HEADER[norm]
 
-    seen_nids = set()
-    parsed_rows = []
+        seen_nids = set()
+        parsed_rows = []
 
-    for row_idx, row_values in enumerate(rows[1:], start=2):
-        if not any(row_values):
-            continue
+        for row_idx, row_values in enumerate(row_iter, start=2):
+            if not row_values or not any(row_values):
+                continue
 
-        nid = _clean_national_id(row_values[nid_col_idx]) if len(row_values) > nid_col_idx else ""
-        row_errors = []
+            nid = _clean_national_id(row_values[nid_col_idx]) if len(row_values) > nid_col_idx else ""
+            row_errors = []
 
-        if not nid:
-            row_errors.append("کد ملی الزامی است.")
-        elif len(nid) != 10:
-            row_errors.append("کد ملی باید دقیقاً ۱۰ رقم باشد.")
-        elif nid in seen_nids:
-            row_errors.append("کد ملی در فایل تکرار شده است.")
-        else:
-            seen_nids.add(nid)
+            if not nid:
+                row_errors.append("کد ملی الزامی است.")
+            elif len(nid) != 10:
+                row_errors.append("کد ملی باید دقیقاً ۱۰ رقم باشد.")
+            elif nid in seen_nids:
+                row_errors.append("کد ملی در فایل تکرار شده است.")
+            else:
+                seen_nids.add(nid)
 
-        changes = {}
-        for col_idx, (field_name, field_type) in col_map.items():
-            if col_idx == nid_col_idx or field_name in ("national_id", "archive_number"):
-                continue  # skip identifier fields from update diff
-            if col_idx < len(row_values):
-                val = row_values[col_idx]
-                if val is not None and str(val).strip() != "":
-                    if field_type == "str":
-                        changes[field_name] = _clean_str(val)
-                    elif field_type == "int":
-                        parsed_int = _clean_int(val)
-                        if parsed_int is not None:
-                            changes[field_name] = parsed_int
-                    elif field_type == "decimal":
-                        parsed_dec = _clean_decimal(val)
-                        if parsed_dec is not None:
-                            changes[field_name] = parsed_dec
-                    elif field_type == "price":
-                        changes[field_name] = _clean_price(val)
-                    elif field_type == "bool":
-                        changes[field_name] = _clean_bool(val)
+            changes = {}
+            for col_idx, (field_name, field_type) in col_map.items():
+                if col_idx == nid_col_idx or field_name in ("national_id", "archive_number"):
+                    continue  # skip identifier fields from update diff
+                if col_idx < len(row_values):
+                    val = row_values[col_idx]
+                    if val is not None and str(val).strip() != "":
+                        if field_type == "str":
+                            changes[field_name] = _clean_str(val)
+                        elif field_type == "int":
+                            parsed_int = _clean_int(val)
+                            if parsed_int is not None:
+                                changes[field_name] = parsed_int
+                        elif field_type == "decimal":
+                            parsed_dec = _clean_decimal(val)
+                            if parsed_dec is not None:
+                                changes[field_name] = parsed_dec
+                        elif field_type == "price":
+                            changes[field_name] = _clean_price(val)
+                        elif field_type == "bool":
+                            changes[field_name] = _clean_bool(val)
 
-        parsed_rows.append({
-            "row": row_idx,
-            "nid": nid,
-            "changes": changes,
-            "errors": row_errors
-        })
-
-    # Query DB for all national IDs in batch
-    dossiers_by_nid = {
-        d.national_id: d
-        for d in HousingDossier.objects.filter(national_id__in=seen_nids)
-    }
-
-    errors = []
-    to_update = []
-    unchanged_count = 0
-
-    for item in parsed_rows:
-        row_errors = list(item["errors"])
-        nid = item["nid"]
-        rec = dossiers_by_nid.get(nid)
-
-        if not row_errors and rec is None:
-            row_errors.append("پرونده‌ای با این کد ملی در سامانه یافت نشد.")
-
-        if row_errors or rec is None:
-            errors.append({
-                "row": item["row"],
-                "national_id": nid or "نامشخص",
-                "name": rec.full_name if rec else "نامشخص",
-                "reasons": row_errors
+            parsed_rows.append({
+                "row": row_idx,
+                "nid": nid,
+                "changes": changes,
+                "errors": row_errors
             })
-            continue
 
-        # Check locked status (superusers and housing chiefs may update via excel)
+        # Query DB in chunks of 1000 to prevent SQLite "too many SQL variables" operational error
+        dossiers_by_nid = {}
+        seen_nids_list = list(seen_nids)
+        CHUNK_QUERY = 1000
+        for i in range(0, len(seen_nids_list), CHUNK_QUERY):
+            chunk_nids = seen_nids_list[i:i + CHUNK_QUERY]
+            for d in HousingDossier.objects.filter(national_id__in=chunk_nids):
+                dossiers_by_nid[d.national_id] = d
+
+        errors = []
+        to_update = []
+        unchanged_count = 0
         is_admin_user = bool(user and (user.is_superuser or user.is_staff or getattr(getattr(user, 'profile', None), 'is_housing_chief', False)))
-        if rec.is_locked and not is_admin_user:
-            errors.append({
+
+        for item in parsed_rows:
+            row_errors = list(item["errors"])
+            nid = item["nid"]
+            rec = dossiers_by_nid.get(nid)
+
+            if not row_errors and rec is None:
+                row_errors.append("پرونده‌ای با این کد ملی در سامانه یافت نشد.")
+
+            if row_errors or rec is None:
+                errors.append({
+                    "row": item["row"],
+                    "national_id": nid or "نامشخص",
+                    "name": rec.full_name if rec else "نامشخص",
+                    "reasons": row_errors
+                })
+                continue
+
+            if rec.is_locked and not is_admin_user:
+                errors.append({
+                    "row": item["row"],
+                    "national_id": nid,
+                    "name": rec.full_name,
+                    "reasons": ["این پرونده قفل نهایی گردیده و غیرقابل ویرایش است."]
+                })
+                continue
+
+            # Diff comparison: only update fields that actually differ
+            diff = {}
+            diff_display = []
+            for f, new_val in item["changes"].items():
+                old_val = getattr(rec, f)
+                if old_val != new_val:
+                    diff[f] = new_val
+                    diff_display.append({
+                        "field": f,
+                        "label": LABEL_BY_FIELD.get(f, f),
+                        "old": str(old_val if old_val is not None else "-"),
+                        "new": str(new_val)
+                    })
+
+            if not diff:
+                unchanged_count += 1
+                continue
+
+            to_update.append({
+                "record": rec,
+                "diff": diff,
                 "row": item["row"],
                 "national_id": nid,
                 "name": rec.full_name,
-                "reasons": ["این پرونده قفل نهایی گردیده و غیرقابل ویرایش است."]
+                "diff_display": diff_display
             })
-            continue
 
-        # Diff comparison: only update fields that actually differ
-        diff = {}
-        diff_display = []
-        for f, new_val in item["changes"].items():
-            old_val = getattr(rec, f)
-            if old_val != new_val:
-                diff[f] = new_val
-                diff_display.append({
-                    "field": f,
-                    "label": LABEL_BY_FIELD.get(f, f),
-                    "old": str(old_val if old_val is not None else "-"),
-                    "new": str(new_val)
-                })
+        capped_errors = errors[:100]
+        if len(errors) > 100:
+            capped_errors.append({
+                "row": "...",
+                "national_id": "...",
+                "name": "",
+                "reasons": [f"و {len(errors) - 100} خطای دیگر..."]
+            })
 
-        if not diff:
-            unchanged_count += 1
-            continue
-
-        to_update.append({
-            "record": rec,
-            "diff": diff,
-            "row": item["row"],
-            "national_id": nid,
-            "name": rec.full_name,
-            "diff_display": diff_display
-        })
-
-    if is_preview:
-        updates_preview = [
-            {
-                "row": u["row"],
-                "national_id": u["national_id"],
-                "name": u["name"],
-                "diff_display": u["diff_display"],
+        if is_preview:
+            updates_preview = [
+                {
+                    "row": u["row"],
+                    "national_id": u["national_id"],
+                    "name": u["name"],
+                    "diff_display": u["diff_display"],
+                }
+                for u in to_update[:50]
+            ]
+            return {
+                "success": True,
+                "preview": True,
+                "valid_count": len(to_update),
+                "unchanged_count": unchanged_count,
+                "failed_count": len(errors),
+                "updates_preview": updates_preview,
+                "errors": capped_errors
             }
-            for u in to_update[:50]
-        ]
+
+        # Execute DB Update in chunks of 1000 with bulk_update and bulk audit logs
+        updated_count = 0
+        CHUNK_SIZE = 1000
+        actor_name = user.get_full_name() or user.username if user else "مدیر ارشد سامانه"
+
+        for i in range(0, len(to_update), CHUNK_SIZE):
+            chunk = to_update[i:i + CHUNK_SIZE]
+            with transaction.atomic():
+                chunk_records = []
+                fields_to_update = set()
+                log_objs = []
+                now_ts = timezone.now().timestamp()
+
+                for item in chunk:
+                    rec = item["record"]
+                    diff = item["diff"]
+                    for f, val in diff.items():
+                        setattr(rec, f, val)
+                        fields_to_update.add(f)
+                    chunk_records.append(rec)
+
+                    field_names_fa = "، ".join(LABEL_BY_FIELD.get(k, k) for k in diff.keys())
+                    sig_hash = hashlib.sha256(f"excel_update:{rec.id}:{now_ts}".encode('utf-8')).hexdigest()
+                    log_objs.append(WorkflowSignatureLog(
+                        dossier=rec,
+                        from_stage=f"مرحله {rec.current_stage}",
+                        to_stage=f"مرحله {rec.current_stage}",
+                        actor=actor_name,
+                        role="مدیر سیستم (بروزرسانی اکسل)",
+                        action="UPDATE",
+                        action_label="بروزرسانی فیلدها از طریق اکسل",
+                        signature_hash=sig_hash,
+                        notes=f"فیلدهای زیر از طریق فایل اکسل بروزرسانی گردید: {field_names_fa}"
+                    ))
+
+                if fields_to_update:
+                    HousingDossier.objects.bulk_update(chunk_records, fields=list(fields_to_update), batch_size=500)
+                WorkflowSignatureLog.objects.bulk_create(log_objs, batch_size=500)
+                updated_count += len(chunk_records)
+
         return {
             "success": True,
-            "preview": True,
-            "valid_count": len(to_update),
+            "preview": False,
+            "updated_count": updated_count,
             "unchanged_count": unchanged_count,
             "failed_count": len(errors),
-            "updates_preview": updates_preview,
-            "errors": errors
+            "errors": capped_errors
         }
-
-    # Execute DB Update
-    updated_count = 0
-    with transaction.atomic():
-        for item in to_update:
-            rec = item["record"]
-            diff = item["diff"]
-            update_fields = []
-            for f, val in diff.items():
-                setattr(rec, f, val)
-                update_fields.append(f)
-
-            rec.save(update_fields=update_fields)
-
-            # Audit Trail Log for changes
-            field_names_fa = "، ".join(LABEL_BY_FIELD.get(k, k) for k in diff.keys())
-            sig_hash = hashlib.sha256(f"excel_update:{rec.id}:{timezone.now().timestamp()}".encode('utf-8')).hexdigest()
-            WorkflowSignatureLog.objects.create(
-                dossier=rec,
-                from_stage=f"مرحله {rec.current_stage}",
-                to_stage=f"مرحله {rec.current_stage}",
-                actor=user.get_full_name() or user.username if user else "مدیر ارشد سامانه",
-                role="مدیر سیستم (بروزرسانی اکسل)",
-                action="UPDATE",
-                action_label="بروزرسانی فیلدها از طریق اکسل",
-                signature_hash=sig_hash,
-                notes=f"فیلدهای زیر از طریق فایل اکسل بروزرسانی گردید: {field_names_fa}"
-            )
-            updated_count += 1
-
-    return {
-        "success": True,
-        "preview": False,
-        "updated_count": updated_count,
-        "unchanged_count": unchanged_count,
-        "failed_count": len(errors),
-        "errors": errors
-    }
+    finally:
+        if wb is not None:
+            try:
+                wb.close()
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------
@@ -794,7 +858,7 @@ def generate_dossiers_export(queryset=None) -> HttpResponse:
     white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
     data_font = Font(name="Tahoma", size=9)
 
-    for row_idx, dossier in enumerate(queryset, start=2):
+    for row_idx, dossier in enumerate(queryset.iterator(chunk_size=2000), start=2):
         ws.row_dimensions[row_idx].height = 22
         current_fill = zebra_fill if row_idx % 2 == 1 else white_fill
 

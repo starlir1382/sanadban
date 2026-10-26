@@ -198,16 +198,16 @@
                          مدیر ارشد سامانه (admin)
                     </button>
                     <button type="button" class="quick-role-btn" onclick="fillCredentials('broker_info', 'broker1234')">
-                         کارشناس ثبت و اطلاعات (مراحل ۰، ۱، ۲)
+                         کارشناس ثبت و اطلاعات (مرحله ۱)
                     </button>
                     <button type="button" class="quick-role-btn" onclick="fillCredentials('alemi', 'alemi1234')">
-                         کارشناس فرم ج - عالمی (مراحل ۳ و ۱۶)
+                         کارشناس فرم ج - عالمی (مراحل ۳ و ۱۰)
                     </button>
                     <button type="button" class="quick-role-btn" onclick="fillCredentials('heydari', 'heydari1234')">
-                         برنامه‌ریزی مسکن - حیدری (مراحل ۴، ۵، ۶، ۸)
+                         برنامه‌ریزی مسکن - حیدری (مراحل ۴ و ۵)
                     </button>
                     <button type="button" class="quick-role-btn" onclick="fillCredentials('vesali', 'vesali1234')">
-                         برنامه‌ریزی مسکن - وصالی (مراحل ۷ و ۸)
+                         برنامه‌ریزی مسکن - وصالی (مراحل ۵ و ۶)
                     </button>
                     <button type="button" class="quick-role-btn" onclick="fillCredentials('broker_manager', 'broker1234')">
                          مدیرعامل کارگزاری (مرحله ۸)
@@ -231,6 +231,39 @@
         function fillCredentials(u, p) {
             document.getElementById('login-username').value = u;
             document.getElementById('login-password').value = p;
+        }
+
+        // Keep CSRF token synchronized with active cookie across tabs and browser back-button cache
+        function getCsrfCookie() {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, 10) === 'csrftoken=') {
+                        cookieValue = decodeURIComponent(cookie.substring(10));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function syncCsrfToken() {
+            const token = getCsrfCookie();
+            if (token) {
+                const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                if (input && input.value !== token) {
+                    input.value = token;
+                }
+            }
+        }
+
+        window.addEventListener('pageshow', syncCsrfToken);
+        document.addEventListener('DOMContentLoaded', syncCsrfToken);
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', syncCsrfToken);
         }
     </script>
 </body>

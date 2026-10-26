@@ -333,3 +333,98 @@ class WorkflowExecutionTestCase(TestCase):
         self.assertEqual(resp_print.status_code, 200)
         self.assertIn(str(dossier.archive_number), resp_print.content.decode("utf-8"))
         self.assertIn("1403/J/9988", resp_print.content.decode("utf-8"))
+
+
+
+class OptimizationAndBulkExcelTestCase(TestCase):
+    """Verifies CSRF protections, list pagination, and high-performance Excel bulk operations."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.admin = User.objects.create_superuser(username="admin_perf", password="password", email="admin@example.com")
+
+    def test_login_page_csrf_and_cache_headers(self):
+        """Login view must set no-cache headers and provide a fresh CSRF cookie."""
+        from django.contrib.auth.models import AnonymousUser
+        from workflow.views import user_login_view
+        req = self.factory.get("/login/")
+        from django.contrib.sessions.middleware import SessionMiddleware
+        middleware = SessionMiddleware(lambda r: None)
+        middleware.process_request(req)
+        req.session.save()
+        req.user = AnonymousUser()
+
+        resp = user_login_view(req)
+        self.assertEqual(resp.status_code, 200)
+        cache_control = resp.get("Cache-Control", "")
+        self.assertIn("no-cache", cache_control)
+        self.assertIn("no-store", cache_control)
+
+    def test_dossier_list_pagination(self):
+        """Dashboard list view must paginate records (50 per page) with elided page range."""
+        # Create 55 test dossiers
+        bulk_dossiers = [
+            HousingDossier(
+                national_id=f"888{i:07d}",
+                archive_number=300000 + i,
+                full_name=f"متقاضی آزمایشی {i}",
+                current_stage=1,
+            )
+            for i in range(55)
+        ]
+        HousingDossier.objects.bulk_create(bulk_dossiers)
+
+        self.client.force_login(self.admin)
+        resp = self.client.get("/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("paginator", resp.context)
+        self.assertEqual(resp.context["paginator"].num_pages, 2)
+        self.assertEqual(len(resp.context["dossiers"]), 50)
+        self.assertEqual(resp.context["total_all_dossiers"], 55)
+        html = resp.content.decode("utf-8")
+        self.assertIn("نمایش پرونده‌های", html)
+        self.assertIn("از مجموع", html)
+
+    def test_excel_bulk_create_and_update(self):
+        """Verifies chunked bulk creation and updating via Excel service."""
+        import io
+        import openpyxl
+        from workflow.excel_service import process_create_excel, process_update_excel
+
+        # Build an Excel file in-memory with 10 rows
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "ایجاد"
+        ws.append(["کد ملی متقاضی", "نام و نام خانوادگی متقاضی", "نام پدر", "شماره همراه متقاضی"])
+        for i in range(10):
+            ws.append([f"001234567{i}", f"کاربر تستی {i}", "پدر تستی", "09120000000"])
+        
+        out = io.BytesIO()
+        wb.save(out)
+        out.seek(0)
+
+        # 1. Test Create Excel
+        res_create = process_create_excel(out, user=self.admin, is_preview=False)
+        self.assertTrue(res_create["success"])
+        self.assertEqual(res_create["created_count"], 10)
+        self.assertEqual(res_create["failed_count"], 0)
+
+        # 2. Test Update Excel
+        wb_up = openpyxl.Workbook()
+        ws_up = wb_up.active
+        ws_up.title = "بروزرسانی"
+        ws_up.append(["کد ملی متقاضی", "نام پدر"])
+        for i in range(10):
+            ws_up.append([f"001234567{i}", f"پدر جدید {i}"])
+        
+        out_up = io.BytesIO()
+        wb_up.save(out_up)
+        out_up.seek(0)
+
+        res_update = process_update_excel(out_up, user=self.admin, is_preview=False)
+        self.assertTrue(res_update["success"])
+        self.assertEqual(res_update["updated_count"], 10)
+
+        # Verify father_name was updated in DB
+        dossier_0 = HousingDossier.objects.get(national_id="0012345670")
+        self.assertEqual(dossier_0.father_name, "پدر جدید 0")

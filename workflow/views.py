@@ -11,7 +11,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie, csrf_protect
+from django.views.decorators.cache import never_cache
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .field_permissions import (
     FIELD_STAGE_MAP,
     SLOT_TO_STAGES,
@@ -276,8 +278,23 @@ def dossier_list_view(request):
     else:
         dossiers = dossiers.order_by('current_stage', 'archive_number')
 
+    # Server-side pagination: 50 dossiers per page for extreme speed with 35k+ records
+    paginator = Paginator(dossiers, 50)
+    page_number = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    setattr(page_obj, 'count', paginator.count)
+
     context = {
-        "dossiers": dossiers,
+        "dossiers": page_obj,
+        "page_obj": page_obj,
+        "paginator": paginator,
+        "dossiers_count": paginator.count,
         "current_sort": sort,
         "query": query,
         "stage_filter": stage_filter,
@@ -287,7 +304,8 @@ def dossier_list_view(request):
         "user_allowed_stages": user_allowed_stages,
         "user_allowed_titles": user_allowed_titles,
         "stage_breakdown": stage_breakdown,
-        "total_all_dossiers": HousingDossier.objects.count() if is_full_admin else dossiers.count(),
+        "elided_page_range": paginator.get_elided_page_range(number=page_obj.number, on_each_side=2, on_ends=1),
+        "total_all_dossiers": HousingDossier.objects.count() if is_full_admin else paginator.count,
     }
     return render(request, "dossiers/list.html", context)
 
@@ -2001,6 +2019,8 @@ def delete_scan_attachment_view(request, pk, attachment_id):
 # Enterprise Authentication & Profile Views
 # --------------------------------------------------------------------------------------------------
 
+@never_cache
+@ensure_csrf_cookie
 def user_login_view(request):
     """
     Renders login view with branded UI and authenticates staff/experts.
@@ -2035,6 +2055,7 @@ def user_login_view(request):
     return render(request, "auth/login.html", {"error": error, "next": next_url})
 
 
+@never_cache
 def user_logout_view(request):
     """
     Terminates authenticated session and safely redirects to login page.
