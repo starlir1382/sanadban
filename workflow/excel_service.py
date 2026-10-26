@@ -120,7 +120,7 @@ EXCEL_FIELD_SPECS = [
     # Official Letters & Stage Control
     ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
     ("تاریخ نامه راه و شهرسازی (شمسی)", "rah_letter_date", "str"),
-    ("مرحله جاری پرونده (۰ تا ۲۱)", "current_stage", "int"),
+    ("مرحله جاری پرونده (۱ تا ۲۱)", "current_stage", "int"),
 ]
 
 def _normalize_header(val: Any) -> str:
@@ -643,7 +643,7 @@ EXPORT_COLUMNS = [
     # (Header Title, Field Name / Lambda, Type)
     ("شماره بایگانی پرونده", "archive_number", "int"),
     ("کد ملی متقاضی", "national_id", "str"),
-    ("مرحله جاری پرونده (۰ تا ۲۱)", "current_stage", "int"),
+    ("مرحله جاری پرونده (۱ تا ۲۱)", "current_stage", "int"),
     ("عنوان مرحله جاری", lambda d: d.current_stage_title, "str"),
     ("واحد سازمانی مرحله جاری", lambda d: d.current_unit, "str"),
     ("سمت اقدام‌کننده مرحله جاری", lambda d: d.current_role, "str"),
