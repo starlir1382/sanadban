@@ -70,10 +70,16 @@
                            placeholder="0012345678">
                 </div>
 
-                <!-- 2. full_name -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('full_name')}">
-                    <label class="field-label"><span><span class="required-mark">*</span>نام و نام خانوادگی متقاضی</span></label>
-                    <input type="text" class="input-control" x-model="form.full_name" :readonly="!isFieldEditable('full_name')">
+                <!-- 2-A. first_name -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('first_name') && !isFieldEditable('full_name')}">
+                    <label class="field-label"><span><span class="required-mark">*</span>نام متقاضی</span></label>
+                    <input type="text" class="input-control" x-model="form.first_name" @input="form.full_name = ((form.first_name || '') + ' ' + (form.last_name || '')).trim()" :readonly="!isFieldEditable('first_name') && !isFieldEditable('full_name')" placeholder="نام متقاضی...">
+                </div>
+
+                <!-- 2-B. last_name -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('last_name') && !isFieldEditable('full_name')}">
+                    <label class="field-label"><span><span class="required-mark">*</span>نام خانوادگی متقاضی</span></label>
+                    <input type="text" class="input-control" x-model="form.last_name" @input="form.full_name = ((form.first_name || '') + ' ' + (form.last_name || '')).trim()" :readonly="!isFieldEditable('last_name') && !isFieldEditable('full_name')" placeholder="نام خانوادگی متقاضی...">
                 </div>
 
                 <!-- 3. father_name -->
@@ -467,13 +473,22 @@
             </div>
 
             <div class="fields-grid">
-                <!-- 1. spouse_full_name -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_full_name')}">
+                <!-- 1-A. spouse_first_name -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')}">
                     <label class="field-label">
-                        <span><span class="required-mark">*</span>نام و نام خانوادگی همسر</span>
+                        <span><span class="required-mark">*</span>نام همسر</span>
                         <span class="helper-badge text-blue-700">سجلی</span>
                     </label>
-                    <input type="text" class="input-control" x-model="form.spouse_full_name" :readonly="!isFieldEditable('spouse_full_name')" placeholder="نام و نام خانوادگی همسر...">
+                    <input type="text" class="input-control" x-model="form.spouse_first_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')" placeholder="نام همسر...">
+                </div>
+
+                <!-- 1-B. spouse_last_name -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')}">
+                    <label class="field-label">
+                        <span><span class="required-mark">*</span>نام خانوادگی همسر</span>
+                        <span class="helper-badge text-blue-700">سجلی</span>
+                    </label>
+                    <input type="text" class="input-control" x-model="form.spouse_last_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')" placeholder="نام خانوادگی همسر...">
                 </div>
 
                 <!-- 2. spouse_national_id -->

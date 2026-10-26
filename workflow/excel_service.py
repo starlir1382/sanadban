@@ -19,14 +19,14 @@ from .models import HousingDossier, WorkflowSignatureLog
 # Comprehensive Mapping for HousingDossier Fields
 # (Official Persian Header -> Model Field Name)
 # ---------------------------------------------------------
-EXCEL_FIELD_SPECS = [
+TEMPLATE_FIELD_SPECS = [
     # Key Identifier
     ("کد ملی متقاضی", "national_id", "str"),
     ("شماره بایگانی پرونده", "archive_number", "int"),
-    ("شماره بایگانی", "archive_number", "int"),
     
     # Personal & Family Information
-    ("نام و نام خانوادگی متقاضی", "full_name", "str"),
+    ("نام متقاضی", "first_name", "str"),
+    ("نام خانوادگی متقاضی", "last_name", "str"),
     ("نام پدر", "father_name", "str"),
     ("تاریخ تولد متقاضی (شمسی)", "birth_date", "str"),
     ("شماره همراه متقاضی", "applicant_phone", "str"),
@@ -35,7 +35,8 @@ EXCEL_FIELD_SPECS = [
     ("رتبه انتخاب واحد", "selection_rank", "int"),
     
     # Spouse Information
-    ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
+    ("نام همسر", "spouse_first_name", "str"),
+    ("نام خانوادگی همسر", "spouse_last_name", "str"),
     ("نام پدر همسر", "spouse_father_name", "str"),
     ("کد ملی همسر", "spouse_national_id", "str"),
     ("تاریخ تولد همسر (شمسی)", "spouse_birth_date", "str"),
@@ -121,6 +122,21 @@ EXCEL_FIELD_SPECS = [
     ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
     ("تاریخ نامه راه و شهرسازی (شمسی)", "rah_letter_date", "str"),
     ("مرحله جاری پرونده (۱ تا ۲۱)", "current_stage", "int"),
+]
+
+# EXCEL_FIELD_SPECS contains canonical template fields plus backward-compatible aliases
+EXCEL_FIELD_SPECS = TEMPLATE_FIELD_SPECS + [
+    ("شماره بایگانی", "archive_number", "int"),
+    ("نام", "first_name", "str"),
+    ("نام خانوادگی", "last_name", "str"),
+    ("نام متقاضی", "first_name", "str"),
+    ("نام خانوادگی متقاضی", "last_name", "str"),
+    ("نام و نام خانوادگی", "full_name", "str"),
+    ("نام و نام خانوادگی متقاضی", "full_name", "str"),
+    ("نام کامل متقاضی", "full_name", "str"),
+    ("نام همسر", "spouse_first_name", "str"),
+    ("نام خانوادگی همسر", "spouse_last_name", "str"),
+    ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
 ]
 
 def _normalize_header(val: Any) -> str:
@@ -212,7 +228,7 @@ def generate_create_template() -> HttpResponse:
     ws.title = "قالب ایجاد پرونده‌ها"
     ws.views.sheetView[0].rightToLeft = True
 
-    headers = [spec[0] for spec in EXCEL_FIELD_SPECS]
+    headers = [spec[0] for spec in TEMPLATE_FIELD_SPECS]
     ws.append(headers)
 
     header_fill = PatternFill(start_color="0F2744", end_color="0F2744", fill_type="solid")
@@ -256,7 +272,7 @@ def generate_update_template() -> HttpResponse:
     ws.title = "قالب بروزرسانی پرونده‌ها"
     ws.views.sheetView[0].rightToLeft = True
 
-    headers = [spec[0] for spec in EXCEL_FIELD_SPECS]
+    headers = [spec[0] for spec in TEMPLATE_FIELD_SPECS]
     ws.append(headers)
 
     key_fill = PatternFill(start_color="B45309", end_color="B45309", fill_type="solid")
@@ -367,6 +383,36 @@ def process_create_excel(excel_file, user=None, is_preview: bool = False) -> dic
                             row_data[field_name] = _clean_price(val)
                         elif field_type == "bool":
                             row_data[field_name] = _clean_bool(val)
+
+            # Synchronize applicant names (نام و نام خانوادگی متقاضی)
+            fn = row_data.get("first_name", "").strip()
+            ln = row_data.get("last_name", "").strip()
+            fln = row_data.get("full_name", "").strip()
+
+            if fn or ln:
+                row_data["first_name"] = fn
+                row_data["last_name"] = ln
+                row_data["full_name"] = f"{fn} {ln}".strip()
+            elif fln:
+                parts = fln.split(maxsplit=1)
+                row_data["first_name"] = parts[0] if parts else ""
+                row_data["last_name"] = parts[1] if len(parts) > 1 else ""
+                row_data["full_name"] = fln
+
+            # Synchronize spouse names (نام و نام خانوادگی همسر)
+            sfn = row_data.get("spouse_first_name", "").strip()
+            sln = row_data.get("spouse_last_name", "").strip()
+            sfln = row_data.get("spouse_full_name", "").strip()
+
+            if sfn or sln:
+                row_data["spouse_first_name"] = sfn
+                row_data["spouse_last_name"] = sln
+                row_data["spouse_full_name"] = f"{sfn} {sln}".strip()
+            elif sfln:
+                parts = sfln.split(maxsplit=1)
+                row_data["spouse_first_name"] = parts[0] if parts else ""
+                row_data["spouse_last_name"] = parts[1] if len(parts) > 1 else ""
+                row_data["spouse_full_name"] = sfln
 
             nat_id = _clean_national_id(row_data.get("national_id", ""))
             row_errors = []
@@ -587,6 +633,30 @@ def process_update_excel(excel_file, user=None, is_preview: bool = False) -> dic
                 })
                 continue
 
+            # Synchronize applicant names in update diff
+            if "first_name" in item["changes"] or "last_name" in item["changes"]:
+                new_fn = item["changes"].get("first_name", rec.first_name or "")
+                new_ln = item["changes"].get("last_name", rec.last_name or "")
+                item["changes"]["first_name"] = new_fn
+                item["changes"]["last_name"] = new_ln
+                item["changes"]["full_name"] = f"{new_fn} {new_ln}".strip()
+            elif "full_name" in item["changes"]:
+                parts = str(item["changes"]["full_name"]).strip().split(maxsplit=1)
+                item["changes"]["first_name"] = parts[0] if parts else ""
+                item["changes"]["last_name"] = parts[1] if len(parts) > 1 else ""
+
+            # Synchronize spouse names in update diff
+            if "spouse_first_name" in item["changes"] or "spouse_last_name" in item["changes"]:
+                new_sfn = item["changes"].get("spouse_first_name", rec.spouse_first_name or "")
+                new_sln = item["changes"].get("spouse_last_name", rec.spouse_last_name or "")
+                item["changes"]["spouse_first_name"] = new_sfn
+                item["changes"]["spouse_last_name"] = new_sln
+                item["changes"]["spouse_full_name"] = f"{new_sfn} {new_sln}".strip()
+            elif "spouse_full_name" in item["changes"]:
+                parts = str(item["changes"]["spouse_full_name"]).strip().split(maxsplit=1)
+                item["changes"]["spouse_first_name"] = parts[0] if parts else ""
+                item["changes"]["spouse_last_name"] = parts[1] if len(parts) > 1 else ""
+
             # Diff comparison: only update fields that actually differ
             diff = {}
             diff_display = []
@@ -715,6 +785,8 @@ EXPORT_COLUMNS = [
     ("قفل نهایی پرونده", lambda d: "بله" if d.is_locked else "خیر", "str"),
     
     # Personal & Family Information
+    ("نام متقاضی", "first_name", "str"),
+    ("نام خانوادگی متقاضی", "last_name", "str"),
     ("نام و نام خانوادگی متقاضی", "full_name", "str"),
     ("نام پدر", "father_name", "str"),
     ("تاریخ تولد متقاضی (شمسی)", "birth_date", "str"),
@@ -725,6 +797,8 @@ EXPORT_COLUMNS = [
     ("رتبه انتخاب واحد", "selection_rank", "int"),
     
     # Spouse Information
+    ("نام همسر", "spouse_first_name", "str"),
+    ("نام خانوادگی همسر", "spouse_last_name", "str"),
     ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
     ("نام پدر همسر", "spouse_father_name", "str"),
     ("کد ملی همسر", "spouse_national_id", "str"),

@@ -9,6 +9,8 @@ Official 21-Stage Workflow Architecture (Stages 1 to 21).
 FIELD_STAGE_MAP = {
     # Step 1: ورود اطلاعات انتخاب واحد (قابل ویرایش توسط کارشناس مرحله 1 و مدیرعامل کارگزاری در مرحله 8)
     "national_id": [1, 8],
+    "first_name": [1, 8],
+    "last_name": [1, 8],
     "full_name": [1, 8],
     "father_name": [1, 8],
     "birth_date": [1, 8],
@@ -19,6 +21,8 @@ FIELD_STAGE_MAP = {
     "is_married_confirmed": [1, 8],
 
     # Spouse fields (Step 1 & Step 8)
+    "spouse_first_name": [1, 8],
+    "spouse_last_name": [1, 8],
     "spouse_full_name": [1, 8],
     "spouse_father_name": [1, 8],
     "spouse_national_id": [1, 8],

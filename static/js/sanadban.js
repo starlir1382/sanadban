@@ -396,6 +396,8 @@ document.addEventListener('alpine:init', () => {
     // Form Data - Merged 45+ Fields Matrix
     form: {
       // Stage 1 Fields
+      first_name: '',
+      last_name: '',
       full_name: 'علیرضا رضایی پور',
       father_name: 'محمدرضا',
       national_id: '0012345678',
@@ -405,6 +407,8 @@ document.addEventListener('alpine:init', () => {
       applicant_form_j_status: 'سبز (استعلام شده)',
       applicant_form_j_directorate_status: 'تایید نهایی اداره کل',
       applicant_form_j_red_description: '',
+      spouse_first_name: '',
+      spouse_last_name: '',
       spouse_full_name: 'فاطمه السادات موسوی',
       spouse_father_name: 'سید علی',
       spouse_national_id: '0029876543',

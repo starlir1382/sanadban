@@ -428,6 +428,8 @@ def dossier_detail_view(request, pk):
         "return_by": dossier.return_by,
         "return_from_stage": dossier.return_from_stage,
         "form": {
+            "first_name": dossier.first_name,
+            "last_name": dossier.last_name,
             "full_name": dossier.full_name,
             "father_name": dossier.father_name,
             "national_id": dossier.national_id,
@@ -437,6 +439,8 @@ def dossier_detail_view(request, pk):
             "applicant_form_j_status": dossier.applicant_form_j_status or "سبز (استعلام شده)",
             "applicant_form_j_directorate_status": dossier.applicant_form_j_directorate_status or "تایید نهایی اداره کل",
             "applicant_form_j_red_description": dossier.applicant_form_j_red_description or "",
+            "spouse_first_name": dossier.spouse_first_name,
+            "spouse_last_name": dossier.spouse_last_name,
             "spouse_full_name": dossier.spouse_full_name,
             "spouse_father_name": dossier.spouse_father_name,
             "spouse_national_id": dossier.spouse_national_id,
@@ -1197,6 +1201,8 @@ def lookup_preselected_unit_api(request):
         unit = PreSelectedUnit.objects.get(national_id=national_id)
         data = {
             "status": "success",
+            "first_name": unit.first_name,
+            "last_name": unit.last_name,
             "full_name": unit.full_name,
             "father_name": unit.father_name,
             "birth_date": unit.birth_date,
@@ -1205,6 +1211,8 @@ def lookup_preselected_unit_api(request):
             "applicant_form_j_status": unit.applicant_form_j_status,
             "applicant_form_j_directorate_status": unit.applicant_form_j_directorate_status,
             "applicant_form_j_red_description": unit.applicant_form_j_red_description,
+            "spouse_first_name": unit.spouse_first_name,
+            "spouse_last_name": unit.spouse_last_name,
             "spouse_full_name": unit.spouse_full_name,
             "spouse_father_name": unit.spouse_father_name,
             "spouse_national_id": unit.spouse_national_id,

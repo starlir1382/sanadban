@@ -35,6 +35,8 @@ class PreSelectedUnit(models.Model):
     Pre-imported records queried in Stage 1 by national_id to auto-fill applicant, spouse, and unit details.
     """
     national_id = models.CharField(max_length=10, unique=True, db_index=True, verbose_name="کد ملی متقاضی")
+    first_name = models.CharField(max_length=80, blank=True, verbose_name="نام متقاضی")
+    last_name = models.CharField(max_length=100, blank=True, verbose_name="نام خانوادگی متقاضی")
     full_name = models.CharField(max_length=150, verbose_name="نام و نام خانوادگی متقاضی")
     father_name = models.CharField(max_length=100, verbose_name="نام پدر")
     birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد (شمسی)")
@@ -48,6 +50,8 @@ class PreSelectedUnit(models.Model):
     applicant_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج متقاضی")
 
     # Spouse fields (Crucial for Couples Scheme - طرح زوجین)
+    spouse_first_name = models.CharField(max_length=80, blank=True, verbose_name="نام همسر")
+    spouse_last_name = models.CharField(max_length=100, blank=True, verbose_name="نام خانوادگی همسر")
     spouse_full_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی همسر")
     spouse_father_name = models.CharField(max_length=100, blank=True, verbose_name="نام پدر همسر")
     spouse_national_id = models.CharField(max_length=10, blank=True, verbose_name="کد ملی همسر")
@@ -95,6 +99,22 @@ class PreSelectedUnit(models.Model):
         verbose_name = "اطلاعات انتخاب واحد متقاضی"
         verbose_name_plural = "بانک اطلاعات انتخاب واحد (پیش‌ثبت‌نام)"
 
+    def save(self, *args, **kwargs):
+        if self.first_name or self.last_name:
+            self.full_name = f"{self.first_name or ''} {self.last_name or ''}".strip()
+        elif self.full_name and not (self.first_name and self.last_name):
+            parts = self.full_name.strip().split(maxsplit=1)
+            self.first_name = parts[0] if parts else ""
+            self.last_name = parts[1] if len(parts) > 1 else ""
+
+        if self.spouse_first_name or self.spouse_last_name:
+            self.spouse_full_name = f"{self.spouse_first_name or ''} {self.spouse_last_name or ''}".strip()
+        elif self.spouse_full_name and not (self.spouse_first_name and self.spouse_last_name):
+            parts = self.spouse_full_name.strip().split(maxsplit=1)
+            self.spouse_first_name = parts[0] if parts else ""
+            self.spouse_last_name = parts[1] if len(parts) > 1 else ""
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.full_name} ({self.national_id})"
 
@@ -131,6 +151,8 @@ class HousingDossier(models.Model):
     rejected_by = models.CharField(max_length=150, blank=True, verbose_name="رد صلاحیت کننده")
 
     # Stage 1: Applicant, Spouse & Unit
+    first_name = models.CharField(max_length=80, blank=True, verbose_name="نام متقاضی")
+    last_name = models.CharField(max_length=100, blank=True, verbose_name="نام خانوادگی متقاضی")
     full_name = models.CharField(max_length=150, verbose_name="نام و نام خانوادگی متقاضی")
     father_name = models.CharField(max_length=100, verbose_name="نام پدر")
     birth_date = models.CharField(max_length=10, blank=True, verbose_name="تاریخ تولد (شمسی)")
@@ -143,6 +165,8 @@ class HousingDossier(models.Model):
     applicant_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج متقاضی")
     
     # Specific Spouse Fields (Crucial for Couples Scheme - طرح زوجین)
+    spouse_first_name = models.CharField(max_length=80, blank=True, verbose_name="نام همسر")
+    spouse_last_name = models.CharField(max_length=100, blank=True, verbose_name="نام خانوادگی همسر")
     spouse_full_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی همسر")
     spouse_father_name = models.CharField(max_length=100, blank=True, verbose_name="نام پدر همسر")
     spouse_national_id = models.CharField(max_length=10, blank=True, verbose_name="کد ملی همسر")
@@ -275,6 +299,21 @@ class HousingDossier(models.Model):
         if not self.archive_number:
             max_num = HousingDossier.objects.aggregate(models.Max('archive_number'))['archive_number__max']
             self.archive_number = (max_num + 1) if max_num else 100001
+
+        # Auto-sync full names and separated names
+        if self.first_name or self.last_name:
+            self.full_name = f"{self.first_name or ''} {self.last_name or ''}".strip()
+        elif self.full_name and not (self.first_name and self.last_name):
+            parts = self.full_name.strip().split(maxsplit=1)
+            self.first_name = parts[0] if parts else ""
+            self.last_name = parts[1] if len(parts) > 1 else ""
+
+        if self.spouse_first_name or self.spouse_last_name:
+            self.spouse_full_name = f"{self.spouse_first_name or ''} {self.spouse_last_name or ''}".strip()
+        elif self.spouse_full_name and not (self.spouse_first_name and self.spouse_last_name):
+            parts = self.spouse_full_name.strip().split(maxsplit=1)
+            self.spouse_first_name = parts[0] if parts else ""
+            self.spouse_last_name = parts[1] if len(parts) > 1 else ""
 
         # Calculate Applicant Equity: Base Cost - Total Applicable Loans
         base_cost = self.base_cost_without_loan or 0
