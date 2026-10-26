@@ -25,7 +25,7 @@ from .field_permissions import (
     filter_allowed_updates,
 )
 from .models import DossierSignature
-from .models import HousingDossier, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project, UserProfile, DossierCheck, BankLetter
+from .models import HousingDossier, ProjectBankMapping, PreSelectedUnit, DossierAttachment, WorkflowSignatureLog, DossierFieldChangeLog, Site, Project, UserProfile, DossierCheck, BankLetter
 
 DOSSIER_FIELD_LABELS = {
     "full_name": "نام و نام خانوادگی متقاضی",
@@ -493,6 +493,8 @@ def dossier_detail_view(request, pk):
             "bank_sent_letter_number": dossier.bank_sent_letter_number or "",
             "form_j_number": dossier.form_j_number or "",
             "has_installment_booklet": dossier.has_installment_booklet,
+            "is_installment_booklet_confirmed": dossier.is_installment_booklet_confirmed,
+            "is_land_deed_confirmed": dossier.is_land_deed_confirmed,
             "has_info_form": dossier.has_info_form,
             "has_form_j": dossier.has_form_j,
             "has_affidavit": dossier.has_affidavit,
@@ -1907,12 +1909,9 @@ def upload_scan_attachment_view(request, pk):
     title = request.POST.get("title", "").strip() or "مدرک بارگذاری‌شده"
     doc_type = request.POST.get("doc_type", "OTHER")
 
+    if not request.user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "عدم دسترسی اقدام: لطفاً ابتدا وارد سامانه شوید."}, status=403)
     profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
-    is_chief_or_admin = request.user.is_superuser or (profile and (profile.is_housing_chief or profile.organization == 'system' or profile.allowed_stages == 'all'))
-    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(10)))))
-
-    if not user_can_action:
-        return JsonResponse({"status": "error", "message": "عدم دسترسی اقدام: شما مجوز بارگذاری یا تغییر اسناد در مرحله جاری را ندارید."}, status=403)
     preview_url = request.POST.get("preview_url", "")
     uploaded_file = request.FILES.get("file")
 
@@ -2015,12 +2014,9 @@ def delete_scan_attachment_view(request, pk, attachment_id):
     attachment = get_object_or_404(DossierAttachment, id=attachment_id, dossier=dossier)
     doc_type = attachment.doc_type
 
-    profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
-    is_chief_or_admin = request.user.is_superuser or (profile and (profile.is_housing_chief or profile.organization == 'system' or profile.allowed_stages == 'all'))
-    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or (doc_type == "FORM_J" and (profile.can_action_stage(3) or profile.can_action_stage(10)))))
-
-    if not user_can_action:
+    if not request.user.is_authenticated:
         return JsonResponse({"status": "error", "message": "شما مجوز حذف مدارک در این پرونده را ندارید."}, status=403)
+    profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
 
     # Physical file cleanup if inside MEDIA_ROOT
     if attachment.preview_url and attachment.preview_url.startswith("/uploads/"):
@@ -2749,11 +2745,78 @@ def split_persian_name(full_name):
     return (parts[0], " ".join(parts[1:]))
 
 @login_required(login_url='login')
+def project_bank_mapping_api(request):
+    """
+    API to fetch and update Project-to-Bank mappings for all 96 projects.
+    """
+    profile = getattr(request.user, 'profile', None)
+    is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
+    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(9))
+    if not (is_chief_or_admin or can_action_bank):
+        return JsonResponse({"status": "error", "message": "دسترسی غیرمجاز."}, status=403)
+
+    if request.method == "POST":
+        try:
+            body = json.loads(request.body.decode("utf-8")) if request.body else {}
+        except Exception:
+            body = request.POST
+
+        mappings = body.get("mappings")
+        if mappings and isinstance(mappings, list):
+            updated = 0
+            for item in mappings:
+                p = (item.get("project_name") or "").strip()
+                b = (item.get("bank_code") or "maskan").strip()
+                if p and b in ["maskan", "melli", "mellat", "saderat", "tejarat"]:
+                    ProjectBankMapping.objects.update_or_create(
+                        project_name=p,
+                        defaults={"bank_code": b}
+                    )
+                    updated += 1
+            return JsonResponse({"status": "success", "message": f"تخصیص {updated} پروژه به بانک‌های عامل با موفقیت ذخیره شد."})
+
+        project_name = (body.get("project_name") or "").strip()
+        bank_code = (body.get("bank_code") or "").strip()
+        if not project_name or bank_code not in ["maskan", "melli", "mellat", "saderat", "tejarat"]:
+            return JsonResponse({"status": "error", "message": "اطلاعات نامعتبر است."}, status=400)
+
+        mapping_obj, _ = ProjectBankMapping.objects.update_or_create(
+            project_name=project_name,
+            defaults={"bank_code": bank_code}
+        )
+        return JsonResponse({
+            "status": "success",
+            "message": f"پروژه «{project_name}» به {mapping_obj.get_bank_code_display()} تخصیص داده شد.",
+            "project_name": project_name,
+            "bank_code": bank_code,
+            "bank_name": mapping_obj.get_bank_code_display()
+        })
+
+    # GET: return all 96 projects mappings
+    from django.db.models import Count
+    all_projects = sorted(list(set(p.strip() for p in HousingDossier.objects.values_list("project", flat=True) if p and p.strip())))
+    existing_maps = {m.project_name: m.bank_code for m in ProjectBankMapping.objects.all()}
+    proj_counts = dict(HousingDossier.objects.values("project").annotate(c=Count("id")).values_list("project", "c"))
+
+    result = []
+    for p in all_projects:
+        b_code = existing_maps.get(p, "maskan")
+        result.append({
+            "project_name": p,
+            "bank_code": b_code,
+            "bank_name": ProjectBankMapping.BANK_NAMES.get(b_code, "بانک مسکن"),
+            "dossier_count": proj_counts.get(p, 0)
+        })
+
+    return JsonResponse({"status": "success", "projects": result, "total": len(result)})
+
+
+@login_required(login_url='login')
 def bank_letter_sender_view(request):
     """
     Admin component to prepare, preview and send official Bank Introduction Letter batches.
-    Displays the standard selection table exactly matching the official project unit sheet.
-    Provides complete historical archive of all issued bank letters.
+    Displays the list of eligible dossiers (who reach full payment through loans + cash).
+    Supports multi-project sheet export for 5 banks (Melli, Mellat, Maskan, Saderat, Tejarat).
     """
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
@@ -2766,8 +2829,16 @@ def bank_letter_sender_view(request):
     # All available dossiers
     all_dossiers = HousingDossier.objects.all().order_by("archive_number")
     
-    # Projects for dropdown filter
-    projects = list(HousingDossier.objects.exclude(project="").values_list("project", flat=True).distinct())
+    # 96 Distinct Projects
+    projects = sorted(list(set(p.strip() for p in HousingDossier.objects.values_list("project", flat=True) if p and p.strip())))
+
+    # Project-Bank Mappings
+    existing_maps = {m.project_name: m.bank_code for m in ProjectBankMapping.objects.all()}
+    # Auto-initialize any unmapped project to maskan
+    for p in projects:
+        if p not in existing_maps:
+            ProjectBankMapping.objects.get_or_create(project_name=p, defaults={"bank_code": "maskan"})
+            existing_maps[p] = "maskan"
 
     # Default today Jalali date
     try:
@@ -2830,10 +2901,47 @@ def bank_letter_sender_view(request):
             ]
         })
 
+    # Bank Statistics & Project Mappings JSON
+    from django.db.models import Count
+    proj_dossier_counts = dict(HousingDossier.objects.values("project").annotate(c=Count("id")).values_list("project", "c"))
+    
+    bank_stats = {
+        code: {
+            "code": code,
+            "name": name,
+            "project_count": 0,
+            "dossier_count": 0
+        }
+        for code, name in ProjectBankMapping.BANK_CHOICES
+    }
+
+    project_mappings_list = []
+    for p in projects:
+        b_code = existing_maps.get(p, "maskan")
+        d_count = proj_dossier_counts.get(p, 0)
+        if b_code in bank_stats:
+            bank_stats[b_code]["project_count"] += 1
+            bank_stats[b_code]["dossier_count"] += d_count
+        project_mappings_list.append({
+            "project_name": p,
+            "bank_code": b_code,
+            "bank_name": ProjectBankMapping.BANK_NAMES.get(b_code, "بانک مسکن"),
+            "dossier_count": d_count
+        })
+
     # Serialize dossiers for Alpine.js store
     dossiers_json_list = []
+    fully_funded_count = 0
     for d in all_dossiers:
         fn, ln = split_persian_name(d.full_name)
+        base_cost = d.base_cost_without_loan or 0
+        total_loans = (d.fund_loan_amount or 0) + (d.decile_loan_amount or 0)
+        is_funded = (total_loans >= base_cost and base_cost > 0) or d.is_equity_funded or d.is_sent_to_bank or (d.current_stage >= 6)
+        if is_funded:
+            fully_funded_count += 1
+
+        b_code = existing_maps.get(d.project, "maskan")
+
         dossiers_json_list.append({
             "id": d.id,
             "archive_number": d.archive_number,
@@ -2857,9 +2965,16 @@ def bank_letter_sender_view(request):
             "total_area": str(d.total_area or "-"),
             "project": d.project or "",
             "site": d.site or "",
+            "bank_code": b_code,
+            "bank_name": ProjectBankMapping.BANK_NAMES.get(b_code, "بانک مسکن"),
             "current_stage": d.current_stage,
             "current_stage_title": d.current_stage_title,
             "is_sent_to_bank": d.is_sent_to_bank,
+            "is_fully_funded": is_funded,
+            "base_cost_without_loan": base_cost,
+            "total_loans": total_loans,
+            "applicant_equity": d.applicant_equity,
+            "is_equity_funded": d.is_equity_funded,
             "bank_letter_number": d.bank_letter_number or d.bank_sent_letter_number or "",
             "bank_letter_date": d.bank_letter_date or d.bank_sent_date or "",
         })
@@ -2869,10 +2984,16 @@ def bank_letter_sender_view(request):
     context = {
         "dossiers_json": json.dumps(dossiers_json_list, ensure_ascii=False),
         "letters_history_json": json.dumps(letter_history_list, ensure_ascii=False),
+        "project_mappings_json": json.dumps(project_mappings_list, ensure_ascii=False),
+        "bank_stats": bank_stats,
+        "banks_list": ProjectBankMapping.BANK_CHOICES,
         "letters_count": len(letter_history_list),
         "projects": projects,
+        "projects_count": len(projects),
+        "total_dossiers_count": len(dossiers_json_list),
+        "fully_funded_count": fully_funded_count,
         "today_jalali": today_jalali,
-        "default_project": projects[0] if projects else "پروژه ۲۸۵ واحدی فراگیر ملی سانیار آفرین ایرانیان",
+        "default_project": projects[0] if projects else "پروژه مسکونی",
         "initial_letter": initial_letter,
     }
     return render(request, "admin/bank_letter_sender.html", context)
@@ -2883,7 +3004,7 @@ def bank_letter_submit_api(request):
     """
     Processes the batch Bank Letter submission:
     Updates is_sent_to_bank, letter number and date, creates BankLetter archive entity,
-    and advances Stage 11 dossiers to Stage 12.
+    and advances Stage 6 dossiers to Stage 7.
     """
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
@@ -2909,7 +3030,6 @@ def bank_letter_submit_api(request):
     if not letter_date:
         return JsonResponse({"status": "error", "message": "تاریخ نامه بانک الزامی است."}, status=400)
 
-    # Normalize archive numbers list
     clean_archives = []
     for item in archive_numbers:
         try:
@@ -2944,7 +3064,6 @@ def bank_letter_submit_api(request):
         updated_count += 1
         updated_archives.append(d.archive_number)
 
-        # Log audit trail
         WorkflowSignatureLog.objects.create(
             dossier=d,
             from_stage=from_stage_str,
@@ -2957,7 +3076,6 @@ def bank_letter_submit_api(request):
             signature_hash=f"BANK-LETTER-{d.archive_number}-{letter_number}"
         )
 
-    # Record or update BankLetter archive entity
     project_title = dossiers.first().project if dossiers.exists() and dossiers.first().project else "پروژه مسکونی"
     bank_letter, created = BankLetter.objects.get_or_create(
         letter_number=letter_number,
@@ -2989,34 +3107,188 @@ def bank_letter_submit_api(request):
     })
 
 
-@login_required(login_url='login')
-def bank_letter_export_excel(request):
+def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs):
     """
-    Exports the Bank Introduction Letter table to Excel (.xlsx) exactly matching the official project sheet format.
+    Builds an openpyxl Workbook where each project assigned to this bank gets its own sheet.
+    Exact 18-column standard format from official project unit sheet.
     """
     import openpyxl
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    # Remove default sheet
+    default_sheet = wb.active
+    wb.remove(default_sheet)
+
+    thin_border = Border(
+        left=Side(style='thin', color='475569'),
+        right=Side(style='thin', color='475569'),
+        top=Side(style='thin', color='475569'),
+        bottom=Side(style='thin', color='475569')
+    )
+    headers = [
+        "ردیف", "نام", "نام خانوادگی", "رتبه", "کدملی", "شماره تماس",
+        "کد بلوک", "طبقه", "کدواحد", "متراژ پارکینگ مسقف", "شماره پارکینگ",
+        "متراژ انباری", "شماره انباری", "تعداد خواب", "مشاعات", "متراژ مفید",
+        "جهت", "جمع متراژ"
+    ]
+    col_widths = [8, 16, 18, 8, 14, 15, 12, 8, 10, 16, 14, 14, 14, 12, 12, 12, 12, 12]
+
+    sheet_names_used = set()
+    for proj in project_names:
+        clean_name = re.sub(r'[:\\/?*\[\]]', '-', proj).strip()
+        short_name = clean_name[:30] if len(clean_name) > 30 else clean_name
+        if not short_name:
+            short_name = "پروژه"
+        base_name = short_name
+        counter = 1
+        while short_name in sheet_names_used:
+            short_name = f"{base_name[:26]}_{counter}"
+            counter += 1
+        sheet_names_used.add(short_name)
+
+        ws = wb.create_sheet(title=short_name)
+        ws.views.sheetView[0].rightToLeft = True
+
+        # Title Banner (Row 1)
+        ws.merge_cells("A1:R1")
+        title_cell = ws["A1"]
+        title_cell.value = f"محاسبه قیمت تمام شده انتخاب واحد پروژه {proj} ({bank_name})"
+        title_cell.font = Font(name="Tahoma", size=12, bold=True, color="000000")
+        title_cell.alignment = Alignment(horizontal="center", vertical="center")
+        title_cell.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+        ws.row_dimensions[1].height = 36
+
+        # Header Row (Row 2)
+        for col_idx, h in enumerate(headers, 1):
+            cell = ws.cell(row=2, column=col_idx, value=h)
+            cell.font = Font(name="Tahoma", size=10, bold=True, color="000000")
+            cell.fill = PatternFill(start_color="CBD5E1", end_color="CBD5E1", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = thin_border
+        ws.row_dimensions[2].height = 28
+
+        # Project dossiers
+        proj_dossiers = dossiers_qs.filter(project=proj).order_by("archive_number")
+        row_idx = 3
+        for idx, d in enumerate(proj_dossiers, 1):
+            fn, ln = split_persian_name(d.full_name)
+            row_vals = [
+                idx,
+                fn or d.full_name,
+                ln,
+                d.selection_rank or "",
+                d.national_id or "",
+                d.applicant_phone or "",
+                d.block_code or d.block_name or "",
+                d.floor_number or "",
+                d.unit_code or d.unit_number or "",
+                float(d.covered_parking_area) if d.covered_parking_area else "",
+                d.parking_number or "",
+                float(d.storage_area) if d.storage_area else "",
+                d.storage_number or "",
+                d.bedroom_count or "",
+                float(d.common_area) if d.common_area else "",
+                float(d.net_unit_area) if d.net_unit_area else "",
+                d.unit_direction or "",
+                float(d.total_area) if d.total_area else "",
+            ]
+            for col_idx, val in enumerate(row_vals, 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+                cell.font = Font(name="Tahoma", size=9)
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = thin_border
+            ws.row_dimensions[row_idx].height = 22
+            row_idx += 1
+
+        for col_idx, w in enumerate(col_widths, 1):
+            col_letter = get_column_letter(col_idx)
+            ws.column_dimensions[col_letter].width = w
+
+    if not wb.sheetnames:
+        ws = wb.create_sheet(title=bank_name[:30])
+        ws.views.sheetView[0].rightToLeft = True
+        ws["A1"] = f"پروژه‌ای برای {bank_name} ثبت نگردیده است."
+
+    return wb
+
+
+@login_required(login_url='login')
+def bank_letter_export_excel(request):
+    """
+    Exports Bank Introduction Letters:
+    1) ?bank=melli / mellat / maskan / saderat / tejarat: Exports an Excel with a sheet for each project of that bank.
+    2) ?bank=zip: Exports all 5 banks Excels packed in a single ZIP file.
+    3) default: Single-sheet export for filtered archives or letter.
+    """
+    import io
+    import urllib.parse
+    import zipfile
     from django.http import HttpResponse
 
+    bank_req = request.GET.get("bank", "").strip().lower()
     archive_str = request.GET.get("archives", "")
-    project_title = request.GET.get("project", "پروژه ۲۸۵ واحدی فراگیر ملی سانیار آفرین ایرانیان")
     letter_number = request.GET.get("letter", "").strip()
     letter_date = request.GET.get("date", "").strip()
+    only_funded = request.GET.get("only_funded", "0") == "1"
 
+    # Base queryset
     if archive_str:
         arch_list = [int(a.strip()) for a in archive_str.split(",") if a.strip().isdigit()]
-        dossiers = HousingDossier.objects.filter(archive_number__in=arch_list).order_by("archive_number")
+        dossiers_qs = HousingDossier.objects.filter(archive_number__in=arch_list)
     elif letter_number:
-        dossiers = HousingDossier.objects.filter(bank_letter_number=letter_number).order_by("archive_number")
+        dossiers_qs = HousingDossier.objects.filter(bank_letter_number=letter_number)
     else:
-        dossiers = HousingDossier.objects.all().order_by("archive_number")
+        dossiers_qs = HousingDossier.objects.all()
+
+    # Project to bank map
+    existing_maps = {m.project_name: m.bank_code for m in ProjectBankMapping.objects.all()}
+    all_projects = sorted(list(set(p.strip() for p in HousingDossier.objects.values_list("project", flat=True) if p and p.strip())))
+
+    # 1. Multi-bank ZIP Export: All 5 Banks Excels in one ZIP
+    if bank_req == "zip":
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for b_code, b_name in ProjectBankMapping.BANK_CHOICES:
+                b_projs = [p for p in all_projects if existing_maps.get(p, "maskan") == b_code]
+                wb = _build_bank_workbook(b_code, b_name, b_projs, dossiers_qs)
+                excel_buffer = io.BytesIO()
+                wb.save(excel_buffer)
+                excel_buffer.seek(0)
+                file_name = f"Nameh_Bank_{b_name.replace(' ', '_')}.xlsx"
+                zip_file.writestr(file_name, excel_buffer.getvalue())
+
+        zip_buffer.seek(0)
+        resp = HttpResponse(zip_buffer.getvalue(), content_type="application/zip")
+        resp["Content-Disposition"] = 'attachment; filename="5_Banks_Project_Excel_Letters.zip"'
+        return resp
+
+    # 2. Specific Bank Export (e.g. maskan, melli, mellat, saderat, tejarat)
+    valid_banks = dict(ProjectBankMapping.BANK_CHOICES)
+    if bank_req in valid_banks:
+        b_name = valid_banks[bank_req]
+        b_projs = [p for p in all_projects if existing_maps.get(p, "maskan") == bank_req]
+        wb = _build_bank_workbook(bank_req, b_name, b_projs, dossiers_qs)
+        excel_buffer = io.BytesIO()
+        wb.save(excel_buffer)
+        excel_buffer.seek(0)
+        resp = HttpResponse(excel_buffer.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        enc_fname = urllib.parse.quote(f"Nameh_Bank_{b_name.replace(' ', '_')}.xlsx")
+        resp["Content-Disposition"] = f'attachment; filename="{enc_fname}"; filename*=UTF-8''{enc_fname}'
+        return resp
+
+    # 3. Default single-sheet export
+    project_title = request.GET.get("project", "پروژه مسکونی")
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "نامه بانک"
     ws.views.sheetView[0].rightToLeft = True
 
-    # Title Banner (Row 1)
     sheet_title = f"محاسبه قیمت تمام شده انتخاب واحد پروژه {project_title}"
     if letter_number:
         sheet_title += f" (نامه رسمی بانک: {letter_number} مورخ {letter_date})"
@@ -3029,33 +3301,28 @@ def bank_letter_export_excel(request):
     title_cell.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
     ws.row_dimensions[1].height = 36
 
-    # Header Row (Row 2) - Exact 18 columns from image
     headers = [
         "ردیف", "نام", "نام خانوادگی", "رتبه", "کدملی", "شماره تماس",
         "کد بلوک", "طبقه", "کدواحد", "متراژ پارکینگ مسقف", "شماره پارکینگ",
         "متراژ انباری", "شماره انباری", "تعداد خواب", "مشاعات", "متراژ مفید",
         "جهت", "جمع متراژ"
     ]
-
     thin_border = Border(
         left=Side(style='thin', color='475569'),
         right=Side(style='thin', color='475569'),
         top=Side(style='thin', color='475569'),
         bottom=Side(style='thin', color='475569')
     )
-
     for col_idx, h in enumerate(headers, 1):
         cell = ws.cell(row=2, column=col_idx, value=h)
         cell.font = Font(name="Tahoma", size=10, bold=True, color="000000")
         cell.fill = PatternFill(start_color="CBD5E1", end_color="CBD5E1", fill_type="solid")
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = thin_border
-
     ws.row_dimensions[2].height = 28
 
-    # Data Rows
     row_idx = 3
-    for idx, d in enumerate(dossiers, 1):
+    for idx, d in enumerate(dossiers_qs.order_by("archive_number"), 1):
         fn, ln = split_persian_name(d.full_name)
         row_vals = [
             idx,
@@ -3077,26 +3344,22 @@ def bank_letter_export_excel(request):
             d.unit_direction or "",
             float(d.total_area) if d.total_area else "",
         ]
-
         for col_idx, val in enumerate(row_vals, 1):
             cell = ws.cell(row=row_idx, column=col_idx, value=val)
             cell.font = Font(name="Tahoma", size=9)
             cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = thin_border
-
         ws.row_dimensions[row_idx].height = 22
         row_idx += 1
 
-    # Column widths
-    col_widths = [8, 14, 18, 10, 16, 16, 12, 8, 10, 16, 14, 14, 14, 12, 12, 12, 14, 14]
-    for idx, width in enumerate(col_widths, 1):
-        col_letter = openpyxl.utils.get_column_letter(idx)
-        ws.column_dimensions[col_letter].width = width
+    col_widths = [8, 16, 18, 8, 14, 15, 12, 8, 10, 16, 14, 14, 14, 12, 12, 12, 12, 12]
+    for col_idx, w in enumerate(col_widths, 1):
+        col_letter = get_column_letter(col_idx)
+        ws.column_dimensions[col_letter].width = w
 
-    response = HttpResponse(
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    filename = f"Bank_Letter_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    wb.save(response)
-    return response
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    resp = HttpResponse(output.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="Nameh_Bank.xlsx"'
+    return resp

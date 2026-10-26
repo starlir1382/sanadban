@@ -18,7 +18,9 @@ FIELD_STAGE_MAP = {
     "selection_rank": [1, 8],
     "decile": [1, 4],
     "marital_status": [1, 8],
-    "is_married_confirmed": [1, 8],
+    "is_married_confirmed": [1, 8, 9],
+    "is_installment_booklet_confirmed": [7, 8, 9],
+    "is_land_deed_confirmed": [11, 12],
 
     # Spouse fields (Step 1 & Step 8)
     "spouse_first_name": [1, 8],
@@ -90,7 +92,7 @@ FIELD_STAGE_MAP = {
     "bank_sent_letter_number": [6, 9],
 
     # Step 7: تشکیل پرونده کارگزاری، ثبت شماره فرم ج و چک‌باکس مدارک فیزیکی
-    "form_j_number": [7, 8],
+    "form_j_number": [3, 7, 8, 10],
     "has_installment_booklet": [7, 8],
     "has_info_form": [7, 8],
     "has_form_j": [7, 8],

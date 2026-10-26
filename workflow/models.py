@@ -249,6 +249,12 @@ class HousingDossier(models.Model):
     has_sana = models.BooleanField(default=False, verbose_name="ثنا")
     has_national_id_doc = models.BooleanField(default=False, verbose_name="شناسنامه و کارت ملی")
 
+    # Stage 9: تأیید صحت دفترچه قسط کارشناس نهضت ملی
+    is_installment_booklet_confirmed = models.BooleanField(default=False, verbose_name="تأیید صحت دفترچه قسط بانک مسکن")
+
+    # Stage 11: تأیید سند عرصه
+    is_land_deed_confirmed = models.BooleanField(default=False, verbose_name="تأیید سند مالکیت عرصه")
+
     # Stage 19: Valuation Fields
     total_land_share = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="جمع کل قدرالسهم (م²)")
     past_years_rent = models.BigIntegerField(default=0, verbose_name="مبلغ اجاره سنوات تا پایان سال جاری")
@@ -657,3 +663,35 @@ def create_or_save_user_profile(sender, instance, created, **kwargs):
         )
 
 
+
+
+class ProjectBankMapping(models.Model):
+    """
+    Maps each of the 96 housing projects to one of the 5 financing banks:
+    مسکن، ملی، ملت، صادرات، تجارت
+    """
+    BANK_CHOICES = [
+        ("maskan", "بانک مسکن"),
+        ("melli", "بانک ملی"),
+        ("mellat", "بانک ملت"),
+        ("saderat", "بانک صادرات"),
+        ("tejarat", "بانک تجارت"),
+    ]
+    BANK_NAMES = {
+        "maskan": "بانک مسکن",
+        "melli": "بانک ملی",
+        "mellat": "بانک ملت",
+        "saderat": "بانک صادرات",
+        "tejarat": "بانک تجارت",
+    }
+    project_name = models.CharField(max_length=250, unique=True, verbose_name="نام پروژه")
+    bank_code = models.CharField(max_length=20, choices=BANK_CHOICES, default="maskan", verbose_name="بانک عامل")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "تخصیص پروژه به بانک عامل"
+        verbose_name_plural = "تخصیص پروژه‌ها به بانک‌های عامل"
+
+    def __str__(self):
+        return f"{self.project_name} -> {self.get_bank_code_display()}"

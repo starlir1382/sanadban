@@ -45,16 +45,14 @@
                 </button>
             </div>
 
-            <!-- Upload New Document Button (Stage-Gated & Permission Protected) -->
-            <button x-show="isUploadAllowed()" type="button" class="btn btn-primary" style="padding: 0.6rem 1.25rem; font-size: 0.86rem; font-weight: 800; background: #2563eb; border: 1px solid #60a5fa; box-shadow: 0 4px 14px rgba(37,99,235,0.4);" @click="openUploadScanModal()">
+            <!-- Upload New Document Button -->
+            <button x-show="!isLocked" type="button" class="btn btn-primary" style="padding: 0.6rem 1.25rem; font-size: 0.86rem; font-weight: 800; background: #2563eb; border: 1px solid #60a5fa; box-shadow: 0 4px 14px rgba(37,99,235,0.4); cursor: pointer;" @click="openUploadScanModal()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 <span>+ بارگذاری / اسکن مدرک جدید</span>
             </button>
-            <div x-show="!isUploadAllowed()" style="display: flex; align-items: center; gap: 0.45rem; background: rgba(255, 255, 255, 0.12); padding: 0.45rem 0.95rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.22); font-size: 0.78rem; color: #cbd5e1;">
+            <div x-show="isLocked" style="display: flex; align-items: center; gap: 0.45rem; background: rgba(255, 255, 255, 0.12); padding: 0.45rem 0.95rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.22); font-size: 0.78rem; color: #cbd5e1;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <span x-show="isLocked">بایگانی قطعی و قفل سندی</span>
-                <span x-show="!isLocked && !userCanAction && !isChief">فقط مشاهده (عدم دسترسی اقدام)</span>
-                
+                <span>🔒 بایگانی قطعی و قفل سندی (فقط مشاهده)</span>
             </div>
         </div>
     </div>
@@ -127,13 +125,13 @@
         </div>
         <div style="font-weight: 800; font-size: 1.05rem; color: #1e293b;">هیچ مدرکی در این دسته‌بندی ثبت نگردیده است</div>
         <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.4rem; margin-bottom: 1.5rem;">برای افزودن مدرک هویتی، بانکی یا ثبتی، روی دکمه زیر کلیک فرمایید.</div>
-        <button x-show="isUploadAllowed()" type="button" class="btn btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.88rem;" @click="openUploadScanModal()">
+        <button x-show="!isLocked" type="button" class="btn btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.88rem; cursor: pointer;" @click="openUploadScanModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             <span>بارگذاری مدرک در این بخش</span>
         </button>
-        <div x-show="!isUploadAllowed()" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1.1rem; border-radius: 8px; background: #f8fafc; color: #64748b; font-size: 0.82rem; border: 1px solid #e2e8f0;">
+        <div x-show="isLocked" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1.1rem; border-radius: 8px; background: #f8fafc; color: #64748b; font-size: 0.82rem; border: 1px solid #e2e8f0;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            <span>بارگذاری مدرک در مرحله جاری (<span class="fa-num" x-text="currentStage"></span>) یا برای حساب شما مجاز نمی‌باشد.</span>
+            <span>پرونده بایگانی و قفل گردیده است.</span>
         </div>
     </div>
 
@@ -453,8 +451,8 @@
                 </div>
             </template>
 
-            <!-- Quick Add Card at the end of the Album (Only when upload is allowed) -->
-            <div x-show="isUploadAllowed()" style="border: 2px dashed #93c5fd; border-radius: 14px; background: #f8fafc; min-height: 310px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s; padding: 1.75rem; text-align: center;"
+            <!-- Quick Add Card at the end of the Album (Only when not locked) -->
+            <div x-show="!isLocked" style="border: 2px dashed #93c5fd; border-radius: 14px; background: #f8fafc; min-height: 310px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.25s; padding: 1.75rem; text-align: center;"
                  @click="openUploadScanModal()"
                  @mouseenter="$el.style.background = '#eff6ff'; $el.style.borderColor = '#2563eb'; $el.style.transform = 'translateY(-3px)';"
                  @mouseleave="$el.style.background = '#f8fafc'; $el.style.borderColor = '#93c5fd'; $el.style.transform = 'translateY(0)';">
@@ -558,7 +556,7 @@
                                 </button>
 
                                 <!-- Delete Button -->
-                                <button type="button" x-show="!isLocked && (userCanAction || isChief)" 
+                                <button type="button" x-show="!isLocked" 
                                         @click="deleteAttachment(item.id)"
                                         style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.4rem 0.65rem; cursor: pointer; transition: background 0.15s;" 
                                         title="حذف این سند از پرونده">

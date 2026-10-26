@@ -1172,13 +1172,13 @@ document.addEventListener('alpine:init', () => {
 
     isUploadAllowed() {
       if (this.isLocked) return false;
-      return Boolean(this.userCanAction || this.isChief);
+      return true;
     },
 
     // Upload & Scanner Controller Methods
     openUploadScanModal() {
-      if (!this.isUploadAllowed()) {
-        this.triggerToast('بارگذاری مدارک صرفاً در مراحل ۰، ۹، ۱۳ و ۱۸ و توسط کارشناس مجاز امکان‌پذیر است.', 'warning');
+      if (this.isLocked) {
+        this.triggerToast('این پرونده نهایی و بایگانی شده است و امکان بارگذاری مدارک جدید وجود ندارد.', 'error');
         return;
       }
 
@@ -1258,8 +1258,8 @@ document.addEventListener('alpine:init', () => {
         return;
       }
 
-      if (!this.isUploadAllowed()) {
-        this.triggerToast('بارگذاری مدرک در مرحله جاری یا برای حساب شما مجاز نمی‌باشد.', 'error');
+      if (this.isLocked) {
+        this.triggerToast('این پرونده نهایی و بایگانی شده است و امکان بارگذاری مدرک جدید وجود ندارد.', 'error');
         return;
       }
 
@@ -2097,3 +2097,82 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 });
+
+// ==========================================================================
+// Smart Auto-Hide Header and Sticky Action Bar on Scroll
+// ==========================================================================
+(function() {
+  let lastScrollY = window.pageYOffset || document.documentElement.scrollTop;
+  let ticking = false;
+  const threshold = 8;
+
+  function onScrollUpdate() {
+    const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+    const header = document.querySelector('.sanadban-header');
+    const actionBar = document.querySelector('.sticky-action-bar');
+    const tabs = document.querySelector('.dt-tabs');
+
+    // At top of page: always show
+    if (currentScrollY <= 25) {
+      document.body.classList.remove('nav-hidden');
+      if (header) header.classList.remove('nav-hidden');
+      if (actionBar) actionBar.classList.remove('nav-hidden');
+      if (tabs) tabs.classList.remove('top-pinned');
+      lastScrollY = currentScrollY;
+      ticking = false;
+      return;
+    }
+
+    const scrollHeight = document.documentElement.scrollHeight;
+    const clientHeight = document.documentElement.clientHeight;
+    const nearBottom = (currentScrollY + clientHeight) >= (scrollHeight - 40);
+
+    const diff = currentScrollY - lastScrollY;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0 && currentScrollY > 70) {
+        // Scrolling DOWN -> Hide header and footer
+        document.body.classList.add('nav-hidden');
+        if (header) header.classList.add('nav-hidden');
+        if (actionBar && !nearBottom) actionBar.classList.add('nav-hidden');
+        if (tabs) tabs.classList.add('top-pinned');
+      } else if (diff < 0) {
+        // Scrolling UP -> Reveal header and footer
+        document.body.classList.remove('nav-hidden');
+        if (header) header.classList.remove('nav-hidden');
+        if (actionBar) actionBar.classList.remove('nav-hidden');
+        if (tabs) tabs.classList.remove('top-pinned');
+      }
+      lastScrollY = currentScrollY;
+    }
+
+    if (nearBottom && actionBar) {
+      actionBar.classList.remove('nav-hidden');
+    }
+
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      window.requestAnimationFrame(onScrollUpdate);
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // Mouse hover at top/bottom zones reveals header/footer smoothly
+  document.addEventListener('mousemove', function(e) {
+    if (e.clientY < 45) {
+      const header = document.querySelector('.sanadban-header');
+      if (header && header.classList.contains('nav-hidden')) {
+        header.classList.remove('nav-hidden');
+        document.body.classList.remove('nav-hidden');
+      }
+    } else if (e.clientY > window.innerHeight - 45) {
+      const actionBar = document.querySelector('.sticky-action-bar');
+      if (actionBar && actionBar.classList.contains('nav-hidden')) {
+        actionBar.classList.remove('nav-hidden');
+      }
+    }
+  }, { passive: true });
+})();

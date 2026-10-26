@@ -75,10 +75,15 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     margin-bottom: 1rem;
     overflow-x: auto;
     position: sticky;
-    top: 0;
+    top: 60px;
     background: #f8fafc;
     z-index: 20;
     padding-top: 0.25rem;
+    transition: top 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  body.nav-hidden .dt-tabs,
+  .dt-tabs.top-pinned {
+    top: 0 !important;
   }
   .dt-tab {
     background: none;
