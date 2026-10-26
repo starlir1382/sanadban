@@ -155,38 +155,38 @@
   <!-- 4-phase progress track -->
   <div class="ps-track fa-num">
     <div>
-      <div class="ps-seg">۱ · کارگزاری (۰–۸)</div>
+      <div class="ps-seg">۱ · کارگزاری (۱–۸)</div>
       <div class="ps-bar">
         <div
           class="ps-fill"
-          :style="'width:' + Math.min(100, Math.max(0, currentStage / 9 * 100)) + '%'"
+          :style="'width:' + Math.min(100, Math.max(0, currentStage / 8 * 100)) + '%'"
         ></div>
       </div>
     </div>
     <div>
-      <div class="ps-seg">۲ · پرونده (۹–۱۰)</div>
+      <div class="ps-seg">۲ · بررسی اداره کل (۹–۱۰)</div>
       <div class="ps-bar">
         <div
           class="ps-fill"
-          :style="'width:' + Math.min(100, Math.max(0, (currentStage - 9) / 2 * 100)) + '%'"
+          :style="'width:' + Math.min(100, Math.max(0, (currentStage - 8) / 2 * 100)) + '%'"
         ></div>
       </div>
     </div>
     <div>
-      <div class="ps-seg">۳ · ممیزی (۱۱–۱۷)</div>
+      <div class="ps-seg">۳ · تخصصی و ارزیابی (۱۱–۱۵)</div>
       <div class="ps-bar">
         <div
           class="ps-fill"
-          :style="'width:' + Math.min(100, Math.max(0, (currentStage - 11) / 7 * 100)) + '%'"
+          :style="'width:' + Math.min(100, Math.max(0, (currentStage - 10) / 5 * 100)) + '%'"
         ></div>
       </div>
     </div>
     <div>
-      <div class="ps-seg">۴ · محضر (۱۸–۲۱)</div>
+      <div class="ps-seg">۴ · تسویه و صدور (۱۶–۲۱)</div>
       <div class="ps-bar">
         <div
           class="ps-fill"
-          :style="'width:' + (isLocked ? 100 : Math.min(100, Math.max(0, (currentStage - 18) / 4 * 100))) + '%'"
+          :style="'width:' + (isLocked ? 100 : Math.min(100, Math.max(0, (currentStage - 15) / 6 * 100))) + '%'"
         ></div>
       </div>
     </div>

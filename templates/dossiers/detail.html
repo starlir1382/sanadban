@@ -429,7 +429,7 @@ block content %} {% csrf_token %}
             <a
               href="{% url 'notary_letter_print' pk=dossier.archive_number %}"
               target="_blank"
-              x-show="currentStage >= 20"
+              x-show="currentStage >= 19"
               x-cloak
               >🖨 چاپ معرفی‌نامه محضر</a
             >
@@ -463,7 +463,7 @@ block content %} {% csrf_token %}
         <button
           type="button"
           class="btn btn-warning"
-          x-show="currentStage > 0 && userCanAction && !isLocked"
+          x-show="currentStage > 1 && userCanAction && !isLocked"
           x-cloak
           style="display: none"
           @click="openReturnModal()"

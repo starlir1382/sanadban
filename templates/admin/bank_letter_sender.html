@@ -101,7 +101,7 @@
         },
 
         addAllStage11() {
-            const stage11 = this.allDossiers.filter(d => d.current_stage === 11 && (!this.showOnlyUnsent || !d.is_sent_to_bank));
+            const stage11 = this.allDossiers.filter(d => d.current_stage === 6 && (!this.showOnlyUnsent || !d.is_sent_to_bank));
             let added = 0;
             stage11.forEach(d => {
                 if (!this.selectedDossiers.some(sd => sd.archive_number === d.archive_number)) {
@@ -110,9 +110,9 @@
                 }
             });
             if (added > 0) {
-                this.showToastMsg(`تعداد ${added} پرونده مرحله ۱۱ به فهرست اضافه شدند.`);
+                this.showToastMsg(`تعداد ${added} پرونده مرحله ۶ به فهرست اضافه شدند.`);
             } else {
-                this.showToastMsg('پرونده جدیدی در مرحله ۱۱ که به بانک ارسال نشده باشد یافت نشد.');
+                this.showToastMsg('پرونده جدیدی در مرحله ۶ که به بانک ارسال نشده باشد یافت نشد.');
             }
         },
 
@@ -224,7 +224,7 @@
                         d.is_sent_to_bank = true;
                         d.bank_letter_number = this.letterNumber;
                         d.bank_letter_date = this.letterDate;
-                        if (d.current_stage === 11) d.current_stage = 12;
+                        if (d.current_stage === 6) d.current_stage = 12;
                     });
                     
                     // Add new letter to history
@@ -295,7 +295,7 @@
                     <span style="background: #38bdf8; color: #0f2744; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;">
                         مدیریت تسهیلات بانکی
                     </span>
-                    <span style="font-size: 0.75rem; color: #93c5fd;" class="fa-num">مرحله ۱۱ گردش کار ۲۲ مرحله‌ای</span>
+                    <span style="font-size: 0.75rem; color: #93c5fd;" class="fa-num">مرحله ۶ گردش کار ۲۱ مرحله‌ای</span>
                 </div>
                 <h2 style="font-size: 1.35rem; font-weight: 800; color: #ffffff; margin: 0 0 0.35rem 0;">
                     سامانه صدور و سوابق نامه‌های معرفی به بانک مسکن
@@ -629,7 +629,7 @@
                         <span>افزودن به جدول</span>
                     </button>
                     <button type="button" @click="addAllStage11()" class="btn btn-outline" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; height: 38px; font-weight: 700;">
-                        <span>+ افزودن پرونده‌های مرحله ۱۱</span>
+                        <span>+ افزودن پرونده‌های مرحله ۶</span>
                     </button>
                     <button type="button" @click="clearAll()" class="btn btn-outline" style="background: #fff1f2; color: #be123c; border-color: #fecdd3; height: 38px; font-weight: 700;">
                         <span>پاکسازی جدول</span>

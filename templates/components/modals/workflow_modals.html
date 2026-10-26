@@ -39,10 +39,10 @@
                     <div style="flex: 1; min-width: 200px; background: #ffffff; border: 1.5px solid #93c5fd; border-radius: 8px; padding: 0.65rem 0.85rem;">
                         <div style="font-size: 0.72rem; color: #1d4ed8; font-weight: 800; margin-bottom: 2px;">مرحله مقصد پس از تایید:</div>
                         <div style="font-size: 0.88rem; font-weight: 800; color: #1e3a8a;" class="fa-num">
-                            <span x-show="currentStage < 24">
+                            <span x-show="currentStage < 21">
                                 مرحله <span x-text="currentStage + 1"></span>: <span x-text="stages[currentStage + 1] ? stages[currentStage + 1].title : ''"></span>
                             </span>
-                            <span x-show="currentStage === 24" style="color: #15803d;">
+                            <span x-show="currentStage === 21" style="color: #15803d;">
                                 اتمام فرآیند نهایی و بایگانی پرونده
                             </span>
                         </div>
@@ -423,8 +423,8 @@
                     <span class="helper-badge text-amber-700">مرحله بررسی</span>
                 </label>
                 <select class="input-control fa-num" x-model.number="redReturnStage" style="width: 100%; height: 42px;">
-                    <option :value="0">مرحله ۰: ورود اطلاعات متقاضی و همسر و استعلامات اوليه (کارگزاری)</option>
-                    <option :value="1">مرحله ۱: استعلام فرم ج و کنترل سوابق ثبتی اداره کل (اداره کل)</option>
+                    <option :value="1">مرحله ۱: ورود اطلاعات متقاضی و همسر و انتخاب واحد (کارگزاری)</option>
+                    <option :value="3">مرحله ۳: بررسی فرم ج و کنترل سوابق استعلامات (اداره کل)</option>
                 </select>
             </div>
 

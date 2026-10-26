@@ -2,9 +2,9 @@
 <div class="form-sections-wrapper">
 
     <!-- Stage 0 Auto-Lookup Fast Query Banner -->
-    <div class="stage0-lookup-box" x-show="currentStage === 9 || currentStage === 10">
+    <div class="stage0-lookup-box" x-show="currentStage === 1 || currentStage === 8">
         <div class="lookup-text">
-            <h4>واکشی خودکار اطلاعات متقاضی، همسر و انتخاب واحد (مرحله ۰)</h4>
+            <h4>واکشی خودکار اطلاعات متقاضی، همسر و انتخاب واحد (مرحله ۱)</h4>
             <p>با ورود کدملی ۱۰ رقمی متقاضی، مشخصات سجلی متقاضی و همسر، سایت، پروژه و واحد مسکونی بارگذاری می‌گردد.</p>
         </div>
         <button type="button" class="btn-lookup" @click="fetchPreSelectedUnit()">
@@ -15,7 +15,7 @@
         </button>
     </div>
 
-    <!-- Section 1: متقاضی، واحد و پروژه (مرحله ۰) -->
+    <!-- Section 1: متقاضی، واحد و پروژه (مرحله ۱) -->
     <div class="form-card" id="section-applicant" :class="{'section-active-highlight': isSectionActive('section-applicant')}">
         <div class="form-section-header">
             <div class="section-title">
@@ -23,7 +23,7 @@
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <span>بخش ۱: اطلاعات متقاضی، استعلام فرم «ج»، پروژه و واحد مسکونی (مرحله ۰)</span>
+                <span>بخش ۱: اطلاعات متقاضی، استعلام فرم «ج»، پروژه و واحد مسکونی (مرحله ۱)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <!-- Section Attachments & Quick Uploads -->
@@ -608,7 +608,7 @@
                     </span>
                 </template>
                 <div class="section-stage-badge" :class="isFieldEditable('registration_section') ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 9 || currentStage === 10 ? 'مرحله ۱: کارشناسی اطلاعات' : (currentStage === 9 || currentStage === 102 ? 'مرحله ۱۲: کارشناس فنی اداره کل' : 'ثبت‌شده')"></span>
+                    <span x-text="currentStage === 2 ? 'مرحله ۲: ورود پلاک ثبتی و قیمت' : (currentStage === 11 ? 'مرحله ۱۱: کارشناس فنی اداره کل' : 'ثبت‌شده')"></span>
                 </div>
             </div>
         </div>
@@ -655,7 +655,7 @@
                     </span>
                 </template>
                 <div class="section-stage-badge" :class="isFieldEditable('base_cost_without_loan') ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 9 || currentStage === 10 ? 'مرحله ۲: ورود مالی کارگزاری' : 'قفل شده'"></span>
+                    <span x-text="currentStage === 2 ? 'مرحله ۲: ورود مالی کارگزاری' : (currentStage === 18 ? 'مرحله ۱۸: تسویه پیمانکار' : 'قفل شده')"></span>
                 </div>
             </div>
         </div>
@@ -771,7 +771,7 @@
                 <!-- Stage 6: fund_loan_amount -->
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('fund_loan_amount')}">
                     <label class="field-label">
-                        <span>مبلغ وام صندوق (مرحله ۶)</span>
+                        <span>مبلغ وام صندوق (مرحله ۴)</span>
                         <span class="helper-badge text-blue-700">وام صندوق مسکن</span>
                     </label>
                     <div class="currency-input-wrapper">
@@ -789,7 +789,7 @@
                 <!-- Stage 7: contractor_letter_amount -->
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('contractor_letter_amount')}">
                     <label class="field-label">
-                        <span>مبلغ نامه پیمانکار (مرحله ۷)</span>
+                        <span>مبلغ نامه پیمانکار (مرحله ۴)</span>
                         <span class="helper-badge text-emerald-700">تایید اداره کل</span>
                     </label>
                     <div class="currency-input-wrapper">
@@ -807,7 +807,7 @@
                 <!-- Stage 8: decile_loan_amount -->
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile_loan_amount')}">
                     <label class="field-label">
-                        <span>مبلغ وام دهک (مرحله ۸)</span>
+                        <span>مبلغ وام دهک (مرحله ۴)</span>
                         <span class="helper-badge text-purple-700">تسهیلات دهک درآمدی</span>
                     </label>
                     <div class="currency-input-wrapper">
@@ -825,14 +825,14 @@
         </div>
     </div>
 
-    <!-- Section 5: تعیین آورده نقدی متقاضی و ارسال پیامک (مرحله ۷) -->
+    <!-- Section 5: تعیین آورده نقدی متقاضی و ارسال پیامک (مرحله ۵) -->
     <div class="form-card" id="section-equity" :class="{'section-active-highlight': isSectionActive('section-equity')}">
         <div class="form-section-header" style="background: #f0fdf4;">
             <div class="section-title" style="color: #166534;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                 </svg>
-                <span>بخش ۵: تعیین مبلغ آورده نقدی و ارسال پیامک (مرحله ۷)</span>
+                <span>بخش ۵: تعیین مبلغ آورده نقدی و ارسال پیامک (مرحله ۵)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-equity')">
@@ -865,7 +865,7 @@
 
                 <!-- Stage 9: SMS Trigger -->
                 <div class="field-group col-6">
-                    <label class="field-label"><span>اقدام مرحله ۹: ابلاغ پیامکی به متقاضی</span></label>
+                    <label class="field-label"><span>اقدام مرحله ۵: ابلاغ پیامکی به متقاضی</span></label>
                     <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
                         <div>
                             <div style="font-size: 0.82rem; font-weight: bold; color: #0f172a;" x-text="form.is_sms_sent ? 'پیامک ارسال گردید ✓' : 'پیامک هنوز ارسال نشده'"></div>
@@ -884,7 +884,7 @@
                     <div class="confirmation-toggle-card" :class="{'confirmed': form.is_equity_funded}">
                         <label>
                             <input type="checkbox" x-model="form.is_equity_funded" @change="confirmEquityFunding()">
-                            <span>تأیید تأمین و واریز کامل مبلغ آورده نقدی متقاضی به حساب مسدودی (مرحله ۱۰)</span>
+                            <span>تأیید تأمین و واریز کامل مبلغ آورده نقدی متقاضی به حساب مسدودی (مرحله ۵)</span>
                         </label>
                         <span style="font-size: 0.8rem; font-weight: bold;" :class="form.is_equity_funded ? 'text-emerald-700' : 'text-slate-400'" 
                               x-text="form.is_equity_funded ? 'تأمین آورده تأیید شد ✓' : 'در انتظار تأمین آورده'"></span>
@@ -943,7 +943,7 @@
         <div class="form-section-body">
             <div class="fields-grid">
                 <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_number')}">
-                    <label class="field-label"><span>شماره نامه رسمی معرفی به بانک (مرحله ۱۱)</span></label>
+                    <label class="field-label"><span>شماره نامه رسمی معرفی به بانک (مرحله ۶)</span></label>
                     <input type="text" class="input-control fa-num" x-model="form.bank_letter_number" :readonly="!isFieldEditable('bank_letter_number')">
                 </div>
                 <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_date')}">
@@ -990,7 +990,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                 </svg>
-                <span>بخش ۷: کارشناس ارزیابی - تعیین اجاره و آماده‌سازی (مراحل ۱۷ و ۱۹)</span>
+                <span>بخش ۷: کارشناس ارزیابی - تعیین اجاره و آماده‌سازی (مراحل ۱۵ و ۱۸)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <template x-if="isSectionActive('section-valuation')">
@@ -998,8 +998,8 @@
                         <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
                     </span>
                 </template>
-                <div class="section-stage-badge" :class="[17, 19].includes(currentStage) ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 9 || currentStage === 107 ? 'ویرایش ارزیابی اداره کل (مرحله ۱۷)' : (currentStage === 9 || currentStage === 109 ? 'تسویه پیمانکار (مرحله ۱۹)' : 'ممیزی اداره کل')"></span>
+                <div class="section-stage-badge" :class="[15, 18].includes(currentStage) ? 'editable' : 'locked'">
+                    <span x-text="currentStage === 15 ? 'ویرایش ارزیابی اداره کل (مرحله ۱۵)' : (currentStage === 18 ? 'تسویه پیمانکار (مرحله ۱۸)' : 'ممیزی اداره کل')"></span>
                 </div>
             </div>
         </div>
@@ -1065,7 +1065,7 @@
                     <rect x="2" y="4" width="20" height="16" rx="2"></rect>
                     <line x1="2" y1="10" x2="22" y2="10"></line>
                 </svg>
-                <span>بخش ۸: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مرحله ۱۸)</span>
+                <span>بخش ۸: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مراحل ۱۶ و ۱۷)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <!-- Checks Scans Quick Upload -->
@@ -1514,7 +1514,7 @@
                     <label style="cursor: pointer; display: flex; align-items: center; gap: 0.6rem; flex: 1;">
                         <input type="checkbox" x-model="form.is_decile_loan_confirmed" :disabled="!isFieldEditable('is_decile_loan_confirmed')">
                         <div>
-                            <strong style="display: block; font-size: 0.88rem;">تایید دریافت، ثبت و کنترل کلیه چک‌های وام دهک (مرحله ۱۸)</strong>
+                            <strong style="display: block; font-size: 0.88rem;">تایید دریافت، ثبت و کنترل کلیه چک‌های وام دهک (مرحله ۱۶)</strong>
                             <span style="font-size: 0.74rem; color: #64748b; font-weight: normal;">اصالت‌سنجی چک‌های صیادی متقاضی بر اساس سقف وام دهک درآمدی تایید گردید.</span>
                         </div>
                     </label>
