@@ -1,7 +1,7 @@
 {% extends 'base.html' %} {% load static %} {% block title %} پرونده مسکن
 متقاضی: {{ dossier.full_name|default:'علیرضا رضایی پور' }} (شماره بایگانی: {{
-dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% endblock %} {%
-block content %} {% csrf_token %}
+dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% endblock %}
+{% block content %} {% csrf_token %}
 <script id="dossier-server-json" type="application/json">
   {{ dossier_json|safe }}
 </script>
