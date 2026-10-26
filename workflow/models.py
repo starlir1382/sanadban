@@ -100,7 +100,7 @@ class PreSelectedUnit(models.Model):
 
 class HousingDossier(models.Model):
     """
-    Main dossier tracking the complete 22-Stage Workflow (Stages 0 to 21).
+    Main dossier tracking the complete 21-Stage Workflow (Stages 1 to 21).
     Merged from Excel specifications & National Housing Directorate stages.
     """
     STAGE_ROLES = WORKFLOW_STAGE_ROLES

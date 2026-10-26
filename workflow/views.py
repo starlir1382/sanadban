@@ -181,7 +181,7 @@ def dossier_list_view(request):
     """
     Dashboard list view showing housing dossiers with strict role-based stage visibility.
     - Regular experts ONLY see dossiers stuck at their assigned stage(s).
-    - Admins, superusers, and Housing Chief see ALL dossiers across the 22-stage pipeline and where each dossier is stuck.
+    - Admins, superusers, and Housing Chief see ALL dossiers across the 21-stage pipeline and where each dossier is stuck.
     """
     query = request.GET.get('q', '').strip()
     stage_filter = request.GET.get('stage', '')
@@ -903,7 +903,7 @@ def set_dossier_stage_view(request, pk):
 def electronic_sign_action(request, pk):
     """
     Handles electronic signature and forwards the dossier to the next stage (select_for_update).
-    Supports all 22 stages (0 to 21).
+    Supports all 21 stages (1 to 21).
     Enforces role-based permissions unless user is Superadmin or Housing Chief.
     """
     if request.method != "POST":
