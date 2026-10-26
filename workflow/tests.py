@@ -283,3 +283,53 @@ class WorkflowExecutionTestCase(TestCase):
         dossier.refresh_from_db()
         self.assertEqual(dossier.current_stage, 11)
         self.assertEqual(dossier.status, "RETURNED")
+
+
+    def test_step7_fields_and_folder_label_print(self):
+        from workflow.views import save_dossier_draft_view, folder_label_print_view
+
+        dossier_expert = User.objects.create_user(username="broker_dossier_test", password="password")
+        p_exp = dossier_expert.profile
+        p_exp.allowed_stages = "7"
+        p_exp.save()
+
+        dossier = HousingDossier.objects.create(
+            national_id="7776665544",
+            full_name="متقاضی مرحله هفت",
+            current_stage=7,
+        )
+
+        # Save draft at Stage 7
+        req_save = self.factory.post(
+            f"/dossier/{dossier.archive_number}/save/",
+            data=json.dumps({
+                "form_j_number": "1403/J/9988",
+                "has_installment_booklet": True,
+                "has_info_form": True,
+                "has_form_j": True,
+                "has_affidavit": True,
+                "has_sana": True,
+                "has_national_id_doc": True,
+            }),
+            content_type="application/json",
+        )
+        req_save.user = dossier_expert
+        resp_save = save_dossier_draft_view(req_save, pk=dossier.archive_number)
+        self.assertEqual(resp_save.status_code, 200)
+
+        dossier.refresh_from_db()
+        self.assertEqual(dossier.form_j_number, "1403/J/9988")
+        self.assertTrue(dossier.has_installment_booklet)
+        self.assertTrue(dossier.has_info_form)
+        self.assertTrue(dossier.has_form_j)
+        self.assertTrue(dossier.has_affidavit)
+        self.assertTrue(dossier.has_sana)
+        self.assertTrue(dossier.has_national_id_doc)
+
+        # Print Folder Label
+        req_print = self.factory.get(f"/dossier/{dossier.archive_number}/print/folder-label/")
+        req_print.user = dossier_expert
+        resp_print = folder_label_print_view(req_print, pk=dossier.archive_number)
+        self.assertEqual(resp_print.status_code, 200)
+        self.assertIn(str(dossier.archive_number), resp_print.content.decode("utf-8"))
+        self.assertIn("1403/J/9988", resp_print.content.decode("utf-8"))

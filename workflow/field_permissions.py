@@ -85,6 +85,15 @@ FIELD_STAGE_MAP = {
     "bank_sent_date": [6, 9],
     "bank_sent_letter_number": [6, 9],
 
+    # Step 7: تشکیل پرونده کارگزاری، ثبت شماره فرم ج و چک‌باکس مدارک فیزیکی
+    "form_j_number": [7, 8],
+    "has_installment_booklet": [7, 8],
+    "has_info_form": [7, 8],
+    "has_form_j": [7, 8],
+    "has_affidavit": [7, 8],
+    "has_sana": [7, 8],
+    "has_national_id_doc": [7, 8],
+
     # Step 15: کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)
     "total_land_share": [15],
     "past_years_rent": [15],

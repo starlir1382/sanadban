@@ -19,6 +19,8 @@ const FIELD_STAGE_MAP = {
   is_equity_funded: [5],
   bank_loan_amount: [6, 9], bank_letter_number: [6, 9], bank_letter_date: [6, 9],
   is_added_to_bank_shipment_list: [6, 9], is_sent_to_bank: [6, 9], bank_sent_date: [6, 9], bank_sent_letter_number: [6, 9],
+  form_j_number: [7, 8], has_installment_booklet: [7, 8], has_info_form: [7, 8],
+  has_form_j: [7, 8], has_affidavit: [7, 8], has_sana: [7, 8], has_national_id_doc: [7, 8],
   total_land_share: [15], past_years_rent: [15], current_year_rent: [15], land_lease_year: [15], preparation_cost: [15],
   decile_loan_bank: [16], supported_institution: [16], check_count: [16],
   check_amount: [16], last_check_amount: [16], total_check_amount: [16], check_service_fee: [16],
@@ -1369,7 +1371,8 @@ document.addEventListener('alpine:init', () => {
         'section-cost': [2, 18],
         'section-loans': [4, 18],
         'section-equity': [5],
-        'section-bank': [6, 7, 9],
+        'section-bank': [6, 9],
+        'section-docs-installment': [7, 8],
         'section-valuation': [15, 18],
         'section-checks': [16, 17],
         'scans-album-section': [1, 7, 12, 16, 17, 20]

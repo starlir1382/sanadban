@@ -216,6 +216,15 @@ class HousingDossier(models.Model):
     bank_sent_date = models.CharField(max_length=20, blank=True, verbose_name="تاریخ ارسال به بانک (شمسی)")
     bank_sent_letter_number = models.CharField(max_length=50, blank=True, verbose_name="شماره نامه ارسال به بانک")
 
+    # Stage 7: تشکیل پرونده کارگزاری، ثبت شماره فرم ج و چک‌باکس مدارک فیزیکی
+    form_j_number = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره فرم ج")
+    has_installment_booklet = models.BooleanField(default=False, verbose_name="دفترچه اقساط")
+    has_info_form = models.BooleanField(default=False, verbose_name="فرم اطلاعات")
+    has_form_j = models.BooleanField(default=False, verbose_name="فرم ج")
+    has_affidavit = models.BooleanField(default=False, verbose_name="اقرارنامه")
+    has_sana = models.BooleanField(default=False, verbose_name="ثنا")
+    has_national_id_doc = models.BooleanField(default=False, verbose_name="شناسنامه و کارت ملی")
+
     # Stage 19: Valuation Fields
     total_land_share = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name="جمع کل قدرالسهم (م²)")
     past_years_rent = models.BigIntegerField(default=0, verbose_name="مبلغ اجاره سنوات تا پایان سال جاری")

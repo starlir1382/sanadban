@@ -983,6 +983,121 @@
         </div>
     </div>
 
+    <!-- Section: تشکیل پرونده کارگزاری، ثبت شماره فرم ج و کنترل مدارک (مرحله ۷) -->
+    <div class="form-card" id="section-docs-installment" :class="{'section-active-highlight': isSectionActive('section-docs-installment')}">
+        <div class="form-section-header">
+            <div class="section-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>تشکیل پرونده کارگزاری، شماره فرم «ج» و کنترل مدارک (مرحله ۷)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <!-- Folder Label Print Button -->
+                <a :href="'/dossier/' + archiveNumber + '/print/folder-label/'" 
+                   target="_blank"
+                   class="btn btn-outline"
+                   style="font-size: 0.78rem; padding: 0.35rem 0.75rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border-color: #2563eb; color: #1d4ed8; background: #eff6ff;"
+                   title="چاپ لیبل عطف و روی پوشه پرونده متقاضی">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>🖨 چاپ لیبل پوشه</span>
+                </a>
+
+                <template x-if="isSectionActive('section-docs-installment')">
+                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
+                    </span>
+                </template>
+                <div class="section-stage-badge" :class="isFieldEditable('form_j_number') ? 'editable' : 'locked'">
+                    <span>کنترل مدارک کارگزاری</span>
+                </div>
+            </div>
+        </div>
+        <div class="form-section-body">
+            <div class="fields-grid">
+                <!-- شماره فرم ج -->
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('form_j_number')}">
+                    <label class="field-label">
+                        <span><span class="required-mark">*</span>شماره رسمی فرم «ج»</span>
+                        <span class="helper-badge text-emerald-700">شماره استعلام مسکن</span>
+                    </label>
+                    <input type="text" class="input-control fa-num" 
+                           x-model="form.form_j_number" 
+                           :readonly="!isFieldEditable('form_j_number')"
+                           placeholder="مثال: ۱۴۰۳/ج/۱۲۳۴">
+                </div>
+
+                <!-- وضعیت اسکن دفترچه اقساط -->
+                <div class="field-group col-6">
+                    <label class="field-label">
+                        <span>اسناد و دفترچه اقساط پیوست</span>
+                        <span class="helper-badge">آلبوم مدارک</span>
+                    </label>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.8rem; font-weight: 600; color: #334155;">اسکن دفترچه اقساط بانکی:</span>
+                        <template x-if="isUploadAllowed()">
+                            <label class="btn-header-upload" style="cursor: pointer; margin: 0;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <span>بارگذاری دفترچه اقساط</span>
+                                <input type="file" accept="image/*,.pdf" style="display: none;" @change="uploadSectionAttachment('BANK_BOOKLET', 'اسکن دفترچه اقساط بانک مسکن', $event)">
+                            </label>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- 6 Checkboxes for Physical Dossier Documents -->
+                <div class="col-12" style="margin-top: 0.5rem;">
+                    <div style="font-size: 0.82rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">
+                        📋 چک‌لیست کنترل و الصاق مدارک فیزیکی در پوشه متقاضی:
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.65rem;">
+                        <!-- 1. دفترچه اقساط -->
+                        <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
+                               :style="form.has_installment_booklet ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
+                            <input type="checkbox" x-model="form.has_installment_booklet" :disabled="!isFieldEditable('has_installment_booklet')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
+                            <span style="font-size: 0.84rem; font-weight: 700;">۱. دفترچه اقساط</span>
+                        </label>
+
+                        <!-- 2. فرم اطلاعات -->
+                        <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
+                               :style="form.has_info_form ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
+                            <input type="checkbox" x-model="form.has_info_form" :disabled="!isFieldEditable('has_info_form')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
+                            <span style="font-size: 0.84rem; font-weight: 700;">۲. فرم اطلاعات</span>
+                        </label>
+
+                        <!-- 3. فرم ج -->
+                        <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
+                               :style="form.has_form_j ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
+                            <input type="checkbox" x-model="form.has_form_j" :disabled="!isFieldEditable('has_form_j')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
+                            <span style="font-size: 0.84rem; font-weight: 700;">۳. برگه فرم «ج»</span>
+                        </label>
+
+                        <!-- 4. اقرارنامه -->
+                        <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
+                               :style="form.has_affidavit ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
+                            <input type="checkbox" x-model="form.has_affidavit" :disabled="!isFieldEditable('has_affidavit')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
+                            <span style="font-size: 0.84rem; font-weight: 700;">۴. اقرارنامه محضری</span>
+                        </label>
+
+                        <!-- 5. ثنا -->
+                        <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
+                               :style="form.has_sana ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
+                            <input type="checkbox" x-model="form.has_sana" :disabled="!isFieldEditable('has_sana')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
+                            <span style="font-size: 0.84rem; font-weight: 700;">۵. تاییدیه سامانه ثنا</span>
+                        </label>
+
+                        <!-- 6. شناسنامه و کارت ملی -->
+                        <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
+                               :style="form.has_national_id_doc ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
+                            <input type="checkbox" x-model="form.has_national_id_doc" :disabled="!isFieldEditable('has_national_id_doc')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
+                            <span style="font-size: 0.84rem; font-weight: 700;">۶. شناسنامه و کارت ملی</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Section 7: ارزیابی اجاره و آماده‌سازی (مراحل ۱۷ و ۱۹) -->
     <div class="form-card" id="section-valuation" :class="{'section-active-highlight': isSectionActive('section-valuation')}">
         <div class="form-section-header">

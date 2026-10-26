@@ -427,6 +427,11 @@ block content %} {% csrf_token %}
               >🖨 چاپ فرم مراحل و امضاها (۱۴ امضا)</a
             >
             <a
+              href="{% url 'folder_label_print' pk=dossier.archive_number %}"
+              target="_blank"
+              >🖨 چاپ برچسب / لیبل پوشه</a
+            >
+            <a
               href="{% url 'notary_letter_print' pk=dossier.archive_number %}"
               target="_blank"
               x-show="currentStage >= 19"

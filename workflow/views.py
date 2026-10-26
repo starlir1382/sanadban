@@ -469,6 +469,13 @@ def dossier_detail_view(request, pk):
             "is_sent_to_bank": dossier.is_sent_to_bank,
             "bank_sent_date": dossier.bank_sent_date or "",
             "bank_sent_letter_number": dossier.bank_sent_letter_number or "",
+            "form_j_number": dossier.form_j_number or "",
+            "has_installment_booklet": dossier.has_installment_booklet,
+            "has_info_form": dossier.has_info_form,
+            "has_form_j": dossier.has_form_j,
+            "has_affidavit": dossier.has_affidavit,
+            "has_sana": dossier.has_sana,
+            "has_national_id_doc": dossier.has_national_id_doc,
             "total_land_share": float(dossier.total_land_share) if dossier.total_land_share else None,
             "past_years_rent": dossier.past_years_rent,
             "current_year_rent": dossier.current_year_rent,
@@ -661,7 +668,7 @@ def save_dossier_draft_view(request, pk):
         "bank_letter_number", "bank_letter_date", "land_lease_year",
         "decile_loan_bank", "supported_institution", "commitment_number", "commitment_date",
         "tenant_code", "prepayment_code", "rah_letter", "rah_letter_date",
-        "bank_sent_date", "bank_sent_letter_number"
+        "bank_sent_date", "bank_sent_letter_number", "form_j_number"
     ]:
         if field in data and data[field] is not None:
             parsed_updates[field] = str(data[field]).strip()
@@ -711,7 +718,7 @@ def save_dossier_draft_view(request, pk):
                     pass
 
     # Boolean fields
-    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed", "is_added_to_bank_shipment_list", "is_sent_to_bank"]:
+    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed", "is_added_to_bank_shipment_list", "is_sent_to_bank", "has_installment_booklet", "has_info_form", "has_form_j", "has_affidavit", "has_sana", "has_national_id_doc"]:
         if field in data:
             val = data[field]
             parsed_updates[field] = bool(val) if not isinstance(val, str) else val.lower() in ("true", "1")
@@ -1199,10 +1206,20 @@ def lookup_preselected_unit_api(request):
 @login_required(login_url='login')
 def notary_letter_print_view(request, pk):
     """
-    Print-ready view for Stage 23 & 24 (Notary Letter Introduction).
+    Print-ready view for Stage 19 (Notary Letter Introduction).
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
     return render(request, "dossiers/print_notary.html", {"dossier": dossier})
+
+
+@login_required(login_url='login')
+def folder_label_print_view(request, pk):
+    """
+    Print-ready view for Stage 7 physical folder label (لیبل پوشه پرونده).
+    Displays prominent archive number, applicant info, project, unit, Form J number, and checklist.
+    """
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    return render(request, "dossiers/print_folder_label.html", {"dossier": dossier})
 
 
 def get_dossier_signatures_summary(dossier):
