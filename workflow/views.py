@@ -34,6 +34,7 @@ DOSSIER_FIELD_LABELS = {
     "birth_date": "تاریخ تولد متقاضی",
     "applicant_phone": "شماره تماس متقاضی",
     "selection_rank": "رتبه انتخاب واحد",
+    "form_j_questionnaire_number": "شماره پرسش نامه فرم ج",
     "applicant_form_j_status": "وضعیت استعلام فرم ج متقاضی",
     "applicant_form_j_directorate_status": "استعلام اداره کل متقاضی",
     "applicant_form_j_red_description": "علت و توضیحات کد قرمز متقاضی",
@@ -261,6 +262,79 @@ def dossier_list_view(request):
                 "count": cnt,
             })
 
+    admin_stats = {}
+    stages_analysis = []
+    projects_breakdown = []
+    recent_activity_logs = []
+
+    if is_full_admin:
+        total_all_count = HousingDossier.objects.count()
+        p1_cnt = sum(counts_by_stage.get(i, 0) for i in range(1, 9))
+        p2_cnt = sum(counts_by_stage.get(i, 0) for i in range(9, 11))
+        p3_cnt = sum(counts_by_stage.get(i, 0) for i in range(11, 16))
+        p4_cnt = sum(counts_by_stage.get(i, 0) for i in range(16, 22))
+        red_form_j_cnt = HousingDossier.objects.filter(applicant_form_j_status__icontains="قرمز").count()
+        completed_cnt = HousingDossier.objects.filter(is_locked=True).count()
+        returned_cnt = HousingDossier.objects.filter(status="RETURNED").count()
+        in_progress_cnt = total_all_count - completed_cnt
+
+        admin_stats = {
+            "total": total_all_count,
+            "in_progress": in_progress_cnt,
+            "completed": completed_cnt,
+            "returned": returned_cnt,
+            "red_form_j": red_form_j_cnt,
+            "p1_count": p1_cnt,
+            "p2_count": p2_cnt,
+            "p3_count": p3_cnt,
+            "p4_count": p4_cnt,
+            "p1_pct": round((p1_cnt / total_all_count * 100), 1) if total_all_count else 0,
+            "p2_pct": round((p2_cnt / total_all_count * 100), 1) if total_all_count else 0,
+            "p3_pct": round((p3_cnt / total_all_count * 100), 1) if total_all_count else 0,
+            "p4_pct": round((p4_cnt / total_all_count * 100), 1) if total_all_count else 0,
+        }
+
+        for stg in all_stages:
+            sid = stg["id"]
+            cnt = counts_by_stage.get(sid, 0)
+            pct = round((cnt / total_all_count * 100), 1) if total_all_count else 0
+            if 1 <= sid <= 8:
+                phase_title = "فاز ۱ · کارگزاری"
+                phase_badge = "emerald"
+            elif 9 <= sid <= 10:
+                phase_title = "فاز ۲ · اداره کل"
+                phase_badge = "blue"
+            elif 11 <= sid <= 15:
+                phase_title = "فاز ۳ · فنی و حقوقی"
+                phase_badge = "amber"
+            else:
+                phase_title = "فاز ۴ · تسویه و بایگانی"
+                phase_badge = "purple"
+
+            stages_analysis.append({
+                "id": sid,
+                "title": stg["title"],
+                "role": stg["role"],
+                "unit": stg["unit"],
+                "count": cnt,
+                "percentage": pct,
+                "phase_title": phase_title,
+                "phase_badge": phase_badge,
+            })
+
+        projects_breakdown = list(
+            HousingDossier.objects.values('project', 'site')
+            .annotate(cnt=Count('id'))
+            .order_by('-cnt')[:12]
+        )
+        for prj in projects_breakdown:
+            prj["pct"] = round((prj["cnt"] / total_all_count * 100), 1) if total_all_count else 0
+
+        recent_activity_logs = list(
+            WorkflowSignatureLog.objects.select_related('dossier')
+            .order_by('-timestamp')[:8]
+        )
+
     user_allowed_titles = [f"مرحله {i} ({HousingDossier.STAGE_ROLES[i][2]})" for i in user_allowed_stages if i in HousingDossier.STAGE_ROLES]
 
     if sort == 'stage_asc':
@@ -304,7 +378,11 @@ def dossier_list_view(request):
         "user_allowed_stages": user_allowed_stages,
         "user_allowed_titles": user_allowed_titles,
         "stage_breakdown": stage_breakdown,
-        "elided_page_range": paginator.get_elided_page_range(number=page_obj.number, on_each_side=2, on_ends=1),
+        "admin_stats": admin_stats,
+        "stages_analysis": stages_analysis,
+        "projects_breakdown": projects_breakdown,
+        "recent_activity_logs": recent_activity_logs,
+        "elided_page_range": getattr(paginator, "get_elided_page_range")(number=page_obj.number, on_each_side=2, on_ends=1),
         "total_all_dossiers": HousingDossier.objects.count() if is_full_admin else paginator.count,
     }
     return render(request, "dossiers/list.html", context)
@@ -436,6 +514,7 @@ def dossier_detail_view(request, pk):
             "birth_date": dossier.birth_date,
             "applicant_phone": dossier.applicant_phone or "",
             "selection_rank": dossier.selection_rank,
+            "form_j_questionnaire_number": dossier.form_j_questionnaire_number or "",
             "applicant_form_j_status": dossier.applicant_form_j_status or "سبز (استعلام شده)",
             "applicant_form_j_directorate_status": dossier.applicant_form_j_directorate_status or "تایید نهایی اداره کل",
             "applicant_form_j_red_description": dossier.applicant_form_j_red_description or "",
@@ -682,6 +761,7 @@ def save_dossier_draft_view(request, pk):
     # String fields
     for field in [
         "full_name", "father_name", "birth_date", "applicant_phone",
+        "form_j_questionnaire_number",
         "applicant_form_j_status", "applicant_form_j_directorate_status", "applicant_form_j_red_description",
         "spouse_full_name", "spouse_father_name", "spouse_national_id",
         "spouse_birth_date", "spouse_id_number", "spouse_birth_place",
@@ -1114,6 +1194,8 @@ def return_stage_action(request, pk):
         target_stage_val = body_data.get("target_stage")
     else:
         target_stage_val = request.POST.get("target_stage")
+    if target_stage_val is None:
+        return JsonResponse({"status": "error", "message": "مرحله مقصد نامعتبر است."}, status=400)
     try:
         target_stage = int(target_stage_val)
     except (TypeError, ValueError):
@@ -1210,6 +1292,7 @@ def lookup_preselected_unit_api(request):
             "birth_date": unit.birth_date,
             "applicant_phone": unit.applicant_phone or "",
             "selection_rank": unit.selection_rank,
+            "form_j_questionnaire_number": getattr(unit, "form_j_questionnaire_number", "") or "",
             "applicant_form_j_status": unit.applicant_form_j_status,
             "applicant_form_j_directorate_status": unit.applicant_form_j_directorate_status,
             "applicant_form_j_red_description": unit.applicant_form_j_red_description,
@@ -1536,6 +1619,8 @@ def archive_check_receipt_api(request, pk):
     check_type = data.get('type', 'loan').lower()
     scan_url = data.get('scan_url', '')
     attachment = _ensure_check_receipt_attachment(request.user, dossier, check_type, scan_url=scan_url)
+    if not attachment:
+        return JsonResponse({"status": "error", "message": "تصویر اسکن چک یافت نشد."}, status=400)
 
     return JsonResponse({
         "status": "success",
@@ -1587,7 +1672,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
         upload_dir = os.path.join(settings.MEDIA_ROOT, nat_id, "check_scans")
         os.makedirs(upload_dir, exist_ok=True)
 
-        clean_name = f"check_scan_{dossier.archive_number}_{check_type_norm}_{int(timezone.now().timestamp())}_{file_obj.name}"
+        clean_name = os.path.basename(file_obj.name)
         clean_name = "".join(c for c in clean_name if c.isalnum() or c in "._-")
         save_path = os.path.join(upload_dir, clean_name)
 
@@ -2262,7 +2347,7 @@ def users_management_view(request):
             parsed_stages = ",".join(str(s) for s in nums)
 
         users_data.append({
-            "id": u.id,
+            "id": u.pk,
             "username": u.username,
             "full_name": p.full_name if p and p.full_name else u.username,
             "organization": org,
@@ -2815,8 +2900,9 @@ def project_bank_mapping_api(request):
 def bank_letter_sender_view(request):
     """
     Admin component to prepare, preview and send official Bank Introduction Letter batches.
-    Displays the list of eligible dossiers (who reach full payment through loans + cash).
-    Supports multi-project sheet export for 5 banks (Melli, Mellat, Maskan, Saderat, Tejarat).
+    Displays the list of eligible dossiers (who reach full payment through loans + cash / Stage 6).
+    Supports multi-project sheet export for 5 banks (Melli, Mellat, Maskan, Saderat, Tejarat)
+    covering all 96 projects.
     """
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
@@ -2826,19 +2912,23 @@ def bank_letter_sender_view(request):
         messages.error(request, "دسترسی به بخش ارسال نامه بانک نیازمند مجوز کارشناس بانک یا مدیر سیستم است.")
         return redirect("dossier_list")
 
-    # All available dossiers
-    all_dossiers = HousingDossier.objects.all().order_by("archive_number")
+    # 96 Distinct Projects from DB and mapping
+    mappings = list(ProjectBankMapping.objects.all().order_by("project_name"))
+    existing_maps = {m.project_name: m.bank_code for m in mappings}
+    existing_meta = {
+        m.project_name: {
+            "bank_code": m.bank_code,
+            "bank_name": m.get_bank_code_display(),
+            "branch_code": m.branch_code or "",
+            "branch_name": m.branch_name or "",
+            "project_code": m.project_code or "",
+        }
+        for m in mappings
+    }
     
-    # 96 Distinct Projects
-    projects = sorted(list(set(p.strip() for p in HousingDossier.objects.values_list("project", flat=True) if p and p.strip())))
-
-    # Project-Bank Mappings
-    existing_maps = {m.project_name: m.bank_code for m in ProjectBankMapping.objects.all()}
-    # Auto-initialize any unmapped project to maskan
-    for p in projects:
-        if p not in existing_maps:
-            ProjectBankMapping.objects.get_or_create(project_name=p, defaults={"bank_code": "maskan"})
-            existing_maps[p] = "maskan"
+    projects = [m.project_name for m in mappings]
+    if not projects:
+        projects = sorted(list(set(p.strip() for p in HousingDossier.objects.values_list("project", flat=True) if p and p.strip())))
 
     # Default today Jalali date
     try:
@@ -2852,13 +2942,18 @@ def bank_letter_sender_view(request):
     for d in sent_dossiers:
         num = (d.bank_letter_number or d.bank_sent_letter_number or "").strip()
         if num:
+            m_bank = existing_meta.get(d.project, {})
+            b_code = m_bank.get("bank_code", "maskan")
+            b_name = m_bank.get("bank_name", "بانک مسکن")
             bl_obj, _ = BankLetter.objects.get_or_create(
                 letter_number=num,
                 defaults={
                     "letter_date": d.bank_letter_date or d.bank_sent_date or today_jalali,
+                    "bank_code": b_code,
+                    "bank_name": b_name,
                     "project_name": d.project or "پروژه مسکونی",
                     "sender_name": "کارشناس تسهیلات بانکی",
-                    "sender_role": "واحد تسهیلات و بانک مسکن",
+                    "sender_role": "واحد تسهیلات و بانک عامل",
                 }
             )
             if not bl_obj.dossiers.filter(id=d.id).exists():
@@ -2879,6 +2974,8 @@ def bank_letter_sender_view(request):
             "id": l.id,
             "letter_number": l.letter_number,
             "letter_date": l.letter_date,
+            "bank_code": l.bank_code or "maskan",
+            "bank_name": l.bank_name or ProjectBankMapping.BANK_NAMES.get(l.bank_code, "بانک عامل"),
             "project_name": l.project_name or (d_objs[0].project if d_objs else "پروژه مسکونی"),
             "sender_name": l.sender_name or "کارشناس تسهیلات",
             "sender_role": l.sender_role or "واحد تسهیلات و بانک مسکن",
@@ -2904,43 +3001,63 @@ def bank_letter_sender_view(request):
     # Bank Statistics & Project Mappings JSON
     from django.db.models import Count
     proj_dossier_counts = dict(HousingDossier.objects.values("project").annotate(c=Count("id")).values_list("project", "c"))
-    
-    bank_stats = {
-        code: {
+    proj_stage6_counts = dict(HousingDossier.objects.filter(current_stage=6).values("project").annotate(c=Count("id")).values_list("project", "c"))
+    proj_sent_counts = dict(HousingDossier.objects.filter(is_sent_to_bank=True).values("project").annotate(c=Count("id")).values_list("project", "c"))
+
+    bank_stats = {}
+    for code, name in ProjectBankMapping.BANK_CHOICES:
+        projs = [m.project_name for m in mappings if m.bank_code == code]
+        tot_d = sum(proj_dossier_counts.get(p, 0) for p in projs)
+        s6_d = sum(proj_stage6_counts.get(p, 0) for p in projs)
+        sent_d = sum(proj_sent_counts.get(p, 0) for p in projs)
+        bank_stats[code] = {
             "code": code,
             "name": name,
-            "project_count": 0,
-            "dossier_count": 0
+            "project_count": len(projs),
+            "dossier_count": tot_d,
+            "stage6_count": s6_d,
+            "sent_count": sent_d,
+            "projects": projs,
         }
-        for code, name in ProjectBankMapping.BANK_CHOICES
-    }
 
     project_mappings_list = []
-    for p in projects:
-        b_code = existing_maps.get(p, "maskan")
-        d_count = proj_dossier_counts.get(p, 0)
-        if b_code in bank_stats:
-            bank_stats[b_code]["project_count"] += 1
-            bank_stats[b_code]["dossier_count"] += d_count
+    for m in mappings:
+        d_count = proj_dossier_counts.get(m.project_name, 0)
+        s6_count = proj_stage6_counts.get(m.project_name, 0)
+        sent_count = proj_sent_counts.get(m.project_name, 0)
         project_mappings_list.append({
-            "project_name": p,
-            "bank_code": b_code,
-            "bank_name": ProjectBankMapping.BANK_NAMES.get(b_code, "بانک مسکن"),
-            "dossier_count": d_count
+            "project_name": m.project_name,
+            "project_code": m.project_code,
+            "bank_code": m.bank_code,
+            "bank_name": m.get_bank_code_display(),
+            "branch_code": m.branch_code,
+            "branch_name": m.branch_name,
+            "dossier_count": d_count,
+            "stage6_count": s6_count,
+            "sent_count": sent_count,
         })
 
-    # Serialize dossiers for Alpine.js store
+    # Active Dossiers: Priority Stage 6, Stage 5, Equity Funded or Sent dossiers
+    priority_qs = HousingDossier.objects.filter(
+        models.Q(current_stage__in=[5, 6, 7]) | models.Q(is_sent_to_bank=True) | models.Q(is_equity_funded=True)
+    ).order_by("archive_number")
+
+    if priority_qs.count() < 120:
+        extra_qs = HousingDossier.objects.exclude(id__in=priority_qs.values_list('id', flat=True))[:120]
+        initial_dossiers = list(priority_qs) + list(extra_qs)
+    else:
+        initial_dossiers = list(priority_qs[:500])
+
     dossiers_json_list = []
-    fully_funded_count = 0
-    for d in all_dossiers:
+    for d in initial_dossiers:
         fn, ln = split_persian_name(d.full_name)
         base_cost = d.base_cost_without_loan or 0
         total_loans = (d.fund_loan_amount or 0) + (d.decile_loan_amount or 0)
         is_funded = (total_loans >= base_cost and base_cost > 0) or d.is_equity_funded or d.is_sent_to_bank or (d.current_stage >= 6)
-        if is_funded:
-            fully_funded_count += 1
 
-        b_code = existing_maps.get(d.project, "maskan")
+        m_info = existing_meta.get(d.project, {})
+        b_code = m_info.get("bank_code", "maskan")
+        b_name = m_info.get("bank_name", "بانک مسکن")
 
         dossiers_json_list.append({
             "id": d.id,
@@ -2966,7 +3083,7 @@ def bank_letter_sender_view(request):
             "project": d.project or "",
             "site": d.site or "",
             "bank_code": b_code,
-            "bank_name": ProjectBankMapping.BANK_NAMES.get(b_code, "بانک مسکن"),
+            "bank_name": b_name,
             "current_stage": d.current_stage,
             "current_stage_title": d.current_stage_title,
             "is_sent_to_bank": d.is_sent_to_bank,
@@ -2986,12 +3103,12 @@ def bank_letter_sender_view(request):
         "letters_history_json": json.dumps(letter_history_list, ensure_ascii=False),
         "project_mappings_json": json.dumps(project_mappings_list, ensure_ascii=False),
         "bank_stats": bank_stats,
+        "bank_stats_json": json.dumps(bank_stats, ensure_ascii=False),
         "banks_list": ProjectBankMapping.BANK_CHOICES,
         "letters_count": len(letter_history_list),
         "projects": projects,
         "projects_count": len(projects),
-        "total_dossiers_count": len(dossiers_json_list),
-        "fully_funded_count": fully_funded_count,
+        "total_dossiers_count": HousingDossier.objects.count(),
         "today_jalali": today_jalali,
         "default_project": projects[0] if projects else "پروژه مسکونی",
         "initial_letter": initial_letter,
@@ -3000,11 +3117,75 @@ def bank_letter_sender_view(request):
 
 
 @login_required(login_url='login')
+def bank_letter_lookup_api(request):
+    """
+    Looks up dossiers across all 34,000+ records by archive number, national ID, or name
+    so the operator can dynamically add records to the bank shipment batch.
+    """
+    q = request.GET.get("q", "").strip()
+    if not q:
+        return JsonResponse({"status": "success", "results": []})
+
+    tokens = [t.strip() for t in re.split(r'[\s,،]+', q) if t.strip()]
+    if not tokens:
+        return JsonResponse({"status": "success", "results": []})
+
+    query = models.Q()
+    for tok in tokens:
+        if tok.isdigit():
+            query |= models.Q(archive_number=int(tok)) | models.Q(national_id__icontains=tok)
+        else:
+            query |= models.Q(full_name__icontains=tok)
+
+    dossiers = HousingDossier.objects.filter(query)[:50]
+    existing_maps = {m.project_name: (m.bank_code, m.get_bank_code_display()) for m in ProjectBankMapping.objects.all()}
+
+    results = []
+    for d in dossiers:
+        fn, ln = split_persian_name(d.full_name)
+        b_code, b_name = existing_maps.get(d.project, ("maskan", "بانک مسکن"))
+        results.append({
+            "id": d.id,
+            "archive_number": d.archive_number,
+            "national_id": d.national_id or "",
+            "first_name": fn,
+            "last_name": ln,
+            "full_name": d.full_name or "",
+            "selection_rank": d.selection_rank or "-",
+            "applicant_phone": d.applicant_phone or "",
+            "block_code": d.block_code or d.block_name or "-",
+            "floor_number": d.floor_number or "-",
+            "unit_code": d.unit_code or d.unit_number or "-",
+            "covered_parking_area": str(d.covered_parking_area or "-"),
+            "parking_number": str(d.parking_number or "-"),
+            "storage_area": str(d.storage_area or "-"),
+            "storage_number": str(d.storage_number or "-"),
+            "bedroom_count": str(d.bedroom_count or "-"),
+            "common_area": str(d.common_area or "-"),
+            "net_unit_area": str(d.net_unit_area or "-"),
+            "unit_direction": d.unit_direction or "-",
+            "total_area": str(d.total_area or "-"),
+            "project": d.project or "",
+            "site": d.site or "",
+            "bank_code": b_code,
+            "bank_name": b_name,
+            "current_stage": d.current_stage,
+            "current_stage_title": d.current_stage_title,
+            "is_sent_to_bank": d.is_sent_to_bank,
+            "is_equity_funded": d.is_equity_funded,
+            "bank_letter_number": d.bank_letter_number or d.bank_sent_letter_number or "",
+            "bank_letter_date": d.bank_letter_date or d.bank_sent_date or "",
+        })
+
+    return JsonResponse({"status": "success", "results": results})
+
+
+@login_required(login_url='login')
 def bank_letter_submit_api(request):
     """
     Processes the batch Bank Letter submission:
-    Updates is_sent_to_bank, letter number and date, creates BankLetter archive entity,
-    and advances Stage 6 dossiers to Stage 7.
+    Updates is_sent_to_bank, bank_letter_number and bank_letter_date,
+    creates BankLetter archive entity with bank details, and advances Stage 6 dossiers to Stage 7.
     """
     profile = getattr(request.user, 'profile', None)
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
@@ -3021,6 +3202,7 @@ def bank_letter_submit_api(request):
     archive_numbers = body.get("archive_numbers", [])
     letter_number = (body.get("letter_number") or "").strip()
     letter_date = (body.get("letter_date") or "").strip()
+    bank_code = (body.get("bank_code") or "").strip()
     notes = (body.get("notes") or "").strip()
 
     if not archive_numbers:
@@ -3038,11 +3220,25 @@ def bank_letter_submit_api(request):
             continue
 
     dossiers = HousingDossier.objects.filter(archive_number__in=clean_archives)
+    if not dossiers.exists():
+        return JsonResponse({"status": "error", "message": "هیچ پرونده معتبری برای ثبت یافت نشد."}, status=400)
+
     updated_count = 0
     updated_archives = []
 
     actor_name = profile.full_name if profile and profile.full_name else request.user.username
     actor_role = profile.role_title if profile and profile.role_title else "کارشناس تسهیلات بانکی"
+
+    bank_name = ProjectBankMapping.BANK_NAMES.get(bank_code, "")
+    if not bank_name:
+        first_d = dossiers.first()
+        if first_d and first_d.project:
+            m = ProjectBankMapping.objects.filter(project_name=first_d.project).first()
+            if m:
+                bank_code = m.bank_code
+                bank_name = m.get_bank_code_display()
+    if not bank_name:
+        bank_name = "بانک عامل"
 
     for d in dossiers:
         d.is_sent_to_bank = True
@@ -3056,7 +3252,7 @@ def bank_letter_submit_api(request):
         from_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
         if d.current_stage == 6:
             d.current_stage = 7
-            to_stage_str = f"مرحله ۷: {d.current_stage_title}"
+            to_stage_str = f"مرحله ۷: اسکن مدارک و دفترچه اقساط"
         else:
             to_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
 
@@ -3071,16 +3267,19 @@ def bank_letter_submit_api(request):
             actor=actor_name,
             role=actor_role,
             action="BANK_LETTER",
-            action_label="ارسال نامه معرفی به بانک",
-            notes=f"نامه معرفی به بانک صادره به شماره {letter_number} مورخ {letter_date}. {notes}".strip(),
+            action_label=f"ارسال نامه معرفی به {bank_name}",
+            notes=f"نامه معرفی به {bank_name} صادره به شماره {letter_number} مورخ {letter_date}. {notes}".strip(),
             signature_hash=f"BANK-LETTER-{d.archive_number}-{letter_number}"
         )
 
-    project_title = dossiers.first().project if dossiers.exists() and dossiers.first().project else "پروژه مسکونی"
+    first_dossier = dossiers.first()
+    project_title = first_dossier.project if first_dossier and first_dossier.project else "پروژه‌های مسکونی"
     bank_letter, created = BankLetter.objects.get_or_create(
         letter_number=letter_number,
         defaults={
             "letter_date": letter_date,
+            "bank_code": bank_code,
+            "bank_name": bank_name,
             "project_name": project_title,
             "sender_user": request.user,
             "sender_name": actor_name,
@@ -3089,6 +3288,8 @@ def bank_letter_submit_api(request):
         }
     )
     bank_letter.letter_date = letter_date
+    bank_letter.bank_code = bank_code
+    bank_letter.bank_name = bank_name
     if notes:
         bank_letter.notes = notes
     bank_letter.sender_name = actor_name
@@ -3098,16 +3299,18 @@ def bank_letter_submit_api(request):
 
     return JsonResponse({
         "status": "success",
-        "message": f"نامه بانک با شماره {letter_number} برای {updated_count} پرونده با موفقیت ثبت و وضعیت پرونده‌ها به‌روزرسانی شد.",
+        "message": f"نامه {bank_name} با شماره {letter_number} برای {updated_count} پرونده با موفقیت ثبت گردید و پرونده‌ها به مرحله ۷ ارجاع شدند.",
         "updated_count": updated_count,
         "updated_archives": updated_archives,
         "letter_number": letter_number,
         "letter_date": letter_date,
+        "bank_code": bank_code,
+        "bank_name": bank_name,
         "letter_id": bank_letter.id
     })
 
 
-def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs):
+def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs, proj_meta=None):
     """
     Builds an openpyxl Workbook where each project assigned to this bank gets its own sheet.
     Exact 18-column standard format from official project unit sheet.
@@ -3117,9 +3320,9 @@ def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs):
     from openpyxl.utils import get_column_letter
 
     wb = openpyxl.Workbook()
-    # Remove default sheet
     default_sheet = wb.active
-    wb.remove(default_sheet)
+    if default_sheet is not None:
+        wb.remove(default_sheet)
 
     thin_border = Border(
         left=Side(style='thin', color='475569'),
@@ -3135,9 +3338,15 @@ def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs):
     ]
     col_widths = [8, 16, 18, 8, 14, 15, 12, 8, 10, 16, 14, 14, 14, 12, 12, 12, 12, 12]
 
+    from collections import defaultdict
+    dossiers_by_proj = defaultdict(list)
+    for d in dossiers_qs.order_by("archive_number"):
+        if d.project:
+            dossiers_by_proj[d.project.strip()].append(d)
+
     sheet_names_used = set()
     for proj in project_names:
-        clean_name = re.sub(r'[:\\/?*\[\]]', '-', proj).strip()
+        clean_name = ''.join(c if c not in r':\\/?*[]\'"' else '-' for c in proj).strip()
         short_name = clean_name[:30] if len(clean_name) > 30 else clean_name
         if not short_name:
             short_name = "پروژه"
@@ -3151,26 +3360,37 @@ def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs):
         ws = wb.create_sheet(title=short_name)
         ws.views.sheetView[0].rightToLeft = True
 
+        # Branch & Project Info
+        meta = (proj_meta or {}).get(proj, {})
+        branch_str = ""
+        b_name = meta.get("branch_name")
+        b_code = meta.get("branch_code")
+        if b_name or b_code:
+            parts = []
+            if b_name: parts.append(f"شعبه {b_name}")
+            if b_code: parts.append(f"کد {b_code}")
+            branch_str = f" ({' - '.join(parts)})"
+
         # Title Banner (Row 1)
         ws.merge_cells("A1:R1")
         title_cell = ws["A1"]
-        title_cell.value = f"محاسبه قیمت تمام شده انتخاب واحد پروژه {proj} ({bank_name})"
-        title_cell.font = Font(name="Tahoma", size=12, bold=True, color="000000")
+        title_cell.value = f"فهرست معرفی متقاضیان پروژه {proj} - {bank_name}{branch_str}"
+        title_cell.font = Font(name="Tahoma", size=11, bold=True, color="000000")
         title_cell.alignment = Alignment(horizontal="center", vertical="center")
         title_cell.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
-        ws.row_dimensions[1].height = 36
+        ws.row_dimensions[1].height = 34
 
         # Header Row (Row 2)
         for col_idx, h in enumerate(headers, 1):
             cell = ws.cell(row=2, column=col_idx, value=h)
-            cell.font = Font(name="Tahoma", size=10, bold=True, color="000000")
+            cell.font = Font(name="Tahoma", size=9, bold=True, color="000000")
             cell.fill = PatternFill(start_color="CBD5E1", end_color="CBD5E1", fill_type="solid")
             cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
             cell.border = thin_border
         ws.row_dimensions[2].height = 28
 
         # Project dossiers
-        proj_dossiers = dossiers_qs.filter(project=proj).order_by("archive_number")
+        proj_dossiers = dossiers_by_proj.get(proj.strip(), [])
         row_idx = 3
         for idx, d in enumerate(proj_dossiers, 1):
             fn, ln = split_persian_name(d.full_name)
@@ -3228,35 +3448,34 @@ def bank_letter_export_excel(request):
     from django.http import HttpResponse
 
     bank_req = request.GET.get("bank", "").strip().lower()
-    archive_str = request.GET.get("archives", "")
+    archive_str = request.GET.get("archives", "").strip()
     letter_number = request.GET.get("letter", "").strip()
-    letter_date = request.GET.get("date", "").strip()
-    only_funded = request.GET.get("only_funded", "0") == "1"
 
-    # Base queryset
+    # Queryset
     if archive_str:
-        arch_list = [int(a.strip()) for a in archive_str.split(",") if a.strip().isdigit()]
+        arch_list = [int(a.strip()) for a in re.split(r'[\s,،]+', archive_str) if a.strip().isdigit()]
         dossiers_qs = HousingDossier.objects.filter(archive_number__in=arch_list)
     elif letter_number:
         dossiers_qs = HousingDossier.objects.filter(bank_letter_number=letter_number)
     else:
-        dossiers_qs = HousingDossier.objects.all()
-
-    # Project to bank map
-    existing_maps = {m.project_name: m.bank_code for m in ProjectBankMapping.objects.all()}
-    all_projects = sorted(list(set(p.strip() for p in HousingDossier.objects.values_list("project", flat=True) if p and p.strip())))
+        stage6_qs = HousingDossier.objects.filter(
+            models.Q(current_stage=6) | models.Q(is_equity_funded=True, is_sent_to_bank=False)
+        )
+        dossiers_qs = stage6_qs
 
     # 1. Multi-bank ZIP Export: All 5 Banks Excels in one ZIP
     if bank_req == "zip":
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for b_code, b_name in ProjectBankMapping.BANK_CHOICES:
-                b_projs = [p for p in all_projects if existing_maps.get(p, "maskan") == b_code]
-                wb = _build_bank_workbook(b_code, b_name, b_projs, dossiers_qs)
+                mapping_qs = ProjectBankMapping.objects.filter(bank_code=b_code).order_by("project_name")
+                b_projs = [m.project_name for m in mapping_qs]
+                proj_meta = {m.project_name: {"branch_name": m.branch_name, "branch_code": m.branch_code, "project_code": m.project_code} for m in mapping_qs}
+                wb = _build_bank_workbook(b_code, b_name, b_projs, dossiers_qs, proj_meta=proj_meta)
                 excel_buffer = io.BytesIO()
                 wb.save(excel_buffer)
                 excel_buffer.seek(0)
-                file_name = f"Nameh_Bank_{b_name.replace(' ', '_')}.xlsx"
+                file_name = f"Nameh_Bank_{b_name.replace(' ', '_')}_{len(b_projs)}_Projects.xlsx"
                 zip_file.writestr(file_name, excel_buffer.getvalue())
 
         zip_buffer.seek(0)
@@ -3268,8 +3487,10 @@ def bank_letter_export_excel(request):
     valid_banks = dict(ProjectBankMapping.BANK_CHOICES)
     if bank_req in valid_banks:
         b_name = valid_banks[bank_req]
-        b_projs = [p for p in all_projects if existing_maps.get(p, "maskan") == bank_req]
-        wb = _build_bank_workbook(bank_req, b_name, b_projs, dossiers_qs)
+        mapping_qs = ProjectBankMapping.objects.filter(bank_code=bank_req).order_by("project_name")
+        b_projs = [m.project_name for m in mapping_qs]
+        proj_meta = {m.project_name: {"branch_name": m.branch_name, "branch_code": m.branch_code, "project_code": m.project_code} for m in mapping_qs}
+        wb = _build_bank_workbook(bank_req, b_name, b_projs, dossiers_qs, proj_meta=proj_meta)
         excel_buffer = io.BytesIO()
         wb.save(excel_buffer)
         excel_buffer.seek(0)
@@ -3278,7 +3499,7 @@ def bank_letter_export_excel(request):
         resp["Content-Disposition"] = f'attachment; filename="{enc_fname}"; filename*=UTF-8''{enc_fname}'
         return resp
 
-    # 3. Default single-sheet export
+    # 3. Default single-sheet export for filtered archives or project
     project_title = request.GET.get("project", "پروژه مسکونی")
     import openpyxl
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
@@ -3286,9 +3507,13 @@ def bank_letter_export_excel(request):
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "نامه بانک"
+    if ws is None:
+        ws = wb.create_sheet(title="نامه بانک")
+    else:
+        ws.title = "نامه بانک"
     ws.views.sheetView[0].rightToLeft = True
 
+    letter_date = request.GET.get("date", "").strip()
     sheet_title = f"محاسبه قیمت تمام شده انتخاب واحد پروژه {project_title}"
     if letter_number:
         sheet_title += f" (نامه رسمی بانک: {letter_number} مورخ {letter_date})"

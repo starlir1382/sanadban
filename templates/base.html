@@ -20,6 +20,24 @@
         [x-cloak], [x-cloak] * { display: none !important; }
         .sticky-action-bar[x-cloak] { display: none !important; }
         .modal-overlay[x-cloak], .scan-viewer-modal[x-cloak] { display: none !important; }
+
+        .sb-floating-toast {
+            position: fixed;
+            bottom: 5.5rem;
+            right: 2rem;
+            z-index: 99;
+            min-width: 320px;
+            max-width: 450px;
+        }
+        @media (max-width: 640px) {
+            .sb-floating-toast {
+                right: 1rem !important;
+                left: 1rem !important;
+                min-width: 0 !important;
+                max-width: calc(100% - 2rem) !important;
+                bottom: 4.5rem !important;
+            }
+        }
     </style>
 
     <!-- Alpine.js & HTMX Core Scripts -->
@@ -73,7 +91,7 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100 transform translate-y-0"
          x-transition:leave-end="opacity-0 transform translate-y-4"
-         style="position: fixed; bottom: 5.5rem; right: 2rem; z-index: 99; min-width: 320px; max-width: 450px;"
+         class="sb-floating-toast"
          :style="toastType === 'success' ? 'background: #065f46; color: #fff;' : (toastType === 'error' ? 'background: #991b1b; color: #fff;' : 'background: #92400e; color: #fff;')"
          class="shadow-xl rounded-lg p-4 flex items-center justify-between border border-white/20">
         <div style="display: flex; align-items: center; gap: 0.75rem;">

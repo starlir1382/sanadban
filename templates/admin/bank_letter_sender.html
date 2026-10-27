@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}صدور و سوابق نامه‌های معرفی به بانک مسکن | سامانه مسکن یار{% endblock %}
+{% block title %}سامانه صدور و سوابق نامه‌های معرفی به ۵ بانک عامل | سامانه مسکن یار{% endblock %}
 
 {% block content %}
 <div style="margin-bottom: 3rem;" 
      x-data="{
         activeTab: 'create',
+        activeBankFilter: 'all',
         showOnlyUnsent: true,
         allDossiers: [],
         selectedDossiers: [],
@@ -14,14 +15,20 @@
         inputNumbers: '',
         letterNumber: '۱۴۰۳/ب/۱۰۵۲',
         letterDate: '{{ today_jalali }}',
-        selectedProject: '{{ default_project }}',
+        letterBankCode: 'maskan',
+        letterNotes: '',
+        selectedProject: '',
         projects: {{ projects|safe }},
+        projectMappings: [],
+        bankStats: {{ bank_stats|safe|default:'{}' }},
         searchQuery: '',
         historySearch: '',
         expandedLetterId: null,
         viewingHistoricalLetter: null,
         isSubmitting: false,
-        submitSuccessMessage: '',
+        isSearchingManual: false,
+        toastMessage: '',
+        showToast: false,
 
         init() {
             // 1. Load dossiers
@@ -29,7 +36,8 @@
             if (dataEl && dataEl.textContent.trim()) {
                 try {
                     this.allDossiers = JSON.parse(dataEl.textContent);
-                    this.filterByProject(this.selectedProject);
+                    // Filter stage 6 or unsent by default
+                    this.resetBatchToEligible();
                 } catch(e) {
                     console.error('Failed to parse bank dossiers json:', e);
                 }
@@ -45,7 +53,27 @@
                 }
             }
 
-            // 3. Check if initial letter was requested via URL query param
+            // 3. Load project mappings
+            const mapEl = document.getElementById('project-mappings-json');
+            if (mapEl && mapEl.textContent.trim()) {
+                try {
+                    this.projectMappings = JSON.parse(mapEl.textContent);
+                } catch(e) {
+                    console.error('Failed to parse project mappings json:', e);
+                }
+            }
+
+            // 4. Load bank stats
+            const bsEl = document.getElementById('bank-stats-json');
+            if (bsEl && bsEl.textContent.trim()) {
+                try {
+                    this.bankStats = JSON.parse(bsEl.textContent);
+                } catch(e) {
+                    console.error('Failed to parse bank stats json:', e);
+                }
+            }
+
+            // 4. Check if initial letter was requested via URL query param
             const initialLetter = '{{ initial_letter|escapejs }}';
             if (initialLetter) {
                 const found = this.letterHistory.find(l => l.letter_number === initialLetter);
@@ -55,65 +83,133 @@
             }
         },
 
-        filterByProject(proj) {
-            this.selectedProject = proj;
+        resetBatchToEligible() {
             this.viewingHistoricalLetter = null;
-            let pool = this.allDossiers;
-            if (this.showOnlyUnsent) {
-                pool = pool.filter(d => !d.is_sent_to_bank);
+            // Prefer stage 6 or equity funded dossiers
+            let eligible = this.allDossiers.filter(d => (d.current_stage === 6 || d.is_equity_funded) && !d.is_sent_to_bank);
+            if (!eligible.length) {
+                // If none at stage 6 yet, offer un-sent dossiers
+                eligible = this.allDossiers.filter(d => !d.is_sent_to_bank);
             }
-            if (proj) {
-                this.selectedDossiers = pool.filter(d => d.project === proj);
-            } else {
-                this.selectedDossiers = [...pool];
+            if (!eligible.length) {
+                eligible = [...this.allDossiers];
             }
+            this.selectedDossiers = [...eligible];
         },
 
-        addManualNumbers() {
+        get displayedDossiers() {
+            let list = this.selectedDossiers;
+            if (this.activeBankFilter && this.activeBankFilter !== 'all') {
+                list = list.filter(d => d.bank_code === this.activeBankFilter);
+            }
+            if (this.selectedProject) {
+                list = list.filter(d => d.project === this.selectedProject);
+            }
+            if (this.searchQuery.trim()) {
+                const q = this.searchQuery.trim().toLowerCase();
+                list = list.filter(d => 
+                    (d.full_name && d.full_name.toLowerCase().includes(q)) ||
+                    (d.national_id && d.national_id.includes(q)) ||
+                    String(d.archive_number).includes(q) ||
+                    (d.project && d.project.toLowerCase().includes(q))
+                );
+            }
+            return list;
+        },
+
+        get bankCounts() {
+            const counts = { all: this.selectedDossiers.length, maskan: 0, mellat: 0, saderat: 0, tejarat: 0, melli: 0 };
+            this.selectedDossiers.forEach(d => {
+                const bc = d.bank_code || 'maskan';
+                if (counts[bc] !== undefined) counts[bc]++;
+            });
+            return counts;
+        },
+
+        async addManualNumbers() {
             if (!this.inputNumbers.trim()) return;
-            const tokens = this.inputNumbers.split(/[\s,،\n\r]+/).map(t => t.trim()).filter(Boolean);
+            const rawTokens = this.inputNumbers.split(/[\s,،\n\r]+/).map(t => t.trim()).filter(Boolean);
+            if (!rawTokens.length) return;
+
             let addedCount = 0;
-            let alreadySentCount = 0;
-            tokens.forEach(tok => {
+            let missingTokens = [];
+
+            rawTokens.forEach(tok => {
                 const found = this.allDossiers.find(d => 
                     String(d.archive_number) === tok || String(d.national_id) === tok
                 );
                 if (found) {
-                    if (found.is_sent_to_bank && this.showOnlyUnsent) {
-                        alreadySentCount++;
-                        return;
-                    }
                     if (!this.selectedDossiers.some(sd => sd.archive_number === found.archive_number)) {
                         this.selectedDossiers.push(found);
                         addedCount++;
                     }
+                } else {
+                    missingTokens.push(tok);
                 }
             });
-            this.inputNumbers = '';
-            if (alreadySentCount > 0) {
-                alert(`توجه: تعداد ${alreadySentCount} پرونده قبلاً به بانک ارسال شده بودند و طبق فیلتر جاری افزوده نشدند (برای افزودن، تیک «فقط پرونده‌های جدید» را غیرفعال فرمایید).`);
+
+            // If some numbers weren't in preloaded allDossiers, search via server lookup API
+            if (missingTokens.length > 0) {
+                this.isSearchingManual = true;
+                try {
+                    const res = await fetch(`{% url 'bank_letter_lookup' %}?q=${encodeURIComponent(missingTokens.join(','))}`);
+                    const data = await res.json();
+                    if (data.status === 'success' && data.results && data.results.length) {
+                        data.results.forEach(d => {
+                            if (!this.selectedDossiers.some(sd => sd.archive_number === d.archive_number)) {
+                                this.selectedDossiers.push(d);
+                                addedCount++;
+                            }
+                            if (!this.allDossiers.some(ad => ad.archive_number === d.archive_number)) {
+                                this.allDossiers.push(d);
+                            }
+                        });
+                    }
+                } catch(err) {
+                    console.error('Server lookup error:', err);
+                } finally {
+                    this.isSearchingManual = false;
+                }
             }
+
+            this.inputNumbers = '';
             if (addedCount > 0) {
-                this.showToastMsg(`تعداد ${addedCount} پرونده با موفقیت به جدول افزوده شد.`);
-            } else if (alreadySentCount === 0) {
-                this.showToastMsg('پرونده جدیدی با شماره‌های وارد شده یافت نشد.');
+                this.triggerToast(`تعداد ${addedCount} پرونده با موفقیت به محموله اضافه شدند.`);
+            } else {
+                this.triggerToast('پرونده جدیدی با اطلاعات وارد شده یافت نشد یا قبلاً در لیست بود.');
             }
         },
 
-        addAllStage11() {
-            const stage11 = this.allDossiers.filter(d => d.current_stage === 6 && (!this.showOnlyUnsent || !d.is_sent_to_bank));
+        addAllStage6() {
+            const stage6 = this.allDossiers.filter(d => d.current_stage === 6 && (!this.showOnlyUnsent || !d.is_sent_to_bank));
             let added = 0;
-            stage11.forEach(d => {
+            stage6.forEach(d => {
                 if (!this.selectedDossiers.some(sd => sd.archive_number === d.archive_number)) {
                     this.selectedDossiers.push(d);
                     added++;
                 }
             });
             if (added > 0) {
-                this.showToastMsg(`تعداد ${added} پرونده مرحله ۶ به فهرست اضافه شدند.`);
+                this.triggerToast(`تعداد ${added} پرونده مرحله ۶ به محموله ارسالی افزوده شدند.`);
             } else {
-                this.showToastMsg('پرونده جدیدی در مرحله ۶ که به بانک ارسال نشده باشد یافت نشد.');
+                this.triggerToast('پرونده جدیدی در مرحله ۶ در حافظه اولیه یافت نشد.');
             }
+        },
+
+        addBySelectedProject() {
+            if (!this.selectedProject) {
+                alert('لطفاً ابتدا یک پروژه را از منوی کشویی انتخاب فرمایید.');
+                return;
+            }
+            const projs = this.allDossiers.filter(d => d.project === this.selectedProject && (!this.showOnlyUnsent || !d.is_sent_to_bank));
+            let added = 0;
+            projs.forEach(d => {
+                if (!this.selectedDossiers.some(sd => sd.archive_number === d.archive_number)) {
+                    this.selectedDossiers.push(d);
+                    added++;
+                }
+            });
+            this.triggerToast(`تعداد ${added} پرونده از پروژه «${this.selectedProject}» به محموله اضافه شد.`);
         },
 
         removeDossier(archiveNum) {
@@ -121,26 +217,36 @@
         },
 
         clearAll() {
-            this.selectedDossiers = [];
-            this.viewingHistoricalLetter = null;
+            if (confirm('آیا از خالی کردن کل پرونده‌های این محموله اطمینان دارید؟')) {
+                this.selectedDossiers = [];
+                this.viewingHistoricalLetter = null;
+            }
         },
 
-        resetToAllDossiers() {
-            this.viewingHistoricalLetter = null;
-            this.showOnlyUnsent = true;
-            this.filterByProject(this.selectedProject);
+        downloadBankExcel(bankCode) {
+            let archivesParam = '';
+            let targetDossiers = this.selectedDossiers;
+            if (bankCode !== 'zip') {
+                targetDossiers = targetDossiers.filter(d => d.bank_code === bankCode);
+            }
+            if (targetDossiers.length) {
+                archivesParam = '&archives=' + targetDossiers.map(d => d.archive_number).join(',');
+            }
+            const url = `{% url 'bank_letter_export_excel' %}?bank=${bankCode}${archivesParam}`;
+            window.open(url, '_blank');
         },
 
         loadHistoryLetterToSheet(letter) {
             this.viewingHistoricalLetter = letter;
             this.letterNumber = letter.letter_number;
             this.letterDate = letter.letter_date;
-            this.selectedProject = letter.project_name || this.selectedProject;
+            this.letterBankCode = letter.bank_code || 'maskan';
+            this.letterNotes = letter.notes || '';
             this.showOnlyUnsent = false;
             
             // Match dossiers by archive numbers
             const matched = this.allDossiers.filter(d => letter.dossier_archives.includes(d.archive_number));
-            this.selectedDossiers = matched.length ? matched : this.allDossiers.filter(d => letter.dossier_archives.includes(d.archive_number));
+            this.selectedDossiers = matched.length ? matched : (letter.dossiers || []);
             
             this.activeTab = 'create';
             setTimeout(() => {
@@ -157,8 +263,9 @@
         },
 
         exportHistoryExcel(letter) {
-            const archives = letter.dossier_archives.join(',');
-            const url = `{% url 'bank_letter_export_excel' %}?archives=${archives}&letter=${encodeURIComponent(letter.letter_number)}&date=${encodeURIComponent(letter.letter_date)}&project=${encodeURIComponent(letter.project_name || '')}`;
+            const archives = (letter.dossier_archives || []).join(',');
+            const bCode = letter.bank_code || 'maskan';
+            const url = `{% url 'bank_letter_export_excel' %}?bank=${bCode}&archives=${archives}&letter=${encodeURIComponent(letter.letter_number)}&date=${encodeURIComponent(letter.letter_date)}`;
             window.open(url, '_blank');
         },
 
@@ -172,6 +279,7 @@
             return this.letterHistory.filter(l => 
                 (l.letter_number && l.letter_number.toLowerCase().includes(q)) ||
                 (l.letter_date && l.letter_date.toLowerCase().includes(q)) ||
+                (l.bank_name && l.bank_name.toLowerCase().includes(q)) ||
                 (l.project_name && l.project_name.toLowerCase().includes(q)) ||
                 (l.sender_name && l.sender_name.toLowerCase().includes(q)) ||
                 (l.dossiers && l.dossiers.some(d => 
@@ -187,25 +295,36 @@
         },
 
         async submitBankLetter() {
-            if (!this.selectedDossiers.length) {
-                alert('لطفاً حداقل یک پرونده را انتخاب فرمایید.');
+            // Determine target dossiers based on selected bank in form or all selected
+            let targetDocs = this.selectedDossiers;
+            if (this.letterBankCode && this.letterBankCode !== 'all') {
+                targetDocs = this.selectedDossiers.filter(d => d.bank_code === this.letterBankCode);
+                if (!targetDocs.length) {
+                    targetDocs = this.selectedDossiers;
+                }
+            }
+
+            if (!targetDocs.length) {
+                alert('هیچ پرونده‌ای برای ثبت شماره نامه بانک انتخاب نشده است.');
                 return;
             }
             if (!this.letterNumber.trim() || !this.letterDate.trim()) {
-                alert('شماره نامه و تاریخ نامه بانک الزامی هستند.');
+                alert('شماره نامه رسمی و تاریخ نامه بانک الزامی هستند.');
                 return;
             }
 
-            if (!confirm(`آیا از صدور و ثبت رسمی نامه بانک شماره ${this.letterNumber} برای ${this.selectedDossiers.length} پرونده اطمینان دارید؟\nاین عملیات وضعیت «ارسال به بانک» را در پروفایل متقاضیان فعال نموده و پرونده‌های مرحله ۱۱ را به مرحله ۱۲ منتقل می‌کند.`)) {
-                return;
-            }
+            const bankTitle = this.getBankName(this.letterBankCode);
+            const msg = `آیا از ثبت شماره نامه رسمی «${this.letterNumber}» مورخ «${this.letterDate}» برای ${targetDocs.length} پرونده (${bankTitle}) اطمینان دارید؟\nاین عملیات وضعیت پرونده‌ها را به «ارسال به بانک» تغییر داده و آن‌ها را به مرحله ۷ (اسکن مدارک و دفترچه اقساط) منتقل می‌کند.`;
+            if (!confirm(msg)) return;
 
             this.isSubmitting = true;
             try {
                 const payload = {
-                    archive_numbers: this.selectedDossiers.map(d => d.archive_number),
+                    archive_numbers: targetDocs.map(d => d.archive_number),
                     letter_number: this.letterNumber.trim(),
                     letter_date: this.letterDate.trim(),
+                    bank_code: this.letterBankCode,
+                    notes: this.letterNotes.trim(),
                 };
 
                 const res = await fetch('{% url 'bank_letter_submit' %}', {
@@ -220,11 +339,14 @@
                 const data = await res.json();
                 if (data.status === 'success') {
                     // Update local state
-                    this.selectedDossiers.forEach(d => {
+                    targetDocs.forEach(d => {
                         d.is_sent_to_bank = true;
                         d.bank_letter_number = this.letterNumber;
                         d.bank_letter_date = this.letterDate;
-                        if (d.current_stage === 6) d.current_stage = 12;
+                        if (d.current_stage === 6) {
+                            d.current_stage = 7;
+                            d.current_stage_title = 'اسکن مدارک و دفترچه اقساط';
+                        }
                     });
                     
                     // Add new letter to history
@@ -232,14 +354,16 @@
                         id: data.letter_id || Date.now(),
                         letter_number: this.letterNumber,
                         letter_date: this.letterDate,
-                        project_name: this.selectedProject,
+                        bank_code: this.letterBankCode,
+                        bank_name: data.bank_name || bankTitle,
+                        project_name: targetDocs[0] ? targetDocs[0].project : 'پروژه‌های مسکونی',
                         sender_name: 'کارشناس اقدام‌کننده',
                         sender_role: 'واحد تسهیلات بانکی',
-                        notes: '',
+                        notes: this.letterNotes,
                         created_at_jalali: 'هم‌اکنون',
-                        dossier_count: this.selectedDossiers.length,
-                        dossier_archives: this.selectedDossiers.map(d => d.archive_number),
-                        dossiers: this.selectedDossiers.map(d => ({
+                        dossier_count: targetDocs.length,
+                        dossier_archives: targetDocs.map(d => d.archive_number),
+                        dossiers: targetDocs.map(d => ({
                             archive_number: d.archive_number,
                             full_name: d.full_name,
                             national_id: d.national_id,
@@ -251,8 +375,9 @@
                     };
                     this.letterHistory.unshift(newHistItem);
 
-                    this.submitSuccessMessage = data.message;
+                    this.triggerToast(data.message);
                     alert(data.message);
+                    this.activeTab = 'history';
                 } else {
                     alert('خطا در ثبت نامه: ' + (data.message || 'خطای سرور'));
                 }
@@ -264,86 +389,379 @@
             }
         },
 
-        printTable() {
-            window.print();
+        getBankName(code) {
+            const map = {
+                'maskan': 'بانک مسکن',
+                'mellat': 'بانک ملت',
+                'saderat': 'بانک صادرات ایران',
+                'tejarat': 'بانک تجارت',
+                'melli': 'بانک ملی ایران',
+                'all': 'همه بانک‌ها'
+            };
+            return map[code] || 'بانک عامل';
         },
 
-        exportExcel() {
-            if (!this.selectedDossiers.length) {
-                alert('هیچ پرونده‌ای در جدول وجود ندارد.');
-                return;
-            }
-            const archives = this.selectedDossiers.map(d => d.archive_number).join(',');
-            const url = `{% url 'bank_letter_export_excel' %}?archives=${archives}&letter=${encodeURIComponent(this.letterNumber)}&date=${encodeURIComponent(this.letterDate)}&project=${encodeURIComponent(this.selectedProject || '')}`;
-            window.open(url, '_blank');
-        },
-
-        showToastMsg(msg) {
-            console.log(msg);
+        triggerToast(msg) {
+            this.toastMessage = msg;
+            this.showToast = true;
+            setTimeout(() => { this.showToast = false; }, 4000);
         }
      }">
 
     {% csrf_token %}
     <script id="dossiers-bank-json" type="application/json">{{ dossiers_json|safe }}</script>
     <script id="letters-history-json" type="application/json">{{ letters_history_json|safe }}</script>
+    <script id="project-mappings-json" type="application/json">{{ project_mappings_json|safe }}</script>
+    <script id="bank-stats-json" type="application/json">{{ bank_stats_json|safe }}</script>
+
+    <!-- Floating Toast Notification -->
+    <div x-show="showToast" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-2"
+         class="no-print"
+         style="position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: #0f172a; color: #ffffff; border-right: 4px solid #10b981; padding: 12px 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; gap: 10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span x-text="toastMessage"></span>
+    </div>
 
     <!-- Top Management Hero Banner (Hidden in Print) -->
-    <div class="no-print" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); border-radius: 14px; padding: 1.5rem 1.75rem; color: #ffffff; margin-bottom: 1.25rem; box-shadow: 0 4px 16px rgba(15,39,68,0.15);">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div class="bank-hero-banner no-print" style="background: linear-gradient(135deg, #0b1e36 0%, #1e3a8a 60%, #1e40af 100%); border-radius: 14px; padding: 1.5rem 1.75rem; color: #ffffff; margin-bottom: 1.25rem; box-shadow: 0 6px 20px rgba(11,30,54,0.25);">
+        <div class="bank-hero-inner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                    <span style="background: #38bdf8; color: #0f2744; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;">
-                        مدیریت تسهیلات بانکی
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+                    <span style="background: #38bdf8; color: #0f2744; font-size: 0.74rem; font-weight: 900; padding: 3px 10px; border-radius: 999px;">
+                        تسهیلات و نامه‌های ۵ بانک عامل
                     </span>
-                    <span style="font-size: 0.75rem; color: #93c5fd;" class="fa-num">مرحله ۶ گردش کار ۲۱ مرحله‌ای</span>
+                    <span style="font-size: 0.78rem; color: #93c5fd;" class="fa-num">مرحله ۶ گردش کار ۲۱ مرحله‌ای (تأیید آورده و معرفی به بانک)</span>
                 </div>
-                <h2 style="font-size: 1.35rem; font-weight: 800; color: #ffffff; margin: 0 0 0.35rem 0;">
-                    سامانه صدور و سوابق نامه‌های معرفی به بانک مسکن
+                <h2 style="font-size: 1.35rem; font-weight: 900; color: #ffffff; margin: 0 0 0.4rem 0;">
+                    سامانه صدور و سوابق نامه‌های معرفی به ۵ بانک عامل
                 </h2>
-                <p style="font-size: 0.85rem; color: #cbd5e1; margin: 0; line-height: 1.6;">
-                    تولید فرم استاندارد انتخاب واحد متقاضیان پروژه، ثبت رسمی شماره و تاریخ نامه بانک و بایگانی کامل سوابق مکاتبات صادره
+                <p style="font-size: 0.84rem; color: #cbd5e1; margin: 0; line-height: 1.6;">
+                    تولید ۵ فایل اکسل مجزا به تفکیک بانک‌های مسکن، ملت، صادرات، تجارت و ملی (با شیت‌های مجزا برای هر پروژه از ۹۶ پروژه)، مدیریت حذفی/اضافی محموله ارسالی و ثبت رسمی شماره نامه جهت ارجاع به مرحله ۷
                 </p>
+                <!-- Totals KPI Strip -->
+                <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; margin-top: 0.85rem;">
+                    <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); border-radius: 8px; padding: 4px 12px; font-size: 0.78rem; display: flex; align-items: center; gap: 6px;">
+                        <span style="color: #93c5fd;">کل پروژه‌های ۵ بانک:</span>
+                        <strong class="fa-num" style="color: #ffffff; font-size: 0.88rem;">{{ projects_count|default:"۹۶" }} پروژه</strong>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); border-radius: 8px; padding: 4px 12px; font-size: 0.78rem; display: flex; align-items: center; gap: 6px;">
+                        <span style="color: #93c5fd;">کل متقاضیان ثبتی استان (۵ بانک):</span>
+                        <strong class="fa-num" style="color: #ffffff; font-size: 0.88rem;">{{ total_dossiers_count }} پرونده</strong>
+                    </div>
+                    <div style="background: rgba(16,185,129,0.25); border: 1px solid rgba(16,185,129,0.45); border-radius: 8px; padding: 4px 12px; font-size: 0.78rem; display: flex; align-items: center; gap: 6px;">
+                        <span style="color: #a7f3d0;">در این محموله (مرحله ۶):</span>
+                        <strong class="fa-num" style="color: #ffffff; font-size: 0.88rem;" x-text="selectedDossiers.length + ' پرونده'"></strong>
+                    </div>
+                </div>
             </div>
 
             <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-                <button type="button" @click="printTable()" class="btn btn-outline" style="background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.3); display: flex; align-items: center; gap: 0.4rem; font-weight: 700;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                    <span>چاپ رسمی جدول (A4 Landscape)</span>
+                <button type="button" @click="downloadBankExcel('zip')" class="btn btn-outline" style="background: #38bdf8; color: #0f2744; border-color: #38bdf8; font-weight: 900; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 12px rgba(56,189,248,0.3);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود یکجای ۵ فایل اکسل (ZIP)</span>
                 </button>
-                <button type="button" @click="exportExcel()" class="btn btn-outline" style="background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.3); display: flex; align-items: center; gap: 0.4rem; font-weight: 700;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    <span>خروجی اکسل نامه بانک</span>
-                </button>
-                <button type="button" @click="submitBankLetter()" :disabled="isSubmitting" class="btn btn-primary" style="background: #10b981; border-color: #059669; color: #ffffff; font-weight: 800; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span x-text="isSubmitting ? 'در حال ثبت...' : 'ثبت و ارسال رسمی نامه به بانک'"></span>
+                <button type="button" @click="activeTab = 'register'" class="btn btn-primary" style="background: #10b981; border-color: #059669; color: #ffffff; font-weight: 900; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>ثبت شماره نامه بانک (انتقال به مرحله ۷)</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Navigation Tabs: صدور نامه جدید | سوابق و تاریخچه نامه‌های ارسالی (Hidden in Print) -->
-    <div class="no-print" style="display: flex; gap: 0.65rem; margin-bottom: 1.25rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.65rem;">
+    <!-- Navigation Tabs: مدیریت محموله و اکسل‌ها | ثبت شماره نامه و ارجاع به مرحله ۷ | سوابق و تاریخچه -->
+    <div class="no-print" style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.75rem; flex-wrap: wrap; align-items: center;">
         <button type="button" 
                 @click="activeTab = 'create'" 
                 :style="activeTab === 'create' ? 'background: #0f2744; color: #ffffff; border-color: #0f2744;' : 'background: #ffffff; color: #334155; border-color: #cbd5e1;'"
-                style="padding: 0.6rem 1.35rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; border: 1.5px solid; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                style="padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; border: 1.5px solid; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span>مدیریت محموله ارسالی و دانلود اکسل ۵ بانک</span>
+            <span style="background: #38bdf8; color: #0f2744; font-size: 0.74rem; padding: 1px 8px; border-radius: 999px; font-weight: 900;" class="fa-num" x-text="selectedDossiers.length"></span>
+        </button>
+
+        <button type="button" 
+                @click="activeTab = 'register'" 
+                :style="activeTab === 'register' ? 'background: #0f2744; color: #ffffff; border-color: #0f2744;' : 'background: #ffffff; color: #334155; border-color: #cbd5e1;'"
+                style="padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; border: 1.5px solid; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            <span>صدور و ارسال نامه جدید به بانک</span>
+            <span>ثبت رسمی شماره و تاریخ نامه بانک (روز بعد)</span>
         </button>
 
         <button type="button" 
                 @click="activeTab = 'history'" 
                 :style="activeTab === 'history' ? 'background: #0f2744; color: #ffffff; border-color: #0f2744;' : 'background: #ffffff; color: #334155; border-color: #cbd5e1;'"
-                style="padding: 0.6rem 1.35rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; border: 1.5px solid; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                style="padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; border: 1.5px solid; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-            <span>سوابق و تاریخچه نامه‌های ارسالی به بانک</span>
-            <span style="background: #38bdf8; color: #0f2744; font-size: 0.74rem; padding: 1px 8px; border-radius: 999px; font-weight: 900;" class="fa-num" x-text="letterHistory.length"></span>
+            <span>سوابق و بایگانی نامه‌های صادره بانک</span>
+            <span style="background: #e2e8f0; color: #0f2744; font-size: 0.74rem; padding: 1px 8px; border-radius: 999px; font-weight: 900;" class="fa-num" x-text="letterHistory.length"></span>
         </button>
     </div>
 
     <!-- =========================================================================
-         TAB 2: سوابق و تاریخچه نامه‌های ارسالی به بانک
+         5 BANKS DOWNLOAD CENTER (Always visible in Management Tab)
+         ========================================================================= -->
+    <div x-show="activeTab === 'create'" class="no-print" style="margin-bottom: 1.5rem;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-weight: 900; font-size: 1rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                <span>مرکز دانلود ۵ فایل اکسل به تفکیک بانک‌های عامل (هر بانک شامل شیت‌های مجزا برای پروژه‌ها):</span>
+            </div>
+            <div style="font-size: 0.8rem; color: #64748b;">
+                مجموع ۹۶ پروژه استان با مشخصات کامل شعب و فرمت استاندارد ۱۸ ستونه
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.85rem; margin-bottom: 1rem;">
+            
+            <!-- 1. Maskan -->
+            <div style="background: #ffffff; border: 2px solid #fda4af; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 6px rgba(225,29,72,0.06); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 900; color: #e11d48; font-size: 0.95rem;">🏦 بانک مسکن</span>
+                        <span style="background: #ffe4e6; color: #be123c; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 999px;">۳۸ پروژه</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.76rem; color: #64748b; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>در محموله جاری (مرحله ۶):</span>
+                            <strong class="fa-num" style="color: #0f172a; font-size: 0.84rem;" x-text="bankCounts.maskan + ' پرونده'"></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 3px;">
+                            <span>کل متقاضیان استان:</span>
+                            <span class="fa-num" style="color: #475569; font-weight: 700;">۱۴٬۰۹۷ پرونده</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" @click="downloadBankExcel('maskan')" class="btn btn-outline" style="width: 100%; background: #fff1f2; color: #be123c; border-color: #fecdd3; font-weight: 800; font-size: 0.8rem; padding: 6px 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود اکسل مسکن</span>
+                </button>
+            </div>
+
+            <!-- 2. Mellat -->
+            <div style="background: #ffffff; border: 2px solid #fca5a5; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 6px rgba(185,28,28,0.06); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 900; color: #b91c1c; font-size: 0.95rem;">🏦 بانک ملت</span>
+                        <span style="background: #fee2e2; color: #991b1b; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 999px;">۲۸ پروژه</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.76rem; color: #64748b; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>در محموله جاری (مرحله ۶):</span>
+                            <strong class="fa-num" style="color: #0f172a; font-size: 0.84rem;" x-text="bankCounts.mellat + ' پرونده'"></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 3px;">
+                            <span>کل متقاضیان استان:</span>
+                            <span class="fa-num" style="color: #475569; font-weight: 700;">۱۰٬۲۵۴ پرونده</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" @click="downloadBankExcel('mellat')" class="btn btn-outline" style="width: 100%; background: #fef2f2; color: #991b1b; border-color: #fecaca; font-weight: 800; font-size: 0.8rem; padding: 6px 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود اکسل ملت</span>
+                </button>
+            </div>
+
+            <!-- 3. Saderat -->
+            <div style="background: #ffffff; border: 2px solid #a7f3d0; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 6px rgba(5,150,105,0.06); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 900; color: #059669; font-size: 0.95rem;">🏦 بانک صادرات</span>
+                        <span style="background: #d1fae5; color: #065f46; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 999px;">۱۷ پروژه</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.76rem; color: #64748b; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>در محموله جاری (مرحله ۶):</span>
+                            <strong class="fa-num" style="color: #0f172a; font-size: 0.84rem;" x-text="bankCounts.saderat + ' پرونده'"></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 3px;">
+                            <span>کل متقاضیان استان:</span>
+                            <span class="fa-num" style="color: #475569; font-weight: 700;">۵٬۳۵۳ پرونده</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" @click="downloadBankExcel('saderat')" class="btn btn-outline" style="width: 100%; background: #ecfdf5; color: #065f46; border-color: #a7f3d0; font-weight: 800; font-size: 0.8rem; padding: 6px 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود اکسل صادرات</span>
+                </button>
+            </div>
+
+            <!-- 4. Tejarat -->
+            <div style="background: #ffffff; border: 2px solid #fde68a; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 6px rgba(217,119,6,0.06); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 900; color: #d97706; font-size: 0.95rem;">🏦 بانک تجارت</span>
+                        <span style="background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 999px;">۸ پروژه</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.76rem; color: #64748b; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>در محموله جاری (مرحله ۶):</span>
+                            <strong class="fa-num" style="color: #0f172a; font-size: 0.84rem;" x-text="bankCounts.tejarat + ' پرونده'"></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 3px;">
+                            <span>کل متقاضیان استان:</span>
+                            <span class="fa-num" style="color: #475569; font-weight: 700;">۲٬۲۴۰ پرونده</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" @click="downloadBankExcel('tejarat')" class="btn btn-outline" style="width: 100%; background: #fffbeb; color: #92400e; border-color: #fde68a; font-weight: 800; font-size: 0.8rem; padding: 6px 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود اکسل تجارت</span>
+                </button>
+            </div>
+
+            <!-- 5. Melli -->
+            <div style="background: #ffffff; border: 2px solid #bae6fd; border-radius: 12px; padding: 1rem; box-shadow: 0 2px 6px rgba(2,132,199,0.06); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 900; color: #0284c7; font-size: 0.95rem;">🏦 بانک ملی ایران</span>
+                        <span style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 999px;">۵ پروژه</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.76rem; color: #64748b; margin-bottom: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>در محموله جاری (مرحله ۶):</span>
+                            <strong class="fa-num" style="color: #0f172a; font-size: 0.84rem;" x-text="bankCounts.melli + ' پرونده'"></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 3px;">
+                            <span>کل متقاضیان استان:</span>
+                            <span class="fa-num" style="color: #475569; font-weight: 700;">۲٬۹۸۰ پرونده</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" @click="downloadBankExcel('melli')" class="btn btn-outline" style="width: 100%; background: #f0f9ff; color: #0369a1; border-color: #bae6fd; font-weight: 800; font-size: 0.8rem; padding: 6px 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود اکسل ملی</span>
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================================================================
+         TAB 2: ثبت رسمی شماره نامه و تاریخ نامه بانک (ارجاع به مرحله ۷)
+         ========================================================================= -->
+    <div x-show="activeTab === 'register'" class="no-print" style="margin-bottom: 2rem;">
+        
+        <div style="background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 1.5rem 1.75rem; box-shadow: 0 4px 12px rgba(37,99,235,0.08); max-width: 800px; margin: 0 auto;">
+            
+            <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 0.75rem;">
+                <div style="width: 40px; height: 40px; border-radius: 8px; background: #eff6ff; color: #1d4ed8; display: flex; align-items: center; justify-content: center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 1.15rem; font-weight: 900; color: #0f172a; margin: 0 0 2px 0;">
+                        ثبت رسمی شماره نامه و تاریخ بانک 
+                    </h3>
+                    <div style="font-size: 0.8rem; color: #64748b;">
+                        پس از دریافت شماره نامه فیزیکی از سوی بانک، اطلاعات را در این بخش ثبت کنید تا پرونده‌ها به مرحله ۷ ارجاع شوند.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Bank Selection -->
+            <div class="field-group" style="margin-bottom: 1.1rem;">
+                <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
+                    <span>* بانک عامل صادرکننده نامه:</span>
+                </label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin-top: 0.35rem;">
+                    <label style="border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; font-weight: 800;"
+                           :style="letterBankCode === 'maskan' ? 'border-color: #e11d48; background: #fff1f2; color: #be123c;' : 'background: #ffffff;'">
+                        <input type="radio" value="maskan" x-model="letterBankCode" style="accent-color: #e11d48;">
+                        <span>بانک مسکن</span>
+                    </label>
+
+                    <label style="border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; font-weight: 800;"
+                           :style="letterBankCode === 'mellat' ? 'border-color: #b91c1c; background: #fef2f2; color: #991b1b;' : 'background: #ffffff;'">
+                        <input type="radio" value="mellat" x-model="letterBankCode" style="accent-color: #b91c1c;">
+                        <span>بانک ملت</span>
+                    </label>
+
+                    <label style="border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; font-weight: 800;"
+                           :style="letterBankCode === 'saderat' ? 'border-color: #059669; background: #ecfdf5; color: #065f46;' : 'background: #ffffff;'">
+                        <input type="radio" value="saderat" x-model="letterBankCode" style="accent-color: #059669;">
+                        <span>بانک صادرات</span>
+                    </label>
+
+                    <label style="border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; font-weight: 800;"
+                           :style="letterBankCode === 'tejarat' ? 'border-color: #d97706; background: #fffbeb; color: #92400e;' : 'background: #ffffff;'">
+                        <input type="radio" value="tejarat" x-model="letterBankCode" style="accent-color: #d97706;">
+                        <span>بانک تجارت</span>
+                    </label>
+
+                    <label style="border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; font-weight: 800;"
+                           :style="letterBankCode === 'melli' ? 'border-color: #0284c7; background: #f0f9ff; color: #0369a1;' : 'background: #ffffff;'">
+                        <input type="radio" value="melli" x-model="letterBankCode" style="accent-color: #0284c7;">
+                        <span>بانک ملی</span>
+                    </label>
+
+                    <label style="border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; font-weight: 800;"
+                           :style="letterBankCode === 'all' ? 'border-color: #0f172a; background: #f8fafc; color: #0f172a;' : 'background: #ffffff;'">
+                        <input type="radio" value="all" x-model="letterBankCode" style="accent-color: #0f172a;">
+                        <span>همه پرونده‌های محموله</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="bank-letter-form-grid">
+                <!-- Letter Number Input -->
+                <div class="field-group">
+                    <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
+                        <span>* شماره نامه رسمی معرفی به بانک (مرحله ۶):</span>
+                    </label>
+                    <input type="text" x-model="letterNumber" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="مثال: ۱۴۰۳/۱۱۰/۵۴۲۳">
+                </div>
+
+                <!-- Letter Date Input -->
+                <div class="field-group">
+                    <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
+                        <span>* تاریخ نامه بانک (شمسی):</span>
+                    </label>
+                    <input type="text" x-model="letterDate" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="۱۴۰۳/۰۸/۰۵">
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="field-group" style="margin-bottom: 1.25rem;">
+                <label class="field-label" style="font-weight: 800; color: #334155;">
+                    <span>توضیحات اداری / رونوشت (اختیاری):</span>
+                </label>
+                <input type="text" x-model="letterNotes" class="input-control" placeholder="مثال: محموله اول معرفی متقاضیان پروژه... جهت تشکیل پرونده تسهیلات مسکن">
+            </div>
+
+            <!-- Affected Count Summary -->
+            <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="font-size: 0.85rem; color: #166534; font-weight: 800;">
+                    تعداد پرونده‌های مشمول این نامه در محموله جاری:
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 900; color: #15803d;" class="fa-num">
+                    <span x-text="letterBankCode === 'all' ? selectedDossiers.length : selectedDossiers.filter(d => d.bank_code === letterBankCode).length"></span> پرونده
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" @click="activeTab = 'create'" class="btn btn-outline" style="padding: 0.65rem 1.25rem;">
+                    بازگشت به جدول محموله
+                </button>
+                <button type="button" @click="submitBankLetter()" :disabled="isSubmitting" class="btn btn-primary" style="background: #10b981; border-color: #059669; color: #ffffff; font-weight: 900; padding: 0.65rem 1.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span x-text="isSubmitting ? 'در حال ثبت و ارجاع...' : 'ثبت قطعی شماره نامه و انتقال پرونده‌ها به مرحله ۷'"></span>
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================================================================
+         TAB 3: سوابق و تاریخچه نامه‌های ارسالی به بانک
          ========================================================================= -->
     <div x-show="activeTab === 'history'" class="no-print" style="margin-bottom: 2rem;">
         
@@ -385,12 +803,12 @@
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
                 <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                    <span>فهرست نامه‌های معرفی متقاضیان به بانک مسکن</span>
+                    <span>فهرست نامه‌های معرفی متقاضیان به بانک‌های عامل</span>
                 </div>
                 <div style="min-width: 300px; flex: 1; max-width: 480px;">
                     <input type="text" 
                            x-model="historySearch" 
-                           placeholder="جستجو در سوابق (شماره نامه، تاریخ، نام پروژه، ثبت‌کننده، نام متقاضی یا کدملی)..."
+                           placeholder="جستجو در سوابق (شماره نامه، تاریخ، نام پروژه، بانک، نام متقاضی یا کدملی)..."
                            class="input-control fa-num" 
                            style="height: 40px; font-size: 0.82rem;">
                 </div>
@@ -404,6 +822,7 @@
                             <th style="padding: 10px 8px; width: 45px; text-align: center;">ردیف</th>
                             <th style="padding: 10px 10px;">شماره نامه رسمی بانک</th>
                             <th style="padding: 10px 10px;">تاریخ صدور نامه</th>
+                            <th style="padding: 10px 10px;">بانک عامل</th>
                             <th style="padding: 10px 10px;">عنوان پروژه</th>
                             <th style="padding: 10px 10px; text-align: center;">تعداد متقاضیان</th>
                             <th style="padding: 10px 10px;">ثبت‌کننده / کارشناس</th>
@@ -423,6 +842,11 @@
                                     </span>
                                 </td>
                                 <td style="padding: 10px 10px; font-weight: 700; color: #334155;" class="fa-num" x-text="item.letter_date"></td>
+                                <td style="padding: 10px 10px; font-weight: 800;">
+                                    <span style="padding: 2px 7px; border-radius: 4px; font-size: 0.75rem;"
+                                          :style="item.bank_code === 'maskan' ? 'background: #ffe4e6; color: #be123c;' : (item.bank_code === 'mellat' ? 'background: #fee2e2; color: #991b1b;' : (item.bank_code === 'saderat' ? 'background: #d1fae5; color: #065f46;' : (item.bank_code === 'tejarat' ? 'background: #fef3c7; color: #92400e;' : 'background: #e0f2fe; color: #0369a1;')))"
+                                          x-text="item.bank_name || 'بانک عامل'"></span>
+                                </td>
                                 <td style="padding: 10px 10px; font-weight: 700; color: #0f172a;" x-text="item.project_name || '-'"></td>
                                 <td style="padding: 10px 10px; text-align: center;">
                                     <span style="background: #f0fdf4; color: #166534; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 1px solid #bbf7d0;" class="fa-num" x-text="item.dossier_count + ' متقاضی'"></span>
@@ -478,11 +902,11 @@
 
                             <!-- Expandable Drawer: Applicants in this Letter -->
                             <tr x-show="expandedLetterId === item.id" style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
-                                <td colspan="8" style="padding: 1rem 1.25rem;">
+                                <td colspan="9" style="padding: 1rem 1.25rem;">
                                     <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.85rem 1rem;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
                                             <div style="font-weight: 800; font-size: 0.82rem; color: #1e3a8a;">
-                                                متقاضیان معرفی شده در نامه شماره <span class="fa-num" x-text="item.letter_number"></span>:
+                                                متقاضیان معرفی شده در نامه شماره <span class="fa-num" x-text="item.letter_number"></span> (<span x-text="item.bank_name || 'بانک عامل'"></span>):
                                             </div>
                                             <div style="font-size: 0.75rem; color: #64748b;">
                                                 تعداد کل: <strong class="fa-num" x-text="item.dossiers.length"></strong> پرونده
@@ -531,7 +955,7 @@
 
                         <template x-if="!filteredHistory.length">
                             <tr>
-                                <td colspan="8" style="padding: 2.5rem; text-align: center; color: #64748b; font-weight: 700;">
+                                <td colspan="9" style="padding: 2.5rem; text-align: center; color: #64748b; font-weight: 700;">
                                     هیچ نامه صادره‌ای با مشخصات وارد شده یافت نشد.
                                 </td>
                             </tr>
@@ -544,7 +968,7 @@
     </div>
 
     <!-- =========================================================================
-         TAB 1: صدور و ارسال نامه جدید به بانک (و پیش‌نمایش جدول ۱۸ ستونه)
+         TAB 1: مدیریت محموله ارسالی (افزودن و حذف پرونده‌ها و پیش‌نمایش جدول ۱۸ ستونه)
          ========================================================================= -->
     <div x-show="activeTab === 'create'">
 
@@ -555,41 +979,76 @@
             <div style="display: flex; align-items: center; gap: 0.65rem;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 <div style="font-size: 0.86rem; color: #0c4a6e; font-weight: 700;">
-                    شما در حال مشاهده و بازخوانی سوابق نامه رسمی شماره <strong class="fa-num" style="color: #0369a1;" x-text="viewingHistoricalLetter ? viewingHistoricalLetter.letter_number : ''"></strong> مورخ <strong class="fa-num" x-text="viewingHistoricalLetter ? viewingHistoricalLetter.letter_date : ''"></strong> هستید.
+                    شما در حال بازخوانی سوابق نامه رسمی شماره <strong class="fa-num" style="color: #0369a1;" x-text="viewingHistoricalLetter ? viewingHistoricalLetter.letter_number : ''"></strong> مورخ <strong class="fa-num" x-text="viewingHistoricalLetter ? viewingHistoricalLetter.letter_date : ''"></strong> (<span x-text="viewingHistoricalLetter ? viewingHistoricalLetter.bank_name : ''"></span>) هستید.
                 </div>
             </div>
-            <button type="button" @click="resetToAllDossiers()" class="btn btn-outline" style="background: #ffffff; color: #0369a1; border-color: #7dd3fc; font-size: 0.78rem; font-weight: 800; padding: 4px 10px;">
-                ✕ خروج از حالت بایگانی و نمایش همه پرونده‌ها
+            <button type="button" @click="resetBatchToEligible()" class="btn btn-outline" style="background: #ffffff; color: #0369a1; border-color: #7dd3fc; font-size: 0.78rem; font-weight: 800; padding: 4px 10px;">
+                ✕ خروج از حالت بایگانی و بازگشت به محموله
             </button>
         </div>
 
-        <!-- Configuration & Selection Card (Hidden in Print) -->
+        <!-- Shipment Batch Controls Card (Hidden in Print) -->
         <div class="no-print" style="background: #ffffff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(37,99,235,0.06);">
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+            <!-- Bank Filter Pills -->
+            <div style="margin-bottom: 1rem;">
+                <div style="font-size: 0.82rem; font-weight: 800; color: #1e3a8a; margin-bottom: 0.45rem;">
+                    فیلتر جدول بر اساس بانک عامل:
+                </div>
+                <div class="bank-filter-bar" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" 
+                            @click="activeBankFilter = 'all'" 
+                            :style="activeBankFilter === 'all' ? 'background: #0f172a; color: #ffffff; border-color: #0f172a;' : 'background: #ffffff; color: #334155; border-color: #cbd5e1;'"
+                            style="padding: 5px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; border: 1.5px solid; cursor: pointer; white-space: nowrap;">
+                        همه بانک‌ها (محموله: <span class="fa-num" x-text="bankCounts.all"></span> | کل: <span class="fa-num">۳۴٬۹۲۴</span>)
+                    </button>
+
+                    <button type="button" 
+                            @click="activeBankFilter = 'maskan'" 
+                            :style="activeBankFilter === 'maskan' ? 'background: #e11d48; color: #ffffff; border-color: #e11d48;' : 'background: #ffffff; color: #be123c; border-color: #fecdd3;'"
+                            style="padding: 5px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; border: 1.5px solid; cursor: pointer; white-space: nowrap;">
+                        بانک مسکن (محموله: <span class="fa-num" x-text="bankCounts.maskan"></span> | کل: <span class="fa-num">۱۴٬۰۹۷</span>)
+                    </button>
+
+                    <button type="button" 
+                            @click="activeBankFilter = 'mellat'" 
+                            :style="activeBankFilter === 'mellat' ? 'background: #b91c1c; color: #ffffff; border-color: #b91c1c;' : 'background: #ffffff; color: #991b1b; border-color: #fecaca;'"
+                            style="padding: 5px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; border: 1.5px solid; cursor: pointer; white-space: nowrap;">
+                        بانک ملت (محموله: <span class="fa-num" x-text="bankCounts.mellat"></span> | کل: <span class="fa-num">۱۰٬۲۵۴</span>)
+                    </button>
+
+                    <button type="button" 
+                            @click="activeBankFilter = 'saderat'" 
+                            :style="activeBankFilter === 'saderat' ? 'background: #059669; color: #ffffff; border-color: #059669;' : 'background: #ffffff; color: #065f46; border-color: #a7f3d0;'"
+                            style="padding: 5px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; border: 1.5px solid; cursor: pointer; white-space: nowrap;">
+                        بانک صادرات (محموله: <span class="fa-num" x-text="bankCounts.saderat"></span> | کل: <span class="fa-num">۵٬۳۵۳</span>)
+                    </button>
+
+                    <button type="button" 
+                            @click="activeBankFilter = 'tejarat'" 
+                            :style="activeBankFilter === 'tejarat' ? 'background: #d97706; color: #ffffff; border-color: #d97706;' : 'background: #ffffff; color: #92400e; border-color: #fde68a;'"
+                            style="padding: 5px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; border: 1.5px solid; cursor: pointer; white-space: nowrap;">
+                        بانک تجارت (محموله: <span class="fa-num" x-text="bankCounts.tejarat"></span> | کل: <span class="fa-num">۲٬۲۴۰</span>)
+                    </button>
+
+                    <button type="button" 
+                            @click="activeBankFilter = 'melli'" 
+                            :style="activeBankFilter === 'melli' ? 'background: #0284c7; color: #ffffff; border-color: #0284c7;' : 'background: #ffffff; color: #0369a1; border-color: #bae6fd;'"
+                            style="padding: 5px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; border: 1.5px solid; cursor: pointer; white-space: nowrap;">
+                        بانک ملی (محموله: <span class="fa-num" x-text="bankCounts.melli"></span> | کل: <span class="fa-num">۲٬۹۸۰</span>)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Project Selector & Quick Filters -->
+            <div class="sheet-controls-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                 
-                <!-- Letter Number Input -->
-                <div class="field-group">
-                    <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
-                        <span>* شماره نامه رسمی بانک مسکن:</span>
-                    </label>
-                    <input type="text" x-model="letterNumber" class="input-control fa-num" style="font-weight: 800; color: #0f172a;" placeholder="مثال: ۱۴۰۳/ب/۱۰۵۲">
-                </div>
-
-                <!-- Letter Date Input -->
-                <div class="field-group">
-                    <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
-                        <span>* تاریخ صدور نامه بانک (شمسی):</span>
-                    </label>
-                    <input type="text" x-model="letterDate" class="input-control fa-num" style="font-weight: 800; color: #0f172a;" placeholder="۱۴۰۳/۰۸/۰۳">
-                </div>
-
                 <!-- Project Selector -->
                 <div class="field-group">
                     <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
-                        <span>انتخاب عنوان پروژه:</span>
+                        <span>فیلتر پروژه انتخابی (از ۹۶ پروژه استان):</span>
                     </label>
-                    <select class="input-control" x-model="selectedProject" @change="filterByProject(selectedProject)">
+                    <select class="input-control" x-model="selectedProject">
                         <option value="">همه پروژه‌ها (کل پرونده‌ها)</option>
                         <template x-for="p in projects" :key="p">
                             <option :value="p" x-text="p"></option>
@@ -597,51 +1056,55 @@
                     </select>
                 </div>
 
-            </div>
-
-            <!-- Unsent Filter Switch (Excludes already sent dossiers from new letters) -->
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; background: #f0fdf4; border: 1.5px solid #bbf7d0; padding: 0.65rem 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                    <input type="checkbox" id="chk_unsent_only" x-model="showOnlyUnsent" @change="filterByProject(selectedProject)" style="width: 18px; height: 18px; accent-color: #10b981; cursor: pointer;">
-                    <label for="chk_unsent_only" style="font-size: 0.84rem; font-weight: 800; color: #166534; cursor: pointer;">
-                        فقط پرونده‌های جدید و در انتظار ارسال به بانک (حذف ارسال‌شده‌های قبلی)
+                <!-- Text Search in batch -->
+                <div class="field-group">
+                    <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
+                        <span>جستجوی سریع متقاضی در محموله:</span>
                     </label>
+                    <input type="text" x-model="searchQuery" class="input-control fa-num" placeholder="جستجو بر اساس نام، کدملی، شماره بایگانی...">
                 </div>
-                <div style="font-size: 0.76rem; color: #15803d; font-weight: 700;" class="fa-num">
-                    تعداد کل متقاضیان ارسال‌نشده: <strong x-text="allDossiers.filter(d => !d.is_sent_to_bank).length"></strong> پرونده
-                </div>
+
             </div>
 
-            <!-- Manual Numbers / Document Search Strip -->
-            <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 0.95rem 1.15rem;">
-                <div style="font-size: 0.82rem; font-weight: 800; color: #334155; margin-bottom: 0.45rem;">
-                    افزودن دستی شماره پرونده‌ها به این نامه:
+            <!-- Manual Add & Fast Action Bar -->
+            <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 1rem 1.25rem;">
+                <div style="font-size: 0.84rem; font-weight: 800; color: #334155; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <span>افزودن پرونده‌ها به این محموله (با شماره بایگانی یا کدملی):</span>
+                    <span style="font-size: 0.74rem; color: #64748b;">امکان ورود چند شماره با کاما یا فاصله</span>
                 </div>
-                <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
+                <div class="manual-add-row" style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
                     <input type="text" 
                            x-model="inputNumbers" 
                            @keydown.enter.prevent="addManualNumbers()"
-                           placeholder="شماره بایگانی یا کدملی متقاضیان را با کاما یا فاصله وارد کنید (مثال: 100001, 100002)..."
+                           placeholder="مثال: 100001, 100002, 0012345678..."
                            class="input-control fa-num" 
                            style="flex: 1; min-width: 280px; height: 38px;">
-                    <button type="button" @click="addManualNumbers()" class="btn btn-outline" style="background: #ffffff; height: 38px; display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        <span>افزودن به جدول</span>
+                    <button type="button" @click="addManualNumbers()" :disabled="isSearchingManual" class="btn btn-outline" style="background: #ffffff; height: 38px; display: inline-flex; align-items: center; gap: 4px; font-weight: 800; border-color: #0284c7; color: #0284c7;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span x-text="isSearchingManual ? 'در حال جستجو...' : 'افزودن به محموله'"></span>
                     </button>
-                    <button type="button" @click="addAllStage11()" class="btn btn-outline" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; height: 38px; font-weight: 700;">
+                    <button type="button" @click="addAllStage6()" class="btn btn-outline" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; height: 38px; font-weight: 800;">
                         <span>+ افزودن پرونده‌های مرحله ۶</span>
                     </button>
+                    <button type="button" @click="addBySelectedProject()" x-show="selectedProject" class="btn btn-outline" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; height: 38px; font-weight: 800;">
+                        <span>+ افزودن پرونده‌های این پروژه</span>
+                    </button>
+                    <button type="button" @click="resetBatchToEligible()" class="btn btn-outline" style="background: #f1f5f9; color: #475569; border-color: #cbd5e1; height: 38px; font-weight: 700;" title="بازنشانی به پرونده‌های در انتظار مرحله ۶">
+                        <span>بازنشانی</span>
+                    </button>
                     <button type="button" @click="clearAll()" class="btn btn-outline" style="background: #fff1f2; color: #be123c; border-color: #fecdd3; height: 38px; font-weight: 700;">
-                        <span>پاکسازی جدول</span>
+                        <span>خالی کردن لیست</span>
                     </button>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; font-size: 0.76rem; color: #64748b; margin-top: 0.4rem;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; font-size: 0.78rem; color: #64748b; margin-top: 0.5rem;">
                     <div>
-                        تعداد پرونده‌های درج‌شده در این جدول: <strong class="fa-num" style="color: #0284c7;" x-text="selectedDossiers.length"></strong> پرونده
+                        تعداد کل پرونده‌ها در محموله: <strong class="fa-num" style="color: #0284c7;" x-text="selectedDossiers.length"></strong> پرونده
+                        (نمایش فعلی در جدول: <strong class="fa-num" style="color: #0f172a;" x-text="displayedDossiers.length"></strong>)
                     </div>
                     <div style="display: flex; gap: 0.85rem;">
                         <span style="color: #15803d; font-weight: 700;">
-                            آماده صدور نامه جدید: <span class="fa-num" x-text="selectedDossiers.filter(d => !d.is_sent_to_bank).length"></span>
+                            آماده معرفی به بانک (مرحله ۶): <span class="fa-num" x-text="selectedDossiers.filter(d => !d.is_sent_to_bank).length"></span>
                         </span>
                         <span x-show="selectedDossiers.some(d => d.is_sent_to_bank)" style="color: #b45309; font-weight: 700;">
                             (قبلاً ارسال شده: <span class="fa-num" x-text="selectedDossiers.filter(d => d.is_sent_to_bank).length"></span> پرونده)
@@ -653,13 +1116,14 @@
         </div>
 
         <!-- =========================================================================
-             OFFICIAL BANK LETTER SHEET (EXACTLY MATCHING THE USER'S PHOTO)
+             OFFICIAL 18-COLUMN TABLE
              ========================================================================= -->
         <div id="official-sheet-section" class="bank-letter-sheet-container" style="background: #ffffff; border: 1.5px solid #000000; border-radius: 4px; padding: 0.5rem; overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
             
             <!-- Header Banner matching the photo: محاسبه قیمت تمام شده انتخاب واحد پروژه ... -->
             <div class="bank-sheet-banner" style="background: #e2e8f0; border: 1.5px solid #000000; text-align: center; padding: 0.65rem 1rem; font-weight: 900; font-size: 1.05rem; color: #000000; margin-bottom: 0.35rem; letter-spacing: 0.3px;">
-                محاسبه قیمت تمام شده انتخاب واحد پروژه <span x-text="selectedProject || '۲۸۵ واحدی فراگیر ملی سانیار آفرین ایرانیان'"></span>
+                محاسبه قیمت تمام شده انتخاب واحد پروژه <span x-text="selectedProject || 'پروژه‌های مسکونی استان قم'"></span>
+                <span x-show="activeBankFilter !== 'all'"> (<span x-text="getBankName(activeBankFilter)"></span>)</span>
             </div>
 
             <!-- 18-Column Official Table -->
@@ -684,12 +1148,12 @@
                         <th style="border: 1px solid #000000; padding: 6px 3px;">متراژ مفید</th>
                         <th style="border: 1px solid #000000; padding: 6px 4px;">جهت</th>
                         <th style="border: 1px solid #000000; padding: 6px 3px;">جمع متراژ</th>
-                        <th class="no-print" style="border: 1px solid #000000; padding: 6px 4px; background: #94a3b8; color: #ffffff;">وضعیت نامه در پرونده</th>
-                        <th class="no-print" style="border: 1px solid #000000; padding: 6px 4px; background: #94a3b8; color: #ffffff; width: 45px;">حذف</th>
+                        <th class="no-print" style="border: 1px solid #000000; padding: 6px 4px; background: #64748b; color: #ffffff;">بانک عامل</th>
+                        <th class="no-print" style="border: 1px solid #000000; padding: 6px 4px; background: #dc2626; color: #ffffff; width: 60px;">حذف</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(doc, idx) in selectedDossiers" :key="doc.archive_number">
+                    <template x-for="(doc, idx) in displayedDossiers" :key="doc.archive_number">
                         <tr style="border-bottom: 1px solid #000000; font-weight: 600;"
                             :style="doc.is_sent_to_bank ? 'background: #f0fdf4;' : (idx % 2 === 0 ? 'background: #ffffff;' : 'background: #f8fafc;')">
                             
@@ -751,33 +1215,30 @@
                             <!-- 18. جمع متراژ -->
                             <td style="border: 1px solid #000000; padding: 5px 2px; font-weight: 800;" class="fa-num" x-text="doc.total_area"></td>
 
-                            <!-- وضعیت قبلی نامه در پرونده (No Print) -->
-                            <td class="no-print" style="border: 1px solid #000000; padding: 5px 4px; font-size: 0.72rem;">
-                                <template x-if="doc.is_sent_to_bank">
-                                    <span style="background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 2px;">
-                                        <span>ارسال شده</span>
-                                        <span class="fa-num" style="font-size: 0.65rem;" x-text="'(' + (doc.bank_letter_number || doc.bank_sent_letter_number) + ')'"></span>
-                                    </span>
-                                </template>
-                                <template x-if="!doc.is_sent_to_bank">
-                                    <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">
-                                        در انتظار ارسال
-                                    </span>
-                                </template>
+                            <!-- بانک عامل (No Print) -->
+                            <td class="no-print" style="border: 1px solid #000000; padding: 5px 4px; font-size: 0.74rem; font-weight: 800;">
+                                <span style="padding: 2px 6px; border-radius: 4px;"
+                                      :style="doc.bank_code === 'maskan' ? 'background: #ffe4e6; color: #be123c;' : (doc.bank_code === 'mellat' ? 'background: #fee2e2; color: #991b1b;' : (doc.bank_code === 'saderat' ? 'background: #d1fae5; color: #065f46;' : (doc.bank_code === 'tejarat' ? 'background: #fef3c7; color: #92400e;' : 'background: #e0f2fe; color: #0369a1;')))"
+                                      x-text="doc.bank_name || 'بانک عامل'"></span>
                             </td>
 
-                            <!-- حذف از لیست نامه (No Print) -->
+                            <!-- حذف از محموله (No Print) -->
                             <td class="no-print" style="border: 1px solid #000000; padding: 5px 2px;">
-                                <button type="button" @click="removeDossier(doc.archive_number)" style="background: none; border: none; color: #dc2626; cursor: pointer; font-size: 1rem; font-weight: bold;" title="حذف از این جدول">✕</button>
+                                <button type="button" 
+                                        @click="removeDossier(doc.archive_number)" 
+                                        style="background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 0.72rem; font-weight: 800;" 
+                                        title="حذف این پرونده از محموله">
+                                    ✕ حذف
+                                </button>
                             </td>
 
                         </tr>
                     </template>
 
-                    <template x-if="!selectedDossiers.length">
+                    <template x-if="!displayedDossiers.length">
                         <tr>
                             <td colspan="20" style="padding: 2.5rem; text-align: center; color: #64748b; font-weight: 700;">
-                                هیچ پرونده‌ای برای این نامه انتخاب نشده است. از نوار بالا شماره پرونده‌ها را وارد نمایید یا پروژه را انتخاب فرمایید.
+                                هیچ پرونده‌ای با فیلتر جاری یافت نشد. می‌توانید با شماره پرونده‌ها را وارد فرمایید یا پروژه را انتخاب کنید.
                             </td>
                         </tr>
                     </template>
@@ -808,6 +1269,90 @@
 
 <!-- Print Stylesheet for Perfect A4 Landscape Sheet -->
 <style>
+
+/* Responsive Adaptations for Bank Letter Sender */
+.bank-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+}
+
+.bank-letter-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+}
+
+@media (max-width: 992px) {
+    .bank-cards-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .bank-hero-banner {
+        padding: 1.1rem !important;
+    }
+    .bank-hero-inner {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+    }
+    .bank-hero-actions {
+        width: 100% !important;
+        flex-direction: column !important;
+    }
+    .bank-hero-actions .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        min-height: 42px !important;
+    }
+    .bank-cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+    .bank-filter-bar {
+        overflow-x: auto !important;
+        padding-bottom: 0.4rem !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    .bank-letter-form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem !important;
+    }
+    .sheet-controls-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+    .sheet-controls-grid select,
+    .sheet-controls-grid input {
+        width: 100% !important;
+        min-height: 42px !important;
+    }
+    .manual-add-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .manual-add-row input,
+    .manual-add-row .btn {
+        width: 100% !important;
+        min-height: 40px !important;
+        justify-content: center !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .bank-hero-banner h2 {
+        font-size: 1.1rem !important;
+    }
+    .bank-sheet-banner {
+        font-size: 0.88rem !important;
+        padding: 0.5rem 0.65rem !important;
+    }
+}
+
 @media print {
     body {
         background: #ffffff !important;

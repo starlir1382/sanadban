@@ -1,409 +1,1060 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}
-{% if is_full_admin %}داشبورد نظارتی و رهگیری جامع پرونده‌ها | سامانه مسکن یار{% else %}کارپوشه تخصصی اقدام پرونده‌ها | سامانه مسکن یار{% endif %}
-{% endblock %}
+{% block title %}{% if is_full_admin %}داشبورد نظارتی و رهگیری جامع پرونده‌ها | سامانه مسکن یار{% else %}کارپوشه تخصصی اقدام پرونده‌ها | سامانه مسکن یار{% endif %}{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
+<style>
+  .dl {
+    --c-bg: #f6f8fb;
+    --c-card: #ffffff;
+    --c-line: #e8edf3;
+    --c-line-strong: #d5dde8;
+    --c-text: #0f172a;
+    --c-muted: #64748b;
+    --c-soft: #94a3b8;
+    --c-primary: #4f46e5;
+    --c-primary-soft: #eef2ff;
+    --c-primary-line: #c7d2fe;
+    --c-green: #059669;
+    --c-green-soft: #ecfdf5;
+    --c-amber: #d97706;
+    --c-amber-soft: #fffbeb;
+    --c-red: #dc2626;
+    --c-red-soft: #fef2f2;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
+    color: var(--c-text);
+    padding-bottom: 1.5rem;
+  }
+  .dl * { box-sizing: border-box; }
 
-  <!-- =========================================================================
-       HERO HEADER: ADAPTIVE FOR SUPERVISION (ADMIN/CHIEF) vs SPECIALIST INBOX
-       ========================================================================= -->
-  <div class="dossier-hero" style="background: linear-gradient(135deg, #ffffff 0%, {% if is_full_admin %}#f0fdf4 50%, #eff6ff 100%{% else %}#f0f7ff 100%{% endif %}); border-color: {% if is_full_admin %}#86efac{% else %}#bfdbfe{% endif %}; margin-bottom: 1.25rem;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
-        {% if is_full_admin %}
-          <span style="background: linear-gradient(135deg, #15803d 0%, #166534 100%); color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.25rem 0.75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 6px rgba(22,101,52,0.25);">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-            <span>پنل نظارتی مدیران ارشد و رئیس مسکن</span>
-          </span>
-          <span style="background: #e0f2fe; color: #0369a1; font-size: 0.74rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px;">
-            دسترسی به تمامی ۲۱ مرحله (۱ تا ۲۱)
-          </span>
-        {% else %}
-          <span style="background: #2563eb; color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.25rem 0.75rem; border-radius: 999px; display: inline-flex; align-items: center; gap: 0.35rem;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-            <span>کارپوشه تخصصی اقدام</span>
-          </span>
-          <span style="background: #f1f5f9; color: #334155; font-size: 0.74rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px;" class="fa-num">
-            مراحل مجاز شما: {{ user_profile.allowed_stages }}
-          </span>
-        {% endif %}
-      </div>
+  /* ---------- Header ---------- */
+  .dl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    background: linear-gradient(120deg, #312e81 0%, #4f46e5 55%, #6366f1 100%);
+    color: #fff;
+    box-shadow: 0 10px 30px rgba(79, 70, 229, 0.22);
+    position: relative;
+    overflow: hidden;
+  }
+  .dl-header::after {
+    content: "";
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    left: -90px;
+    top: -140px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+  }
+  .dl-header > * { position: relative; z-index: 1; }
+  .dl-chips { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+  .dl-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fff;
+  }
+  .dl-title { margin: 0 0 0.3rem; font-size: 1.35rem; font-weight: 800; line-height: 1.5; }
+  .dl-sub { margin: 0; font-size: 0.85rem; color: rgba(255, 255, 255, 0.82); line-height: 1.8; max-width: 760px; }
+  .dl-header-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .dl-hbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 11px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .dl-hbtn:hover { background: rgba(255, 255, 255, 0.26); transform: translateY(-1px); }
+  .dl-hbtn.solid { background: #fff; color: #3730a3; border-color: #fff; }
+  .dl-hbtn.solid:hover { background: #eef2ff; }
 
-      <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f2744; margin: 0 0 0.35rem 0;">
-        {% if is_full_admin %}
-          داشبورد نظارتی جامع: رصد تمامی پرونده‌ها و گلوگاه‌های توقف
-        {% else %}
-          پرونده‌های در انتظار اقدام شما (<span class="fa-num">{{ dossiers_count }}</span> پرونده)
-        {% endif %}
-      </h2>
-      <p style="font-size: 0.88rem; color: #475569; margin: 0;">
-        {% if is_full_admin %}
-          دید کلی بر گردش کار ۲۱ مرحله‌ای نهضت ملی مسکن (مراحل ۱ تا ۲۱)؛ رصد مرحله توقف هر پرونده، علت برگشت احتمالی و بررسی عملکرد واحدها.
-        {% else %}
-          پرونده‌هایی که هم‌اکنون در مرحله تخصصی شما قرار دارند و منتظر بررسی و امضای الکترونیکی شما هستند.
-        {% endif %}
-      </p>
+  /* ---------- Cards ---------- */
+  .dl-card {
+    background: var(--c-card);
+    border: 1px solid var(--c-line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 1rem;
+  }
+
+  /* ---------- Stage track ---------- */
+  .dl-track { padding: 1rem 1.2rem; }
+  .dl-track-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .dl-track-title { font-size: 0.9rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
+  .dl-track-hint { font-size: 0.76rem; color: var(--c-muted); }
+  .dl-pills {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-line-strong) transparent;
+  }
+  .dl-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+    text-decoration: none;
+    padding: 0.42rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #fff;
+    color: #475569;
+    border: 1px solid var(--c-line-strong);
+    transition: all 0.15s ease;
+  }
+  .dl-pill:hover { border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-soft); }
+  .dl-pill.has { background: var(--c-amber-soft); color: #92400e; border-color: #fde68a; }
+  .dl-pill.active { background: var(--c-primary); color: #fff; border-color: var(--c-primary); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+  .dl-pill-count {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #475569;
+  }
+  .dl-pill.has .dl-pill-count { background: var(--c-amber); color: #fff; }
+  .dl-pill.active .dl-pill-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+
+  /* ---------- Toolbar ---------- */
+  .dl-toolbar { padding: 0.9rem 1.1rem; }
+  .dl-form { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+  .dl-search { position: relative; flex: 1; min-width: 260px; }
+  .dl-search svg.ic { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--c-soft); }
+  .dl-search input {
+    width: 100%;
+    padding: 0.7rem 2.6rem 0.7rem 2.4rem;
+    border: 1.5px solid var(--c-line-strong);
+    border-radius: 12px;
+    font-size: 0.86rem;
+    background: var(--c-bg);
+    color: var(--c-text);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .dl-search input:focus { border-color: var(--c-primary); background: #fff; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12); }
+  .dl-search .clear {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .dl-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.8rem;
+    border: 1.5px solid var(--c-line-strong);
+    border-radius: 12px;
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+  }
+  .dl-select select { border: none; background: transparent; font-weight: 800; font-size: 0.82rem; color: #3730a3; outline: none; cursor: pointer; }
+  .dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1.1rem;
+    border-radius: 12px;
+    font-size: 0.83rem;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .dl-btn:hover { transform: translateY(-1px); }
+  .dl-btn.primary { background: var(--c-primary); color: #fff; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28); }
+  .dl-btn.primary:hover { background: #4338ca; }
+  .dl-btn.ghost { background: #fff; color: #334155; border-color: var(--c-line-strong); }
+  .dl-btn.ghost:hover { background: var(--c-bg); }
+  .dl-btn.green { background: var(--c-green-soft); color: #047857; border-color: #a7f3d0; }
+  .dl-btn.green:hover { background: #d1fae5; }
+  .dl-btn.indigo { background: var(--c-primary-soft); color: #4338ca; border-color: var(--c-primary-line); }
+  .dl-btn.indigo:hover { background: #e0e7ff; }
+  .dl-btn.red { background: #fff; color: var(--c-red); border-color: #fecaca; }
+  .dl-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    white-space: nowrap;
+    background: var(--c-primary-soft);
+    color: #3730a3;
+    border: 1px solid var(--c-primary-line);
+  }
+  .dl-hints { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.7rem; padding-top: 0.65rem; border-top: 1px dashed var(--c-line-strong); font-size: 0.74rem; color: var(--c-muted); }
+  .dl-hints .tag { background: #f1f5f9; padding: 0.12rem 0.5rem; border-radius: 6px; }
+
+  /* ---------- Table ---------- */
+  .dl-table-card { overflow: hidden; }
+  .dl-table-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 1rem 1.3rem;
+    border-bottom: 1px solid var(--c-line);
+  }
+  .dl-table-title { display: flex; align-items: center; gap: 0.55rem; font-size: 0.98rem; font-weight: 800; }
+  .dl-table-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .dl-badge-count { font-size: 0.76rem; font-weight: 800; color: #3730a3; background: var(--c-primary-soft); padding: 0.25rem 0.75rem; border-radius: 999px; }
+  .dl-badge-filter { font-size: 0.76rem; font-weight: 700; color: #92400e; background: var(--c-amber-soft); border: 1px solid #fde68a; padding: 0.25rem 0.75rem; border-radius: 999px; }
+  .dl-scroll { overflow-x: auto; width: 100%; }
+  .dl-table { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0; direction: rtl; text-align: right; font-size: 0.86rem; }
+  .dl-table thead th {
+    padding: 0.8rem 1rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: var(--c-muted);
+    background: #fafbfd;
+    border-bottom: 1px solid var(--c-line);
+    white-space: nowrap;
+  }
+  .dl-table tbody td { padding: 0.95rem 1rem; vertical-align: middle; border-bottom: 1px solid #f1f4f8; }
+  .dl-table tbody tr.dossier-row { transition: background 0.12s ease; }
+  .dl-table tbody tr.dossier-row:hover { background: #f8faff; }
+  .dl-table tbody tr.dossier-row:last-child td { border-bottom: none; }
+  .t-center { text-align: center !important; }
+
+  .dl-id {
+    display: inline-block;
+    direction: ltr;
+    font-weight: 800;
+    font-size: 0.8rem;
+    color: #3730a3;
+    background: var(--c-primary-soft);
+    border: 1px solid var(--c-primary-line);
+    padding: 3px 9px;
+    border-radius: 8px;
+  }
+  .dl-person { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+  .dl-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #4338ca;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  }
+  .dl-person-info { min-width: 0; }
+  .dl-name { font-weight: 800; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .dl-subline { font-size: 0.74rem; color: var(--c-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .dl-nid { direction: ltr; display: inline-block; letter-spacing: 0.4px; }
+  .dl-project { font-weight: 700; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+
+  /* Stage cell */
+  .dl-stage { display: flex; flex-direction: column; gap: 0.4rem; min-width: 200px; }
+  .dl-stage-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    max-width: 100%;
+    padding: 0.28rem 0.65rem;
+    border-radius: 9px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+  }
+  .dl-stage-pill .no { font-weight: 800; padding-left: 0.45rem; margin-left: 0.1rem; border-left: 1px solid currentColor; opacity: 0.9; flex-shrink: 0; }
+  .dl-stage-pill .tt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dl-stage-pill.brokerage { background: var(--c-primary-soft); color: #4338ca; border-color: var(--c-primary-line); }
+  .dl-stage-pill.directorate { background: var(--c-green-soft); color: #047857; border-color: #a7f3d0; }
+  .dl-stage-pill.done { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .dl-stage-meta { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap; }
+  .dl-date { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--c-muted); font-weight: 600; white-space: nowrap; }
+  .dl-date strong { color: #334155; }
+  .dl-status { display: inline-flex; align-items: center; gap: 3px; font-size: 0.68rem; font-weight: 800; padding: 1px 7px; border-radius: 6px; white-space: nowrap; border: 1px solid transparent; }
+  .dl-status.red { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .dl-status.orange { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
+  .dl-status.green { background: #dcfce7; color: #15803d; border-color: #86efac; }
+  .dl-status.ret { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; cursor: help; }
+
+  .dl-role { font-size: 0.8rem; font-weight: 700; line-height: 1.5; }
+  .dl-unit { display: inline-block; margin-top: 4px; font-size: 0.66rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent; }
+  .dl-unit.brokerage { background: var(--c-primary-soft); color: #4338ca; border-color: var(--c-primary-line); }
+  .dl-unit.directorate { background: var(--c-green-soft); color: #065f46; border-color: #a7f3d0; }
+  .dl-equity { font-weight: 800; color: #047857; font-size: 0.9rem; white-space: nowrap; }
+  .dl-equity small { font-size: 0.7rem; font-weight: 700; color: var(--c-green); margin-right: 3px; }
+
+  .dl-actions { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .dl-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-decoration: none;
+    color: #fff;
+    background: var(--c-primary);
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(79, 70, 229, 0.25);
+    transition: all 0.15s ease;
+  }
+  .dl-open:hover { background: #4338ca; transform: translateY(-1px); }
+  .dl-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    background: #fff;
+    border: 1px solid var(--c-line-strong);
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .dl-icon-btn:hover { background: var(--c-primary-soft); color: var(--c-primary); border-color: var(--c-primary-line); }
+
+  /* Empty states */
+  .dl-empty { text-align: center; padding: 3.5rem 1.5rem; color: var(--c-muted); }
+  .dl-empty-ic {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: var(--c-primary-soft);
+    color: var(--c-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dl-empty h3 { margin: 0 0 0.4rem; font-size: 1.1rem; font-weight: 800; color: var(--c-text); }
+  .dl-empty p { margin: 0 auto; font-size: 0.86rem; line-height: 1.9; max-width: 520px; }
+  .dl-empty .cta { margin-top: 1.1rem; }
+
+  /* Pagination */
+  .dl-pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.9rem 1.3rem;
+    border-top: 1px solid var(--c-line);
+    background: #fafbfd;
+  }
+  .dl-pager-info { font-size: 0.8rem; color: var(--c-muted); font-weight: 600; }
+  .dl-pager-info strong { color: var(--c-text); }
+  .dl-pager-nav { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+  .dl-pg {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #334155;
+    background: #fff;
+    border: 1px solid var(--c-line-strong);
+    transition: all 0.15s ease;
+  }
+  .dl-pg:hover { background: var(--c-primary-soft); border-color: var(--c-primary-line); color: var(--c-primary); }
+  .dl-pg.current { background: var(--c-primary); color: #fff; border-color: var(--c-primary); box-shadow: 0 3px 10px rgba(79, 70, 229, 0.3); }
+  .dl-pg.gap { border: none; background: none; color: var(--c-soft); }
+
+  @media (max-width: 900px) {
+    .dl-stages {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .dl-header {
+      padding: 1.1rem;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.85rem;
+    }
+    .dl-title { font-size: 1.15rem; }
+    .dl-header-actions {
+      width: 100%;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .dl-hbtn {
+      width: 100%;
+      justify-content: center;
+    }
+    .dl-toolbar {
+      padding: 0.85rem;
+    }
+    .dl-form {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.6rem;
+    }
+    .dl-search {
+      min-width: 100%;
+      width: 100%;
+    }
+    .dl-select {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .dl-select select {
+      flex: 1;
+    }
+    .dl-btn {
+      width: 100%;
+      justify-content: center;
+    }
+    .dl-counter {
+      width: 100%;
+      justify-content: center;
+    }
+    .dl-table-head {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.6rem;
+    }
+    .dl-table-meta {
+      justify-content: space-between;
+    }
+    .dl-pager {
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      text-align: center;
+    }
+    .dl-pager-nav {
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .dl-stages {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.35rem;
+    }
+    .dl-scard {
+      padding: 0.45rem 0.55rem;
+    }
+    .dl-scard .title {
+      font-size: 0.75rem;
+    }
+    .dl-header {
+      padding: 0.9rem 0.85rem;
+      border-radius: 12px;
+    }
+    .dl-chips {
+      gap: 0.3rem;
+    }
+    .dl-chip {
+      font-size: 0.68rem;
+      padding: 0.15rem 0.55rem;
+    }
+  }
+
+  /* ---------- Admin slim action row ---------- */
+  .dl-admin-actions { display: flex; gap: 0.6rem; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 0.9rem; }
+
+  /* ---------- Stage cards grid ---------- */
+  .dl-stages {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 0.5rem;
+  }
+  .dl-scard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.55rem 0.7rem 0.6rem;
+    border-radius: 12px;
+    border: 1px solid var(--c-line-strong);
+    background: #fff;
+    text-decoration: none;
+    color: var(--c-text);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .dl-scard:hover { transform: translateY(-2px); border-color: var(--c-primary); box-shadow: 0 6px 16px rgba(79, 70, 229, 0.12); }
+  .dl-scard .top { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+  .dl-scard .no {
+    min-width: 26px; height: 26px; padding: 0 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px; background: #f1f5f9; color: #475569;
+    font-size: 0.74rem; font-weight: 800;
+  }
+  .dl-scard .cnt {
+    font-size: 0.7rem; font-weight: 800; padding: 1px 8px; border-radius: 999px;
+    background: #e2e8f0; color: #475569;
+  }
+  .dl-scard .tt {
+    font-size: 0.76rem; font-weight: 700; line-height: 1.55; min-height: 2.35em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .dl-scard .rl {
+    font-size: 0.68rem; color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dl-scard.has { background: var(--c-amber-soft); border-color: #fde68a; }
+  .dl-scard.has .no { background: #fef3c7; color: #92400e; }
+  .dl-scard.has .cnt { background: var(--c-amber); color: #fff; }
+  .dl-scard.all { background: var(--c-primary-soft); border-color: var(--c-primary-line); }
+  .dl-scard.all .no { background: #e0e7ff; color: #4338ca; }
+  .dl-scard.all .cnt { background: var(--c-primary); color: #fff; }
+  .dl-scard.active { background: var(--c-primary); border-color: var(--c-primary); color: #fff; box-shadow: 0 8px 20px rgba(79, 70, 229, 0.35); }
+  .dl-scard.active .no { background: rgba(255, 255, 255, 0.22); color: #fff; }
+  .dl-scard.active .cnt { background: #fff; color: #3730a3; }
+  .dl-scard.active .rl { color: rgba(255, 255, 255, 0.8); }
+
+  /* ---------- Tab Navigation (Admin & Dossiers) ---------- */
+  .dl-tabs-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    background: #ffffff;
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--c-line);
+    box-shadow: var(--shadow);
+  }
+  .dl-tabs-group {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+  .dl-tab-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    background: transparent;
+    color: var(--c-muted);
+    transition: all 0.18s ease;
+  }
+  .dl-tab-item:hover {
+    color: var(--c-primary);
+    background: var(--c-primary-soft);
+  }
+  .dl-tab-item.active {
+    background: var(--c-primary);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+  }
+  .dl-tab-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+  }
+  .dl-tab-item.active .dl-tab-badge {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+  }
+  .dl-tab-pill {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .dl-tab-item.active .dl-tab-pill {
+    background: #ffffff;
+    color: #4338ca;
+  }
+  .dl-tabs-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* ---------- Admin Monitoring KPI Cards ---------- */
+  .admin-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .admin-kpi-card {
+    background: #ffffff;
+    border: 1px solid var(--c-line);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .admin-kpi-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--c-primary);
+  }
+  .admin-kpi-card.green::before { background: var(--c-green); }
+  .admin-kpi-card.amber::before { background: var(--c-amber); }
+  .admin-kpi-card.red::before { background: var(--c-red); }
+  .admin-kpi-card.purple::before { background: #9333ea; }
+  .admin-kpi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  .admin-kpi-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--c-muted);
+  }
+  .admin-kpi-val {
+    font-size: 1.7rem;
+    font-weight: 900;
+    color: var(--c-text);
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+  }
+  .admin-kpi-sub {
+    font-size: 0.73rem;
+    color: var(--c-muted);
+  }
+
+  /* ---------- Admin Phase Progress Bar ---------- */
+  .admin-phases-card {
+    background: #ffffff;
+    border: 1px solid var(--c-line);
+    border-radius: var(--radius);
+    padding: 1.2rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.25rem;
+  }
+  .admin-phases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 0.85rem;
+  }
+  .admin-phase-item {
+    background: #f8fafc;
+    border: 1px solid var(--c-line);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+  }
+  .admin-phase-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+  }
+  .admin-progress-bg {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+  }
+  .admin-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  /* ---------- Admin Tables ---------- */
+  .admin-table-card {
+    background: #ffffff;
+    border: 1px solid var(--c-line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .admin-table-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 1rem 1.3rem;
+    border-bottom: 1px solid var(--c-line);
+    background: #fafbfd;
+  }
+  .admin-table-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--c-text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .admin-table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 800;
+    font-size: 0.76rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1.5px solid var(--c-line);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .admin-table tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--c-line);
+    color: #334155;
+    vertical-align: middle;
+  }
+  .admin-table tbody tr:hover {
+    background: #f8fafc;
+  }
+  .admin-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+</style>
+
+<div class="dl" x-data="{
+    activeTab: (new URLSearchParams(window.location.search).get('tab') || (location.hash ? location.hash.slice(1) : 'dossiers')),
+    isFullAdmin: {% if is_full_admin %}true{% else %}false{% endif %},
+    setTab(t) {
+        this.activeTab = t;
+        if (location.hash !== '#' + t) {
+            history.replaceState(null, '', '#' + t);
+        }
+    }
+}">
+
+  <!-- ===================== HEADER ===================== -->
+  <!-- ===================== TOP NAVIGATION TABS (ADMIN) ===================== -->
+  {% if is_full_admin %}
+  <div class="dl-tabs-nav">
+    <div class="dl-tabs-group">
+      <button type="button" class="dl-tab-item" :class="{ 'active': activeTab === 'dossiers' }" @click="setTab('dossiers')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>کارپوشه و فهرست پرونده‌ها</span>
+        <span class="dl-tab-badge fa-num">{{ total_all_dossiers }}</span>
+      </button>
+
+      <button type="button" class="dl-tab-item" :class="{ 'active': activeTab === 'admin' }" @click="setTab('admin')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+        <span>میز نظارتی مدیر و مدیریت اکسل</span>
+        <span class="dl-tab-pill">پنل نظارت</span>
+      </button>
     </div>
 
-    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-      <a href="{% url 'dossier_list' %}" class="btn btn-outline" style="display: flex; align-items: center; gap: 0.45rem; background: #ffffff;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-        <span>تازه‌سازی کارپوشه</span>
+    <div class="dl-tabs-actions">
+      <a href="{% url 'dossier_list' %}" class="dl-btn ghost" title="تازه‌سازی اطلاعات">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span>تازه‌سازی</span>
       </a>
-      {% if is_full_admin %}
-      <a href="{% url 'users_management' %}" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      <a href="{% url 'users_management' %}" class="dl-btn primary" title="مدیریت دسترسی کاربران و مراحل">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         <span>مدیریت کاربران و مراحل</span>
       </a>
-      {% endif %}
     </div>
   </div>
-
-  {% if is_full_admin %}
-    {% include 'components/admin_excel_manager.html' %}
+  {% else %}
+  <div class="dl-header">
+    <div>
+      <div class="dl-chips">
+        <span class="dl-chip">کارپوشه تخصصی اقدام</span>
+        <span class="dl-chip fa-num">مراحل مجاز شما: {{ user_profile.allowed_stages }}</span>
+      </div>
+      <h2 class="dl-title">پرونده‌های در انتظار اقدام شما (<span class="fa-num">{{ dossiers_count }}</span> پرونده)</h2>
+      <p class="dl-sub">پرونده‌هایی که هم‌اکنون در مرحله تخصصی شما قرار دارند و منتظر بررسی و امضای الکترونیکی شما هستند.</p>
+    </div>
+    <div class="dl-header-actions">
+      <a href="{% url 'dossier_list' %}" class="dl-hbtn">تازه‌سازی</a>
+    </div>
+  </div>
   {% endif %}
 
+  <!-- ===================== TAB 1: DOSSIERS LIST ===================== -->
+  <div x-show="!isFullAdmin || activeTab === 'dossiers'">
+
   {% if is_full_admin %}
-  <!-- =========================================================================
-       UNIFIED PIPELINE STAGE TRACK (ADMIN SUPERVISION)
-       ========================================================================= -->
-  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.1rem 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; flex-wrap: wrap; gap: 0.5rem;">
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-        <span style="font-weight: 800; font-size: 0.9rem; color: #0f2744;">
-          {% if is_full_admin %}گردش کار ۲۱ مرحله‌ای و موقعیت توقف پرونده‌ها (مراحل ۱ تا ۲۱):{% else %}مراحل مجاز تخصصی شما:{% endif %}
-        </span>
+  <!-- ===================== STAGE TRACK (ADMIN) ===================== -->
+  <div class="dl-card dl-track">
+    <div class="dl-track-head">
+      <div class="dl-track-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        گردش کار ۲۱ مرحله‌ای و موقعیت توقف پرونده‌ها
       </div>
-      <div style="font-size: 0.78rem; color: #64748b;">
-        کلیک روی هر مرحله جهت فیلتر و مشاهده پرونده‌ها
-      </div>
+      <div class="dl-track-hint">روی هر مرحله کلیک کنید تا پرونده‌های آن فیلتر شود</div>
     </div>
 
-    <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.4rem; align-items: center;">
-      <!-- All Dossiers Pill -->
-      <a href="{% url 'dossier_list' %}?{% if query %}q={{ query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}{% endif %}"
-         style="text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; transition: all 0.15s; border: 1.5px solid {% if stage_filter == '' %}#2563eb; background: #2563eb; color: #ffffff;{% else %}#cbd5e1; background: #f8fafc; color: #334155;{% endif %} display: inline-flex; align-items: center; gap: 0.4rem;"
-         class="fa-num">
-        <span>{% if is_full_admin %}همه پرونده‌ها{% else %}همه پرونده‌های مجاز من{% endif %}</span>
-        <span style="background: {% if stage_filter == '' %}rgba(255,255,255,0.25){% else %}#e2e8f0{% endif %}; color: {% if stage_filter == '' %}#ffffff{% else %}#475569{% endif %}; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px;">
-          {{ total_all_dossiers }}
-        </span>
+    <div class="dl-stages fa-num">
+      <a href="{% url 'dossier_list' %}?{% if query %}q={{ query|urlencode }}&{% endif %}{% if current_sort %}sort={{ current_sort }}{% endif %}" class="dl-scard all {% if stage_filter == '' %}active{% endif %}">
+        <div class="top">
+          <span class="no">∗</span>
+          {% if total_all_dossiers %}<span class="cnt">{{ total_all_dossiers }}</span>{% endif %}
+        </div>
+        <div class="tt">همه پرونده‌ها</div>
+        <div class="rl">همه مراحل</div>
       </a>
 
-      <!-- Stages with stuck count badge -->
       {% for stg in stages_meta %}
-      <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
-         style="text-decoration: none; padding: 0.45rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.45rem; border: 1.5px solid {% if stage_filter == stg.id|stringformat:'i' %}#2563eb; background: #2563eb; color: #ffffff;{% elif stg.count > 0 %}#fed7aa; background: #fffaf0; color: #9a3412;{% else %}#e2e8f0; background: #ffffff; color: #475569;{% endif %}"
-         class="fa-num">
-        <span>مرحله {{ stg.id }}: {{ stg.title }} ({{ stg.role }})</span>
-        {% if stg.count > 0 %}
-        <span style="background: {% if stage_filter == stg.id|stringformat:'i' %}rgba(255,255,255,0.25){% else %}#ea580c{% endif %}; color: #ffffff; font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; font-weight: 700;">
-          {{ stg.count }} پرونده
-        </span>
-        {% endif %}
+      <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="dl-scard {% if stage_filter == stg.id|stringformat:'i' %}active{% elif stg.count > 0 %}has{% endif %}" title="مرحله {{ stg.id }}: {{ stg.title }} — {{ stg.role }}">
+        <div class="top">
+          <span class="no">{{ stg.id }}</span>
+          {% if stg.count > 0 %}<span class="cnt">{{ stg.count }}</span>{% endif %}
+        </div>
+        <div class="tt">{{ stg.title }}</div>
+        <div class="rl">{{ stg.role }}</div>
       </a>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 
-  <!-- =========================================================================
-       DEDICATED SEARCH & FILTER BOX
-       ========================================================================= -->
-  <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 1.15rem 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);">
-    <form method="GET" action="{% url 'dossier_list' %}" id="dossier-search-form" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-      {% if stage_filter %}
-      <input type="hidden" name="stage" value="{{ stage_filter }}" />
-      {% endif %}
+  <!-- ===================== SEARCH & TOOLBAR ===================== -->
+  <div class="dl-card dl-toolbar">
+    <form method="GET" action="{% url 'dossier_list' %}" id="dossier-search-form" class="dl-form">
+      {% if stage_filter %}<input type="hidden" name="stage" value="{{ stage_filter }}" />{% endif %}
 
-      <div style="position: relative; flex: 1; min-width: 300px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none;">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input type="text"
-               id="table-search-input"
-               name="q"
-               value="{{ query|default:'' }}"
-               oninput="filterDossierTable(this.value)"
-               {% if is_full_admin %}placeholder="جستجوی آنی: شماره بایگانی (#100001)، کدملی متقاضی یا همسر، نام، پروژه، مرحله جاری..."{% else %}placeholder="جستجوی سریع در کارتابل: نام متقاضی، کد ملی، شماره بایگانی..."{% endif %}
-               class="fa-num"
-               style="width: 100%; padding: 0.75rem 2.85rem 0.75rem 2.5rem; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; outline: none; transition: all 0.2s; background: #f8fafc;"
-               onfocus="this.style.borderColor = '#2563eb'; this.style.background = '#ffffff'; this.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';"
-               onblur="this.style.borderColor = '#cbd5e1'; this.style.background = '#f8fafc'; this.style.boxShadow = 'none';" />
-
-        <button type="button"
-                id="clear-search-btn"
-                onclick="clearSearchInput()"
-                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; {% if not query %}display: none;{% endif %}"
-                title="پاکسازی جستجو">✕</button>
+      <div class="dl-search">
+        <svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input
+          type="text"
+          id="table-search-input"
+          name="q"
+          value="{{ query|default:'' }}"
+          oninput="filterDossierTable(this.value)"
+          autocomplete="off"
+          class="fa-num"
+          {% if is_full_admin %}placeholder="جستجوی آنی: شماره بایگانی، کدملی متقاضی یا همسر، نام، پروژه، مرحله..."{% else %}placeholder="جستجوی سریع: نام متقاضی، کد ملی، شماره بایگانی..."{% endif %}
+        />
+        <button type="button" id="clear-search-btn" class="clear" onclick="clearSearchInput()" title="پاکسازی جستجو" {% if not query %}style="display: none;"{% endif %}>✕</button>
       </div>
 
       {% if is_full_admin %}
-      <!-- Sort Selector Dropdown (Admin) -->
-      <div style="display: flex; align-items: center; gap: 0.4rem; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.65rem 0.85rem;">
-        <label for="sort-select" style="font-size: 0.82rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
-          <span>مرتب‌سازی:</span>
+      <div class="dl-select">
+        <label for="sort-select">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" style="vertical-align: middle"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+          مرتب‌سازی:
         </label>
-        <select id="sort-select" name="sort" onchange="document.getElementById('dossier-search-form').submit()"
-                style="background: transparent; border: none; font-size: 0.84rem; font-weight: 800; color: #1e3a8a; outline: none; cursor: pointer;">
-          <option value="stage_asc" {% if current_sort == 'stage_asc' %}selected{% endif %}>مرحله گردش کار (۱ به ۲۱) [پیش‌فرض]</option>
-          <option value="stage_desc" {% if current_sort == 'stage_desc' %}selected{% endif %}>مرحله گردش کار (۲۱ به ۱)</option>
-          <option value="archive_asc" {% if current_sort == 'archive_asc' %}selected{% endif %}>شماره پرونده (#100001+ صعودی)</option>
+        <select id="sort-select" name="sort" onchange="document.getElementById('dossier-search-form').submit()">
+          <option value="stage_asc" {% if current_sort == 'stage_asc' %}selected{% endif %}>مرحله (۱ به ۲۱)</option>
+          <option value="stage_desc" {% if current_sort == 'stage_desc' %}selected{% endif %}>مرحله (۲۱ به ۱)</option>
+          <option value="archive_asc" {% if current_sort == 'archive_asc' %}selected{% endif %}>شماره پرونده (صعودی)</option>
           <option value="archive_desc" {% if current_sort == 'archive_desc' %}selected{% endif %}>شماره پرونده (نزولی)</option>
           <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>نام متقاضی (الفبایی)</option>
         </select>
       </div>
       {% endif %}
 
-      <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.88rem; font-weight: 800; display: flex; align-items: center; gap: 0.45rem;">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <span>جستجو</span>
+      <button type="submit" class="dl-btn primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        جستجو
       </button>
 
-      <!-- Prominent Found Counter Badge -->
-      <div id="search-counter-badge" class="fa-num" style="display: flex; align-items: center; gap: 0.45rem; background: #eff6ff; color: #1e40af; border: 1.5px solid #bfdbfe; padding: 0.65rem 1.15rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; white-space: nowrap; box-shadow: 0 1px 3px rgba(37,99,235,0.08);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-        <span id="search-counter-text">
-          {% if query %}
-            یافت شد: {{ dossiers.count }} پرونده
-          {% else %}
-            تعداد پرونده‌ها: {{ dossiers.count }} پرونده
-          {% endif %}
-        </span>
+      <div id="search-counter-badge" class="dl-counter fa-num">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <span id="search-counter-text">{% if query %}یافت شد: {{ dossiers.count }} پرونده{% else %}تعداد پرونده‌ها: {{ dossiers.count }} پرونده{% endif %}</span>
       </div>
-      <!-- Bank Letter Sender Link -->
+
       {% if is_full_admin or request.user.profile.is_housing_chief %}
-      <a href="{% url 'bank_letter_sender' %}"
-         class="btn btn-outline"
-         style="display: flex; align-items: center; gap: 0.45rem; padding: 0.65rem 1.15rem; border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 800; font-size: 0.85rem; border-radius: 8px; text-decoration: none; white-space: nowrap; box-shadow: 0 1px 3px rgba(37,99,235,0.12);"
-         title="ارسال دسته جمعی نامه معرفی متقاضیان به بانک مسکن">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-          <line x1="1" y1="10" x2="23" y2="10"></line>
-        </svg>
-        <span>ارسال نامه بانک</span>
+      <a href="{% url 'bank_letter_sender' %}" class="dl-btn indigo" title="ارسال دسته جمعی نامه معرفی متقاضیان به بانک مسکن">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+        ارسال نامه بانک
       </a>
       {% endif %}
 
-      <!-- Quick Excel Export Button -->
       {% if is_full_admin %}
-      <a href="{% url 'excel_export_all' %}{% if query %}?q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}"
-         class="btn btn-outline"
-         style="display: flex; align-items: center; gap: 0.45rem; padding: 0.65rem 1.15rem; border-color: #10b981; color: #047857; background: #ecfdf5; font-weight: 800; font-size: 0.85rem; border-radius: 8px; text-decoration: none; white-space: nowrap; box-shadow: 0 1px 3px rgba(16,185,129,0.12); transition: all 0.2s;"
-         onmouseover="this.style.background='#dcfce7'; this.style.borderColor='#059669';"
-         onmouseout="this.style.background='#ecfdf5'; this.style.borderColor='#10b981';"
-         title="دانلود خروجی فایل اکسل پرونده‌های این لیست">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="12" y1="18" x2="12" y2="12"></line>
-          <line x1="9" y1="15" x2="12" y2="18"></line>
-          <line x1="15" y1="15" x2="12" y2="18"></line>
-        </svg>
-        <span>خروجی اکسل</span>
+      <a href="{% url 'excel_export_all' %}{% if query %}?q={{ query|urlencode }}{% endif %}{% if stage_filter %}{% if query %}&{% else %}?{% endif %}stage={{ stage_filter }}{% endif %}" class="dl-btn green" title="دانلود خروجی اکسل پرونده‌های این لیست">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="12" y2="18"></line><line x1="15" y1="15" x2="12" y2="18"></line></svg>
+        خروجی اکسل
       </a>
       {% endif %}
 
       {% if query %}
-      <a href="{% url 'dossier_list' %}{% if stage_filter %}?stage={{ stage_filter }}{% endif %}" class="btn btn-outline" style="padding: 0.75rem 1.1rem; font-size: 0.82rem; color: #dc2626; border-color: #fca5a5; display: flex; align-items: center; gap: 0.35rem;" title="حذف فیلتر و نمایش همه">
-        <span>✕ حذف فیلتر جستجو</span>
-      </a>
+      <a href="{% url 'dossier_list' %}{% if stage_filter %}?stage={{ stage_filter }}{% endif %}" class="dl-btn red" title="حذف فیلتر و نمایش همه">✕ حذف فیلتر</a>
       {% endif %}
     </form>
 
-    <!-- Search Guide & Active Counter Status -->
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.78rem; color: #64748b; border-top: 1px dashed #e2e8f0; padding-top: 0.6rem;">
-      <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-        <span style="font-weight: 700; color: #334155;">راهنمای جستجو:</span>
-        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">کدملی</span>
-        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">نام متقاضی یا همسر</span>
-        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">شماره بایگانی (#100001)</span>
-        <span style="background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 4px;">پروژه و سایت</span>
-      </div>
-      <div id="search-result-count" class="fa-num" style="font-weight: 800; color: #1e40af; background: #dbeafe; padding: 0.25rem 0.75rem; border-radius: 8px;">
-        {{ dossiers.count }} پرونده در این کارپوشه
-      </div>
+    <div class="dl-hints">
+      <strong style="color: #334155">قابل جستجو:</strong>
+      <span class="tag">کدملی</span>
+      <span class="tag">نام متقاضی یا همسر</span>
+      <span class="tag">شماره بایگانی</span>
+      <span class="tag">پروژه و سایت</span>
     </div>
   </div>
 
-  <!-- =========================================================================
-       DOSSIERS DATA TABLE CARD
-       ========================================================================= -->
-  <div class="form-card" style="box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); border: 1.5px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff;">
-    <div class="panel-header" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.1rem 1.5rem; border-bottom: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-      <div class="panel-title" style="display: flex; align-items: center; gap: 0.6rem; font-weight: 800; color: #0f2744; font-size: 1.05rem;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        <span>
-          {% if is_full_admin %}
-            فهرست کلیه پرونده‌های مسکن و وضعیت مراحل توقف
-          {% else %}
-            پرونده‌های منتظر اقدام تخصصی شما
-          {% endif %}
-        </span>
+  <!-- ===================== TABLE ===================== -->
+  <div class="dl-card dl-table-card">
+    <div class="dl-table-head">
+      <div class="dl-table-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        {% if is_full_admin %}فهرست پرونده‌ها و وضعیت مراحل توقف{% else %}پرونده‌های منتظر اقدام تخصصی شما{% endif %}
       </div>
-
-      {% if stage_filter %}
-      <div style="font-size: 0.8rem; background: #eff6ff; color: #1d4ed8; padding: 0.3rem 0.85rem; border-radius: 6px; border: 1px solid #bfdbfe; font-weight: 700;" class="fa-num">
-        فیلتر مرحله: مرحله {{ stage_filter }}
+      <div class="dl-table-meta fa-num">
+        {% if stage_filter %}<span class="dl-badge-filter">فیلتر: مرحله {{ stage_filter }}</span>{% endif %}
+        <span id="search-result-count" class="dl-badge-count">{{ dossiers.count }} پرونده در این کارپوشه</span>
       </div>
-      {% endif %}
     </div>
 
-    <div style="overflow-x: auto; width: 100%;">
-      <table style="width: 100%; min-width: 1100px; border-collapse: collapse; table-layout: fixed; direction: rtl; text-align: right; font-size: 0.88rem;">
+    <div class="dl-scroll">
+      <table class="dl-table">
         <thead>
-          <tr style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; color: #475569; font-weight: 800; font-size: 0.82rem;">
-            <th style="padding: 1rem 0.75rem; width: 8.5%; text-align: center; vertical-align: middle;">شماره بایگانی</th>
-            <th style="padding: 1rem 0.75rem; width: 10.5%; text-align: center; vertical-align: middle;">کدملی</th>
-            <th style="padding: 1rem 1rem; width: 17%; text-align: right; vertical-align: middle;">نام متقاضی و همسر</th>
-            <th style="padding: 1rem 1rem; width: 13%; text-align: right; vertical-align: middle;">پروژه و سایت</th>
-            <th style="padding: 1rem 1rem; width: 22.5%; text-align: right; vertical-align: middle;">مرحله جاری و تاریخ ورود</th>
-            <th style="padding: 1rem 1rem; width: 11.5%; text-align: right; vertical-align: middle;">مسئول اقدام</th>
-            <th style="padding: 1rem 0.75rem; width: 8.5%; text-align: center; vertical-align: middle;">آورده متقاضی</th>
-            <th style="padding: 1rem 0.75rem; width: 8.5%; text-align: center; vertical-align: middle;">عملیات</th>
+          <tr>
+            <th class="t-center" style="width: 9%">شماره بایگانی</th>
+            <th style="width: 24%">متقاضی و همسر</th>
+            <th style="width: 14%">پروژه و سایت</th>
+            <th style="width: 23%">مرحله جاری و تاریخ ورود</th>
+            <th style="width: 12%">مسئول اقدام</th>
+            <th class="t-center" style="width: 9%">آورده متقاضی</th>
+            <th class="t-center" style="width: 9%">عملیات</th>
           </tr>
         </thead>
         <tbody id="dossier-table-body">
           {% for d in dossiers %}
-          <tr class="dossier-row"
-              data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}"
-              style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;"
-              onmouseover="this.style.background = '#f8fafc'"
-              onmouseout="this.style.background = 'transparent'">
-            
-            <!-- 1. Archive Number Badge -->
-            <td style="padding: 0.95rem 0.75rem; text-align: center; vertical-align: middle;">
-              <span style="display: inline-flex; align-items: center; justify-content: center; direction: ltr; font-weight: 800; font-size: 0.84rem; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 9px; border-radius: 6px; letter-spacing: 0.5px; box-shadow: 0 1px 2px rgba(30,64,175,0.06);">
-                #{{ d.archive_number }}
-              </span>
+          <tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}">
+
+            <!-- 1. Archive number -->
+            <td class="t-center fa-num">
+              <span class="dl-id">#{{ d.archive_number }}</span>
             </td>
 
-            <!-- 2. National ID -->
-            <td style="padding: 0.95rem 0.75rem; text-align: center; vertical-align: middle;">
-              <span style="font-weight: 700; color: #334155; font-size: 0.88rem; letter-spacing: 0.5px; direction: ltr; display: inline-block;">
-                {{ d.national_id }}
-              </span>
+            <!-- 2. Applicant + spouse + national id -->
+            <td>
+              <div class="dl-person">
+                <div class="dl-avatar">{{ d.full_name|slice:":1" }}</div>
+                <div class="dl-person-info">
+                  <div class="dl-name" title="{{ d.full_name }}">{{ d.full_name }}</div>
+                  <div class="dl-subline fa-num">کدملی: <span class="dl-nid">{{ d.national_id }}</span></div>
+                  {% if d.spouse_full_name %}
+                  <div class="dl-subline" title="همسر: {{ d.spouse_full_name }}">همسر: {{ d.spouse_full_name }}</div>
+                  {% endif %}
+                </div>
+              </div>
             </td>
 
-            <!-- 3. Applicant & Spouse Name -->
-            <td style="padding: 0.95rem 1rem; text-align: right; vertical-align: middle;">
-              <div style="font-weight: 800; color: #0f172a; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ d.full_name }}">
-                {{ d.full_name }}
+            <!-- 3. Project and site -->
+            <td>
+              <div class="dl-project" title="{{ d.project }}">{{ d.project }}</div>
+              <div class="dl-subline fa-num">سایت {{ d.site }}</div>
+            </td>
+
+            <!-- 4. Stage + date + status -->
+            <td>
+              <div class="dl-stage">
+                <div class="dl-stage-pill {% if d.current_stage == 21 %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
+                  <span class="no fa-num">{{ d.current_stage }}</span>
+                  <span class="tt">{{ d.current_stage_title }}</span>
+                </div>
+
+                <div class="dl-stage-meta">
+                  <span class="dl-date fa-num" title="تاریخ ورود پرونده به این مرحله">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    ورود: <strong>{{ d.stage_entry_date_jalali }}</strong>
+                  </span>
+
+                  {% if d.status == 'REJECTED_RED' %}
+                    <span class="dl-status red" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">⛔ رد صلاحیت</span>
+                  {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
+                    <span class="dl-status orange" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">⚠ فرم «ج» قرمز</span>
+                  {% elif d.current_stage == 21 %}
+                    <span class="dl-status green" title="نهایی و بایگانی قطعی (مختومه)">✓ مختومه</span>
+                  {% elif d.status == 'RETURNED' %}
+                    <span class="dl-status ret" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">↩ برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
+                  {% endif %}
+                </div>
               </div>
-              {% if d.spouse_full_name %}
-              <div style="font-size: 0.76rem; color: #64748b; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="همسر: {{ d.spouse_full_name }}">
-                همسر: {{ d.spouse_full_name }}
-              </div>
+            </td>
+
+            <!-- 5. Responsible -->
+            <td>
+              <div class="dl-role" title="{{ d.current_role }}">{{ d.current_role }}</div>
+              {% if d.current_unit == 'brokerage' %}
+                <span class="dl-unit brokerage">واحد کارگزاری مسکن</span>
+              {% else %}
+                <span class="dl-unit directorate">اداره کل راه و شهرسازی</span>
               {% endif %}
             </td>
 
-            <!-- 4. Project and Site -->
-            <td style="padding: 0.95rem 1rem; text-align: right; vertical-align: middle;">
-              <div style="font-weight: 700; color: #1e293b; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ d.project }}">
-                {{ d.project }}
-              </div>
-              <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px; display: inline-flex; align-items: center; gap: 4px;">
-                <span style="display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #94a3b8; flex-shrink: 0;"></span>
-                <span>سایت {{ d.site }}</span>
-              </div>
+            <!-- 6. Equity -->
+            <td class="t-center fa-num">
+              <span class="dl-equity">{{ d.formatted_equity }}<small>ریال</small></span>
             </td>
 
-            <!-- 5. Current Stage & Arrival Date (Always Exactly 2 Lines) -->
-            <td style="padding: 0.95rem 1rem; text-align: right; vertical-align: middle; direction: rtl;">
-              <div style="display: flex; flex-direction: column; gap: 0.4rem; width: 100%; direction: rtl;">
-                
-                <!-- Line 1: Stage Badge Pill (RTL) -->
-                <div class="stage-badge-cell {% if d.current_stage == 21 %}stage-completed{% elif d.current_unit == 'brokerage' %}stage-brokerage{% else %}stage-directorate{% endif %}"
-                     title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}"
-                     style="width: 100%; box-sizing: border-box; direction: rtl;">
-                  <span class="stage-tag fa-num" style="flex-shrink: 0;">مرحله {{ d.current_stage }}</span>
-                  <span class="stage-title-text" style="font-size: 0.78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ d.current_stage_title }}</span>
-                </div>
-
-                <!-- Line 2: Single Balanced Metadata Bar (Date on Right, Status on Left) -->
-                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 22px; gap: 0.4rem; direction: rtl;">
-                  
-
-
-                  <!-- Arrival Date (Right) -->
-                  <div style="font-size: 0.74rem; color: #64748b; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap; direction: rtl;" class="fa-num" title="تاریخ ورود پرونده به این مرحله">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" style="flex-shrink: 0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    <span>ورود:</span>
-                    <strong style="color: #334155; letter-spacing: 0.2px;">{{ d.stage_entry_date_jalali }}</strong>
-                  </div>
-
-                  <!-- Status Badge (Left - only when returned, red form, or completed) -->
-                  <div style="display: inline-flex; align-items: center; flex-shrink: 0;">
-                    {% if d.status == 'REJECTED_RED' %}
-                      <span style="font-size: 0.68rem; color: #991b1b; font-weight: 800; background: #fee2e2; border: 1px solid #fecaca; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                        <span>رد صلاحیت</span>
-                      </span>
-                    {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
-                      <span style="font-size: 0.68rem; color: #c2410c; font-weight: 800; background: #ffedd5; border: 1px solid #fed7aa; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">
-                        <span style="color: #dc2626;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
-                        <span>فرم «ج» قرمز</span>
-                      </span>
-                    {% elif d.current_stage == 21 %}
-                      <span style="font-size: 0.68rem; color: #15803d; font-weight: 700; background: #dcfce7; border: 1px solid #86efac; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;" title="نهایی و بایگانی قطعی (مختومه)">
-                        <span>✓</span>
-                        <span>مختومه</span>
-                      </span>
-                    {% elif d.status == 'RETURNED' %}
-                      <span style="font-size: 0.68rem; color: #b91c1c; font-weight: 800; background: #fee2e2; border: 1px solid #fca5a5; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; cursor: help;" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">
-                        <span style="color: #dc2626;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
-                        <span>برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
-                      </span>
-                    {% endif %}
-                  </div>
-
-                </div>
-
-              </div>
-            </td>
-
-            <!-- 6. Responsible Role & Unit -->
-            <td style="padding: 0.95rem 1rem; text-align: right; vertical-align: middle;">
-              <div style="font-size: 0.8rem; font-weight: 700; color: #1e293b; line-height: 1.45; word-break: break-word;" title="{{ d.current_role }}">
-                {{ d.current_role }}
-              </div>
-              <div style="margin-top: 4px;">
-                {% if d.current_unit == 'brokerage' %}
-                <span style="font-size: 0.68rem; background: #eef2ff; color: #4338ca; padding: 2px 7px; border-radius: 4px; font-weight: 700; border: 1px solid #c7d2fe; display: inline-block;">
-                  واحد کارگزاری مسکن
-                </span>
-                {% else %}
-                <span style="font-size: 0.68rem; background: #ecfdf5; color: #065f46; padding: 2px 7px; border-radius: 4px; font-weight: 700; border: 1px solid #a7f3d0; display: inline-block;">
-                  اداره کل راه و شهرسازی
-                </span>
-                {% endif %}
-              </div>
-            </td>
-
-            <!-- 7. Applicant Equity -->
-            <td style="padding: 0.95rem 0.75rem; text-align: center; vertical-align: middle;">
-              <div style="font-weight: 800; color: #047857; font-size: 0.92rem; white-space: nowrap; display: inline-flex; align-items: baseline; justify-content: center; gap: 4px; direction: rtl;" class="fa-num">
-                <span>{{ d.formatted_equity }}</span>
-                <span style="font-size: 0.75rem; font-weight: 700; color: #059669;">ریال</span>
-              </div>
-            </td>
-
-            <!-- 8. Action Button (Single Prominent Button for Experts) -->
-            <td style="padding: 0.95rem 0.75rem; text-align: center; vertical-align: middle; white-space: nowrap;">
-              <div style="display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;">
-                <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="btn-open-dossier" style="padding: 0.5rem 1rem; font-size: 0.84rem; font-weight: 800; white-space: nowrap; border-radius: 8px;" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
-                  <span>اقدام روی پرونده</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-arrow-icon"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <!-- 7. Actions -->
+            <td class="t-center">
+              <div class="dl-actions">
+                <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="dl-open" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
+                  <span>ورود به پرونده</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </a>
                 {% if is_full_admin %}
-                <a href="{% url 'dossier_summary_print' pk=d.archive_number %}" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: #f0fdf4; border: 1.5px solid #86efac; color: #15803d; text-decoration: none; transition: all 0.15s; flex-shrink: 0;" title="چاپ فرم مراحل و امضاها">
+                <a href="{% url 'dossier_summary_print' pk=d.archive_number %}" target="_blank" class="dl-icon-btn" title="چاپ فرم مراحل و امضاها">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 </a>
                 {% endif %}
@@ -412,56 +1063,39 @@
           </tr>
 
           {% empty %}
-          <!-- Empty State (Role-Specific) -->
           <tr id="server-empty-row">
-            <td colspan="8" style="text-align: center; padding: 4.5rem 1.5rem; color: #64748b;">
-              {% if is_full_admin %}
-                <div style="margin-bottom: 0.65rem; color: #94a3b8;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
-                <div style="font-weight: 800; font-size: 1.15rem; color: #1e293b;">
-                  هیچ پرونده‌ای منطبق با فیلتر یا جستجوی شما یافت نشد
-                </div>
-                <div style="font-size: 0.88rem; margin-top: 0.4rem; color: #64748b;">
-                  {% if query %}عبارت جستجو شده: «{{ query }}»{% else %}در فیلتر انتخابی پرونده‌ای وجود ندارد.{% endif %}
-                </div>
-                <div style="margin-top: 1.25rem;">
-                  <a href="{% url 'dossier_list' %}" class="btn btn-primary" style="font-size: 0.86rem; font-weight: 700;">
-                    نمایش تمامی پرونده‌ها
-                  </a>
-                </div>
-              {% else %}
-                <div style="width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center;">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                </div>
-                <div style="font-weight: 800; font-size: 1.2rem; color: #0f2744; margin-bottom: 0.5rem;">
-                  کارپوشه اقدام شما خالی است
-                </div>
-                <div style="font-size: 0.9rem; color: #475569; max-width: 520px; margin: 0 auto; line-height: 1.7;">
-                  در حال حاضر هیچ پرونده‌ای در مرحله‌های مجاز شما (<strong class="fa-num">مراحل {{ user_profile.allowed_stages }}</strong>) متوقف نشده است. به محض ارسال یا ارجاع پرونده از مرحله قبل، در این کارپوشه قرار خواهد گرفت.
-                </div>
-                <div style="margin-top: 1.5rem;">
-                  <a href="{% url 'dossier_list' %}" class="btn btn-outline" style="font-size: 0.86rem; background: #ffffff;">
-                    بررسی مجدد و تازه‌سازی کارپوشه
-                  </a>
-                </div>
-              {% endif %}
+            <td colspan="7">
+              <div class="dl-empty">
+                {% if is_full_admin %}
+                  <div class="dl-empty-ic">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  </div>
+                  <h3>هیچ پرونده‌ای منطبق با فیلتر یا جستجوی شما یافت نشد</h3>
+                  <p>{% if query %}عبارت جستجو شده: «{{ query }}»{% else %}در فیلتر انتخابی پرونده‌ای وجود ندارد.{% endif %}</p>
+                  <div class="cta"><a href="{% url 'dossier_list' %}" class="dl-btn primary">نمایش تمامی پرونده‌ها</a></div>
+                {% else %}
+                  <div class="dl-empty-ic">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  </div>
+                  <h3>کارپوشه اقدام شما خالی است</h3>
+                  <p>در حال حاضر هیچ پرونده‌ای در مرحله‌های مجاز شما (<strong class="fa-num">مراحل {{ user_profile.allowed_stages }}</strong>) متوقف نشده است. به محض ارسال یا ارجاع پرونده از مرحله قبل، در این کارپوشه قرار خواهد گرفت.</p>
+                  <div class="cta"><a href="{% url 'dossier_list' %}" class="dl-btn ghost">بررسی مجدد و تازه‌سازی</a></div>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% endfor %}
 
-          <!-- Client-side Instant Filter No-Results Row (Hidden by default) -->
+          <!-- Client-side instant filter: no results -->
           <tr id="client-empty-row" style="display: none;">
-            <td colspan="8" style="text-align: center; padding: 3.5rem 1.5rem; color: #94a3b8;">
-              <div style="margin-bottom: 0.5rem; color: #94a3b8;"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
-              <div style="font-weight: 800; font-size: 1.05rem; color: #334155;">
-                پرونده‌ای منطبق با عبارت واردشده در این کارپوشه یافت نشد
-              </div>
-              <div style="font-size: 0.82rem; margin-top: 0.35rem; color: #64748b;">
-                می‌توانید کلمه دیگری را جستجو نموده یا دکمه پاکسازی را بزنید.
-              </div>
-              <div style="margin-top: 1rem;">
-                <button type="button" class="btn btn-outline" onclick="clearSearchInput()" style="font-size: 0.82rem;">
-                  پاکسازی جستجو و نمایش همه
-                </button>
+            <td colspan="7">
+              <div class="dl-empty">
+                <div class="dl-empty-ic">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </div>
+                <h3>پرونده‌ای منطبق با عبارت واردشده یافت نشد</h3>
+                <p>می‌توانید کلمه دیگری را جستجو کنید یا جستجو را پاکسازی نمایید.</p>
+                <div class="cta"><button type="button" class="dl-btn ghost" onclick="clearSearchInput()">پاکسازی جستجو و نمایش همه</button></div>
               </div>
             </td>
           </tr>
@@ -469,70 +1103,323 @@
       </table>
     </div>
 
-    <!-- Server-Side Pagination Bar -->
+    <!-- Pagination -->
     {% if paginator.num_pages > 1 %}
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; flex-wrap: wrap; gap: 0.75rem;">
-      <div style="font-size: 0.82rem; color: #64748b; font-weight: 600;" class="fa-num">
-        نمایش پرونده‌های <strong style="color: #0f172a;">{{ page_obj.start_index }}</strong> تا <strong style="color: #0f172a;">{{ page_obj.end_index }}</strong> از مجموع <strong style="color: #0f172a;">{{ paginator.count }}</strong> پرونده
+    <div class="dl-pager">
+      <div class="dl-pager-info fa-num">
+        نمایش پرونده‌های <strong>{{ page_obj.start_index }}</strong> تا <strong>{{ page_obj.end_index }}</strong> از مجموع <strong>{{ paginator.count }}</strong> پرونده
       </div>
 
-      <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;" class="fa-num">
-        <!-- First & Prev Page -->
+      <div class="dl-pager-nav fa-num">
         {% if page_obj.has_previous %}
-        <a href="?page=1{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
-           class="btn btn-outline"
-           style="padding: 0.35rem 0.65rem; font-size: 0.8rem; background: #ffffff;"
-           title="صفحه اول">
-          « اول
-        </a>
-        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
-           class="btn btn-outline"
-           style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #ffffff;"
-           title="صفحه قبل">
-          قبلی
-        </a>
+        <a class="dl-pg" title="صفحه اول" href="?page=1{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">« اول</a>
+        <a class="dl-pg" title="صفحه قبل" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">قبلی</a>
         {% endif %}
 
-        <!-- Numbered Pages with Ellipsis -->
         {% for p in elided_page_range %}
           {% if p == paginator.ELLIPSIS %}
-            <span style="padding: 0.35rem 0.5rem; color: #94a3b8; font-weight: 700;">…</span>
+            <span class="dl-pg gap">…</span>
           {% elif p == page_obj.number %}
-            <span style="padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 800; background: #2563eb; color: #ffffff; border: 1.5px solid #2563eb; box-shadow: 0 2px 6px rgba(37,99,235,0.25);">
-              {{ p }}
-            </span>
+            <span class="dl-pg current">{{ p }}</span>
           {% else %}
-            <a href="?page={{ p }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
-               style="text-decoration: none; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 700; background: #ffffff; color: #334155; border: 1.5px solid #cbd5e1; transition: all 0.15s;"
-               onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#93c5fd'; this.style.color='#1d4ed8';"
-               onmouseout="this.style.background='#ffffff'; this.style.borderColor='#cbd5e1'; this.style.color='#334155';">
-              {{ p }}
-            </a>
+            <a class="dl-pg" href="?page={{ p }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">{{ p }}</a>
           {% endif %}
         {% endfor %}
 
-        <!-- Next & Last Page -->
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
-           class="btn btn-outline"
-           style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: #ffffff;"
-           title="صفحه بعد">
-          بعدی
-        </a>
-        <a href="?page={{ paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
-           class="btn btn-outline"
-           style="padding: 0.35rem 0.65rem; font-size: 0.8rem; background: #ffffff;"
-           title="صفحه آخر">
-          آخر »
-        </a>
+        <a class="dl-pg" title="صفحه بعد" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">بعدی</a>
+        <a class="dl-pg" title="صفحه آخر" href="?page={{ paginator.num_pages }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">آخر »</a>
         {% endif %}
       </div>
     </div>
     {% endif %}
   </div>
+  </div>
+  <!-- ===================== END TAB 1 ===================== -->
+
+  <!-- ===================== TAB 2: ADMIN MONITORING & EXCEL ===================== -->
+  {% if is_full_admin %}
+  <div x-show="activeTab === 'admin'" x-cloak>
+
+    <!-- 1. مدیریت دسته‌جمعی اکسل -->
+    {% include 'components/admin_excel_manager.html' %}
+
+    <!-- 2. کارت‌های شاخص‌های کلیدی عملکرد (KPI Cards) -->
+    <div class="admin-kpi-grid fa-num">
+      <div class="admin-kpi-card">
+        <div class="admin-kpi-header">
+          <span class="admin-kpi-title">مجموع کل پرونده‌ها</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        </div>
+        <div class="admin-kpi-val">{{ admin_stats.total|default:total_all_dossiers }}</div>
+        <div class="admin-kpi-sub">کل رکوردهای ثبتی در سامانه مسکن‌یار</div>
+      </div>
+
+      <div class="admin-kpi-card green">
+        <div class="admin-kpi-header">
+          <span class="admin-kpi-title">پرونده‌های در جریان</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div class="admin-kpi-val" style="color: #059669;">{{ admin_stats.in_progress }}</div>
+        <div class="admin-kpi-sub">در حال اقدام در مراحل ۲۱‌گانه</div>
+      </div>
+
+      <div class="admin-kpi-card red">
+        <div class="admin-kpi-header">
+          <span class="admin-kpi-title">هشدار فرم «ج» قرمز</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+        <div class="admin-kpi-val" style="color: #dc2626;">{{ admin_stats.red_form_j }}</div>
+        <div class="admin-kpi-sub">دارای سابقه ملکی / فاقد شرایط واگذاری</div>
+      </div>
+
+      <div class="admin-kpi-card purple">
+        <div class="admin-kpi-header">
+          <span class="admin-kpi-title">بایگانی قطعی و مختومه</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <div class="admin-kpi-val" style="color: #9333ea;">{{ admin_stats.completed }}</div>
+        <div class="admin-kpi-sub">تکمیل امضاها و قفل نهایی (مرحله ۲۱)</div>
+      </div>
+    </div>
+
+    <!-- 3. وضعیت فازهای ۴‌گانه کلان -->
+    <div class="admin-phases-card fa-num">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          توزیع کلان پرونده‌ها در فازهای ۴‌گانه گردش کار
+        </div>
+        <span style="font-size: 0.76rem; color: #64748b;">تراکم کل پرونده‌ها بر اساس فرآیند قانونی</span>
+      </div>
+
+      <div class="admin-phases-grid">
+        <div class="admin-phase-item">
+          <div class="admin-phase-head">
+            <span style="color: #065f46;">فاز ۱ · کارگزاری (مراحل ۱–۸)</span>
+            <strong style="color: #059669;">{{ admin_stats.p1_count }} پرونده ({{ admin_stats.p1_pct }}%)</strong>
+          </div>
+          <div class="admin-progress-bg">
+            <div class="admin-progress-fill" style="width: {{ admin_stats.p1_pct }}%; background: #059669;"></div>
+          </div>
+        </div>
+
+        <div class="admin-phase-item">
+          <div class="admin-phase-head">
+            <span style="color: #1e40af;">فاز ۲ · اداره کل (مراحل ۹–۱۰)</span>
+            <strong style="color: #2563eb;">{{ admin_stats.p2_count }} پرونده ({{ admin_stats.p2_pct }}%)</strong>
+          </div>
+          <div class="admin-progress-bg">
+            <div class="admin-progress-fill" style="width: {{ admin_stats.p2_pct }}%; background: #2563eb;"></div>
+          </div>
+        </div>
+
+        <div class="admin-phase-item">
+          <div class="admin-phase-head">
+            <span style="color: #92400e;">فاز ۳ · فنی و حقوقی (مراحل ۱۱–۱۵)</span>
+            <strong style="color: #d97706;">{{ admin_stats.p3_count }} پرونده ({{ admin_stats.p3_pct }}%)</strong>
+          </div>
+          <div class="admin-progress-bg">
+            <div class="admin-progress-fill" style="width: {{ admin_stats.p3_pct }}%; background: #d97706;"></div>
+          </div>
+        </div>
+
+        <div class="admin-phase-item">
+          <div class="admin-phase-head">
+            <span style="color: #6b21a8;">فاز ۴ · تسویه و بایگانی (مراحل ۱۶–۲۱)</span>
+            <strong style="color: #9333ea;">{{ admin_stats.p4_count }} پرونده ({{ admin_stats.p4_pct }}%)</strong>
+          </div>
+          <div class="admin-progress-bg">
+            <div class="admin-progress-fill" style="width: {{ admin_stats.p4_pct }}%; background: #9333ea;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. جدول تحلیلی و تفکیکی توزیع پرونده‌ها در مراحل ۲۱‌گانه -->
+    <div class="admin-table-card">
+      <div class="admin-table-head">
+        <div class="admin-table-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          جدول جامع تعداد و موقعیت توقف پرونده‌ها در مراحل ۲۱‌گانه
+        </div>
+        <div style="font-size: 0.78rem; color: #64748b;">
+          برای مشاهده پرونده‌های هر مرحله، روی دکمه مشاهده کلیک فرمایید.
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="admin-table fa-num">
+          <thead>
+            <tr>
+              <th style="width: 50px; text-align: center;">مرحله</th>
+              <th style="width: 130px;">فاز کلان</th>
+              <th>عنوان کامل مرحله</th>
+              <th>واحد سازمانی و مسئول اقدام</th>
+              <th style="width: 140px; text-align: center;">تعداد پرونده متوقف</th>
+              <th style="width: 180px;">سهم از کل سامانه</th>
+              <th style="width: 100px; text-align: center;">وضعیت</th>
+              <th style="width: 120px; text-align: center;">عملیات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for stg in stages_analysis %}
+            <tr {% if stg.count > 0 %}style="background: #fafcff;"{% endif %}>
+              <td style="text-align: center; font-weight: 900; color: #3730a3;">
+                <span style="display: inline-block; width: 28px; height: 28px; line-height: 28px; border-radius: 8px; background: #eef2ff; border: 1px solid #c7d2fe;">
+                  {{ stg.id }}
+                </span>
+              </td>
+              <td>
+                <span style="font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;
+                  {% if stg.phase_badge == 'emerald' %}background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;
+                  {% elif stg.phase_badge == 'blue' %}background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;
+                  {% elif stg.phase_badge == 'amber' %}background: #fffbeb; color: #92400e; border: 1px solid #fde68a;
+                  {% else %}background: #faf5ff; color: #6b21a8; border: 1px solid #e9d5ff;{% endif %}">
+                  {{ stg.phase_title }}
+                </span>
+              </td>
+              <td style="font-weight: 700; color: #0f172a;">{{ stg.title }}</td>
+              <td style="color: #475569; font-size: 0.78rem;">{{ stg.role }}</td>
+              <td style="text-align: center;">
+                {% if stg.count > 0 %}
+                <span style="display: inline-block; padding: 3px 12px; border-radius: 999px; font-weight: 900; font-size: 0.9rem; background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe;">
+                  {{ stg.count }}
+                </span>
+                {% else %}
+                <span style="color: #94a3b8; font-size: 0.8rem;">۰</span>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <div style="flex: 1; height: 7px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                    <div style="height: 100%; border-radius: 999px; width: {{ stg.percentage }}%;
+                      {% if stg.percentage > 50 %}background: #4f46e5;{% elif stg.percentage > 10 %}background: #059669;{% else %}background: #94a3b8;{% endif %}"></div>
+                  </div>
+                  <span style="font-size: 0.74rem; font-weight: 700; color: #475569; width: 42px;">{{ stg.percentage }}%</span>
+                </div>
+              </td>
+              <td style="text-align: center;">
+                {% if stg.count > 1000 %}
+                <span style="font-size: 0.7rem; font-weight: 800; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 2px 7px; border-radius: 6px;">تراکم بالا</span>
+                {% elif stg.count > 0 %}
+                <span style="font-size: 0.7rem; font-weight: 700; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 2px 7px; border-radius: 6px;">فعال</span>
+                {% else %}
+                <span style="font-size: 0.7rem; color: #94a3b8;">تخلیه شده</span>
+                {% endif %}
+              </td>
+              <td style="text-align: center;">
+                <a href="{% url 'dossier_list' %}?stage={{ stg.id }}" 
+                   class="dl-btn ghost" 
+                   style="padding: 0.35rem 0.7rem; font-size: 0.74rem;" 
+                   title="مشاهده پرونده‌های مرحله {{ stg.id }}">
+                  مشاهده ↗
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 5. دو جدول جنبی: پروژه‌های مسکن و آخرین فعالیت‌ها -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.25rem;">
+      <!-- جدول پروژه‌ها -->
+      <div class="admin-table-card">
+        <div class="admin-table-head">
+          <div class="admin-table-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M10 11h2M10 15h2M14 11h2M14 15h2M18 11h2M18 15h2M9 7V3h6v4"></path></svg>
+            توزیع پرونده‌ها به تفکیک پروژه‌ها
+          </div>
+          <span style="font-size: 0.74rem; color: #64748b;">۱۰ پروژه برتر</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="admin-table fa-num">
+            <thead>
+              <tr>
+                <th>نام پروژه</th>
+                <th>سایت</th>
+                <th style="width: 100px; text-align: center;">تعداد پرونده</th>
+                <th style="width: 80px; text-align: center;">سهم</th>
+                <th style="width: 80px; text-align: center;">فیلتر</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for prj in projects_breakdown %}
+              <tr>
+                <td style="font-weight: 700; color: #0f172a;">{{ prj.project|default:'نامشخص' }}</td>
+                <td style="color: #64748b; font-size: 0.76rem;">{{ prj.site|default:'-' }}</td>
+                <td style="text-align: center; font-weight: 800; color: #059669;">{{ prj.cnt }}</td>
+                <td style="text-align: center; font-size: 0.74rem; color: #475569;">{{ prj.pct }}%</td>
+                <td style="text-align: center;">
+                  <a href="{% url 'dossier_list' %}?q={{ prj.project|urlencode }}" class="dl-btn ghost" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;">فیلتر 🔍</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" style="text-align: center; color: #94a3b8; padding: 1.5rem;">اطلاعات پروژه‌ای یافت نشد.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- جدول آخرین امضاها و اقدامات -->
+      <div class="admin-table-card">
+        <div class="admin-table-head">
+          <div class="admin-table-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            آخرین لاگ‌ها و امضاهای الکترونیکی
+          </div>
+          <span style="font-size: 0.74rem; color: #64748b;">ثبت امن در پایگاه</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="admin-table fa-num">
+            <thead>
+              <tr>
+                <th style="width: 90px;">شماره پرونده</th>
+                <th>نام متقاضی</th>
+                <th>مسئول اقدام</th>
+                <th>نوع اقدام</th>
+                <th style="width: 110px;">زمان ثبت</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in recent_activity_logs %}
+              <tr>
+                <td style="font-weight: 800;">
+                  <a href="{% url 'dossier_detail' pk=log.dossier.archive_number %}" style="color: #4f46e5; text-decoration: none;">
+                    #{{ log.dossier.archive_number }}
+                  </a>
+                </td>
+                <td style="font-weight: 700; color: #0f172a;">{{ log.dossier.full_name }}</td>
+                <td style="font-size: 0.76rem; color: #475569;">{{ log.actor|default:'کاربر سیستم' }}</td>
+                <td>
+                  <span style="font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: #e0f2fe; color: #0369a1;">
+                    {{ log.action_label|default:log.action }}
+                  </span>
+                </td>
+                <td style="font-size: 0.72rem; color: #64748b;">{{ log.timestamp|date:'Y/m/d H:i' }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" style="text-align: center; color: #94a3b8; padding: 1.5rem;">هنوز امضا یا لاگی در سیستم ثبت نشده است.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  {% endif %}
+  <!-- ===================== END TAB 2 ===================== -->
 </div>
 
-<!-- Instant Client-Side Search Script with Persian Normalization -->
+<!-- Instant client-side search with Persian normalization -->
 <script>
   function normalizeDossierQuery(str) {
     if (!str) return "";
@@ -551,77 +1438,60 @@
       .replaceAll("،", "");
   }
 
+  function setCounterTone(tone) {
+    const el = document.getElementById("search-counter-badge");
+    if (!el) return;
+    const tones = {
+      neutral: ["#eef2ff", "#c7d2fe", "#3730a3"],
+      ok: ["#ecfdf5", "#a7f3d0", "#047857"],
+      bad: ["#fef2f2", "#fecaca", "#b91c1c"],
+    };
+    const t = tones[tone] || tones.neutral;
+    el.style.background = t[0];
+    el.style.borderColor = t[1];
+    el.style.color = t[2];
+  }
+
   function filterDossierTable(term) {
     const clearBtn = document.getElementById("clear-search-btn");
     if (clearBtn) {
-      clearBtn.style.display =
-        term && term.trim().length > 0 ? "block" : "none";
+      clearBtn.style.display = term && term.trim().length > 0 ? "block" : "none";
     }
 
     const normTerm = normalizeDossierQuery(term);
-    const rows = document.querySelectorAll(
-      "#dossier-table-body tr.dossier-row"
-    );
+    const rows = document.querySelectorAll("#dossier-table-body tr.dossier-row");
     const emptyRow = document.getElementById("client-empty-row");
     const countBadge = document.getElementById("search-result-count");
     const counterText = document.getElementById("search-counter-text");
-    const counterBadge = document.getElementById("search-counter-badge");
 
     if (!normTerm) {
       rows.forEach((r) => (r.style.display = ""));
       if (emptyRow) emptyRow.style.display = "none";
-      const totalTxt = rows.length + " پرونده در این کارپوشه";
-      if (countBadge) countBadge.innerText = totalTxt;
+      if (countBadge) countBadge.innerText = rows.length + " پرونده در این کارپوشه";
       if (counterText) counterText.innerText = "تعداد پرونده‌ها: " + rows.length + " پرونده";
-      if (counterBadge) {
-        counterBadge.style.background = "#eff6ff";
-        counterBadge.style.borderColor = "#bfdbfe";
-        counterBadge.style.color = "#1e40af";
-      }
+      setCounterTone("neutral");
       return;
     }
 
-    const tokens = normTerm
-      .split(/\s+/)
-      .filter((t) => t.length > 0 && t !== "مرحله");
+    const tokens = normTerm.split(/\s+/).filter((t) => t.length > 0 && t !== "مرحله");
     let matchCount = 0;
 
     rows.forEach((row) => {
-      const rowData = normalizeDossierQuery(
-        row.getAttribute("data-search") || row.innerText
-      );
-      const isMatch =
-        tokens.length === 0 || tokens.every((token) => rowData.includes(token));
-
-      if (isMatch) {
-        row.style.display = "";
-        matchCount++;
-      } else {
-        row.style.display = "none";
-      }
+      const rowData = normalizeDossierQuery(row.getAttribute("data-search") || row.innerText);
+      const isMatch = tokens.length === 0 || tokens.every((token) => rowData.includes(token));
+      row.style.display = isMatch ? "" : "none";
+      if (isMatch) matchCount++;
     });
 
-    if (emptyRow) {
-      emptyRow.style.display = matchCount === 0 ? "" : "none";
-    }
-    const matchTxt = matchCount > 0
-      ? "یافت شد: " + matchCount + " پرونده (از مجموع " + rows.length + ")"
-      : "هیچ پرونده‌ای یافت نشد (۰ پرونده)";
+    if (emptyRow) emptyRow.style.display = matchCount === 0 ? "" : "none";
 
     if (countBadge) countBadge.innerText = matchCount + " پرونده منطبق";
-    if (counterText) counterText.innerText = matchTxt;
-
-    if (counterBadge) {
-      if (matchCount > 0) {
-        counterBadge.style.background = "#ecfdf5";
-        counterBadge.style.borderColor = "#a7f3d0";
-        counterBadge.style.color = "#047857";
-      } else {
-        counterBadge.style.background = "#fef2f2";
-        counterBadge.style.borderColor = "#fecaca";
-        counterBadge.style.color = "#b91c1c";
-      }
+    if (counterText) {
+      counterText.innerText = matchCount > 0
+        ? "یافت شد: " + matchCount + " پرونده (از مجموع " + rows.length + ")"
+        : "هیچ پرونده‌ای یافت نشد (۰ پرونده)";
     }
+    setCounterTone(matchCount > 0 ? "ok" : "bad");
   }
 
   function clearSearchInput() {

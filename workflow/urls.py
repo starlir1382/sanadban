@@ -49,6 +49,7 @@ path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
     path("bank-letter/", views.bank_letter_sender_view, name="bank_letter_sender"),
     path("bank-letter/send/", views.bank_letter_submit_api, name="bank_letter_submit"),
     path("bank-letter/export-excel/", views.bank_letter_export_excel, name="bank_letter_export_excel"),
+    path("bank-letter/lookup/", views.bank_letter_lookup_api, name="bank_letter_lookup"),
     path("api/project-bank-mapping/", views.project_bank_mapping_api, name="project_bank_mapping_api"),
 
 ]

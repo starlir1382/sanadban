@@ -4,10 +4,47 @@
 {% block title %}راه‌اندازی امنیتی حساب و ثبت نمونه امضا | سامانه مسکن یار{% endblock %}
 
 {% block content %}
+<style>
+.setup-password-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .setup-password-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+    .setup-hero {
+        padding: 1.1rem !important;
+    }
+    .setup-form-body {
+        padding: 1.1rem !important;
+    }
+    .setup-form-footer {
+        flex-direction: column-reverse !important;
+        gap: 0.75rem !important;
+        padding: 1rem !important;
+    }
+    .setup-form-footer .btn {
+        width: 100% !important;
+    }
+    .sig-canvas-wrapper {
+        width: 100% !important;
+    }
+    .sig-canvas-wrapper canvas {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+}
+</style>
+
 <div style="max-width: 680px; margin: 1.5rem auto 4rem;" x-data="firstLoginSetup()">
 
     <!-- Header Hero -->
-    <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem; box-shadow: 0 10px 25px -5px rgba(15, 39, 68, 0.25);">
+    <div class="setup-hero" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem; box-shadow: 0 10px 25px -5px rgba(15, 39, 68, 0.25);">
         <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
             <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(56, 189, 248, 0.2); border: 1.5px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -41,7 +78,7 @@
             {% csrf_token %}
             <input type="hidden" name="canvas_signature_data" x-ref="canvasData">
 
-            <div style="padding: 1.75rem 2rem;">
+            <div class="setup-form-body" style="padding: 1.75rem 2rem;">
                 
                 <!-- Section 1: Password Change -->
                 <div style="margin-bottom: 1.75rem;">
@@ -50,7 +87,7 @@
                         <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0;">تعیین کلمه عبور جدید</h3>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="setup-password-grid">
                         <div>
                             <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">
                                 <span style="color: #ef4444;">*</span> کلمه عبور جدید (حداقل ۶ کاراکتر):
@@ -111,8 +148,8 @@
                         <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; text-align: right;">
                             نمونه امضای خود را با حرکت ماوس یا لمس صفحه در کادر زیر ترسیم فرمایید:
                         </div>
-                        <div style="border: 2px dashed #93c5fd; background: #ffffff; border-radius: 10px; overflow: hidden; display: inline-block; position: relative;">
-                            <canvas x-ref="canvas" width="460" height="150" style="cursor: crosshair; touch-action: none; background: #ffffff; display: block;"></canvas>
+                        <div class="sig-canvas-wrapper" style="border: 2px dashed #93c5fd; background: #ffffff; border-radius: 10px; overflow: hidden; display: inline-block; position: relative; max-width: 100%;">
+                            <canvas x-ref="canvas" width="460" height="150" style="cursor: crosshair; touch-action: none; background: #ffffff; display: block; max-width: 100%;"></canvas>
                         </div>
                         <div style="margin-top: 0.5rem; display: flex; justify-content: center; gap: 0.75rem;">
                             <button type="button" @click="clearCanvas()" class="btn btn-outline" style="padding: 0.35rem 0.85rem; font-size: 0.78rem;">
@@ -128,7 +165,7 @@
             </div>
 
             <!-- Form Footer -->
-            <div style="padding: 1.25rem 2rem; background: #f8fafc; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <div class="setup-form-footer" style="padding: 1.25rem 2rem; background: #f8fafc; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
                 <a href="{% url 'logout' %}" style="font-size: 0.82rem; color: #dc2626; text-decoration: none; font-weight: 600;">
                     ← خروج از حساب
                 </a>

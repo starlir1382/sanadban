@@ -737,12 +737,15 @@ body {
 .col-3 { grid-column: span 3; }
 .col-2 { grid-column: span 2; }
 
-@media (max-width: 900px) {
-  .col-4, .col-3, .col-2 { grid-column: span 6; }
+@media (max-width: 992px) {
+  .fields-grid { gap: 1rem; }
+  .col-8, .col-7 { grid-column: span 12; }
+  .col-5, .col-4, .col-3, .col-2 { grid-column: span 6; }
 }
 
-@media (max-width: 600px) {
-  .col-6, .col-4, .col-3, .col-2 { grid-column: span 12; }
+@media (max-width: 640px) {
+  .fields-grid { gap: 0.85rem; }
+  .col-12, .col-8, .col-7, .col-6, .col-5, .col-4, .col-3, .col-2 { grid-column: span 12; }
 }
 
 /* Field Group & Inputs */
@@ -2233,4 +2236,275 @@ body {
 .sig-img {
   mix-blend-mode: multiply !important;
   filter: contrast(1.15) !important;
+}
+
+
+/* ==========================================================================
+   26. Enterprise Responsive System & Mobile Adaptations (All Devices)
+   ========================================================================== */
+
+/* Universal Responsive Table Containers */
+.table-responsive,
+.dl-scroll,
+.official-sheet-container,
+.bank-letter-sheet-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-x: contain;
+}
+
+/* Ensure tables inside scrollable containers retain readable columns */
+.check-table {
+  min-width: 650px !important;
+  width: 100%;
+}
+
+.dossier-table {
+  min-width: 820px !important;
+}
+
+.bank-official-table {
+  min-width: 1200px !important;
+}
+
+/* Responsive 2-Column Grid Utility */
+.responsive-2col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .responsive-2col-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Breakpoint 1: Tablets and Laptops (max-width: 992px) */
+@media (max-width: 992px) {
+  .main-wrapper {
+    padding: 0 1rem;
+    margin-top: 1.25rem;
+    margin-bottom: 4rem;
+  }
+
+  .form-section-body {
+    padding: 1.2rem;
+  }
+
+  .action-bar-container {
+    gap: 0.75rem;
+  }
+}
+
+/* Breakpoint 2: Tablet Portrait and Large Phones (max-width: 768px) */
+@media (max-width: 768px) {
+  .main-wrapper {
+    padding: 0 0.75rem;
+    margin-top: 1rem;
+    margin-bottom: 4.5rem;
+  }
+
+  .form-card {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .form-section-header {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .section-title {
+    font-size: 0.92rem;
+  }
+
+  .form-section-body {
+    padding: 1rem;
+  }
+
+  /* Sticky Action Bar Mobile Polish */
+  .sticky-action-bar {
+    padding: 0.65rem 0.85rem !important;
+  }
+
+  .sticky-action-bar .action-bar-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+  }
+
+  .sticky-action-bar .action-status-hint {
+    justify-content: center !important;
+    text-align: center !important;
+    font-size: 0.8rem !important;
+  }
+
+  .sticky-action-bar .action-buttons-group {
+    width: 100% !important;
+    justify-content: stretch !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .sticky-action-bar .action-buttons-group .btn {
+    flex: 1 1 calc(50% - 0.5rem) !important;
+    min-height: 42px !important;
+    font-size: 0.84rem !important;
+    padding: 0.5rem 0.75rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Modals mobile sizing */
+  .modal-dialog {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 0.5rem auto !important;
+    max-height: 92vh !important;
+    border-radius: 16px !important;
+  }
+
+  .modal-header {
+    padding: 1rem 1.15rem !important;
+  }
+
+  .modal-body {
+    padding: 1.15rem !important;
+  }
+
+  .modal-footer {
+    padding: 0.85rem 1.15rem !important;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .modal-footer .btn {
+    flex: 1 1 auto;
+    min-height: 42px;
+  }
+
+  /* Touch-friendly input fields */
+  .btn,
+  .input-control,
+  select,
+  input[type="text"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"] {
+    min-height: 42px;
+    font-size: 0.88rem;
+  }
+}
+
+/* Breakpoint 3: Standard Mobile Phones (max-width: 576px) */
+@media (max-width: 576px) {
+  html {
+    font-size: 13.5px;
+  }
+
+  .main-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .form-card {
+    border-radius: 12px;
+  }
+
+  .form-section-header {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .form-section-body {
+    padding: 0.75rem;
+  }
+
+  .sticky-action-bar .action-buttons-group .btn {
+    flex: 1 1 100% !important;
+  }
+
+  .modal-dialog {
+    width: 98% !important;
+    max-width: 98% !important;
+  }
+
+  .modal-header {
+    padding: 0.85rem 1rem !important;
+  }
+
+  .modal-body {
+    padding: 0.85rem 1rem !important;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse !important;
+  }
+
+  .modal-footer .btn {
+    width: 100% !important;
+  }
+
+  /* Prevent any rogue horizontal blowout */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Responsive Scan Viewer Lightbox & Persian Date Picker */
+@media (max-width: 768px) {
+  .scan-viewer-topbar {
+    padding: 0.65rem 0.85rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+  }
+  .scan-toolbar-controls {
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding-bottom: 0.35rem !important;
+    -webkit-overflow-scrolling: touch !important;
+    justify-content: flex-start !important;
+    gap: 0.35rem !important;
+  }
+  .scan-toolbar-controls .toolbar-btn {
+    padding: 0.35rem 0.65rem !important;
+    font-size: 0.78rem !important;
+  }
+  .scan-document-canvas.a4-portrait,
+  .scan-document-canvas {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 0.85rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .date-picker-modal-box {
+    width: 96% !important;
+    max-width: 96% !important;
+    margin: 0.5rem auto !important;
+  }
+  .date-picker-header {
+    padding: 0.85rem 1rem !important;
+  }
+  .date-picker-preview-tag {
+    font-size: 0.95rem !important;
+    padding: 0.2rem 0.5rem !important;
+  }
+  .date-picker-body {
+    padding: 0.85rem !important;
+  }
+  .date-picker-years-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  .date-picker-months-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .scan-toolbar-controls .toolbar-btn span {
+    display: none !important;
+  }
 }

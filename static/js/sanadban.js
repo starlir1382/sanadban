@@ -10,7 +10,8 @@ const FIELD_STAGE_MAP = {
   registration_section: [2, 11, 13], main_plaque: [2, 11, 13], separated_plaque: [2, 11, 13],
   sub_plaque: [2, 11, 13], plot_number: [2, 11, 13],
   base_cost_without_loan: [2, 18],
-  applicant_form_j_status: [3, 10], applicant_form_j_directorate_status: [3, 10], applicant_form_j_red_description: [3, 10],
+  form_j_questionnaire_number: [1, 3, 8, 10],
+  applicant_form_j_status: [1, 3, 8, 10], applicant_form_j_directorate_status: [1, 3, 8, 10], applicant_form_j_red_description: [1, 3, 8, 10],
   spouse_form_j_status: [3, 10], spouse_form_j_directorate_status: [3, 10], spouse_form_j_red_description: [3, 10],
   fund_loan_amount: [4, 18],
   contractor_letter_amount: [4, 18],
@@ -148,7 +149,7 @@ const STAGE_GUIDANCE = {
       'استعلام وضعیت فرم ج همسر متقاضی',
       'ثبت نتیجه استعلام به صورت تاییدشده و سبز'
     ],
-    targetSection: '#section-spouse'
+    targetSection: '#section-applicant'
   },
   4: {
     actionTitle: 'ورود مبلغ وام صندوق، نامه پیمانکار و وام دهک',
@@ -341,7 +342,8 @@ document.addEventListener('alpine:init', () => {
     returnBy: '',
     returnFromStage: null,
     stages: STAGES_21,
-    archiveNumber: 100001,
+    archiveNumber: null,
+    isLoaded: false,
     isLocked: false,
     userCanAction: true,
     isChief: false,
@@ -350,6 +352,26 @@ document.addEventListener('alpine:init', () => {
     selectedCategory: 'all',
     attachmentViewMode: 'album',
     todayDate: '',
+
+    // Active Tab Navigation
+    tab: ['form', 'map', 'history', 'scans'].includes(location.hash.slice(1))
+        ? location.hash.slice(1)
+        : 'form',
+    moreOpen: false,
+
+    get isRedJ() {
+      return Boolean(this.isRedFormJ
+        || (this.form && this.form.applicant_form_j_status && this.form.applicant_form_j_status.includes('قرمز')));
+    },
+
+    go(t) {
+      if (!['form', 'map', 'history', 'scans'].includes(t)) return;
+      this.tab = t;
+      if (location.hash !== '#' + t) {
+        history.replaceState(null, '', '#' + t);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
 
     // Modals
     showSignatureModal: false,
@@ -381,14 +403,14 @@ document.addEventListener('alpine:init', () => {
 
     // Scan Viewer & Lightbox State
     activeScan: {
-      id: 1,
-      type: 'NATIONAL_ID',
-      title: 'اسکن کارت ملی هوشمند متقاضی',
-      fileName: 'national_id_0012345678.jpg',
-      uploader: 'احمد صادقی (کارشناس ثبت کارگزاری)',
-      uploadDate: '۱۴۰۳/۰۵/۱۰',
+      id: null,
+      type: '',
+      title: '',
+      fileName: '',
+      uploader: '',
+      uploadDate: '',
       stage: 1,
-      sha256: '9f83c12a76f24d8b9e1a3c5e7b9a',
+      sha256: '',
       zoom: 1,
       rotation: 0
     },
@@ -398,71 +420,72 @@ document.addEventListener('alpine:init', () => {
       // Stage 1 Fields
       first_name: '',
       last_name: '',
-      full_name: 'علیرضا رضایی پور',
-      father_name: 'محمدرضا',
-      national_id: '0012345678',
-      birth_date: '1365/04/15',
+      full_name: '',
+      father_name: '',
+      national_id: '',
+      birth_date: '',
       applicant_phone: '',
       selection_rank: null,
+      form_j_questionnaire_number: '',
       applicant_form_j_status: 'سبز (استعلام شده)',
       applicant_form_j_directorate_status: 'تایید نهایی اداره کل',
       applicant_form_j_red_description: '',
       spouse_first_name: '',
       spouse_last_name: '',
-      spouse_full_name: 'فاطمه السادات موسوی',
-      spouse_father_name: 'سید علی',
-      spouse_national_id: '0029876543',
-      spouse_birth_date: '1368/02/10',
-      spouse_id_number: '1245',
-      spouse_birth_place: 'قم',
+      spouse_full_name: '',
+      spouse_father_name: '',
+      spouse_national_id: '',
+      spouse_birth_date: '',
+      spouse_id_number: '',
+      spouse_birth_place: '',
       spouse_form_j_status: 'سبز (استعلام شده)',
       spouse_form_j_directorate_status: 'تایید نهایی اداره کل',
       spouse_form_j_red_description: '',
       marital_status: 'متاهل (واجد شرایط طرح زوجین)',
       is_married_confirmed: true,
-      decile: 4,
-      site: 'شهید رئیسی',
-      project: 'پروژه ۵۶۰ هکتاری فاز ۲ (تعداد واحد: ۳۲۰)',
+      decile: 1,
+      site: '',
+      project: '',
       construction_type: 'آپارتمانی',
-      block_name: 'بلوک B-14',
+      block_name: '',
       block_code: '',
-      floor_number: 3,
-      unit_number: 12,
+      floor_number: 1,
+      unit_number: 1,
       unit_code: '',
       bedroom_count: 2,
-      unit_direction: 'شمال غربی',
-      net_unit_area: 85.00,
-      common_area: 25.00,
-      total_area: 110.00,
-      unit_area: 85.50,
-      storage_number: 12,
-      storage_area: 3.20,
-      parking_number: 12,
-      parking_area: 12.50,
-      covered_parking_area: 11.25,
+      unit_direction: '',
+      net_unit_area: 0,
+      common_area: 0,
+      total_area: 0,
+      unit_area: 0,
+      storage_number: null,
+      storage_area: 0,
+      parking_number: null,
+      parking_area: 0,
+      covered_parking_area: 0,
 
       // Stage 2: Plot & Registry
-      registration_section: 'بخش ۱ ثبتی قم',
-      main_plaque: 1420,
-      separated_plaque: 85,
-      sub_plaque: 312,
-      plot_number: 48,
+      registration_section: '',
+      main_plaque: null,
+      separated_plaque: null,
+      sub_plaque: null,
+      plot_number: null,
 
       // Stage 3: Base Cost & Bank Loan Amount (Default 650M Tomans, can be 550M or custom)
-      base_cost_without_loan: 4500000000,
-      bank_loan_amount: 6500000000,
+      base_cost_without_loan: 0,
+      bank_loan_amount: 0,
 
       // Stage 6: Fund Loan Amount
-      fund_loan_amount: 500000000,
+      fund_loan_amount: 0,
 
       // Stage 7: Contractor Letter Amount
-      contractor_letter_amount: 3800000000,
+      contractor_letter_amount: 0,
 
       // Stage 8: Decile Loan Amount
-      decile_loan_amount: 1000000000,
+      decile_loan_amount: 0,
 
       // Stage 9: Applicant Cash Equity
-      applicant_equity: 3000000000,
+      applicant_equity: 0,
       is_sms_sent: false,
       sms_sent_at: '',
 
@@ -470,42 +493,38 @@ document.addEventListener('alpine:init', () => {
       is_equity_funded: false,
 
       // Stage 11: Bank Letter
-      bank_letter_number: '1403/BM/88412',
-      bank_letter_date: '1403/05/18',
+      bank_letter_number: '',
+      bank_letter_date: '',
 
       // Stage 19: Valuation Fields
-      total_land_share: 42.75,
-      past_years_rent: 180000000,
-      current_year_rent: 45000000,
-      land_lease_year: '1403',
-      preparation_cost: 320000000,
+      total_land_share: 0,
+      past_years_rent: 0,
+      current_year_rent: 0,
+      land_lease_year: '',
+      preparation_cost: 0,
 
       // Stage 18: BankCheckTracker & TashilatCheck Fields (وام دهک، چک‌ها، آماده‌سازی و اجاره)
       decile_loan_bank: 'بانک مسکن',
       supported_institution: 'هیچکدام',
-      check_count: 1,
+      check_count: 0,
       check_amount: 0,
       last_check_amount: 0,
       total_check_amount: 0,
-      check_service_fee: 2000000,
+      check_service_fee: 0,
       commitment_number: '',
       commitment_date: '',
-      check_entries: [
-        { row_number: 1, cash_date: '', check_amount: 0, check_sayadi_code: '', bank_name: 'بانک مسکن' }
-      ],
+      check_entries: [],
 
       // TashilatCheck: Rent & 20%/80% Preparation
       tenant_price: 0,
       tenant_code: '',
-      cash_preparation_amount: 120000000,
+      cash_preparation_amount: 0,
       prepayment_code: '',
-      non_cash_preparation_amount: 200000000,
-      preparation_service_fee: 2000000,
-      preparation_check_count: 1,
+      non_cash_preparation_amount: 0,
+      preparation_service_fee: 0,
+      preparation_check_count: 0,
       total_preparation_check_amount: 0,
-      preparation_check_entries: [
-        { row_number: 1, cash_date: '', check_amount: 0, check_sayadi_code: '', bank_name: 'بانک مسکن' }
-      ],
+      preparation_check_entries: [],
       rah_letter: '',
       rah_letter_date: '',
       is_cash_rent_confirmed: false,
@@ -523,7 +542,8 @@ document.addEventListener('alpine:init', () => {
     fieldChanges: [],
     stageSignatures: {},
     auditActiveTab: 'stages', // 'stages' or 'fields'
-    showAuditDetails: false, // Minimized to 1-liner by default
+    showAuditDetails: true, // Expanded by default so audit logs load immediately
+    stepperExpanded: false, // 21-step progress bar expansion toggle
 
     // Red Form J Disqualification State
     isRejected: false,
@@ -589,7 +609,20 @@ document.addEventListener('alpine:init', () => {
     },
 
     init() {
-      // 1. Set Persian Today Date dynamically
+      // 1. Sync active tab from URL hash (#map, #history, #scans, #form)
+      const validTabs = ['form', 'map', 'history', 'scans'];
+      const currentHash = location.hash.slice(1);
+      if (validTabs.includes(currentHash)) {
+        this.tab = currentHash;
+      }
+      window.addEventListener('hashchange', () => {
+        const h = location.hash.slice(1);
+        if (validTabs.includes(h)) {
+          this.tab = h;
+        }
+      });
+
+      // 2. Set Persian Today Date dynamically
       this.todayDate = this.getTodayJalaliDisplay();
 
       // 2. Read real server data injected from database
@@ -667,6 +700,7 @@ document.addEventListener('alpine:init', () => {
       if (this.form.preparation_check_entries && this.form.preparation_check_entries.length > 0) {
         this.prepCheckGenerator.count = this.form.preparation_check_entries.length;
       }
+      this.isLoaded = true;
     },
 
     getTodayJalali() {
@@ -856,6 +890,16 @@ document.addEventListener('alpine:init', () => {
     getStageSignature(stageId) {
       if (!this.stageSignatures) return null;
       return this.stageSignatures[stageId] || this.stageSignatures[String(stageId)] || null;
+    },
+
+    getStageSignerName(stageId) {
+      const sig = this.getStageSignature(stageId);
+      return (sig && sig.actor) ? sig.actor : 'کارشناس اقدام';
+    },
+
+    getStageSignerDate(stageId) {
+      const sig = this.getStageSignature(stageId);
+      return (sig && sig.date) ? sig.date : '-';
     },
 
     setBankLoan(amount) {
@@ -1176,41 +1220,49 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Upload & Scanner Controller Methods
-    openUploadScanModal() {
+    openUploadScanModal(docType = null, defaultTitle = null) {
       if (this.isLocked) {
         this.triggerToast('این پرونده نهایی و بایگانی شده است و امکان بارگذاری مدارک جدید وجود ندارد.', 'error');
         return;
       }
 
-      let defaultTitle = 'مدرک پیوست مرحله ' + this.currentStage;
-      let defaultType = 'OTHER';
+      let finalTitle = defaultTitle;
+      let finalType = docType;
 
-      if (this.currentStage === 1) {
-        defaultTitle = 'اسکن کارت ملی و مدارک سجلی';
-        defaultType = 'NATIONAL_ID';
-      } else if (this.currentStage === 3 || this.currentStage === 10) {
-        defaultTitle = 'تصویر و استعلام رسمی فرم (ج) اداره کل';
-        defaultType = 'FORM_J';
-      } else if (this.currentStage === 7) {
-        defaultTitle = 'اسکن دفترچه اقساط تسهیلات بانک مسکن';
-        defaultType = 'BANK_BOOKLET';
-      } else if (this.currentStage === 12) {
-        defaultTitle = 'اسکن سند مالکیت تک‌برگ عرصه و اعیان';
-        defaultType = 'TITLE_DEED';
-      } else if (this.currentStage === 16) {
-        defaultTitle = 'اسکن چک صیادی تسهیلات دهک';
-        defaultType = 'LOAN_CHECK';
-      } else if (this.currentStage === 17) {
-        defaultTitle = 'اسکن چک‌های آماده‌سازی و اجاره';
-        defaultType = 'PREP_CHECK';
-      } else if (this.currentStage === 20) {
-        defaultTitle = 'اسکن قرارداد اجاره عرصه';
-        defaultType = 'OTHER';
+      if (!finalTitle || !finalType) {
+        let computedTitle = 'مدرک پیوست مرحله ' + this.currentStage;
+        let computedType = 'OTHER';
+
+        if (this.currentStage === 1) {
+          computedTitle = 'اسکن کارت ملی و مدارک سجلی';
+          computedType = 'NATIONAL_ID';
+        } else if (this.currentStage === 3 || this.currentStage === 10) {
+          computedTitle = 'تصویر و استعلام رسمی فرم (ج) اداره کل';
+          computedType = 'FORM_J';
+        } else if (this.currentStage === 7) {
+          computedTitle = 'اسکن دفترچه اقساط تسهیلات بانک مسکن';
+          computedType = 'BANK_BOOKLET';
+        } else if (this.currentStage === 12) {
+          computedTitle = 'اسکن سند مالکیت تک‌برگ عرصه و اعیان';
+          computedType = 'TITLE_DEED';
+        } else if (this.currentStage === 16) {
+          computedTitle = 'اسکن چک صیادی تسهیلات دهک';
+          computedType = 'LOAN_CHECK';
+        } else if (this.currentStage === 17) {
+          computedTitle = 'اسکن چک‌های آماده‌سازی و اجاره';
+          computedType = 'PREP_CHECK';
+        } else if (this.currentStage === 20) {
+          computedTitle = 'اسکن قرارداد اجاره عرصه';
+          computedType = 'OTHER';
+        }
+
+        finalTitle = finalTitle || computedTitle;
+        finalType = finalType || computedType;
       }
 
       this.uploadForm = {
-        title: defaultTitle,
-        doc_type: defaultType,
+        title: finalTitle,
+        doc_type: finalType,
         fileName: '',
         preview_url: '',
         rawFile: null

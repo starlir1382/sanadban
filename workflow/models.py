@@ -1,4 +1,6 @@
 import hashlib
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -45,6 +47,7 @@ class PreSelectedUnit(models.Model):
     selection_rank = models.PositiveIntegerField(null=True, blank=True, verbose_name="رتبه انتخاب واحد")
     
     # Form J Inquiries & Status
+    form_j_questionnaire_number = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره پرسش نامه فرم ج")
     applicant_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج متقاضی")
     applicant_form_j_directorate_status = models.CharField(max_length=50, default="تایید نهایی اداره کل", blank=True, verbose_name="استعلام اداره کل متقاضی")
     applicant_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج متقاضی")
@@ -76,16 +79,16 @@ class PreSelectedUnit(models.Model):
     unit_code = models.CharField(max_length=50, blank=True, verbose_name="کد واحد")
     bedroom_count = models.PositiveSmallIntegerField(default=2, verbose_name="تعداد خواب")
     unit_direction = models.CharField(max_length=50, default="شمال غربی", blank=True, verbose_name="جهت واحد")
-    net_unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="متراژ مفید واحد (م²)")
-    common_area = models.DecimalField(max_digits=7, decimal_places=2, default=25.00, verbose_name="متراژ مشاعات (م²)")
-    total_area = models.DecimalField(max_digits=7, decimal_places=2, default=110.00, verbose_name="جمع کل متراژ واحد (م²)")
-    unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="مساحت واحد")
+    net_unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("85.00"), verbose_name="متراژ مفید واحد (م²)")
+    common_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("25.00"), verbose_name="متراژ مشاعات (م²)")
+    total_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("110.00"), verbose_name="جمع کل متراژ واحد (م²)")
+    unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("85.00"), verbose_name="مساحت واحد")
 
     storage_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره انباری")
-    storage_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت انباری")
+    storage_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت انباری")
     parking_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره پارکینگ")
-    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت پارکینگ")
-    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=11.25, verbose_name="متراژ پارکینگ مسقف (م²)")
+    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت پارکینگ")
+    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("11.25"), verbose_name="متراژ پارکینگ مسقف (م²)")
     base_cost_without_loan = models.BigIntegerField(default=4500000000, verbose_name="قیمت پایه بدون وام بانکی (ریال)")
     bank_loan_amount = models.BigIntegerField(default=6500000000, verbose_name="مبلغ وام بانکی مسکن (ریال)")
 
@@ -126,6 +129,15 @@ class HousingDossier(models.Model):
     STAGE_ROLES = WORKFLOW_STAGE_ROLES
     STAGE_DETAILS = WORKFLOW_STAGE_DETAILS
 
+    if TYPE_CHECKING:
+        id: int
+        attachments: Any
+        audit_logs: Any
+        check_items: Any
+        field_changes: Any
+        signatures: Any
+        bank_letters: Any
+
     # Identifiers
     national_id = models.CharField(max_length=10, unique=True, db_index=True, verbose_name="کدملی / شماره پیشنویس")
     archive_number = models.PositiveIntegerField(unique=True, db_index=True, verbose_name="شماره بایگانی")
@@ -160,6 +172,7 @@ class HousingDossier(models.Model):
     selection_rank = models.PositiveIntegerField(null=True, blank=True, verbose_name="رتبه انتخاب واحد")
 
     # Form J Inquiries & Status
+    form_j_questionnaire_number = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره پرسش نامه فرم ج")
     applicant_form_j_status = models.CharField(max_length=50, default="سبز (استعلام شده)", blank=True, verbose_name="وضعیت فرم ج متقاضی")
     applicant_form_j_directorate_status = models.CharField(max_length=50, default="تایید نهایی اداره کل", blank=True, verbose_name="استعلام اداره کل متقاضی")
     applicant_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج متقاضی")
@@ -191,15 +204,15 @@ class HousingDossier(models.Model):
     unit_code = models.CharField(max_length=50, blank=True, verbose_name="کد واحد")
     bedroom_count = models.PositiveSmallIntegerField(default=2, verbose_name="تعداد خواب")
     unit_direction = models.CharField(max_length=50, default="شمال غربی", blank=True, verbose_name="جهت واحد")
-    net_unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="متراژ مفید واحد (م²)")
-    common_area = models.DecimalField(max_digits=7, decimal_places=2, default=25.00, verbose_name="متراژ مشاعات (م²)")
-    total_area = models.DecimalField(max_digits=7, decimal_places=2, default=110.00, verbose_name="جمع کل متراژ واحد (م²)")
-    unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=85.00, verbose_name="مساحت واحد")
+    net_unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("85.00"), verbose_name="متراژ مفید واحد (م²)")
+    common_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("25.00"), verbose_name="متراژ مشاعات (م²)")
+    total_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("110.00"), verbose_name="جمع کل متراژ واحد (م²)")
+    unit_area = models.DecimalField(max_digits=7, decimal_places=2, default=Decimal("85.00"), verbose_name="مساحت واحد")
     storage_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره انباری")
-    storage_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت انباری")
+    storage_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت انباری")
     parking_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره پارکینگ")
-    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=0, verbose_name="مساحت پارکینگ")
-    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=11.25, verbose_name="متراژ پارکینگ مسقف (م²)")
+    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت پارکینگ")
+    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("11.25"), verbose_name="متراژ پارکینگ مسقف (م²)")
 
     # Stage 2 & 18: Plot & Registry Fields
     registration_section = models.CharField(max_length=100, blank=True, verbose_name="بخش ثبتی")
@@ -353,7 +366,7 @@ class HousingDossier(models.Model):
 
     @property
     def is_red_form_j(self):
-        return ("قرمز" in (self.applicant_form_j_status or "")) or ("قرمز" in (self.spouse_form_j_status or ""))
+        return "قرمز" in (self.applicant_form_j_status or "")
 
     @property
     def is_rejected(self):
@@ -421,6 +434,8 @@ class DossierAttachment(models.Model):
     Immutable stage-owned attachments with built-in Scan Viewer data.
     Documents uploaded in any stage CANNOT be deleted by users in other stages.
     """
+    if TYPE_CHECKING:
+        id: int
     DOC_TYPES = [
         ("NATIONAL_ID", "اسکن کارت ملی و شناسنامه متقاضی"),
         ("SPOUSE_ID", "اسکن مدارک هویتی همسر"),
@@ -450,7 +465,7 @@ class DossierAttachment(models.Model):
         verbose_name_plural = "پیوست‌های پرونده"
 
     def delete(self, *args, **kwargs):
-        super().delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
     def __str__(self):
         return f"{self.title} (مرحله {self.stage})"
@@ -566,6 +581,9 @@ class DossierSignature(models.Model):
         verbose_name_plural = "امضاهای ۱۴ گانه پرونده مسکن"
         unique_together = ("dossier", "slot_key")
 
+    def get_slot_key_display(self) -> str:
+        return dict(self.SLOT_CHOICES).get(self.slot_key, self.slot_key)
+
     def __str__(self):
         return f"امضای {self.get_slot_key_display()} پرونده #{self.dossier.archive_number}"
 
@@ -633,8 +651,13 @@ class BankLetter(models.Model):
     """
     Official Bank Introduction Letters archive and batch tracking.
     """
+    if TYPE_CHECKING:
+        id: int
+        dossiers: Any
     letter_number = models.CharField(max_length=100, unique=True, verbose_name="شماره نامه رسمی بانک")
     letter_date = models.CharField(max_length=20, verbose_name="تاریخ نامه بانک (شمسی)")
+    bank_code = models.CharField(max_length=20, blank=True, verbose_name="کد بانک عامل")
+    bank_name = models.CharField(max_length=100, blank=True, verbose_name="نام بانک عامل")
     project_name = models.CharField(max_length=250, blank=True, verbose_name="عنوان پروژه")
     sender_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="کاربر ثبت‌کننده")
     sender_name = models.CharField(max_length=150, blank=True, verbose_name="نام و نام خانوادگی ثبت‌کننده")
@@ -684,10 +707,19 @@ class ProjectBankMapping(models.Model):
         "saderat": "بانک صادرات",
         "tejarat": "بانک تجارت",
     }
+    project_code = models.CharField(max_length=50, blank=True, verbose_name="کد پروژه")
     project_name = models.CharField(max_length=250, unique=True, verbose_name="نام پروژه")
     bank_code = models.CharField(max_length=20, choices=BANK_CHOICES, default="maskan", verbose_name="بانک عامل")
+    branch_code = models.CharField(max_length=50, blank=True, verbose_name="کد شعبه")
+    branch_name = models.CharField(max_length=150, blank=True, verbose_name="نام شعبه")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    if TYPE_CHECKING:
+        id: int
+
+    def get_bank_code_display(self) -> str:
+        return self.BANK_NAMES.get(self.bank_code, self.bank_code)
 
     class Meta:
         verbose_name = "تخصیص پروژه به بانک عامل"

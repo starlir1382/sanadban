@@ -4,6 +4,59 @@
 {% block title %}مدیریت کاربران، کارشناسان و سطوح دسترسی مراحل | سامانه مسکن یار{% endblock %}
 
 {% block content %}
+<style>
+.users-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1.35rem 1.5rem;
+}
+
+.users-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+    .users-hero-inner {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+    }
+    .users-hero-actions {
+        width: 100% !important;
+        flex-direction: column !important;
+    }
+    .users-hero-actions .btn {
+        width: 100% !important;
+        justify-content: center !important;
+        min-height: 42px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .users-modal-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem !important;
+        padding: 1rem !important;
+    }
+    .users-kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+    .users-table-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+    .users-search-box {
+        width: 100% !important;
+    }
+}
+</style>
+
 <div style="margin-bottom: 3rem;" 
      x-data="{
         searchQuery: '',
@@ -162,11 +215,11 @@
                 </h2>
             </div>
             <p style="font-size: 0.88rem; color: #475569; margin: 0;">
-                تعریف کاربران جدید، ویرایش نقش‌ها، انتصاب رئیس مسکن، تخصیص مراحل مجاز و صدور مجوز امضای الکترونیک
+                تعریف کاربران جدید، ویرایش نقش‌ها، تخصیص مراحل مجاز و صدور مجوز امضای الکترونیک
             </p>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <div class="users-hero-actions" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             <button type="button" class="btn btn-primary" @click="showCreateModal = true" style="display: flex; align-items: center; gap: 0.45rem; font-weight: 800; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 <span>+ تعریف کاربر / کارشناس جدید</span>
@@ -532,7 +585,7 @@
                     <input type="hidden" name="stages_selected" :value="stg">
                 </template>
 
-                <div style="padding: 1.35rem 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="users-modal-grid">
                     
                     <!-- Full Name -->
                     <div style="grid-column: span 1;">
@@ -677,7 +730,7 @@
                     <input type="hidden" name="stages_selected" :value="stg">
                 </template>
 
-                <div style="padding: 1.35rem 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="users-modal-grid">
                     
                     <div style="grid-column: span 1;">
                         <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">نام کاربری (انگلیسی) *</label>

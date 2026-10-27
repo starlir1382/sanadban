@@ -4,6 +4,28 @@
 {% block title %}پروفایل کاربری | سامانه مسکن یار{% endblock %}
 
 {% block content %}
+<style>
+.profile-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .profile-hero-inner {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1.25rem !important;
+        padding: 1.25rem !important;
+    }
+    .profile-details-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+}
+</style>
+
 <div style="max-width: 1000px; margin: 0 auto 3rem;">
 
     <!-- Breadcrumb -->
@@ -17,7 +39,7 @@
     </nav>
 
     <!-- Header Hero -->
-    <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; box-shadow: 0 4px 20px rgba(15, 39, 68, 0.15);">
+    <div class="profile-hero-inner" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; box-shadow: 0 4px 20px rgba(15, 39, 68, 0.15);">
         <div style="display: flex; align-items: center; gap: 1.25rem;">
             <div style="width: 72px; height: 72px; border-radius: 50%; background: #38bdf8; color: #0f2744; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
                 {{ user.profile.full_name|default:user.username|slice:":2" }}
@@ -47,7 +69,7 @@
     </div>
 
     <!-- Details Grid -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="profile-details-grid">
         
         <!-- Profile Info Card -->
         <div class="form-card" style="margin-bottom: 0;">

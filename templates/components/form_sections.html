@@ -1,19 +1,54 @@
+<style>
+.fs-status-doc-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+.fs-mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.fs-checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 0.65rem;
+}
+@media (max-width: 768px) {
+    .fs-status-doc-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    .fs-mini-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.65rem !important;
+    }
+    .fs-checklist-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+        gap: 0.5rem !important;
+    }
+    .form-sections-wrapper .form-section-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.65rem !important;
+    }
+    .form-sections-wrapper .form-section-header > div:last-child {
+        width: 100% !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+    }
+    .form-sections-wrapper .form-section-header .btn,
+    .form-sections-wrapper .form-section-header .btn-header-docs {
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+    }
+}
+</style>
 <!-- Official 21-Stage Workflow Form Sections -->
 <div class="form-sections-wrapper">
-
-    <!-- Stage 0 Auto-Lookup Fast Query Banner -->
-    <div class="stage0-lookup-box" x-show="currentStage === 1 || currentStage === 8">
-        <div class="lookup-text">
-            <h4>واکشی خودکار اطلاعات متقاضی، همسر و انتخاب واحد (مرحله ۱)</h4>
-            <p>با ورود کدملی ۱۰ رقمی متقاضی، مشخصات سجلی متقاضی و همسر، سایت، پروژه و واحد مسکونی بارگذاری می‌گردد.</p>
-        </div>
-        <button type="button" class="btn-lookup" @click="fetchPreSelectedUnit()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-            <span>استعلام انتخاب واحد و مشخصات همسر</span>
-        </button>
-    </div>
 
     <!-- Section 1: متقاضی، واحد و پروژه (مرحله ۱) -->
     <div class="form-card" id="section-applicant" :class="{'section-active-highlight': isSectionActive('section-applicant')}" x-data="{ sectionOpen: isSectionActive('section-applicant') || isChief || isSuperuser }">
@@ -23,16 +58,24 @@
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <span>بخش ۱: اطلاعات متقاضی، استعلام فرم «ج»، پروژه و واحد مسکونی (مرحله ۱)</span>
+                <span>بخش ۱: اطلاعات متقاضی، مشخصات همسر، پروژه و واحد مسکونی (مرحله ۱)</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <!-- Section Attachments & Quick Uploads -->
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
+                    <button type="button" 
+                            class="btn-header-docs" 
+                            style="background: #eff6ff; color: #1d4ed8; border-color: #93c5fd;"
+                            @click="openUploadScanModal('NATIONAL_ID', 'اسکن مدارک هویتی متقاضی و همسر')" 
+                            title="بارگذاری اسناد و مدارک هویتی">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span>بارگذاری / اسکن مدرک</span>
+                    </button>
                     
-                    <template x-if="getSectionAttachments(['NATIONAL_ID', 'UNIT_SELECTION']).length > 0">
+                    <template x-if="getSectionAttachments(['NATIONAL_ID', 'SPOUSE_ID', 'UNIT_SELECTION']).length > 0">
                         <button type="button" class="btn-header-docs" @click="scrollToCategory('identity')" title="مشاهده اسناد هویتی متقاضی در آلبوم پرونده">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>مدارک پیوست (<span class="fa-num" x-text="getSectionAttachments(['NATIONAL_ID', 'UNIT_SELECTION']).length"></span>)</span>
+                            <span>مدارک پیوست (<span class="fa-num" x-text="getSectionAttachments(['NATIONAL_ID', 'SPOUSE_ID', 'UNIT_SELECTION']).length"></span>)</span>
                         </button>
                     </template>
                 </div>
@@ -55,19 +98,21 @@
             <!-- Sub-group: مشخصات فردی و هویتی متقاضی -->
             <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <span>مشخصات فردی، تماسی و استعلام فرم «ج» متقاضی (سرپرست خانوار)</span>
+                <span>مشخصات فردی و تماسی متقاضی (سرپرست خانوار)</span>
             </div>
             <div class="fields-grid" style="margin-bottom: 1.25rem;">
-                <!-- 1. national_id -->
+                <!-- 1. national_id with compact query button -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('national_id')}">
                     <label class="field-label">
                         <span><span class="required-mark">*</span>کد ملی متقاضی</span>
                         <span class="helper-badge">۱۰ رقمی</span>
                     </label>
-                    <input type="text" maxlength="10" class="input-control fa-num" 
-                           x-model="form.national_id" 
-                           :readonly="!isFieldEditable('national_id')"
-                           placeholder="0012345678">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="text" maxlength="10" class="input-control fa-num" 
+                               x-model="form.national_id" 
+                               :readonly="!isFieldEditable('national_id')"
+                               placeholder="0012345678" style="flex: 1;">
+                    </div>
                 </div>
 
                 <!-- 2-A. first_name -->
@@ -131,8 +176,81 @@
 
             </div>
 
+
+            <!-- Sub-group: مشخصات سجلی و هویتی همسر (طرح زوجین نهضت ملی مسکن) -->
+            <div style="font-weight: 700; font-size: 0.88rem; color: #065f46; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 0.85rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>مشخصات هویتی همسر</span>
+                </div>
+            </div>
+
+
+            <div class="fields-grid" style="margin-bottom: 1rem;">
+                <!-- 1-A. spouse_first_name -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')}">
+                    <label class="field-label">
+                        <span><span class="required-mark">*</span>نام همسر</span>
+                        <span class="helper-badge text-blue-700">سجلی</span>
+                    </label>
+                    <input type="text" class="input-control" x-model="form.spouse_first_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')" placeholder="نام همسر...">
+                </div>
+
+                <!-- 1-B. spouse_last_name -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')}">
+                    <label class="field-label">
+                        <span><span class="required-mark">*</span>نام خانوادگی همسر</span>
+                        <span class="helper-badge text-blue-700">سجلی</span>
+                    </label>
+                    <input type="text" class="input-control" x-model="form.spouse_last_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')" placeholder="نام خانوادگی همسر...">
+                </div>
+
+                <!-- 2. spouse_national_id -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_national_id')}">
+                    <label class="field-label">
+                        <span><span class="required-mark">*</span>کد ملی همسر</span>
+                        <span class="helper-badge">۱۰ رقمی</span>
+                    </label>
+                    <input type="text" maxlength="10" class="input-control fa-num" x-model="form.spouse_national_id" :readonly="!isFieldEditable('spouse_national_id')" placeholder="0029876543">
+                </div>
+
+                <!-- 3. spouse_father_name -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_father_name')}">
+                    <label class="field-label"><span>نام پدر همسر</span></label>
+                    <input type="text" class="input-control" x-model="form.spouse_father_name" :readonly="!isFieldEditable('spouse_father_name')" placeholder="نام پدر...">
+                </div>
+
+                <!-- 4. spouse_id_number -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_id_number')}">
+                    <label class="field-label"><span>شماره شناسنامه همسر</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.spouse_id_number" :readonly="!isFieldEditable('spouse_id_number')" placeholder="شماره شناسنامه...">
+                </div>
+
+                <!-- 5. spouse_birth_date -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_birth_date')}">
+                    <label class="field-label"><span>تاریخ تولد همسر (شمسی)</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.spouse_birth_date" :readonly="!isFieldEditable('spouse_birth_date')" placeholder="1365/01/01">
+                </div>
+
+                <!-- 6. spouse_birth_place -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_birth_place')}">
+                    <label class="field-label"><span>محل تولد / صدور همسر</span></label>
+                    <input type="text" class="input-control" x-model="form.spouse_birth_place" :readonly="!isFieldEditable('spouse_birth_place')" placeholder="شهر صدور...">
+                </div>
+
+                <!-- 7. marital_status -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('marital_status')}">
+                    <label class="field-label"><span>وضعیت تاهل متقاضی</span></label>
+                    <select class="input-control" x-model="form.marital_status" :disabled="!isFieldEditable('marital_status')">
+                        <option value="متاهل (واجد شرایط طرح زوجین)">متاهل (واجد شرایط طرح زوجین)</option>
+                        <option value="متاهل سرپرست خانوار">متاهل سرپرست خانوار</option>
+                    </select>
+                </div>
+
+            </div>
+
             <!-- =========================================================================
-                 DEDICATED FORM J OFFICIAL INQUIRY & UPLOAD DOCUMENT CARD (مراحل ۳ و ۱۰)
+                 DEDICATED FORM J OFFICIAL INQUIRY & QUESTIONNAIRE CARD (مراحل ۳ و ۱۰)
                  ========================================================================= -->
             <div id="form-j-dedicated-card" style="margin: 1.25rem 0; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border: 1.5px solid #86efac; border-radius: 12px; padding: 1.25rem; box-shadow: 0 4px 14px rgba(22, 101, 52, 0.06);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px dashed #bbf7d0; padding-bottom: 0.75rem;">
@@ -142,11 +260,11 @@
                         </div>
                         <div>
                             <div style="font-weight: 800; font-size: 0.95rem; color: #14532d; display: flex; align-items: center; gap: 0.5rem;">
-                                <span>استعلام رسمی و بارگذاری صفحه فرم «ج» اداره کل</span>
+                                <span>استعلام رسمی، شماره پرسش‌نامه و صفحه فرم «ج» متقاضی</span>
                                 <span class="fa-num" style="font-size: 0.72rem; background: #bbf7d0; color: #166534; padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 700;">مراحل ۳ و ۱۰</span>
                             </div>
                             <div style="font-size: 0.76rem; color: #166534; margin-top: 2px;">
-                                بررسی وضعیت عدم مالکیت دولتی متقاضی و همسر، استعلام سوابق و بارگذاری برگه چاپی استعلام فرم ج
+                                ثبت شماره پرسش‌نامه فرم ج، بررسی وضعیت عدم مالکیت دولتی متقاضی و بارگذاری برگه چاپی استعلام فرم «ج» اداره کل
                             </div>
                         </div>
                     </div>
@@ -165,10 +283,24 @@
                 </div>
 
                 <!-- 2-Column Layout: Status Selectors on Right, Document Preview Thumbnail on Left -->
-                <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 1rem; align-items: start;">
+                <div class="fs-status-doc-grid">
                     <!-- Right Sub-Column: Form J Statuses & Fields -->
                     <div>
-                        <div class="fields-grid" style="grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div class="fields-grid fs-mini-grid">
+                            <!-- form_j_questionnaire_number -->
+                            <div class="field-group" style="grid-column: 1 / -1;" :class="{'field-locked': !isFieldEditable('form_j_questionnaire_number')}">
+                                <label class="field-label" style="font-size: 0.82rem;">
+                                    <span>شماره پرسش نامه فرم ج</span>
+                                    <span class="helper-badge text-blue-700">پرسش‌نامه</span>
+                                </label>
+                                <input type="text" 
+                                       class="input-control fa-num" 
+                                       x-model="form.form_j_questionnaire_number" 
+                                       :readonly="!isFieldEditable('form_j_questionnaire_number')" 
+                                       placeholder="شماره پرسش نامه فرم ج را وارد نمایید..." 
+                                       style="font-size: 0.85rem; font-weight: 700;">
+                            </div>
+
                             <!-- applicant_form_j_status -->
                             <div class="field-group" :class="{'field-locked': !isFieldEditable('applicant_form_j_status')}">
                                 <label class="field-label" style="font-size: 0.82rem;">
@@ -215,9 +347,8 @@
                         </div>
                     </div>
 
-                    <!-- Left Sub-Column: Document Thumbnail Preview Card -->
-                    <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; justify-content: center; min-height: 120px;">
-                        <!-- Case A: Form J Attachment Exists -->
+                    <!-- Left Sub-Column: Document Thumbnail Preview Card (if uploaded) -->
+                    <div x-show="hasFormJ()" style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; justify-content: center; min-height: 120px;">
                         <template x-if="hasFormJ()">
                             <div style="display: flex; gap: 0.75rem; align-items: center;">
                                 <div style="width: 70px; height: 95px; border-radius: 6px; border: 1px solid #cbd5e1; overflow: hidden; background: #f8fafc; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08); position: relative;"
@@ -254,17 +385,6 @@
                                         <span>مشاهده تصویر فرم ج</span>
                                     </button>
                                 </div>
-                            </div>
-                        </template>
-
-                        <!-- Case B: Form J Attachment NOT Yet Uploaded -->
-                        <template x-if="!hasFormJ()">
-                            <div style="text-align: center; padding: 0.75rem 0.5rem; color: #64748b;">
-                                <div style="width: 38px; height: 38px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.4rem auto; color: #94a3b8; border: 1px dashed #cbd5e1;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                                </div>
-                                <div style="font-weight: 700; font-size: 0.8rem; color: #475569;">سند اسکن فرم «ج» بارگذاری نشده است</div>
-                                <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">الصاق و مدیریت کلیه اسناد در تب «اسناد اسکن‌شده» انجام می‌گیرد.</div>
                             </div>
                         </template>
                     </div>
@@ -400,169 +520,7 @@
                     <input type="number" step="0.01" class="input-control fa-num" x-model="form.parking_area" :readonly="!isFieldEditable('parking_area')">
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Section 1-B: مشخصات همسر و احراز زوجین (طرح زوجین - افراد مجرد فاقد شرایط می‌باشند) -->
-    <div class="form-card spouse-card-highlight" id="section-spouse" :class="{'section-active-highlight': isSectionActive('section-spouse')}">
-        <div class="form-section-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);">
-            <div class="section-title">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                <span>مشخصات سجلی و هویتی همسر (طرح زوجین نهضت ملی مسکن)</span>
-                <span class="badge-couple-required" style="margin-right: 10px; font-size: 0.78rem; background: #059669; color: #fff; padding: 2px 10px; border-radius: 999px;">
-                    الزام زوجیت (تخصیص واحد صرفاً به زوجین)
-                </span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                <!-- Spouse Attachments -->
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                    <template x-if="getSectionAttachments(['SPOUSE_ID']).length > 0">
-                        <button type="button" class="btn-header-docs" @click="scrollToCategory('identity')" title="مشاهده مدارک هویتی همسر در آلبوم پرونده">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>مدارک همسر (<span class="fa-num" x-text="getSectionAttachments(['SPOUSE_ID']).length"></span>)</span>
-                        </button>
-                    </template>
-                </div>
-
-                <template x-if="isSectionActive('section-spouse')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
-                <button type="button" 
-                            @click="sectionOpen = !sectionOpen" 
-                            style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; color: #334155; margin-right: 6px;"
-                            x-text="sectionOpen ? 'بستن بخش ▲' : 'نمایش جزئیات ▼'"></button>
-                <div class="section-stage-badge"  :class="isLocked ? 'locked' : 'editable'">
-                    <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'قابل ویرایش (با ثبت لاگ ممیزی)'"></span>
-                </div>
-            </div>
-        </div>
-        <div class="form-section-body" x-show="sectionOpen" x-transition>
-            <!-- Alert banner about couples condition -->
-            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    <span style="font-size: 0.88rem; color: #065f46; font-weight: 600;">
-                        تطبیق ضوابط: این طرح مشمول زوجین قانونی است و افراد مجرد مجاز به دریافت واحد نمی‌باشند. کلیه مشخصات سجلی همسر استعلام و در قرارداد نهایی درج می‌گردد.
-                    </span>
-                </div>
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700; color: #047857; cursor: pointer;">
-                    <input type="checkbox" x-model="form.is_married_confirmed" :disabled="!isFieldEditable('is_married_confirmed')" style="width: 16px; height: 16px; accent-color: #059669;">
-                    <span>تایید احراز تاهل و مدارک زوجیت</span>
-                </label>
-            </div>
-
-            <div class="fields-grid">
-                <!-- 1-A. spouse_first_name -->
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')}">
-                    <label class="field-label">
-                        <span><span class="required-mark">*</span>نام همسر</span>
-                        <span class="helper-badge text-blue-700">سجلی</span>
-                    </label>
-                    <input type="text" class="input-control" x-model="form.spouse_first_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')" placeholder="نام همسر...">
-                </div>
-
-                <!-- 1-B. spouse_last_name -->
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')}">
-                    <label class="field-label">
-                        <span><span class="required-mark">*</span>نام خانوادگی همسر</span>
-                        <span class="helper-badge text-blue-700">سجلی</span>
-                    </label>
-                    <input type="text" class="input-control" x-model="form.spouse_last_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')" placeholder="نام خانوادگی همسر...">
-                </div>
-
-                <!-- 2. spouse_national_id -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_national_id')}">
-                    <label class="field-label">
-                        <span><span class="required-mark">*</span>کد ملی همسر</span>
-                        <span class="helper-badge">۱۰ رقمی</span>
-                    </label>
-                    <input type="text" maxlength="10" class="input-control fa-num" x-model="form.spouse_national_id" :readonly="!isFieldEditable('spouse_national_id')" placeholder="0029876543">
-                </div>
-
-                <!-- 3. spouse_father_name -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_father_name')}">
-                    <label class="field-label"><span>نام پدر همسر</span></label>
-                    <input type="text" class="input-control" x-model="form.spouse_father_name" :readonly="!isFieldEditable('spouse_father_name')" placeholder="نام پدر...">
-                </div>
-
-                <!-- 4. spouse_id_number -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_id_number')}">
-                    <label class="field-label"><span>شماره شناسنامه همسر</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.spouse_id_number" :readonly="!isFieldEditable('spouse_id_number')" placeholder="شماره شناسنامه...">
-                </div>
-
-                <!-- 5. spouse_birth_date -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_birth_date')}">
-                    <label class="field-label"><span>تاریخ تولد همسر (شمسی)</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.spouse_birth_date" :readonly="!isFieldEditable('spouse_birth_date')" placeholder="1365/01/01">
-                </div>
-
-                <!-- 6. spouse_birth_place -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_birth_place')}">
-                    <label class="field-label"><span>محل تولد / صدور همسر</span></label>
-                    <input type="text" class="input-control" x-model="form.spouse_birth_place" :readonly="!isFieldEditable('spouse_birth_place')" placeholder="شهر صدور...">
-                </div>
-
-                <!-- 7. marital_status -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('marital_status')}">
-                    <label class="field-label"><span>وضعیت تاهل متقاضی</span></label>
-                    <select class="input-control" x-model="form.marital_status" :disabled="!isFieldEditable('marital_status')">
-                        <option value="متاهل (واجد شرایط طرح زوجین)">متاهل (واجد شرایط طرح زوجین)</option>
-                        <option value="متاهل سرپرست خانوار">متاهل سرپرست خانوار</option>
-                    </select>
-                </div>
-
-                <!-- 8. spouse_form_j_status -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_form_j_status')}">
-                    <label class="field-label">
-                        <span>وضعیت استعلام فرم «ج» همسر</span>
-                        <span class="helper-badge" :style="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">فرم ج</span>
-                    </label>
-                    <select class="input-control" x-model="form.spouse_form_j_status" :disabled="!isFieldEditable('spouse_form_j_status')">
-                        <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
-                        <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
-                        <option value="در حال استعلام">در حال استعلام</option>
-                    </select>
-                </div>
-
-                <!-- 9. spouse_form_j_directorate_status -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_form_j_directorate_status')}">
-                    <label class="field-label">
-                        <span>استعلام اداره کل مسکن همسر</span>
-                        <span class="helper-badge text-blue-700">سامانه اداره کل</span>
-                    </label>
-                    <select class="input-control" x-model="form.spouse_form_j_directorate_status" :disabled="!isFieldEditable('spouse_form_j_directorate_status')">
-                        <option value="تایید نهایی اداره کل">تایید نهایی اداره کل</option>
-                        <option value="در حال بررسی">در حال بررسی</option>
-                        <option value="عدم تایید اداره کل">عدم تایید اداره کل</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Dynamic Red Code Alert Box for Spouse -->
-            <div x-show="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')"
-                 x-cloak
-                 style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 12px 14px; margin-top: 14px;"
-                 x-transition>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                    <strong style="color: #991b1b; font-size: 0.88rem;">هشدار کد قرمز فرم «ج» همسر: فاقد شرایط واگذاری دولتی</strong>
-                </div>
-                <label class="field-label" style="color: #7f1d1d; margin-bottom: 4px;">
-                    <span>علت و توضیحات تفصیلی سابقه ملکی / کد قرمز همسر:</span>
-                </label>
-                <textarea class="input-control" rows="2" 
-                          x-model="form.spouse_form_j_red_description"
-                          :readonly="!isFieldEditable('spouse_form_j_red_description')"
-                          placeholder="توضیحات استعلام سوابق مسکن همسر، نوع تسهیلات دریافت شده قبلی یا سند ملکی ثبتی..."></textarea>
-            </div>
         </div>
     </div>
 
@@ -1037,7 +995,7 @@
                     <div style="font-size: 0.82rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">
                         📋 چک‌لیست کنترل و الصاق مدارک فیزیکی در پوشه متقاضی:
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.65rem;">
+                    <div class="fs-checklist-grid">
                         <!-- 1. دفترچه اقساط -->
                         <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
                                :style="form.has_installment_booklet ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
@@ -2064,7 +2022,6 @@
                 </div>
                 </div>
         </div>
-    </div>
     </div>
 
 </div>

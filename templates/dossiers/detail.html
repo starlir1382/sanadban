@@ -1,12 +1,16 @@
-{% extends 'base.html' %} {% load static %} {% block title %} پرونده مسکن
-متقاضی: {{ dossier.full_name|default:'علیرضا رضایی پور' }} (شماره بایگانی: {{
-dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% endblock %}
-{% block content %} {% csrf_token %}
-<script id="dossier-server-json" type="application/json">
-  {{ dossier_json|safe }}
-</script>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}پرونده مسکن متقاضی: {{ dossier.full_name|default:'پرونده مسکن' }} (شماره بایگانی: {{ dossier.archive_number }}) | سامانه مسکن یار{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<script id="dossier-server-json" type="application/json">{{ dossier_json|safe }}</script>
 
 <style>
+  [x-cloak] { display: none !important; }
+
+  /* ---------- Banners ---------- */
   .dt-banner {
     border-radius: 12px;
     padding: 0.8rem 1.1rem;
@@ -30,6 +34,8 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     border-right: 6px solid #dc2626;
     color: #7f1d1d;
   }
+
+  /* ---------- Hero ---------- */
   .dt-hero {
     display: flex;
     align-items: center;
@@ -37,6 +43,11 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     gap: 1rem;
     flex-wrap: wrap;
     margin-bottom: 0.9rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.9rem 1.1rem;
+    box-shadow: 0 1px 3px rgba(15, 39, 68, 0.05);
   }
   .dt-hero h2 {
     margin: 0;
@@ -67,20 +78,23 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     direction: ltr;
   }
 
-  /* Tabs */
+  /* ---------- Tabs (pill style, no scrollbar) ---------- */
   .dt-tabs {
     display: flex;
-    gap: 0.25rem;
-    border-bottom: 2px solid #e2e8f0;
+    gap: 0.4rem;
+    border-bottom: none;
     margin-bottom: 1rem;
     overflow-x: auto;
     position: sticky;
     top: 60px;
     background: #f8fafc;
     z-index: 20;
-    padding-top: 0.25rem;
+    padding: 0.4rem 0.25rem;
     transition: top 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+  .dt-tabs::-webkit-scrollbar { display: none; }
   body.nav-hidden .dt-tabs,
   .dt-tabs.top-pinned {
     top: 0 !important;
@@ -88,25 +102,27 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
   .dt-tab {
     background: none;
     border: none;
-    padding: 0.7rem 1.15rem;
+    border-radius: 10px;
+    padding: 0.55rem 1.1rem;
     font-size: 0.88rem;
     font-weight: 700;
     color: #64748b;
     cursor: pointer;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
+    transition: background 0.15s ease, color 0.15s ease;
   }
   .dt-tab:hover {
     color: #1d4ed8;
+    background: #eef2ff;
   }
   .dt-tab.active {
-    color: #1d4ed8;
-    border-bottom-color: #2563eb;
+    background: #2563eb;
+    color: #fff;
     font-weight: 800;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
   }
   .dt-count {
     background: #e2e8f0;
@@ -116,11 +132,11 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     border-radius: 99px;
   }
   .dt-tab.active .dt-count {
-    background: #2563eb;
+    background: rgba(255, 255, 255, 0.25);
     color: #fff;
   }
 
-  /* Roadmap */
+  /* ---------- Roadmap ---------- */
   .dt-map {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -128,11 +144,16 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
   }
   .dt-stage {
     border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 0.65rem 0.8rem;
     background: #fff;
     cursor: pointer;
     font-size: 0.8rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .dt-stage:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 39, 68, 0.1);
   }
   .dt-stage.done {
     background: #f0fdf4;
@@ -143,32 +164,26 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     border-color: #3b82f6;
     box-shadow: 0 3px 10px rgba(37, 99, 235, 0.15);
   }
-  .dt-stage.todo {
-    opacity: 0.7;
-  }
+  .dt-stage.todo { opacity: 0.7; }
   .dt-stage b {
     display: block;
     color: #0f172a;
     margin: 0.2rem 0;
   }
-  .dt-stage small {
-    color: #64748b;
-  }
+  .dt-stage small { color: #64748b; }
 
-  /* More menu */
-  .dt-more {
-    position: relative;
-  }
+  /* ---------- More menu ---------- */
+  .dt-more { position: relative; }
   .dt-menu {
     position: absolute;
     bottom: 110%;
     left: 0;
     background: #fff;
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     min-width: 260px;
-    padding: 0.35rem;
+    padding: 0.4rem;
     z-index: 60;
   }
   .dt-menu a,
@@ -189,37 +204,225 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     text-decoration: none;
   }
   .dt-menu a:hover,
-  .dt-menu button:hover {
-    background: #f1f5f9;
+  .dt-menu button:hover { background: #f1f5f9; }
+  .dt-menu .danger { color: #b91c1c; }
+
+  /* ---------- Action bar: sticky instead of fixed (no dead scroll space) ---------- */
+  .sticky-action-bar {
+    position: sticky !important;
+    bottom: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    width: auto !important;
+    margin-top: 1.5rem;
+    z-index: 40;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -6px 24px rgba(15, 39, 68, 0.08);
   }
-  .dt-menu .danger {
-    color: #b91c1c;
+  .sticky-action-bar .action-bar-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 1.1rem;
   }
+  .sticky-action-bar .action-buttons-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .sticky-action-bar .btn {
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.84rem;
+    padding: 0.5rem 1.1rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .sticky-action-bar .btn:hover { transform: translateY(-1px); }
+  .sticky-action-bar .btn-success { box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28); }
+
+  @media (max-width: 768px) {
+    .dt-hero {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+      padding: 0.85rem;
+    }
+    .dt-hero > div:last-child {
+      align-self: flex-start;
+    }
+    .dt-hero h2 {
+      font-size: 1.05rem;
+    }
+    .dt-tabs {
+      top: 58px;
+      padding: 0.35rem 0.15rem;
+      gap: 0.3rem;
+    }
+    .dt-tab {
+      padding: 0.45rem 0.8rem;
+      font-size: 0.82rem;
+    }
+    .dt-map {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+    .sticky-action-bar {
+      margin-top: 1rem;
+      border-radius: 12px 12px 0 0;
+    }
+    .sticky-action-bar .action-bar-container {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 0.65rem 0.85rem;
+      gap: 0.6rem;
+    }
+    .sticky-action-bar .action-buttons-group {
+      width: 100%;
+      justify-content: stretch;
+    }
+    .sticky-action-bar .action-buttons-group .btn {
+      flex: 1 1 calc(50% - 0.4rem);
+      min-height: 42px;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .sticky-action-bar .action-buttons-group .btn {
+      flex: 1 1 100%;
+    }
+    .dt-banner {
+      padding: 0.65rem 0.85rem;
+      font-size: 0.78rem;
+    }
+  }
+
+  /* ---------- Scan viewer modal (fixed full-screen overlay) ---------- */
+  .scan-viewer-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    background: rgba(2, 6, 23, 0.94);
+    backdrop-filter: blur(6px);
+    color: #fff;
+  }
+  .scan-viewer-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.7rem 1.2rem;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+  }
+  .scan-toolbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .toolbar-btn:hover { background: #334155; }
+  .scan-viewer-stage {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .scan-document-canvas {
+    position: relative;
+    width: min(900px, 100%);
+    background: #fff;
+    color: #0f172a;
+    border-radius: 10px;
+    transform-origin: top center;
+    transition: transform 0.2s ease;
+  }
+  .scan-security-watermark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 900;
+    color: rgba(15, 23, 42, 0.05);
+    transform: rotate(-25deg);
+    pointer-events: none;
+    user-select: none;
+  }
+  .scan-official-seal {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 0.5rem 0.9rem;
+    border: 2px solid #0369a1;
+    border-radius: 50% / 40%;
+    color: #0369a1;
+    font-size: 0.65rem;
+    font-weight: 800;
+    transform: rotate(-6deg);
+  }
+  .sha-hash { font-family: monospace; word-break: break-all; }
 </style>
+
+<!-- Loading skeleton placeholder while data loads -->
+<div x-show="!isLoaded" class="dl-skel" style="height: 380px; border-radius: 16px; background: linear-gradient(90deg,#eef1f6 0%,#f8fafc 50%,#eef1f6 100%); background-size: 200% 100%; animation: sk 1.2s infinite; margin: 1.5rem 0;"></div>
+<style>@keyframes sk { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }</style>
 
 <!-- Page-level scope (inherits everything from the parent Alpine component) -->
 <div
+  x-show="isLoaded"
+  x-cloak
   x-data="{
-        tab: (location.hash || '#form').slice(1),
-        moreOpen: false,
-        get isRedJ() {
-          return isRedFormJ
-            || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز'))
-            || (form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز'));
-        },
-        go(t) { this.tab = t; history.replaceState(null, '', '#' + t); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-     }"
-  x-init="if (!['form','map','history','scans'].includes(tab)) tab = 'form'"
-  style="padding-bottom: 6rem"
+    tab: ['form', 'map', 'history', 'scans'].includes(location.hash.slice(1))
+        ? location.hash.slice(1)
+        : 'form',
+    moreOpen: false,
+
+    get isRedJ() {
+        return isRedFormJ
+            || (form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز'));
+    },
+
+    go(t) {
+        if (!['form', 'map', 'history', 'scans'].includes(t)) return;
+
+        this.tab = t;
+        history.replaceState(null, '', '#' + t);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }"
+  x-init="$watch('tab', value => {
+    if (location.hash !== '#' + value) {
+        history.replaceState(null, '', '#' + value);
+    }
+  })"
 >
-  <!-- Breadcrumb -->
-  <nav style="margin-bottom: 0.75rem; font-size: 0.82rem">
-    <a
-      href="{% url 'dossier_list' %}"
-      style="color: #1e40af; font-weight: 700; text-decoration: none"
-      >← بازگشت به میز کار</a
-    >
-  </nav>
 
   <!-- Returned banner -->
   <template x-if="status === 'RETURNED'">
@@ -246,36 +449,34 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
       <div>
         <strong>فرم «ج» قرمز — فاقد شرایط دریافت مسکن</strong>
         <div style="margin-top: 0.25rem">
-          <template x-if="!isRejected"
-            ><span
-              >پرونده جهت صدور ابلاغیه رد صلاحیت به رئیس مسکن ارجاع شده
-              است.</span
-            ></template
-          >
+          <template x-if="!isRejected">
+            <span>پرونده جهت صدور ابلاغیه رد صلاحیت به رئیس مسکن ارجاع شده است.</span>
+          </template>
           <template x-if="isRejected">
-            <span
-              >رد قطعی طبق ابلاغیه
+            <span>
+              رد قطعی طبق ابلاغیه
               <b class="fa-num" x-text="rejectionLetterNumber"></b> مورخ
-              <b class="fa-num" x-text="rejectionLetterDate"></b
-            ></span>
+              <b class="fa-num" x-text="rejectionLetterDate"></b>
+            </span>
           </template>
         </div>
       </div>
-      <span style="font-size: 0.78rem; font-weight: 700"
-        >اقدامات در منوی «بیشتر» نوار پایین</span
-      >
+      <span style="font-size: 0.78rem; font-weight: 700">اقدامات در منوی «بیشتر» نوار پایین</span>
     </div>
   </template>
 
-  <!-- Top Navigation Bar: Back to My Inbox -->
-  <div style="margin-bottom: 0.9rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-    <a href="{% url 'dossier_list' %}" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #ffffff; padding: 0.5rem 1.1rem; font-weight: 700; font-size: 0.85rem; border-color: #cbd5e1; border-radius: 8px; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.04); text-decoration: none;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-      <span>← بازگشت به کارتابل من</span>
+  <!-- Top navigation: back to inbox -->
+  <div style="margin-bottom: 0.9rem">
+    <a
+  href="{% url 'dossier_list' %}"
+  class="btn btn-outline"
+  style="display: inline-flex; align-items: center; gap: 0.5rem; background: #ffffff; padding: 0.5rem 1.1rem; font-weight: 700; font-size: 0.85rem; border-color: #cbd5e1; border-radius: 10px; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.04); text-decoration: none;"
+    >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <span>بازگشت به کارتابل من</span>
     </a>
-    <div style="font-size: 0.82rem; color: #64748b;" class="fa-num">
-      شماره بایگانی: <strong style="color: #0f172a;">#<span x-text="archiveNumber"></span></strong>
-    </div>
   </div>
 
   <!-- Hero (compact) -->
@@ -283,9 +484,9 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
     <div>
       <h2>
         <span x-text="form.full_name"></span>
-        <small style="font-weight: 400; color: #64748b; font-size: 0.82rem"
-          >فرزند <span x-text="form.father_name"></span
-        ></small>
+        <small style="font-weight: 400; color: #64748b; font-size: 0.82rem">
+          فرزند <span x-text="form.father_name"></span>
+        </small>
       </h2>
       <div class="dt-meta fa-num">
         <span>کد ملی: <b x-text="form.national_id"></b></span>
@@ -295,11 +496,9 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 0.6rem">
-      <span x-show="isLocked" x-cloak class="dt-meta"
-        ><span style="background: #fef2f2; color: #991b1b"
-          >🔒 قفل نهایی (فقط خواندنی)</span
-        ></span
-      >
+      <span x-show="isLocked" x-cloak class="dt-meta">
+        <span style="background: #fef2f2; color: #991b1b">🔒 قفل نهایی (فقط خواندنی)</span>
+      </span>
       <div class="dt-id fa-num">#<span x-text="archiveNumber"></span></div>
     </div>
   </div>
@@ -309,51 +508,31 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
 
   <!-- Tabs -->
   <div class="dt-tabs" role="tablist">
-    <button
-      type="button"
-      class="dt-tab"
-      :class="{active: tab==='form'}"
-      @click="go('form')"
-    >
+    <button type="button" class="dt-tab" :class="{active: tab==='form'}" @click="go('form')">
       📝 فرم پرونده
     </button>
-    <button
-      type="button"
-      class="dt-tab"
-      :class="{active: tab==='map'}"
-      @click="go('map')"
-    >
+    <button type="button" class="dt-tab" :class="{active: tab==='map'}" @click="go('map')">
       🗺 نقشه مراحل
     </button>
-    <button
-      type="button"
-      class="dt-tab"
-      :class="{active: tab==='history'}"
-      @click="go('history')"
-    >
+    <button type="button" class="dt-tab" :class="{active: tab==='history'}" @click="go('history')">
       ✍ سوابق امضا
       <span class="dt-count fa-num" x-text="auditLogs.length"></span>
     </button>
-    <button
-      type="button"
-      class="dt-tab"
-      :class="{active: tab==='scans'}"
-      @click="go('scans')"
-    >
+    <button type="button" class="dt-tab" :class="{active: tab==='scans'}" @click="go('scans')">
       📎 اسناد اسکن‌شده
       <span class="dt-count fa-num" x-text="attachments.length"></span>
     </button>
   </div>
 
   <!-- TAB: form (x-show keeps inputs alive when switching tabs) -->
-  <div x-show="tab === 'form'" id="form-sections">
-    {% include 'components/form_sections.html' %}
+  <div x-show="tab === 'form'" id="form">
+      {% include 'components/form_sections.html' %}
   </div>
 
   <!-- TAB: stage map -->
-  <div x-show="tab === 'map'" x-cloak>
+  <div x-show="tab === 'map'" x-cloak id="map">
     <div class="dt-map">
-      <template x-for="stg in stages" :key="stg.id">
+      <template x-for="stg in stages" :key="'map-' + stg.id">
         <div
           class="dt-stage"
           :class="stg.id === currentStage ? 'current' : (stg.id < currentStage ? 'done' : 'todo')"
@@ -366,102 +545,88 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
           ></span>
           <b x-text="stg.title"></b>
           <small x-text="stg.role"></small>
-          <template x-if="stg.id < currentStage">
-            <div
-              style="margin-top: 0.35rem; font-size: 0.72rem; color: #166534"
-            >
-              <span
-                x-text="'امضا: ' + (getStageSignature(stg.id)?.actor || 'کارشناس اقدام')"
-              ></span
-              ><br />
-              <span
-                class="fa-num"
-                x-text="getStageSignature(stg.id)?.date || '-'"
-              ></span>
-            </div>
-          </template>
+          <div x-show="stg.id < currentStage" style="margin-top: 0.4rem; padding-top: 0.35rem; border-top: 1px dashed #bbf7d0; font-size: 0.72rem; color: #166534;">
+            <span>امضا: <strong x-text="getStageSignerName(stg.id)"></strong></span><br />
+            <span class="fa-num" style="color: #64748b;" x-text="getStageSignerDate(stg.id)"></span>
+          </div>
         </div>
       </template>
     </div>
   </div>
 
   <!-- TAB: signature history -->
-  <div x-show="tab === 'history'" x-cloak id="audit-timeline-section">
+  <div x-show="tab === 'history'" x-cloak id="history">
     {% include 'components/audit_timeline.html' %}
   </div>
 
   <!-- TAB: scanned documents -->
-  <div x-show="tab === 'scans'" x-cloak id="scans-album-section">
+  <div x-show="tab === 'scans'" x-cloak id="scans">
     {% include 'components/attachments_card.html' %}
   </div>
 
-  <!-- Sticky action bar (simplified: 3 main actions + "More" menu) -->
+  <!-- Sticky action bar (3 main actions + "More" menu) -->
   <div class="sticky-action-bar" x-cloak>
     <div class="action-bar-container">
       <div class="action-status-hint">
         <span
           class="role-pill"
-          :class="stages[currentStage] ? stages[currentStage].unit : 'brokerage'"
-          x-text="stages[currentStage] ? stages[currentStage].role : ''"
+          :class="getStage(currentStage).unit"
+          x-text="getStage(currentStage).role"
         ></span>
-        <span
-          x-text="stages[currentStage] ? stages[currentStage].title : ''"
-        ></span>
+        <span x-text="getStage(currentStage).title"></span>
       </div>
 
       <div class="action-buttons-group">
+        <button
+          type="button"
+          class="btn btn-outline"
+          x-show="!isLocked"
+          x-cloak
+          @click="openUploadScanModal()"
+          style="display: inline-flex; align-items: center; gap: 6px; border-color: #93c5fd; color: #1d4ed8; background: #eff6ff;"
+          title="بارگذاری اسناد، مدارک و تصاویر"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>بارگذاری مدرک / تصویر</span>
+        </button>
+
         <div
           x-show="!userCanAction && !isLocked"
           x-cloak
-          style="
-            display: none;
-            background: #fffbeb;
-            color: #92400e;
-            padding: 0.4rem 0.85rem;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            border: 1px solid #fde68a;
-          "
+          style="display: none; background: #fffbeb; color: #92400e; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #fde68a;"
         >
           🔒 فقط خواندنی: اقدام مختص کارشناس مربوطه یا رئیس مسکن است.
         </div>
 
         <!-- More menu -->
         <div class="dt-more" @click.outside="moreOpen = false">
-          <button
-            type="button"
-            class="btn btn-outline"
-            @click="moreOpen = !moreOpen"
-          >
+          <button type="button" class="btn btn-outline" @click="moreOpen = !moreOpen">
             ⋯ بیشتر
           </button>
           <div class="dt-menu" x-show="moreOpen" x-cloak style="display: none">
-            <a
-              href="{% url 'dossier_summary_print' pk=dossier.archive_number %}"
-              target="_blank"
-              >🖨 چاپ فرم مراحل و امضاها (۱۴ امضا)</a
-            >
-            <a
-              href="{% url 'folder_label_print' pk=dossier.archive_number %}"
-              target="_blank"
-              >🖨 چاپ برچسب / لیبل پوشه</a
-            >
+            <a href="{% url 'dossier_summary_print' pk=dossier.archive_number %}" target="_blank">
+              🖨 چاپ فرم مراحل و امضاها (۱۴ امضا)
+            </a>
+            <a href="{% url 'folder_label_print' pk=dossier.archive_number %}" target="_blank">
+              🖨 چاپ برچسب / لیبل پوشه
+            </a>
             <a
               href="{% url 'notary_letter_print' pk=dossier.archive_number %}"
               target="_blank"
               x-show="currentStage >= 19"
               x-cloak
-              >🖨 چاپ معرفی‌نامه محضر</a
             >
+              🖨 چاپ معرفی‌نامه محضر
+            </a>
             <a
               :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'"
               target="_blank"
               x-show="isRejected"
               x-cloak
               class="danger"
-              >🖨 چاپ ابلاغیه رد صلاحیت</a
             >
+              🖨 چاپ ابلاغیه رد صلاحیت
+            </a>
             <button
               type="button"
               class="danger"
@@ -501,9 +666,7 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
           @click="saveDossierDraft()"
           :disabled="isSaving"
         >
-          <span
-            x-text="isSaving ? 'در حال ذخیره...' : '💾 ذخیره پیش‌نویس'"
-          ></span>
+          <span x-text="isSaving ? 'در حال ذخیره...' : '💾 ذخیره پیش‌نویس'"></span>
         </button>
 
         <button
@@ -514,17 +677,16 @@ dossier.archive_number|default:'100001' }}) | سامانه مسکن یار {% en
           style="display: none"
           @click="openSignatureModal()"
         >
-          <span
-            x-text="currentStage === 21 ? '✓ تایید و بایگانی قطعی' : '✓ تایید و امضای الکترونیکی'"
-          ></span>
+          <span x-text="currentStage === 21 ? '✓ تایید و بایگانی قطعی' : '✓ تایید و امضای الکترونیکی'"></span>
         </button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Modals -->
-{% include 'components/modals/workflow_modals.html' %}
-{% include 'components/modals/scan_viewer_modal.html' %}
-{% include 'components/modals/date_picker_modal.html' %}
+  <!-- Modals (inside the Alpine scope) -->
+  {% include 'components/modals/workflow_modals.html' %}
+  {% include 'components/modals/scan_viewer_modal.html' %}
+  {% include 'components/modals/date_picker_modal.html' %}
+
+</div>
 {% endblock %}
