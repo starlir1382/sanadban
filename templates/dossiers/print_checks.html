@@ -280,7 +280,8 @@
         </button>
     </div>
 
-    <!-- Official A4 Page with Scan, Header Overlay & Footer (Exact print.ts layout) -->
+    <!-- Official A4 Pages with Scan, Header Overlay & Footer (Exact print.ts layout) -->
+    {% for scan in check_scans %}
     <div class="page">
         
         <!-- HEADER OVERLAY (Exact 2-Row Layout from print.ts) -->
@@ -323,7 +324,13 @@
         </div>
 
         <!-- SCAN IMAGE (In the middle) -->
-        {% if scan_url %}
+        {% if scan and scan.preview_url %}
+            <img src="{{ scan.preview_url }}" 
+                 class="scan-image" 
+                 alt="اسکن چک صیادی (برگ {{ forloop.counter }})"
+                 onload="onImageLoaded()" 
+                 onerror="onImageError()">
+        {% elif scan_url %}
             <img src="{{ scan_url }}" 
                  class="scan-image" 
                  alt="اسکن چک صیادی"
@@ -416,35 +423,40 @@
         {% endif %}
 
         <!-- PAGE FOOTER (Exact print.ts) -->
-        <div class="page-footer">صفحه ۱ از ۱</div>
+        <div class="page-footer">صفحه {{ forloop.counter }} از {{ check_scans|length }}</div>
     </div>
+    {% endfor %}
 
     <!-- Auto Print Script (Matching print.ts logic) -->
     <script>
-        let imageReady = false;
+        let imagesLoaded = 0;
+        const totalImages = {{ check_scans|length }};
         function onImageLoaded() {
-            imageReady = true;
+            imagesLoaded++;
             checkAndPrint();
         }
         function onImageError() {
-            imageReady = true;
+            imagesLoaded++;
             checkAndPrint();
         }
         function checkAndPrint() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('auto_print') === '1') {
-                setTimeout(function() {
-                    window.print();
-                }, 350);
+            if (imagesLoaded >= totalImages) {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('auto_print') === '1') {
+                    setTimeout(function() {
+                        window.print();
+                    }, 350);
+                }
             }
         }
         window.addEventListener('load', function() {
             // Fallback timeout in case image loading takes longer or is missing
             setTimeout(function() {
-                if (!imageReady) {
+                if (imagesLoaded < totalImages) {
+                    imagesLoaded = totalImages;
                     checkAndPrint();
                 }
-            }, 1200);
+            }, 1500);
         });
     </script>
 </body>

@@ -3,10 +3,24 @@ Django settings for SanadBan (DeedFlow) project.
 National Housing Dossier & Archival Workflow System
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Auto-load .env file if present
+_env_file = BASE_DIR / '.env'
+if _env_file.exists():
+    try:
+        with open(_env_file, 'r', encoding='utf-8') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if _line and not _line.startswith('#') and '=' in _line:
+                    _k, _v = _line.split('=', 1)
+                    os.environ.setdefault(_k.strip(), _v.strip().strip("'").strip('"'))
+    except Exception:
+        pass
 
 SECRET_KEY = 'django-insecure-md)z=)hb_7f6rcnmd-(2x6v#y*!(hc!_uyj#fy!mf^3c#exfza'
 
@@ -60,17 +74,33 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database: SQLite default for zero-friction local testing
-# In production, swap with PostgreSQL as per specification
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        'OPTIONS': {
-            'timeout': 30,
-        },
+# Database Configuration
+# Supports both PostgreSQL (production) and SQLite (fallback / dev)
+# Set DB_ENGINE=postgresql in .env or environment to activate PostgreSQL
+DB_ENGINE = os.environ.get('DB_ENGINE', 'sqlite').lower()
+
+if DB_ENGINE in ('postgres', 'postgresql', 'pg'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'ztkmaskan'),
+            'USER': os.environ.get('DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'Soheil@;Tarsim'),
+            'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 30,
+            },
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -98,9 +128,12 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+STATIC_ROOT = Path(os.environ.get('SANADBAN_STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
 
+# Media files (Scanned attachments, signatures, checks)
+# Configurable via environment variable SANADBAN_MEDIA_ROOT (e.g. D:\uploads)
 MEDIA_URL = '/uploads/'
-MEDIA_ROOT = BASE_DIR / 'uploads'
+MEDIA_ROOT = Path(os.environ.get('SANADBAN_MEDIA_ROOT', str(BASE_DIR / 'uploads')))
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dossier_list'

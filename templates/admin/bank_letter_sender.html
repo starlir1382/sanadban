@@ -85,15 +85,10 @@
 
         resetBatchToEligible() {
             this.viewingHistoricalLetter = null;
-            // Prefer stage 6 or equity funded dossiers
-            let eligible = this.allDossiers.filter(d => (d.current_stage === 6 || d.is_equity_funded) && !d.is_sent_to_bank);
-            if (!eligible.length) {
-                // If none at stage 6 yet, offer un-sent dossiers
-                eligible = this.allDossiers.filter(d => !d.is_sent_to_bank);
-            }
-            if (!eligible.length) {
-                eligible = [...this.allDossiers];
-            }
+            // Only dossiers genuinely eligible for bank shipment (Stage 6, equity funded, or added to shipment list)
+            const eligible = this.allDossiers.filter(d => 
+                (d.current_stage === 6 || d.is_equity_funded || d.is_added_to_bank_shipment_list) && !d.is_sent_to_bank
+            );
             this.selectedDossiers = [...eligible];
         },
 

@@ -1516,34 +1516,112 @@
                 </div>
             </div>
 
-            <!-- بخش صدور رسید با تصویر اسکن چک‌های وام دهک (BankCheckTracker) -->
-            <div style="background: #fffaf0; border: 1.5px dashed #ea580c; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                    <div style="display: flex; align-items: center; gap: 0.65rem;">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <!-- بخش اسکن چندگانه و صدور رسید چک‌های وام دهک (BankCheckTracker) -->
+            <div style="background: #fffaf0; border: 1.5px solid #fdba74; border-radius: 14px; padding: 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 2px 8px rgba(234, 88, 12, 0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; border-bottom: 1px dashed #fed7aa; padding-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 42px; height: 42px; border-radius: 10px; background: #ffedd5; display: flex; align-items: center; justify-content: center; color: #ea580c;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        </div>
                         <div>
-                            <strong style="color: #9a3412; font-size: 0.9rem; display: block;">صدور رسید رسمی چک‌های وام دهک (تلفیق تصویر اسکن با سربرگ و امضاء)</strong>
-                            <span style="font-size: 0.76rem; color: #b45309;">بارگذاری یا انتخاب اسکن چک‌ها، درج سربرگ اطلاعات متقاضی در بالا و کادر امضای دریافت‌کنندگان در پایین و ذخیره خودکار در اسناد اسکن‌شده</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <strong style="color: #9a3412; font-size: 0.95rem;">اسکن چندگانه و چاپ رسید رسمی چک‌های وام دهک (BankCheckTracker)</strong>
+                                <span class="fa-num" style="background: #ea580c; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 800;" x-text="getLoanCheckScans().length + ' برگ اسکن چک'"></span>
+                            </div>
+                            <span style="font-size: 0.78rem; color: #b45309; display: block; margin-top: 2px;">امکان اسکن و بارگذاری همزمان چندین برگ چک صیادی. کلیه چک‌ها به صورت خودکار سربرگ، کادر مبالغ و امضاء دریافت کرده و در قالب صفحات A4 متوالی چاپ می‌شوند.</span>
                         </div>
                     </div>
+
+                    <!-- Action Buttons -->
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <input type="file" 
+                               multiple 
+                               accept="image/*,application/pdf" 
+                               id="loanCheckScanFileInput" 
+                               @change="handleMultiCheckScanUpload($event, 'loan')" 
+                               style="display: none;">
+
                         <button type="button" 
-                                @click="tab = 'scans'; scrollToCategory('checks')" 
-                                class="btn btn-outline"
-                                style="background: #ffffff; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 700; color: #9a3412; border-color: #fdba74;"
-                                title="بارگذاری یا مشاهده اسکن چک‌ها در آلبوم اسناد">
-                            <span>بارگذاری اسکن در آلبوم اسناد (انتهای پرونده) ↗</span>
+                                @click="document.getElementById('loanCheckScanFileInput').click()"
+                                class="btn"
+                                style="background: #ffffff; color: #9a3412; border: 1.5px solid #fdba74; padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+                                title="اسکن یا انتخاب فایل‌های چک صیادی">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span>+ اسکن / بارگذاری برگه‌های چک</span>
                         </button>
 
                         <button type="button" 
-                                @click="printExistingCheckScanReceipt('loan')" 
-                                class="btn btn-outline"
-                                style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #9a3412; border-color: #fdba74; background: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem;"
-                                title="استفاده از اسکن موجود در پرونده و چاپ رسید رسمی">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                            <span>چاپ با اسکن پرونده</span>
+                                @click="printCheckScans('loan')" 
+                                class="btn"
+                                style="background: #ea580c; color: #ffffff; border: none; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);"
+                                title="چاپ متوالی تمامی چک‌های وام دهک همراه با سربرگ رسمی">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            <span>چاپ تجمیعی چک‌ها (<span class="fa-num" x-text="getLoanCheckScans().length ? getLoanCheckScans().length + ' برگ' : 'پیش‌فرض'"></span>) 🖨️</span>
+                        </button>
+
+                        <button type="button" 
+                                @click="tab = 'scans'; scrollToCategory('checks')" 
+                                class="btn"
+                                style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 0.5rem 0.85rem; font-size: 0.8rem; font-weight: 600;"
+                                title="مشاهده در آلبوم اسناد پرونده">
+                            <span>آلبوم اسناد ↗</span>
                         </button>
                     </div>
+                </div>
+
+                <!-- Scans Thumbnails Gallery -->
+                <div>
+                    <template x-if="getLoanCheckScans().length > 0">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.85rem;">
+                            <template x-for="(scan, idx) in getLoanCheckScans()" :key="scan.id">
+                                <div style="position: relative; background: #ffffff; border: 1.5px solid #fed7aa; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: transform 0.15s ease;"
+                                     onmouseover="this.style.borderColor='#ea580c'; this.style.transform='translateY(-2px)'"
+                                     onmouseout="this.style.borderColor='#fed7aa'; this.style.transform='none'">
+                                    <!-- Page Number Badge -->
+                                    <div style="position: absolute; top: 6px; right: 6px; z-index: 2; background: rgba(154, 52, 18, 0.9); color: #fff; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 6px;" class="fa-num" x-text="'برگ ' + (idx + 1) + ' از ' + getLoanCheckScans().length"></div>
+                                    
+                                    <!-- Delete Button -->
+                                    <button type="button"
+                                            @click.stop="deleteCheckScan(scan.id, 'loan')"
+                                            style="position: absolute; top: 6px; left: 6px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;"
+                                            title="حذف این برگ اسکن">
+                                        ✕
+                                    </button>
+
+                                    <!-- Image Preview Thumbnail -->
+                                    <div style="height: 120px; background: #f8fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;"
+                                         @click="openPreview(scan)">
+                                        <img :src="scan.preview_url" 
+                                             :alt="scan.title || 'اسکن چک'" 
+                                             style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                    </div>
+
+                                    <!-- Card Footer Info -->
+                                    <div style="padding: 0.45rem 0.6rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
+                                        <div style="font-size: 0.76rem; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" :title="scan.title || scan.fileName" x-text="scan.title || scan.fileName"></div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px; font-size: 0.7rem; color: #64748b;" class="fa-num">
+                                            <span x-text="scan.uploadDate || scan.uploaded_at || 'امروز'"></span>
+                                            <span style="color: #ea580c; cursor: pointer; font-weight: 700;" @click.stop="openPreview(scan)">مشاهده 🔍</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template x-if="getLoanCheckScans().length === 0">
+                        <div style="padding: 1.5rem; background: #ffffff; border: 1.5px dashed #fed7aa; border-radius: 10px; text-align: center; color: #64748b;">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fdba74" stroke-width="1.8" style="margin: 0 auto 0.5rem;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <div style="font-size: 0.86rem; font-weight: 700; color: #9a3412; margin-bottom: 0.35rem;">هنوز هیچ برگه اسکن چکی برای این مرحله بارگذاری نشده است</div>
+                            <p style="font-size: 0.78rem; margin: 0 0 0.75rem 0; color: #64748b;">می‌توانید یک یا چند برگ اسکن چک را با کلیک بر روی دکمه بالا بارگذاری نمایید تا همزمان با سربرگ و امضاء آماده چاپ شوند.</p>
+                            <button type="button" 
+                                    @click="document.getElementById('loanCheckScanFileInput').click()"
+                                    class="btn btn-sm"
+                                    style="background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; font-weight: 700; padding: 0.4rem 1rem;">
+                                بارگذاری اسکن چک‌ها
+                            </button>
+                        </div>
+                    </template>
                 </div>
             </div>
 
@@ -1976,34 +2054,112 @@
                     </div>
                 </div>
 
-                <!-- بخش صدور رسید با تصویر اسکن چک‌های آماده‌سازی (tashilatCheck) -->
-                <div style="background: #f0fdf4; border: 1.5px dashed #15803d; border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1rem; margin-bottom: 0.85rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                        <div style="display: flex; align-items: center; gap: 0.65rem;">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                <!-- بخش اسکن چندگانه و صدور رسید چک‌های آماده‌سازی (tashilatCheck) -->
+                <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 1.25rem; margin-top: 1.25rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(22, 101, 52, 0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; border-bottom: 1px dashed #bbf7d0; padding-bottom: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 42px; height: 42px; border-radius: 10px; background: #dcfce7; display: flex; align-items: center; justify-content: center; color: #15803d;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                            </div>
                             <div>
-                                <strong style="color: #166534; font-size: 0.9rem; display: block;">صدور رسید رسمی چک‌های آماده‌سازی (تلفیق تصویر اسکن با سربرگ و امضاء)</strong>
-                                <span style="font-size: 0.76rem; color: #15803d;">بارگذاری یا انتخاب اسکن چک‌ها، درج سربرگ اطلاعات در بالا و کادر امضای دریافت‌کنندگان در پایین و ذخیره خودکار در اسناد اسکن‌شده</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <strong style="color: #166534; font-size: 0.95rem;">اسکن چندگانه و چاپ رسید رسمی چک‌های آماده‌سازی (tashilatCheck)</strong>
+                                    <span class="fa-num" style="background: #166534; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 800;" x-text="getPrepCheckScans().length + ' برگ اسکن چک'"></span>
+                                </div>
+                                <span style="font-size: 0.78rem; color: #15803d; display: block; margin-top: 2px;">امکان اسکن و بارگذاری همزمان چندین برگ چک صیادی. کلیه چک‌ها به صورت خودکار سربرگ، کادر خلاصه مالی و امضاء دریافت کرده و در قالب صفحات A4 متوالی چاپ می‌شوند.</span>
                             </div>
                         </div>
+
+                        <!-- Action Buttons -->
                         <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <input type="file" 
+                                   multiple 
+                                   accept="image/*,application/pdf" 
+                                   id="prepCheckScanFileInput" 
+                                   @change="handleMultiCheckScanUpload($event, 'prep')" 
+                                   style="display: none;">
+
                             <button type="button" 
-                                    @click="tab = 'scans'; scrollToCategory('checks')" 
-                                    class="btn btn-outline"
-                                    style="background: #ffffff; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 700; color: #166534; border-color: #86efac;"
-                                    title="بارگذاری یا مشاهده اسکن چک‌ها در آلبوم اسناد">
-                                <span>بارگذاری اسکن در آلبوم اسناد (انتهای پرونده) ↗</span>
+                                    @click="document.getElementById('prepCheckScanFileInput').click()"
+                                    class="btn"
+                                    style="background: #ffffff; color: #15803d; border: 1.5px solid #86efac; padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);"
+                                    title="اسکن یا انتخاب فایل‌های چک صیادی">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <span>+ اسکن / بارگذاری برگه‌های چک</span>
                             </button>
 
                             <button type="button" 
-                                    @click="printExistingCheckScanReceipt('prep')" 
-                                    class="btn btn-outline"
-                                    style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 700; color: #166534; border-color: #86efac; background: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem;"
-                                    title="استفاده از اسکن موجود در پرونده و چاپ رسید رسمی">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                                <span>چاپ با اسکن پرونده</span>
+                                    @click="printCheckScans('prep')" 
+                                    class="btn"
+                                    style="background: #15803d; color: #ffffff; border: none; padding: 0.5rem 1.15rem; font-size: 0.84rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 6px rgba(21, 128, 61, 0.25);"
+                                    title="چاپ متوالی تمامی چک‌های آماده‌سازی همراه با سربرگ رسمی">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                                <span>چاپ تجمیعی چک‌ها (<span class="fa-num" x-text="getPrepCheckScans().length ? getPrepCheckScans().length + ' برگ' : 'پیش‌فرض'"></span>) 🖨️</span>
+                            </button>
+
+                            <button type="button" 
+                                    @click="tab = 'scans'; scrollToCategory('checks')" 
+                                    class="btn"
+                                    style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; padding: 0.5rem 0.85rem; font-size: 0.8rem; font-weight: 600;"
+                                    title="مشاهده در آلبوم اسناد پرونده">
+                                <span>آلبوم اسناد ↗</span>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Scans Thumbnails Gallery -->
+                    <div>
+                        <template x-if="getPrepCheckScans().length > 0">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.85rem;">
+                                <template x-for="(scan, idx) in getPrepCheckScans()" :key="scan.id">
+                                    <div style="position: relative; background: #ffffff; border: 1.5px solid #bbf7d0; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: transform 0.15s ease;"
+                                         onmouseover="this.style.borderColor='#15803d'; this.style.transform='translateY(-2px)'"
+                                         onmouseout="this.style.borderColor='#bbf7d0'; this.style.transform='none'">
+                                        <!-- Page Number Badge -->
+                                        <div style="position: absolute; top: 6px; right: 6px; z-index: 2; background: rgba(22, 101, 52, 0.9); color: #fff; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 6px;" class="fa-num" x-text="'برگ ' + (idx + 1) + ' از ' + getPrepCheckScans().length"></div>
+                                        
+                                        <!-- Delete Button -->
+                                        <button type="button"
+                                                @click.stop="deleteCheckScan(scan.id, 'prep')"
+                                                style="position: absolute; top: 6px; left: 6px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;"
+                                                title="حذف این برگ اسکن">
+                                            ✕
+                                        </button>
+
+                                        <!-- Image Preview Thumbnail -->
+                                        <div style="height: 120px; background: #f8fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;"
+                                             @click="openPreview(scan)">
+                                            <img :src="scan.preview_url" 
+                                                 :alt="scan.title || 'اسکن چک'" 
+                                                 style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                                        </div>
+
+                                        <!-- Card Footer Info -->
+                                        <div style="padding: 0.45rem 0.6rem; border-top: 1px solid #e2e8f0; background: #ffffff;">
+                                            <div style="font-size: 0.76rem; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" :title="scan.title || scan.fileName" x-text="scan.title || scan.fileName"></div>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px; font-size: 0.7rem; color: #64748b;" class="fa-num">
+                                                <span x-text="scan.uploadDate || scan.uploaded_at || 'امروز'"></span>
+                                                <span style="color: #0284c7; cursor: pointer; font-weight: 700;" @click.stop="openPreview(scan)">مشاهده 🔍</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="getPrepCheckScans().length === 0">
+                            <div style="padding: 1.5rem; background: #ffffff; border: 1.5px dashed #bbf7d0; border-radius: 10px; text-align: center; color: #64748b;">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="1.8" style="margin: 0 auto 0.5rem;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                <div style="font-size: 0.86rem; font-weight: 700; color: #166534; margin-bottom: 0.35rem;">هنوز هیچ برگه اسکن چکی برای این مرحله بارگذاری نشده است</div>
+                                <p style="font-size: 0.78rem; margin: 0 0 0.75rem 0; color: #64748b;">می‌توانید یک یا چند برگ اسکن چک را با کلیک بر روی دکمه بالا بارگذاری نمایید تا همزمان با سربرگ و امضاء آماده چاپ شوند.</p>
+                                <button type="button" 
+                                        @click="document.getElementById('prepCheckScanFileInput').click()"
+                                        class="btn btn-sm"
+                                        style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 700; padding: 0.4rem 1rem;">
+                                    بارگذاری اسکن چک‌ها
+                                </button>
+                            </div>
+                        </template>
                     </div>
                 </div>
 

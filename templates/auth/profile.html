@@ -1,15 +1,52 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}پروفایل کاربری | سامانه مسکن یار{% endblock %}
+{% block title %}پروفایل کاربری و تنظیمات حساب | سامانه مسکن یار{% endblock %}
 
-{% block content %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/vendor/cropper.min.css' %}">
 <style>
 .profile-details-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
+}
+
+/* Cropper styling - ensure handles and box are prominent */
+.cropper-container {
+    direction: ltr !important;
+}
+
+.cropper-view-box {
+    outline: 2px solid #0284c7 !important;
+    outline-color: #0284c7 !important;
+}
+
+.cropper-line {
+    background-color: #0284c7 !important;
+}
+
+.cropper-point {
+    background-color: #0284c7 !important;
+    width: 10px !important;
+    height: 10px !important;
+    opacity: 0.9 !important;
+}
+
+.cropper-wrapper {
+    max-height: 480px;
+    background: #020617;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.cropper-wrapper img {
+    display: block;
+    max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -25,8 +62,18 @@
     }
 }
 </style>
+{% endblock %}
 
-<div style="max-width: 1000px; margin: 0 auto 3rem;">
+{% block extra_js %}
+<script src="{% static 'js/vendor/cropper.min.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Fallback direct link in case block is not rendered -->
+<link rel="stylesheet" href="{% static 'css/vendor/cropper.min.css' %}">
+<script src="{% static 'js/vendor/cropper.min.js' %}"></script>
+
+<div style="max-width: 1000px; margin: 0 auto 3rem;" x-data="{ avatarModal: false }">
 
     <!-- Breadcrumb -->
     <nav style="display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; font-size: 0.82rem; color: #64748b;">
@@ -38,17 +85,33 @@
         <span style="font-weight: 700; color: #334155;">پروفایل کاربری و تنظیمات حساب</span>
     </nav>
 
-    <!-- Header Hero -->
-    <div class="profile-hero-inner" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; box-shadow: 0 4px 20px rgba(15, 39, 68, 0.15);">
+    <!-- Header Hero with Avatar -->
+    <div class="profile-hero-inner" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; border-radius: 16px; padding: 1.75rem 2rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; box-shadow: 0 4px 20px rgba(15, 39, 68, 0.15);">
         <div style="display: flex; align-items: center; gap: 1.25rem;">
-            <div style="width: 72px; height: 72px; border-radius: 50%; background: #38bdf8; color: #0f2744; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                {{ user.profile.full_name|default:user.username|slice:":2" }}
+            <!-- Avatar Frame with Camera Edit Icon -->
+            <div style="position: relative; cursor: pointer;" @click="avatarModal = true" title="کلیک جهت تغییر تصویر پروفایل">
+                {% if user.profile.avatar %}
+                <img src="{{ user.profile.avatar.url }}" alt="{{ user.profile.full_name }}" style="width: 76px; height: 76px; border-radius: 50%; object-fit: cover; border: 3px solid #38bdf8; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                {% else %}
+                <div style="width: 76px; height: 76px; border-radius: 50%; background: #38bdf8; color: #0f2744; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 3px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                    {{ user.profile.full_name|default:user.username|slice:":2" }}
+                </div>
+                {% endif %}
+                <div style="position: absolute; bottom: 0; left: 0; width: 26px; height: 26px; background: #0284c7; border: 2px solid #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                </div>
             </div>
+
             <div>
-                <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 0.25rem;">
-                    {{ user.profile.full_name|default:user.username }}
-                </h2>
-                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: #93c5fd;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <h2 style="font-size: 1.35rem; font-weight: 800; margin: 0; color: #ffffff;">
+                        {{ user.profile.full_name|default:user.username }}
+                    </h2>
+                    <button type="button" @click="avatarModal = true" class="btn btn-outline" style="background: rgba(255,255,255,0.12); color: #93c5fd; border: none; padding: 2px 8px; font-size: 0.72rem; border-radius: 6px;">
+                        تغییر عکس 📷
+                    </button>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: #93c5fd; margin-top: 0.35rem;">
                     <span>نام کاربری: <strong style="color: #ffffff;">{{ user.username }}</strong></span>
                     <span>•</span>
                     <span>نقش: <strong>{{ user.profile.role_title }}</strong></span>
@@ -65,6 +128,47 @@
                 <span>مدیریت کاربران و ادمین</span>
             </a>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal for Changing Avatar -->
+    <div x-show="avatarModal" x-cloak style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+        <div @click.away="avatarModal = false" style="background: #ffffff; border-radius: 16px; width: 100%; max-width: 440px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); overflow: hidden;" x-data="{ newAvatarPreview: null }">
+            <div style="background: #0f2744; color: #ffffff; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 0.95rem; font-weight: 800; margin: 0;">بروزرسانی تصویر پروفایل کارشناس</h3>
+                <button type="button" @click="avatarModal = false" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <form method="POST" action="{% url 'user_profile' %}" enctype="multipart/form-data" style="padding: 1.5rem;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_avatar">
+
+                <div style="text-align: center; margin-bottom: 1.25rem;">
+                    <div style="width: 100px; height: 100px; border-radius: 50%; background: #f1f5f9; border: 3px solid #38bdf8; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 0.75rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                        <template x-if="newAvatarPreview">
+                            <img :src="newAvatarPreview" alt="پیش‌نمایش" style="width: 100%; height: 100%; object-fit: cover;">
+                        </template>
+                        <template x-if="!newAvatarPreview">
+                            {% if user.profile.avatar %}
+                            <img src="{{ user.profile.avatar.url }}" alt="{{ user.profile.full_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            {% endif %}
+                        </template>
+                    </div>
+                    <div style="font-size: 0.78rem; color: #64748b;">پیش‌نمایش تصویر جدید</div>
+                </div>
+
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem;">انتخاب فایل عکس:</label>
+                    <input type="file" name="avatar" accept="image/*" required class="input-control" style="width: 100%; height: 42px; padding: 6px;"
+                           @change="const f = $event.target.files[0]; if(f){ newAvatarPreview = URL.createObjectURL(f); }">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button type="button" @click="avatarModal = false" class="btn btn-outline" style="padding: 0.5rem 1rem;">انصراف</button>
+                    <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800;">ذخیره عکس پروفایل ✓</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -124,7 +228,7 @@
                     </div>
 
                     <div style="margin-bottom: 1rem;">
-                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">کلمه عبور جدید</label>
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">کلمه عبور جدید (حداقل ۶ کاراکتر)</label>
                         <input type="password" name="new_password" required minlength="6" class="input-control" style="width: 100%; height: 40px; font-size: 0.88rem; direction: ltr;">
                     </div>
 
@@ -140,69 +244,208 @@
             </div>
         </div>
 
-        <!-- Signature Card -->
-        <div class="form-card" style="margin-bottom: 0; grid-column: span 2;">
+        <!-- Signature Card with Interactive Cropper -->
+        <div class="form-card" style="margin-bottom: 0; grid-column: span 2;" x-data="profileSignatureManager()">
             <div class="form-section-header">
                 <div class="section-title">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                     <span>نمونه امضای الکترونیک سازمانی (Digital Signature)</span>
                 </div>
             </div>
-            <div class="form-section-body" style="display: flex; gap: 2.5rem; align-items: flex-start; flex-wrap: wrap;" x-data="{ previewUrl: null }">
-                <!-- Current Active Signature Preview in 1:1 Ratio -->
-                <div style="text-align: center;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.45rem;">تصویر امضای فعال (نسبت ۱:۱ مربع):</div>
-                    {% if user.profile.signature_image %}
-                    <div style="border: 2px dashed #0284c7; width: 110px; height: 110px; border-radius: 12px; background: #f0f9ff; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12); position: relative;">
-                        <img src="{{ user.profile.signature_image.url }}" alt="امضا" style="width: 85px; height: 85px; object-fit: contain; mix-blend-mode: multiply;">
-                        <div style="position: absolute; bottom: 4px; font-size: 0.62rem; color: #0284c7; font-weight: 800;">تأییدشده ✓</div>
-                    </div>
-                    {% else %}
-                    <div style="border: 2px dashed #cbd5e1; width: 110px; height: 110px; border-radius: 12px; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.76rem; margin: 0 auto;">
-                        <span>فاقد امضا</span>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Upload & 1:1 Live Crop / Preview Area -->
-                <div style="flex: 1; min-width: 280px;">
-                    <form method="POST" action="{% url 'user_profile' %}" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="update_signature">
-                        
-                        <div style="margin-bottom: 0.75rem;">
-                            <label style="display: block; font-size: 0.84rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">
-                                انتخاب و بارگذاری تصویر نمونه امضا (PNG یا JPG):
-                            </label>
-                            <div style="font-size: 0.74rem; color: #64748b; line-height: 1.5; margin-bottom: 0.65rem;">
-                                سیستم به طور خودکار تصویر امضا را در کادر مربع (۱:۱) تنظیم و برش می‌زند تا در شناسنامه جامع بایگانی و نامه‌های رسمی بدون به‌هم‌ریختگی متون درج گردد.
-                            </div>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <input type="file" name="signature_image" accept="image/*" required class="input-control" style="flex: 1; height: 42px; padding: 6px;"
-                                       @change="const f = $event.target.files[0]; if(f){ previewUrl = URL.createObjectURL(f); }">
-                                <button type="submit" class="btn btn-primary" style="font-weight: 700; white-space: nowrap; height: 42px; padding: 0 1.25rem;">
-                                    برش و ذخیره امضا
-                                </button>
-                            </div>
+            
+            <div class="form-section-body">
+                <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+                    
+                    <!-- Current Active Signature Preview -->
+                    <div style="text-align: center; flex-shrink: 0;">
+                        <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.45rem;">تصویر امضای فعال در سامانه:</div>
+                        {% if user.profile.signature_image %}
+                        <div style="border: 2px dashed #0284c7; width: 130px; height: 130px; border-radius: 12px; background: #f0f9ff; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12); position: relative; padding: 8px;">
+                            <img src="{{ user.profile.signature_image.url }}" alt="امضا" style="max-width: 100%; max-height: 90px; object-fit: contain; mix-blend-mode: multiply;">
+                            <div style="position: absolute; bottom: 4px; font-size: 0.65rem; color: #0284c7; font-weight: 800;">تأییدشده رسمی ✓</div>
                         </div>
+                        {% else %}
+                        <div style="border: 2px dashed #cbd5e1; width: 130px; height: 130px; border-radius: 12px; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; font-size: 0.78rem; margin: 0 auto;">
+                            <span>فاقد امضا</span>
+                        </div>
+                        {% endif %}
+                    </div>
 
-                        <!-- 1:1 Live Crop Preview Box -->
-                        <div x-show="previewUrl" style="margin-top: 0.85rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; align-items: center; gap: 1rem;">
-                            <div style="width: 80px; height: 80px; border: 2px dashed #3b82f6; border-radius: 8px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
-                                <img :src="previewUrl" style="width: 70px; height: 70px; object-fit: contain; mix-blend-mode: multiply;">
-                            </div>
-                            <div>
-                                <div style="font-size: 0.8rem; font-weight: 800; color: #1d4ed8;">پیش‌نمایش نسبت ۱:۱ در فرم رسمی</div>
-                                <div style="font-size: 0.72rem; color: #64748b; margin-top: 2px;">
-                                    تصویر انتخاب‌شده به صورت متقارن و مربع ۱:۱ پردازش خواهد شد.
+                    <!-- Cropper / Upload Workflow -->
+                    <div style="flex: 1; min-width: 300px;">
+                        <form method="POST" action="{% url 'user_profile' %}" enctype="multipart/form-data" @submit="handleSubmit($event)">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_signature">
+                            <input type="hidden" name="cropped_signature_data" x-ref="croppedSigInput">
+
+                            <div style="margin-bottom: 0.85rem;">
+                                <label style="display: block; font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">
+                                    عکاسی از امضا یا انتخاب تصویر و برش دقیق:
+                                </label>
+                                <div style="font-size: 0.76rem; color: #64748b; line-height: 1.5; margin-bottom: 0.75rem;">
+                                    از امضای خود روی کاغذ عکس بگیرید. پس از انتخاب، کادر آبی را روی فقط امضا تنظیم نموده و تأیید را بزنید تا با بالاترین وضوح ثبت گردد.
+                                </div>
+
+                                <!-- Select / Snap Photo Button -->
+                                <div x-show="!cropActive && !croppedResultUrl">
+                                    <label class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.6rem 1.25rem; font-weight: 700; border-color: #0284c7; color: #0284c7;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                        <span>عکس‌برداری با دوربین / انتخاب تصویر امضا</span>
+                                        <input type="file" accept="image/*" @change="handlePhotoSelect($event)" style="display: none;">
+                                    </label>
                                 </div>
                             </div>
-                        </div>
 
-                    </form>
+                            <!-- Cropper Workspace -->
+                            <div x-show="cropActive" style="background: #0f172a; border-radius: 12px; padding: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; color: #f8fafc; font-size: 0.8rem;">
+                                    <span style="font-weight: 700; color: #38bdf8;">کادر آبی را دور امضا تنظیم کنید:</span>
+                                    <span style="font-size: 0.72rem; color: #94a3b8;">چرخش و زوم فعال است</span>
+                                </div>
+
+                                <div class="cropper-wrapper">
+                                    <img x-ref="cropImage" src="" alt="برش امضا">
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div style="display: flex; gap: 5px;">
+                                        <button type="button" @click="rotate(-90)" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); padding: 4px 8px; font-size: 0.76rem;">↺ چرخش ۹۰-</button>
+                                        <button type="button" @click="rotate(90)" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); padding: 4px 8px; font-size: 0.76rem;">↻ چرخش ۹۰+</button>
+                                        <button type="button" @click="zoom(0.1)" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); padding: 4px 8px; font-size: 0.76rem;">+ زوم</button>
+                                        <button type="button" @click="zoom(-0.1)" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); padding: 4px 8px; font-size: 0.76rem;">- زوم</button>
+                                        <button type="button" @click="reset()" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); padding: 4px 8px; font-size: 0.76rem;">بازنشانی</button>
+                                    </div>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button type="button" @click="cancelCrop()" class="btn" style="background: #475569; color: #fff; padding: 4px 10px; font-size: 0.78rem;">انصراف</button>
+                                        <button type="button" @click="applyCrop()" class="btn" style="background: #10b981; color: #fff; padding: 4px 16px; font-size: 0.82rem; font-weight: 800;">✓ تأیید و برش کادر امضا</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cropped Result Box -->
+                            <div x-show="!cropActive && croppedResultUrl" style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 1rem; text-align: center; margin-bottom: 1rem;">
+                                <div style="font-size: 0.8rem; font-weight: 800; color: #166534; margin-bottom: 0.5rem;">
+                                    ✓ امضای برش‌خورده با کیفیت اصلی و بدون افت کیفیت:
+                                </div>
+                                <div style="display: inline-block; background: #fff; border: 1.5px dashed #22c55e; border-radius: 8px; padding: 0.5rem 1rem; margin-bottom: 0.65rem;">
+                                    <img :src="croppedResultUrl" alt="امضای برش خورده" style="max-height: 120px; max-width: 320px; object-fit: contain; display: block; mix-blend-mode: multiply;">
+                                </div>
+                                <div>
+                                    <label class="btn btn-outline" style="border-color: #86efac; color: #15803d; font-size: 0.75rem; padding: 3px 10px; cursor: pointer;">
+                                        ↺ تغییر عکس یا برش مجدد
+                                        <input type="file" accept="image/*" @change="handlePhotoSelect($event)" style="display: none;">
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Save Button -->
+                            <div x-show="croppedResultUrl" style="margin-top: 0.75rem;">
+                                <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.75rem; font-weight: 800; font-size: 0.9rem;">
+                                    ذخیره و ثبت رسمی این امضا ✓
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+
+<script>
+function profileSignatureManager() {
+    return {
+        cropActive: false,
+        croppedResultUrl: null,
+        cropper: null,
+
+        handlePhotoSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const img = this.$refs.cropImage;
+                this.cropActive = true;
+
+                // Ensure cropper is initialized once the image loads
+                img.onload = () => {
+                    this.$nextTick(() => {
+                        if (this.cropper) {
+                            this.cropper.destroy();
+                        }
+                        if (typeof Cropper === 'undefined') {
+                            console.error('Cropper library not loaded yet!');
+                            return;
+                        }
+                        this.cropper = new Cropper(img, {
+                            viewMode: 1,
+                            dragMode: 'crop',
+                            autoCropArea: 0.8,
+                            restore: false,
+                            guides: true,
+                            center: true,
+                            highlight: false,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            toggleDragModeOnDblclick: false,
+                            responsive: true,
+                            checkOrientation: false,
+                        });
+                    });
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        },
+
+        rotate(deg) {
+            if (this.cropper) this.cropper.rotate(deg);
+        },
+
+        zoom(ratio) {
+            if (this.cropper) this.cropper.zoom(ratio);
+        },
+
+        reset() {
+            if (this.cropper) this.cropper.reset();
+        },
+
+        cancelCrop() {
+            if (this.cropper) {
+                this.cropper.destroy();
+                this.cropper = null;
+            }
+            this.cropActive = false;
+        },
+
+        applyCrop() {
+            if (!this.cropper) return;
+            // Native resolution cropped canvas - NO downscaling or quality loss!
+            const canvas = this.cropper.getCroppedCanvas({
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            const dataUrl = canvas.toDataURL('image/png');
+            this.croppedResultUrl = dataUrl;
+            this.$refs.croppedSigInput.value = dataUrl;
+            this.cancelCrop();
+        },
+
+        handleSubmit(e) {
+            if (this.cropActive) {
+                this.applyCrop();
+            }
+            if (!this.$refs.croppedSigInput.value) {
+                alert('لطفاً ابتدا تصویر امضای خود را برش داده و تأیید نمایید.');
+                e.preventDefault();
+                return false;
+            }
+        }
+    };
+}
+</script>
 {% endblock %}

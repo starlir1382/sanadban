@@ -614,6 +614,7 @@ class UserProfile(models.Model):
     allowed_stages = models.CharField(max_length=150, default="all", verbose_name="مراحل مجاز (مثال: 0,1,2 یا all)")
 
     # Mandatory Security Onboarding & Signature
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True, verbose_name="تصویر پروفایل کارشناس")
     must_change_password = models.BooleanField(default=False, verbose_name="الزام به تغییر کلمه عبور در ورود اول")
     signature_image = models.ImageField(upload_to="signatures/", blank=True, null=True, verbose_name="تصویر نمونه امضای الکترونیک")
 

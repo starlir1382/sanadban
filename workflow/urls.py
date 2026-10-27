@@ -13,6 +13,7 @@ urlpatterns = [
     path("dossier/<int:pk>/return-red/", views.return_red_form_j_action, name="dossier_return_red"),
     path("dossier/<int:pk>/print/notary-letter/", views.notary_letter_print_view, name="notary_letter_print"),
     path("dossier/<int:pk>/print/folder-label/", views.folder_label_print_view, name="folder_label_print"),
+    path("dossier/<int:pk>/print/land-bank/", views.land_bank_print_view, name="land_bank_print"),
     path("dossier/<int:pk>/print/summary/", views.dossier_summary_print_view, name="dossier_summary_print"),
     path("dossier/<int:pk>/print/rejection-letter/", views.red_rejection_letter_print_view, name="red_rejection_letter_print"),
     path("dossier/<int:pk>/print/checks/", views.dossier_print_checks_view, name="dossier_print_checks"),

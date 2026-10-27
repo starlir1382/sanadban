@@ -270,7 +270,11 @@
             <div style="position: relative;" @click.away="user = false">
                 <button type="button" class="sb-user-btn" @click="user = !user; mgmt = false"
                         :aria-expanded="user" aria-haspopup="true" aria-controls="sb-user-menu" aria-label="منوی کاربر">
+                    {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="{{ profile.full_name }}" class="sb-avatar" style="object-fit: cover;">
+                    {% else %}
                     <span class="sb-avatar">{{ profile.full_name|default:request.user.username|slice:":2" }}</span>
+                    {% endif %}
                     <span class="sb-user-text">
                         <div class="sb-user-name">{{ profile.full_name|default:request.user.username }}</div>
                         <div class="sb-user-role">{{ profile.role_title|default:'کارشناس سامانه' }}</div>
@@ -280,7 +284,11 @@
 
                 <div id="sb-user-menu" class="sb-dropdown sb-dropdown--user" x-show="user" x-cloak x-transition:enter="sb-t-enter" x-transition:enter-start="sb-t-from" x-transition:enter-end="sb-t-to" x-transition:leave="sb-t-leave" x-transition:leave-start="sb-t-to" x-transition:leave-end="sb-t-from">
                     <div class="sb-menu-head">
+                        {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="{{ profile.full_name }}" class="sb-avatar sb-avatar--lg" style="object-fit: cover;">
+                        {% else %}
                         <span class="sb-avatar sb-avatar--lg">{{ profile.full_name|default:request.user.username|slice:":2" }}</span>
+                        {% endif %}
                         <div>
                             <strong>{{ profile.full_name|default:request.user.username }}</strong>
                             <small>{{ request.user.username }}</small>

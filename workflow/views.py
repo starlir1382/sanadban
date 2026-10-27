@@ -1363,6 +1363,49 @@ def folder_label_print_view(request, pk):
     return render(request, "dossiers/print_folder_label.html", {"dossier": dossier})
 
 
+@login_required(login_url='login')
+def land_bank_print_view(request, pk):
+    """
+    Print-ready view for Stage 13 (Land Bank Expert - فرم مشخصات مالک، ملک و قدرالسهم).
+    Rendered strictly for A4 Landscape official print.
+    """
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    sig_obj = dossier.signatures.filter(slot_key="land_bank").first()
+
+    total_share = dossier.total_land_share
+    net_area = float(dossier.net_unit_area or 85.0)
+
+    if total_share:
+        arce_share = round(float(total_share) * 0.2468, 2)
+        commons_share = round(float(total_share) - arce_share, 2)
+        total_share_display = f"{float(total_share):.2f}"
+    else:
+        arce_share = round(net_area * 0.24, 2)
+        commons_share = round(net_area * 0.72, 2)
+        total_share_display = f"{(arce_share + commons_share):.2f}"
+
+    rent_amount = None
+    if dossier.current_year_rent and dossier.current_year_rent > 0:
+        rent_amount = f"{dossier.current_year_rent:,}"
+    elif dossier.past_years_rent and dossier.past_years_rent > 0:
+        rent_amount = f"{dossier.past_years_rent:,}"
+
+    prep_amount = None
+    if dossier.preparation_cost and dossier.preparation_cost > 0:
+        prep_amount = f"{dossier.preparation_cost:,}"
+
+    context = {
+        "dossier": dossier,
+        "sig_obj": sig_obj,
+        "land_share_arce": f"{arce_share:.2f}",
+        "land_share_commons": f"{commons_share:.2f}",
+        "total_share_display": total_share_display,
+        "rent_amount": rent_amount,
+        "prep_amount": prep_amount,
+    }
+    return render(request, "dossiers/print_land_bank.html", context)
+
+
 def get_dossier_signatures_summary(dossier):
     """
     Returns (signatures_map, signed_count) for the 14 official archival slots.
@@ -1473,23 +1516,32 @@ def dossier_summary_print_view(request, pk):
 def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=""):
     """
     Creates or retrieves the official check receipt attachment in DossierAttachment
-    only when a real physical scan image is provided. Never registers broken HTML print URLs.
+    reflecting all check scans with official header and footer.
     """
-    if not scan_url:
-        return None
-
     check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
     doc_type = "PREP_CHECK" if check_type_norm == "prep" else "LOAN_CHECK"
     type_label = "اقساط آماده‌سازی و اجاره" if check_type_norm == "prep" else "تسهیلات وام دهک"
-    title = f"اسکن چک‌ها و رسید {type_label}"
-    file_name = os.path.basename(scan_url)
-    preview_url = scan_url
-    
+    target_chk_stage = 16 if check_type_norm == "loan" else 17
+
+    scans_count = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").count()
+    if scans_count > 1:
+        title = f"رسید رسمی و برگه تحویل چک‌های {type_label} ({scans_count} برگ اسکن با سربرگ)"
+    elif scans_count == 1:
+        title = f"رسید رسمی و برگه تحویل چک‌های {type_label} (با تصویر اسکن)"
+    else:
+        title = f"رسید رسمی و برگه تحویل چک‌های {type_label}"
+
+    preview_url = f"/dossier/{dossier.archive_number}/print/checks/?type={check_type_norm}&auto_archive=0"
+    file_name = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
+
     # Check if this receipt attachment already exists
-    att = dossier.attachments.filter(preview_url=preview_url).first()
+    att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.archive_number}/print/checks/").filter(doc_type=doc_type).first()
     if att:
+        if att.title != title:
+            att.title = title
+            att.save(update_fields=['title'])
         return att
-        
+
     profile = getattr(user, 'profile', None) if user and user.is_authenticated else None
     if profile and profile.full_name:
         uploader_name = profile.full_name
@@ -1505,7 +1557,6 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=
     raw_hash = f"{dossier.archive_number}-CHECK-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}"
     file_sha = "SHA256: " + hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()[:24]
 
-    target_chk_stage = 16 if check_type_norm == "loan" else 17
     att = DossierAttachment.objects.create(
         dossier=dossier,
         stage=target_chk_stage,
@@ -1537,23 +1588,30 @@ def dossier_print_checks_view(request, pk):
     Print-ready official check receipt document based on print.ts from BankCheckTracker & tashilatCheck.
     Renders an A4 document with the 2-row overlay header, the check scan image in the center,
     financial summary bar, and official recipient/issuer signature boxes.
-    Also ensures the printed receipt is automatically preserved in the DossierAttachment scan album.
+    Supports MULTIPLE check scans sequentially (each scan gets its own A4 page with header, footer & page numbering).
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
-    check_type = request.GET.get('type', 'loan').lower()
+    check_type = request.GET.get('type', 'prep' if request.GET.get('stage') == '17' else 'loan').lower()
     check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
     doc_type = "PREP_CHECK" if check_type_norm == "prep" else "LOAN_CHECK"
     auto_archive = request.GET.get('auto_archive', '1') == '1'
     scan_url = request.GET.get('scan_url') or ""
 
-    # Look for existing check scan if scan_url not passed
-    if not scan_url:
-        existing_scan = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("-id").first()
-        if existing_scan and existing_scan.preview_url:
-            scan_url = existing_scan.preview_url
+    # Fetch all physical check scan attachments
+    scans_qs = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("id")
+    check_scans = list(scans_qs)
+
+    if scan_url:
+        has_url = any(getattr(s, 'preview_url', '') == scan_url for s in check_scans)
+        if not has_url:
+            check_scans.insert(0, {"preview_url": scan_url, "id": 0, "title": "اسکن بارگذاری شده"})
+
+    if not check_scans:
+        check_scans = [None]
 
     if auto_archive:
-        _ensure_check_receipt_attachment(request.user, dossier, check_type_norm, scan_url=scan_url)
+        first_url = check_scans[0].preview_url if hasattr(check_scans[0], 'preview_url') else (check_scans[0].get('preview_url') if isinstance(check_scans[0], dict) else "")
+        _ensure_check_receipt_attachment(request.user, dossier, check_type_norm, scan_url=first_url)
 
     import jdatetime
     now_j = jdatetime.datetime.now().strftime("%Y/%m/%d")
@@ -1597,6 +1655,8 @@ def dossier_print_checks_view(request, pk):
         "prep_checks": prep_checks,
         "total_loan_amount": total_loan_amount,
         "total_prep_amount": total_prep_amount,
+        "check_scans": check_scans,
+        "total_scans": len(check_scans),
         "scan_url": scan_url,
     }
     return render(request, "dossiers/print_checks.html", context)
@@ -1643,9 +1703,9 @@ def archive_check_receipt_api(request, pk):
 @csrf_exempt
 def upload_check_scan_and_create_receipt_view(request, pk):
     """
-    Endpoint that gets a check scan (upload or existing),
+    Endpoint that handles single or multiple check scans (upload or existing),
     attaches the official Header & Footer according to print.ts,
-    saves that as the official check receipt in DossierAttachment,
+    saves the scans and the official check receipt in DossierAttachment,
     and returns JSON with the created attachments and the print URL.
     """
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
@@ -1653,6 +1713,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
     check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
     doc_type = "PREP_CHECK" if check_type_norm == "prep" else "LOAN_CHECK"
     type_label = "اقساط آماده‌سازی و اجاره" if check_type_norm == "prep" else "تسهیلات وام دهک"
+    target_chk_stage = 16 if check_type_norm == "loan" else 17
 
     profile = getattr(request.user, 'profile', None) if request.user and request.user.is_authenticated else None
     if profile and profile.full_name:
@@ -1665,15 +1726,29 @@ def upload_check_scan_and_create_receipt_view(request, pk):
         uploader_name = "متصدی ثبت و دریافت چک"
         uploader_role = "امور چک و تضامین"
 
-    saved_url = ""
-    file_obj = request.FILES.get('file')
-    if file_obj:
-        nat_id = dossier.national_id or "general"
-        upload_dir = os.path.join(settings.MEDIA_ROOT, nat_id, "check_scans")
-        os.makedirs(upload_dir, exist_ok=True)
+    # Support multiple files (files list or single file)
+    uploaded_files = request.FILES.getlist('files')
+    if not uploaded_files:
+        uploaded_files = request.FILES.getlist('file')
+    if not uploaded_files and request.FILES.get('file'):
+        uploaded_files = [request.FILES.get('file')]
 
-        clean_name = os.path.basename(file_obj.name)
-        clean_name = "".join(c for c in clean_name if c.isalnum() or c in "._-")
+    created_attachments = []
+    import time
+    import hashlib
+
+    nat_id = dossier.national_id or "general"
+    upload_dir = os.path.join(settings.MEDIA_ROOT, nat_id, "check_scans")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Count existing physical scans for this doc_type
+    existing_count = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").count()
+
+    for idx, file_obj in enumerate(uploaded_files):
+        raw_name = os.path.basename(file_obj.name)
+        base_stem, ext = os.path.splitext(raw_name)
+        clean_stem = "".join(c for c in base_stem if c.isalnum() or c in "._-") or "check"
+        clean_name = f"{clean_stem}_{int(time.time())}_{idx+1}{ext}"
         save_path = os.path.join(upload_dir, clean_name)
 
         with open(save_path, 'wb+') as destination:
@@ -1681,51 +1756,60 @@ def upload_check_scan_and_create_receipt_view(request, pk):
                 destination.write(chunk)
 
         saved_url = f"{settings.MEDIA_URL}{nat_id}/check_scans/{clean_name}"
-    else:
-        saved_url = request.POST.get('preview_url') or ""
-        if not saved_url:
-            existing_scan = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("-id").first()
-            if existing_scan:
-                saved_url = existing_scan.preview_url
+        page_num = existing_count + idx + 1
+        file_sha = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-{clean_name}-{idx}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
 
-    import hashlib
-    raw_hash = f"{dossier.archive_number}-SCAN-{check_type_norm}-{timezone.now().isoformat()}"
-    file_sha = "SHA256: " + hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()[:24]
-
-    # 1. Create raw scan attachment if file was uploaded
-    target_chk_stage = 16 if check_type_norm == "loan" else 17
-    if file_obj and saved_url:
-        DossierAttachment.objects.create(
+        scan_att = DossierAttachment.objects.create(
             dossier=dossier,
             stage=target_chk_stage,
             doc_type=doc_type,
-            title=f"اسکن اصل چک‌های صیادی {type_label}",
+            title=f"اسکن اصل چک صیادی {type_label} (برگ {page_num})",
             file_name=file_obj.name,
             file_sha256=file_sha,
             uploaded_by=uploader_name,
             preview_url=saved_url
         )
+        created_attachments.append(scan_att)
 
-    # 2. Create the Official Checks Receipt with Header & Footer
-    receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} (با تصویر اسکن)"
+    # Total check scans available after this upload
+    all_check_scans = list(dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("id"))
+    total_scans_count = len(all_check_scans)
+
+    # Generate or update the official checks receipt attachment
+    if total_scans_count > 1:
+        receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} ({total_scans_count} برگ اسکن با سربرگ و امضاء)"
+    elif total_scans_count == 1:
+        receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} (با تصویر اسکن)"
+    else:
+        receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label}"
+
     receipt_filename = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
     receipt_hash = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
     
-    import urllib.parse
-    preview_query = f"?scan_url={urllib.parse.quote(saved_url)}&type={check_type_norm}&auto_archive=0" if saved_url else f"?type={check_type_norm}&auto_archive=0"
+    preview_query = f"?type={check_type_norm}&auto_archive=0"
     print_preview_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}"
 
-    receipt_att = DossierAttachment.objects.create(
-        dossier=dossier,
-        stage=target_chk_stage,
-        doc_type=doc_type,
-        title=receipt_title,
-        file_name=receipt_filename,
-        file_sha256=receipt_hash,
-        uploaded_by=uploader_name,
-        preview_url=print_preview_url
-    )
+    receipt_att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.archive_number}/print/checks/").filter(doc_type=doc_type).first()
+    if receipt_att:
+        receipt_att.title = receipt_title
+        receipt_att.stage = target_chk_stage
+        receipt_att.file_name = receipt_filename
+        receipt_att.file_sha256 = receipt_hash
+        receipt_att.preview_url = print_preview_url
+        receipt_att.save()
+    else:
+        receipt_att = DossierAttachment.objects.create(
+            dossier=dossier,
+            stage=target_chk_stage,
+            doc_type=doc_type,
+            title=receipt_title,
+            file_name=receipt_filename,
+            file_sha256=receipt_hash,
+            uploaded_by=uploader_name,
+            preview_url=print_preview_url
+        )
 
+    scan_label_count = len(created_attachments) if created_attachments else total_scans_count
     WorkflowSignatureLog.objects.create(
         dossier=dossier,
         from_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
@@ -1735,26 +1819,39 @@ def upload_check_scan_and_create_receipt_view(request, pk):
         action="SUBMIT_AND_PRINT",
         action_label=f"بارگذاری اسکن و صدور رسید چک‌های {type_label}",
         signature_hash=receipt_hash,
-        notes=f"تصویر اسکن چک‌های {type_label} دریافت، سربرگ متمرکز و کادر امضاها اضافه و به عنوان رسید رسمی در آلبوم اسکن ذخیره شد."
+        notes=f"تعداد {scan_label_count} برگ اسکن چک‌های {type_label} ثبت گردید. سربرگ متمرکز اطلاعات، خلاصه مالی و کادر امضاء بر روی کلیه صفحات اعمال شد."
     )
 
     print_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}&auto_print=1"
 
+    def _serialize_att(att):
+        if not att:
+            return None
+        return {
+            "id": att.id,
+            "stage": att.stage,
+            "type": att.doc_type,
+            "doc_type": att.doc_type,
+            "title": att.title,
+            "fileName": att.file_name,
+            "file_name": att.file_name,
+            "uploader": att.uploaded_by,
+            "uploaded_by": att.uploaded_by,
+            "uploadDate": att.uploaded_at.strftime("%Y/%m/%d") if att.uploaded_at else "",
+            "sha256": att.file_sha256,
+            "file_sha256": att.file_sha256,
+            "preview_url": att.preview_url,
+            "immutable": True if att.preview_url.startswith("/print/") else False
+        }
+
+    serialized_scans = [_serialize_att(a) for a in created_attachments]
+    serialized_receipt = _serialize_att(receipt_att)
+
     return JsonResponse({
         "status": "success",
-        "attachment": {
-            "id": receipt_att.id,
-            "stage": receipt_att.stage,
-            "type": receipt_att.doc_type,
-            "title": receipt_att.title,
-            "fileName": receipt_att.file_name,
-            "uploader": receipt_att.uploaded_by,
-            "uploadDate": receipt_att.uploaded_at.strftime("%Y/%m/%d"),
-            "sha256": receipt_att.file_sha256,
-            "preview_url": receipt_att.preview_url,
-            "immutable": True
-        },
-        "scan_url": saved_url,
+        "attachments": serialized_scans + ([serialized_receipt] if serialized_receipt else []),
+        "attachment": serialized_receipt,
+        "scan_count": total_scans_count,
         "print_url": print_url
     })
 
@@ -2162,7 +2259,7 @@ def user_login_view(request):
                 if profile and profile.must_change_password:
                     return redirect("first_login_setup")
                 display_name = profile.full_name if profile and profile.full_name else user.username
-                messages.success(request, f"خوش آمدید، {display_name}.")
+                messages.info(request, display_name, extra_tags="login_dialog")
                 if next_url and next_url.startswith("/"):
                     return redirect(next_url)
                 return redirect("dossier_list")
@@ -2208,50 +2305,135 @@ def user_profile_view(request):
                 update_session_auth_hash(request, request.user)
                 messages.success(request, "کلمه عبور حساب کاربری شما با موفقیت بروزرسانی گردید.")
                 return redirect("user_profile")
+        elif action == "update_avatar":
+            avatar_file = request.FILES.get("avatar")
+            cropped_avatar = request.POST.get("cropped_avatar_data")
+            profile = getattr(request.user, 'profile', None)
+            payload = cropped_avatar or avatar_file
+            if profile and payload:
+                success = _process_and_save_avatar(profile, payload)
+                if success:
+                    messages.success(request, "تصویر پروفایل شما با موفقیت بروزرسانی شد.")
+                else:
+                    messages.error(request, "خطا در پردازش و ذخیره تصویر پروفایل.")
+            else:
+                messages.error(request, "لطفاً ابتدا یک تصویر برای پروفایل انتخاب فرمایید.")
+            return redirect("user_profile")
         elif action == "update_signature":
             sig_file = request.FILES.get("signature_image")
-            if sig_file:
-                profile = getattr(request.user, 'profile', None)
-                if profile:
-                    try:
-                        from PIL import Image
-                        from io import BytesIO
-                        from django.core.files.uploadedfile import InMemoryUploadedFile
-
-                        img = Image.open(sig_file).convert("RGBA")
-                        w, h = img.size
-                        min_side = min(w, h)
-                        left = (w - min_side) // 2
-                        top = (h - min_side) // 2
-                        cropped = img.crop((left, top, left + min_side, top + min_side)).resize((320, 320), Image.Resampling.LANCZOS)
-
-                        buf = BytesIO()
-                        cropped.save(buf, format="PNG")
-                        buf.seek(0)
-
-                        processed_file = InMemoryUploadedFile(
-                            buf, None, f"sig_{request.user.id}_{int(timezone.now().timestamp())}.png",
-                            'image/png', buf.getbuffer().nbytes, None
-                        )
-                        profile.signature_image = processed_file
-                        profile.save()
-                        messages.success(request, "تصویر امضای الکترونیکی با نسبت استاندارد ۱:۱ ذخیره و بهینه‌سازی شد.")
-                    except Exception:
-                        profile.signature_image = sig_file
-                        profile.save()
-                        messages.success(request, "تصویر امضای الکترونیکی شما با موفقیت بروزرسانی شد.")
+            cropped_sig = request.POST.get("cropped_signature_data")
+            canvas_sig = request.POST.get("canvas_signature_data")
+            profile = getattr(request.user, 'profile', None)
+            payload = cropped_sig or canvas_sig or sig_file
+            if profile and payload:
+                success = _process_and_save_signature(profile, payload)
+                if success:
+                    messages.success(request, "تصویر امضای الکترونیکی شما با موفقیت برش خورده و ثبت گردید.")
+                else:
+                    messages.error(request, "خطا در پردازش و ذخیره‌سازی تصویر امضا.")
             else:
-                messages.error(request, "لطفاً یک فایل تصویر امضا انتخاب فرمایید.")
+                messages.error(request, "لطفاً تصویر نمونه امضا را برش داده یا فایل آن را انتخاب فرمایید.")
             return redirect("user_profile")
 
     return render(request, "auth/profile.html", {"user": request.user})
+
+
+def _process_and_save_avatar(profile, file_or_b64):
+    """
+    Standardizes user avatar to square 1:1 JPEG (320x320) with center crop.
+    """
+    if not file_or_b64:
+        return False
+    try:
+        from PIL import Image
+        from io import BytesIO
+        import base64
+        from django.core.files.base import ContentFile
+        from django.utils import timezone
+
+        img = None
+        if isinstance(file_or_b64, str):
+            if ";base64," in file_or_b64:
+                _, imgstr = file_or_b64.split(";base64,", 1)
+            else:
+                imgstr = file_or_b64
+            img = Image.open(BytesIO(base64.b64decode(imgstr)))
+        elif hasattr(file_or_b64, "read"):
+            img = Image.open(file_or_b64)
+
+        if img:
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            w, h = img.size
+            min_side = min(w, h)
+            left = (w - min_side) // 2
+            top = (h - min_side) // 2
+            cropped = img.crop((left, top, left + min_side, top + min_side)).resize((320, 320), Image.Resampling.LANCZOS)
+
+            buf = BytesIO()
+            cropped.save(buf, format="JPEG", quality=90)
+            buf.seek(0)
+            filename = f"avatar_{profile.user_id}_{int(timezone.now().timestamp())}.jpg"
+            profile.avatar.save(filename, ContentFile(buf.getvalue()), save=True)
+            return True
+    except Exception as e:
+        logger.warning(f"Error processing avatar for user {profile.user_id}: {e}")
+        if hasattr(file_or_b64, "read"):
+            profile.avatar = file_or_b64
+            profile.save()
+            return True
+    return False
+
+
+def _process_and_save_signature(profile, file_or_b64):
+    """
+    Standardizes cropped or drawn signature as high-res PNG with proper bounding.
+    """
+    if not file_or_b64:
+        return False
+    try:
+        from PIL import Image
+        from io import BytesIO
+        import base64
+        from django.core.files.base import ContentFile
+        from django.utils import timezone
+
+        img = None
+        if isinstance(file_or_b64, str):
+            if ";base64," in file_or_b64:
+                _, imgstr = file_or_b64.split(";base64,", 1)
+            else:
+                imgstr = file_or_b64
+            img = Image.open(BytesIO(base64.b64decode(imgstr)))
+        elif hasattr(file_or_b64, "read"):
+            img = Image.open(file_or_b64)
+
+        if img:
+            img = img.convert("RGBA")
+            max_w, max_h = 2400, 1600
+            if img.width > max_w or img.height > max_h:
+                img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+
+            buf = BytesIO()
+            img.save(buf, format="PNG", compress_level=4)
+            buf.seek(0)
+            filename = f"sig_{profile.user_id}_{int(timezone.now().timestamp())}.png"
+            profile.signature_image.save(filename, ContentFile(buf.getvalue()), save=True)
+            return True
+    except Exception as e:
+        logger.warning(f"Error processing signature for user {profile.user_id}: {e}")
+        if hasattr(file_or_b64, "read"):
+            profile.signature_image = file_or_b64
+            profile.save()
+            return True
+    return False
 
 
 @login_required(login_url='login')
 def first_login_setup_view(request):
     """
     Mandatory security onboarding screen for users on initial login:
-    Forces setting a private password and uploading or drawing their official signature picture.
+    Forces setting a private password, uploading avatar, and capturing & cropping their signature picture.
     """
     profile = getattr(request.user, 'profile', None)
     if not profile or not profile.must_change_password:
@@ -2262,35 +2444,35 @@ def first_login_setup_view(request):
         new_password = request.POST.get("new_password", "").strip()
         confirm_password = request.POST.get("confirm_password", "").strip()
         sig_file = request.FILES.get("signature_image")
+        cropped_sig = request.POST.get("cropped_signature_data", "").strip()
         canvas_sig = request.POST.get("canvas_signature_data", "").strip()
+        avatar_file = request.FILES.get("avatar")
+        cropped_avatar = request.POST.get("cropped_avatar_data", "").strip()
+
+        sig_payload = cropped_sig or canvas_sig or sig_file
 
         if len(new_password) < 6:
             error = "کلمه عبور جدید باید حداقل ۶ کاراکتر باشد."
         elif new_password != confirm_password:
             error = "کلمه عبور جدید با تکرار آن یکسان نیست."
-        elif not sig_file and not canvas_sig:
-            error = "بارگذاری یا ترسیم تصویر نمونه امضای الکترونیک الزامی است."
+        elif not sig_payload:
+            error = "عکس‌برداری و برش یا بارگذاری نمونه امضای الکترونیک الزامی است."
         else:
-            if sig_file:
-                profile.signature_image = sig_file
-            elif canvas_sig and "," in canvas_sig:
-                import base64
-                from django.core.files.base import ContentFile
-                try:
-                    format_part, imgstr = canvas_sig.split(';base64,')
-                    ext = format_part.split('/')[-1]
-                    data = ContentFile(base64.b64decode(imgstr), name=f"sig_{request.user.username}.{ext}")
-                    profile.signature_image = data
-                except Exception as e:
-                    error = f"خطا در پردازش تصویر امضا: {str(e)}"
+            # Process avatar if provided
+            if cropped_avatar or avatar_file:
+                _process_and_save_avatar(profile, cropped_avatar or avatar_file)
 
-            if not error:
+            # Process signature
+            sig_saved = _process_and_save_signature(profile, sig_payload)
+            if not sig_saved:
+                error = "خطا در پردازش یا ذخیره‌سازی تصویر امضا. لطفاً مجدداً تلاش فرمایید."
+            else:
                 request.user.set_password(new_password)
                 request.user.save()
                 profile.must_change_password = False
                 profile.save()
                 update_session_auth_hash(request, request.user)
-                messages.success(request, "کلمه عبور امنیتی و تصویر نمونه امضای دیجیتال شما با موفقیت ثبت و تایید گردید.")
+                messages.success(request, "کلمه عبور اختصاصی، تصویر پروفایل و نمونه امضای دیجیتال شما با موفقیت ثبت گردید.")
                 return redirect("dossier_list")
 
     return render(request, "auth/first_login_setup.html", {"error": error})
@@ -3037,16 +3219,15 @@ def bank_letter_sender_view(request):
             "sent_count": sent_count,
         })
 
-    # Active Dossiers: Priority Stage 6, Stage 5, Equity Funded or Sent dossiers
+    # Active Dossiers: Priority Stage 6, Stage 5, Equity Funded, Added to Shipment, or Sent dossiers
     priority_qs = HousingDossier.objects.filter(
-        models.Q(current_stage__in=[5, 6, 7]) | models.Q(is_sent_to_bank=True) | models.Q(is_equity_funded=True)
+        models.Q(current_stage__in=[5, 6, 7]) |
+        models.Q(is_sent_to_bank=True) |
+        models.Q(is_equity_funded=True) |
+        models.Q(is_added_to_bank_shipment_list=True)
     ).order_by("archive_number")
 
-    if priority_qs.count() < 120:
-        extra_qs = HousingDossier.objects.exclude(id__in=priority_qs.values_list('id', flat=True))[:120]
-        initial_dossiers = list(priority_qs) + list(extra_qs)
-    else:
-        initial_dossiers = list(priority_qs[:500])
+    initial_dossiers = list(priority_qs[:500])
 
     dossiers_json_list = []
     for d in initial_dossiers:

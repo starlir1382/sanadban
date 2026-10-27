@@ -1159,50 +1159,98 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    async printExistingCheckScanReceipt(type = 'loan') {
-      const typeLabel = type === 'prep' ? 'اقساط آماده‌سازی' : 'تسهیلات وام دهک';
-      const targetDocType = type === 'prep' ? 'PREP_CHECK' : 'LOAN_CHECK';
-      
-      const existingScan = (this.attachments || []).find(a => 
-        (a.type === targetDocType || a.doc_type === targetDocType) &&
+    getPrepCheckScans() {
+      return (this.attachments || []).filter(a => 
+        (a.type === 'PREP_CHECK' || a.doc_type === 'PREP_CHECK') &&
         a.preview_url && 
         !a.preview_url.includes('/print/checks/')
       );
+    },
 
-      let scanUrl = existingScan ? existingScan.preview_url : '';
+    getLoanCheckScans() {
+      return (this.attachments || []).filter(a => 
+        (a.type === 'LOAN_CHECK' || a.doc_type === 'LOAN_CHECK') &&
+        a.preview_url && 
+        !a.preview_url.includes('/print/checks/')
+      );
+    },
 
-      if (!scanUrl) {
-        if (!this.isLocked) {
-          this.triggerToast('رسید چاپی بدون تصویر اسکن باز می‌شود. در صورت تمایل می‌توانید فایل اسکن را نیز بارگذاری فرمایید.', 'info');
-        }
-      }
+    async handleMultiCheckScanUpload(event, type = 'prep') {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+
+      const count = files.length;
+      const typeLabel = type === 'prep' ? 'اقساط آماده‌سازی' : 'تسهیلات وام دهک';
+      this.triggerToast(`در حال بارگذاری ${count} برگ اسکن و تولید صفحات متوالی چاپ چک‌های ${typeLabel}...`, 'info');
 
       try {
-        const res = await fetch(`/dossier/${this.archiveNumber}/checks/archive-receipt/`, {
+        const formData = new FormData();
+        formData.append('check_type', type);
+        for (let i = 0; i < files.length; i++) {
+          formData.append('files', files[i]);
+        }
+
+        const csrfToken = this.getCSRFToken();
+        const res = await fetch(`/dossier/${this.archiveNumber}/checks/upload-scan-and-create-receipt/`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': this.getCSRFToken()
+            'X-CSRFToken': csrfToken
           },
-          body: JSON.stringify({ type: type, scan_url: scanUrl })
+          body: formData
         });
-        const data = await res.json();
-        if (data.status === 'success' && data.attachment) {
-          const exists = this.attachments.some(a => a.id === data.attachment.id);
-          if (!exists) {
-            this.attachments.unshift(data.attachment);
-          }
-        }
-      } catch (e) {
-        console.error('Error archiving existing check scan receipt:', e);
-      }
 
-      const printUrl = `/dossier/${this.archiveNumber}/print/checks/?scan_url=${encodeURIComponent(scanUrl)}&type=${type}&auto_archive=0&auto_print=1`;
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          if (data.attachments && Array.isArray(data.attachments)) {
+            data.attachments.forEach(att => {
+              const idx = this.attachments.findIndex(a => a.id === att.id);
+              if (idx >= 0) {
+                this.attachments.splice(idx, 1, att);
+              } else {
+                this.attachments.unshift(att);
+              }
+            });
+          } else if (data.attachment) {
+            const idx = this.attachments.findIndex(a => a.id === data.attachment.id);
+            if (idx >= 0) {
+              this.attachments.splice(idx, 1, data.attachment);
+            } else {
+              this.attachments.unshift(data.attachment);
+            }
+          }
+
+          this.triggerToast(`تعداد ${count} برگ اسکن دریافت، سربرگ متمرکز و امضاها اعمال شد و در آلبوم اسناد ذخیره گردید ✓`, 'success');
+
+          if (data.print_url) {
+            window.open(data.print_url, '_blank');
+          }
+        } else {
+          this.triggerToast(data.message || 'خطا در بارگذاری اسکن چک‌ها.', 'error');
+        }
+      } catch (err) {
+        console.error('Error uploading multi-scan checks:', err);
+        this.triggerToast('خطا در ارتباط با سرور جهت بارگذاری اسکن چک‌ها.', 'error');
+      } finally {
+        event.target.value = '';
+      }
+    },
+
+    printCheckScans(type = 'prep') {
+      const printUrl = `/dossier/${this.archiveNumber}/print/checks/?type=${type}&auto_archive=1&auto_print=1`;
       window.open(printUrl, '_blank');
     },
 
+    async deleteCheckScan(attachmentId, type = 'prep') {
+      if (!confirm('آیا از حذف این برگ اسکن اطمینان دارید؟')) return;
+      await this.deleteAttachment(attachmentId);
+    },
+
+    async printExistingCheckScanReceipt(type = 'loan') {
+      this.printCheckScans(type);
+    },
+
     async printChecksReceipt(type = 'loan') {
-      this.printExistingCheckScanReceipt(type);
+      this.printCheckScans(type);
     },
 
     isImageFile(item) {

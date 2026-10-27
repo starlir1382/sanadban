@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <system.webServer>
+        <rewrite>
+            <rules>
+                <!-- Rule: Reverse Proxy all requests to Waitress on 127.0.0.1:8000 -->
+                <rule name="ReverseProxyToWaitress" stopProcessing="true">
+                    <match url="(.*)" />
+                    <action type="Rewrite" url="http://127.0.0.1:8000/{R:1}" />
+                </rule>
+            </rules>
+        </rewrite>
+        <security>
+            <requestFiltering>
+                <!-- Allow up to 100 MB upload for high-res document scans and checks -->
+                <requestLimits maxAllowedContentLength="104857600" />
+            </requestFiltering>
+        </security>
+        <httpProtocol>
+            <customHeaders>
+                <remove name="X-Powered-By" />
+            </customHeaders>
+        </httpProtocol>
+    </system.webServer>
+</configuration>
