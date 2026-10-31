@@ -2453,17 +2453,19 @@ def _normalize_signature_image(img):
     img = ImageOps.exif_transpose(img).convert("RGBA")
     alpha = img.getchannel("A")
     if alpha.getextrema()[0] == 255:                      # fully opaque: photo/scan on white
-        gray = ImageOps.autocontrast(img.convert("L"), cutoff=1)
-        alpha = gray.point(lambda p: 0 if p >= 225 else min(255, int((225 - p) * 255 / 160)))
+        gray = img.convert("L")
+        gray_ac = ImageOps.autocontrast(gray, cutoff=1)
+        alpha = gray_ac.point(lambda p: 0 if p >= 215 else min(255, int((215 - p) * 255 / 100)))
         img.putalpha(alpha)
-    bbox = alpha.point(lambda a: 255 if a > 24 else 0).getbbox()
+    bbox = alpha.point(lambda a: 255 if a > 30 else 0).getbbox()
     if not bbox:
         return None
-    pad = max(6, int(0.03 * max(img.size)))
+    pad = max(4, int(0.02 * max(img.size)))
     l, t, r, b = bbox
     img = img.crop((max(0, l - pad), max(0, t - pad), min(img.width, r + pad), min(img.height, b + pad)))
-    img.thumbnail((1200, 500), Image.Resampling.LANCZOS)
+    img.thumbnail((1200, 600), Image.Resampling.LANCZOS)
     return img
+
 
 
 def _process_and_save_signature(profile, file_or_b64):

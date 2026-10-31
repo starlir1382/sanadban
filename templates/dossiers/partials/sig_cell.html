@@ -14,7 +14,6 @@
         <strong class="sig-name">{{ sig.signer_name|default:'-' }}</strong>
         <span class="sig-line">{{ sig.date_part|default:sig.signed_date }}</span>
         {% if sig.time_part %}<span class="sig-line">ساعت {{ sig.time_part }}</span>{% endif %}
-        {% if sig.ref_code %}<span class="sig-ref">{{ sig.ref_code }}</span>{% endif %}
       </td>
       <td class="sig-ink"><div class="sig-base">
         {% if sig.signature_image %}
