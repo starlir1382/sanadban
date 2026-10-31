@@ -1,24 +1,25 @@
-<!-- Pipeline Stepper (21-Step Compact Bar with Expandable Details) -->
+<!-- Pipeline Stepper (22-Step Compact Bar with Expandable Details) -->
 <style>
   /* =====================================================================
-     STEPPER (21-Stage Compact Bar)
+     STEPPER (22-Stage Compact Bar)
      ===================================================================== */
   .ps-card {
-    background: #fff;
-    border: 1px solid #e8edf3;
-    border-radius: 16px;
+    background: var(--color-surface-card, #fff);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: var(--radius-lg, 14px);
     padding: 0.85rem 1.15rem;
     margin-bottom: 1rem;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
     position: relative;
     overflow: hidden;
   }
   .ps-card::before {
     content: "";
     position: absolute;
-    inset: 0 0 0 auto;
+    inset-block: 0;
+    inset-inline-start: 0;
     width: 4px;
-    background: linear-gradient(180deg, #6366f1, #4f46e5);
+    background: var(--color-accent, #2563eb);
   }
 
   .ps-header-bar {
@@ -54,23 +55,29 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 0.3rem 0.8rem;
+    min-height: 38px;
+    padding: 0.35rem 0.85rem;
     border-radius: 8px;
-    border: 1px solid #d5dde8;
-    background: #f8fafc;
-    font-size: 0.76rem;
+    border: 1px solid var(--color-border, #e2e8f0);
+    background: var(--color-bg-app, #f8fafc);
+    font-size: 0.78rem;
     font-weight: 700;
-    color: #334155;
+    color: var(--color-text-muted, #334155);
     cursor: pointer;
-    transition: all 0.15s ease;
+    touch-action: manipulation;
+    user-select: none;
+    transition: transform 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out;
+  }
+  .ps-toggle-btn:active {
+    transform: scale(0.97);
   }
   .ps-toggle-btn:hover {
-    background: #eef2ff;
-    color: #4338ca;
-    border-color: #c7d2fe;
+    background: var(--color-accent-subtle, #eff6ff);
+    color: var(--color-accent, #2563eb);
+    border-color: var(--color-accent-line, #bfdbfe);
   }
 
-  /* 21 Steps Horizontal Bar */
+  /* 22 Steps Horizontal Bar */
   .ps-chain {
     display: flex;
     align-items: center;
@@ -79,24 +86,31 @@
     padding: 3px 0;
     overflow-x: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
   .ps-chain::-webkit-scrollbar { display: none; }
 
   .ps-step {
     flex: 1;
-    min-width: 28px;
-    height: 30px;
-    border-radius: 7px;
+    min-width: 32px;
+    height: 34px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.74rem;
+    font-size: 0.76rem;
     font-weight: 800;
     cursor: pointer;
-    transition: all 0.18s ease;
-    border: 1.5px solid transparent;
+    touch-action: manipulation;
+    transition: transform 150ms ease-out, background-color 150ms ease-out;
+    border: 1px solid transparent;
     user-select: none;
+    -webkit-user-select: none;
     position: relative;
+  }
+  .ps-step:active {
+    transform: scale(0.96);
   }
   .ps-step.done {
     background: #f0fdf4;
@@ -108,11 +122,11 @@
     transform: translateY(-1px);
   }
   .ps-step.current {
-    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+    background: var(--color-accent, #2563eb);
     color: #ffffff;
-    border-color: #312e81;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28), 0 3px 8px rgba(79, 70, 229, 0.35);
-    transform: scale(1.06);
+    border-color: var(--color-accent, #2563eb);
+    box-shadow: 0 0 0 2px var(--color-accent-line, #bfdbfe);
+    transform: scale(1.05);
     z-index: 2;
   }
   .ps-step.todo {
@@ -231,13 +245,14 @@
   /* Scans album + excel bar polish */
   .attachments-card { border-radius: 16px !important; border-color: #e8edf3 !important; }
   .stage-tab-pill { border-radius: 999px !important; }
+  @media (prefers-reduced-motion: reduce) { .ps-card, .ps-step, .ps-toggle-btn, .ps-fill { transition: none !important; animation: none !important; } }
 </style>
 
 <div class="ps-card">
   <!-- Top bar: Compact Stage Summary + Expand Button -->
   <div class="ps-header-bar">
     <div class="ps-header-info fa-num">
-      <span class="ps-stage-badge">مرحله <span x-text="currentStage"></span> از ۲۱</span>
+      <span class="ps-stage-badge">مرحله <span x-text="currentStage"></span> از ۲۲</span>
       <span class="ps-title-compact" x-text="getStage(currentStage).title"></span>
       <span class="ps-chip" style="background: #e0f2fe; color: #0369a1" x-show="status === 'IN_PROGRESS' && !isLocked" x-cloak>● در جریان</span>
       <span class="ps-chip" style="background: #fee2e2; color: #b91c1c" x-show="status === 'RETURNED'" x-cloak>↩ برگشت‌خورده</span>
@@ -249,8 +264,8 @@
     </button>
   </div>
 
-  <!-- 21-Step Chain Bar (Always visible) -->
-  <div class="ps-chain fa-num" role="navigation" aria-label="مراحل گردش کار ۲۱ مرحله‌ای">
+  <!-- 22-Step Chain Bar (Always visible) -->
+  <div class="ps-chain fa-num" role="navigation" aria-label="مراحل گردش کار ۲۲ مرحله‌ای">
     <template x-for="stg in stages" :key="'chain-' + stg.id">
       <div
         class="ps-step"
@@ -299,8 +314,8 @@
         <div class="ps-bar"><div class="ps-fill" :style="'width:' + (isLocked ? 100 : Math.min(100, Math.max(0, (currentStage - 10) / 5 * 100))) + '%'"></div></div>
       </div>
       <div class="ps-phase" :class="{done: isLocked, now: currentStage > 15}">
-        <div class="ps-phase-label"><span>فاز ۴ · تسویه و بایگانی (۱۶–۲۱)</span></div>
-        <div class="ps-bar"><div class="ps-fill" :style="'width:' + (isLocked ? 100 : Math.min(100, Math.max(0, (currentStage - 15) / 6 * 100))) + '%'"></div></div>
+        <div class="ps-phase-label"><span>فاز ۴ · تسویه و بایگانی (۱۶–۲۲)</span></div>
+        <div class="ps-bar"><div class="ps-fill" :style="'width:' + (isLocked ? 100 : Math.min(100, Math.max(0, (currentStage - 15) / 7 * 100))) + '%'"></div></div>
       </div>
     </div>
   </div>

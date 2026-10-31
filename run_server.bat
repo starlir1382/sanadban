@@ -8,10 +8,10 @@ cd /d "%~dp0"
 
 if exist ".venv\Scripts\python.exe" (
     echo Using Virtual Environment: .venv\Scripts\python.exe
-    ".venv\Scripts\python.exe" manage.py runserver 127.0.0.1:8000
+    ".venv\Scripts\python.exe" manage.py runserver 127.0.0.1:8005
 ) else (
     echo Virtual environment not found, falling back to system python...
-    python manage.py runserver 127.0.0.1:8000
+    python manage.py runserver 127.0.0.1:8005
 )
 
 if %ERRORLEVEL% NEQ 0 (

@@ -1,0 +1,858 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}مرکز جامع مدیریت اکسل و عملیات گروهی | مسکن یار{% endblock %}
+
+{% block content %}
+<div class="sb-hub-container" x-data="{
+    activeTab: 'stage_sign',
+    uploading: false,
+    progress: 0,
+    resultMessage: '',
+    resultStatus: '',
+    resultDetails: null,
+
+    async uploadForm(url, formId) {
+        const form = document.getElementById(formId);
+        const fileInput = form.querySelector('input[type=file]');
+        if (!fileInput.files.length) {
+            alert('لطفاً ابتدا فایل اکسل مورد نظر را انتخاب نمایید.');
+            return;
+        }
+
+        const formData = new FormData(form);
+        this.uploading = true;
+        this.progress = 20;
+        this.resultMessage = 'در حال ارسال و اعتبارسنجی فایل اکسل بر روی سرور...';
+        this.resultStatus = 'info';
+        this.resultDetails = null;
+
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            this.progress = 80;
+            const data = await resp.json();
+            this.progress = 100;
+
+            if (data.status === 'success') {
+                this.resultStatus = 'success';
+                this.resultMessage = data.message;
+                this.resultDetails = data;
+                form.reset();
+            } else {
+                this.resultStatus = 'error';
+                this.resultMessage = data.message || 'خطا در پردازش فایل اکسل.';
+                this.resultDetails = data;
+            }
+        } catch (err) {
+            this.resultStatus = 'error';
+            this.resultMessage = 'خطای ارتباط با سرور: ' + err.message;
+        } finally {
+            this.uploading = false;
+        }
+    }
+}">
+
+    <!-- Page Header -->
+    <div class="sb-hub-header">
+        <div class="sb-hub-header-main">
+            <div class="sb-hub-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="8" y1="13" x2="16" y2="13"></line>
+                    <line x1="8" y1="17" x2="16" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+            <div>
+                <h1 class="sb-hub-title">مرکز جامع مدیریت اکسل و عملیات گروهی</h1>
+                <p class="sb-hub-subtitle">خروجی پیشرفته اکسل با فیلتر مرحله و تاریخ، دانلود قالب‌ها و بارگذاری عملیات گروهی</p>
+            </div>
+        </div>
+
+        <div class="sb-hub-header-badges fa-num">
+            <span class="sb-badge blue">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                <span>مجموع پرونده‌ها: {{ total_dossiers }}</span>
+            </span>
+            <span class="sb-badge green">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>تاریخ امروز: {{ today_jalali }}</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 1: DEDICATED EXCEL EXPORT WITH STAGE & DATE FILTERS -->
+    <!-- ========================================================================= -->
+    <div class="sb-export-card">
+        <div class="sb-export-header">
+            <div class="sb-export-title-group">
+                <div class="sb-export-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.3">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="12" y2="18"></line>
+                        <line x1="15" y1="15" x2="12" y2="18"></line>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="sb-export-title">دانلود و دریافت خروجی اکسل پرونده‌ها (با فیلتر مرحله و تاریخ)</h2>
+                    <p class="sb-export-desc">جهت دریافت خروجی سفارشی، مرحله و بازه زمانی مورد نظر را تعیین کرده و روی دکمه دانلود کلیک فرمایید.</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="GET" action="{% url 'excel_export_all' %}" class="sb-export-form fa-num">
+            <div class="sb-filter-grid">
+                <!-- 1. Stage Dropdown (1 to 22) -->
+                <div class="sb-filter-group">
+                    <label class="sb-filter-label" for="filter-stage">مرحله گردش کار:</label>
+                    <select id="filter-stage" name="stage" class="sb-filter-control">
+                        <option value="">همه مراحل (۱ تا ۲۲)</option>
+                        {% for s in stages_list %}
+                        <option value="{{ s.id }}">مرحله {{ s.id }}: {{ s.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 2. From Date (Jalali) -->
+                <div class="sb-filter-group">
+                    <label class="sb-filter-label" for="filter-from-date">از تاریخ تشکیل (شمسی):</label>
+                    <input type="text"
+                           id="filter-from-date"
+                           name="from_date"
+                           placeholder="مثال: 1405/01/01"
+                           class="sb-filter-control"
+                           autocomplete="off">
+                </div>
+
+                <!-- 3. To Date (Jalali) -->
+                <div class="sb-filter-group">
+                    <label class="sb-filter-label" for="filter-to-date">تا تاریخ تشکیل (شمسی):</label>
+                    <input type="text"
+                           id="filter-to-date"
+                           name="to_date"
+                           placeholder="مثال: 1405/08/30"
+                           class="sb-filter-control"
+                           autocomplete="off">
+                </div>
+
+                <!-- 4. Text Search -->
+                <div class="sb-filter-group">
+                    <label class="sb-filter-label" for="filter-query">جستجوی متنی (اختیاری):</label>
+                    <input type="text"
+                           id="filter-query"
+                           name="q"
+                           placeholder="شماره پرونده، کدملی، نام متقاضی یا پروژه..."
+                           class="sb-filter-control"
+                           autocomplete="off">
+                </div>
+            </div>
+
+            <div class="sb-export-footer">
+                <div class="sb-export-note">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <span>فایل اکسل تولیدی حاوی کلیه اطلاعات هویتی، مسکونی، ثبتی، مالی و وضعیت گردش کار پرونده‌ها می‌باشد.</span>
+                </div>
+                <button type="submit" class="sb-btn-export-main">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="12" y2="18"></line>
+                        <line x1="15" y1="15" x2="12" y2="18"></line>
+                    </svg>
+                    <span>دانلود فایل اکسل پرونده‌ها (.xlsx)</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Live Processing Notification Alert -->
+    <div x-show="resultMessage" x-cloak class="sb-alert-box" :class="resultStatus">
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <div style="flex-shrink: 0; margin-top: 2px;">
+                <template x-if="resultStatus === 'success'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </template>
+                <template x-if="resultStatus === 'error'">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                </template>
+                <template x-if="resultStatus === 'info'">
+                    <div class="sb-spinner"></div>
+                </template>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 800; font-size: 0.92rem;" x-text="resultMessage"></div>
+                <template x-if="resultDetails && resultDetails.errors && resultDetails.errors.length">
+                    <div style="margin-top: 0.5rem; font-size: 0.8rem; background: rgba(0,0,0,0.04); padding: 0.5rem 0.75rem; border-radius: 8px;">
+                        <div style="font-weight: 700; margin-bottom: 0.25rem;">گزارش موارد با خطا یا بدون تغییر:</div>
+                        <ul style="margin: 0; padding-right: 1.25rem;">
+                            <template x-for="err in resultDetails.errors" :key="err">
+                                <li x-text="err"></li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+            <button type="button" @click="resultMessage = ''" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: inherit; opacity: 0.7;">✕</button>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 2: BATCH OPERATIONS (UPLOAD WITH DOWNLOAD TEMPLATE BESIDE IT) -->
+    <!-- ========================================================================= -->
+    <div class="sb-ops-section-head">
+        <div>
+            <h2 class="sb-ops-title">عملیات گروهی، بارگذاری فایل اکسل و دریافت قالب‌ها</h2>
+            <p class="sb-ops-sub">قالب هر بخش را مستقیماً از کنار دکمه بارگذاری دانلود کرده و پس از تکمیل، ارسال نمایید.</p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs for Operations -->
+    <div class="sb-hub-tabs">
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'stage_sign' }" @click="activeTab = 'stage_sign'">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            <span>۱. امضای دسته‌جمعی مراحل</span>
+        </button>
+
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'commission' }" @click="activeTab = 'commission'">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span>۲. کمیسیون تعدیل و بازنگری</span>
+        </button>
+
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'swap_spouse' }" @click="activeTab = 'swap_spouse'">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+            <span>۳. تعویض متقاضی با همسر</span>
+        </button>
+
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'standard' }" @click="activeTab = 'standard'">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>۴. ثبت جدید و بروزرسانی جامع (۳۵ ستونه)</span>
+        </button>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: MASS STAGE SIGNATURES -->
+    <!-- ========================================================================= -->
+    <div x-show="activeTab === 'stage_sign'" x-cloak class="sb-tab-content">
+        <div class="sb-upload-panel">
+            <div class="sb-panel-info">
+                <div class="sb-panel-icon blue">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                </div>
+                <div>
+                    <div class="sb-panel-badge blue">امضای الکترونیک گروهی</div>
+                    <h2 class="sb-panel-title">امضا و تایید دسته‌جمعی مراحل گردش کار</h2>
+                    <p class="sb-panel-desc">
+                        فایل اکسل حاوی کد ملی متقاضیان و ستون‌های مراحل را آماده فرمایید. با قرار دادن عدد <b class="fa-num">۱</b> در ستون هر مرحله، آن مرحله برای پرونده به صورت الکترونیک تایید و پرونده به مرحله بعدی هدایت می‌گردد.
+                    </p>
+                </div>
+            </div>
+
+            <form id="stage-sign-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_stage_signatures' %}', 'stage-sign-form')">
+                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
+                <div class="sb-dropzone-inner">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <div style="font-weight: 800; color: #1e3a8a; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل امضاها کلیک کنید یا آن را به این کادر بکشید</div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">فرمت مجاز: XLSX, XLS (پشتیبانی تا ۳۵,۰۰۰ رکورد در یک فایل)</div>
+                </div>
+
+                <!-- Action row: Download Template beside Upload Button -->
+                <div class="sb-action-bar">
+                    <a href="{% url 'excel_download_template' template_type='stage_signatures' %}" class="sb-btn-tpl outline-blue" title="دانلود قالب اکسل امضای دسته‌جمعی مراحل">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>دانلود قالب اکسل امضا (.xlsx)</span>
+                    </a>
+
+                    <button type="submit" class="sb-submit-btn blue" :disabled="uploading">
+                        <span x-show="!uploading">بارگذاری و اعمال امضاها ➔</span>
+                        <span x-show="uploading">در حال پردازش و ثبت امضاها...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: COMMISSION ADJUSTMENT -->
+    <!-- ========================================================================= -->
+    <div x-show="activeTab === 'commission'" x-cloak class="sb-tab-content">
+        <div class="sb-upload-panel">
+            <div class="sb-panel-info">
+                <div class="sb-panel-icon amber">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                </div>
+                <div>
+                    <div class="sb-panel-badge amber">کمیسیون مسکن</div>
+                    <h2 class="sb-panel-title">کمیسیون تعدیل قیمت تمام‌شده و مشخصات ثبتی</h2>
+                    <p class="sb-panel-desc">
+                        طبق فرآیند مصوب، با بارگذاری این فایل هر پرونده‌ای که قیمت تمام‌شده، پلاک یا متراژ آن تغییر کند، اطلاعات جدید ثبت شده و <b>امضای مراحل ۲، ۴، ۵، ۸ و ۱۸ باطل می‌گردد</b> و پرونده جهت تایید مجدد ممیزی به مرحله ۲ ارجاع خواهد شد.
+                    </p>
+                </div>
+            </div>
+
+            <form id="commission-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_commission' %}', 'commission-form')">
+                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
+                <div class="sb-dropzone-inner">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <div style="font-weight: 800; color: #92400e; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل کمیسیون تعدیل کلیک کنید یا فایل را به اینجا بکشید</div>
+                    <div style="font-size: 0.8rem; color: #78350f; margin-top: 0.25rem;">فایل باید شامل کد ملی متقاضی و مقادیر تعدیل‌شده قیمت تمام‌شده یا مشخصات ثبتی باشد.</div>
+                </div>
+
+                <!-- Action row: Download Template beside Upload Button -->
+                <div class="sb-action-bar">
+                    <a href="{% url 'excel_download_template' template_type='commission' %}" class="sb-btn-tpl outline-amber" title="دانلود قالب اکسل کمیسیون تعدیل">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>دانلود قالب کمیسیون تعدیل (.xlsx)</span>
+                    </a>
+
+                    <button type="submit" class="sb-submit-btn amber" :disabled="uploading">
+                        <span x-show="!uploading">اعمال مصوبه کمیسیون و لغو امضاها ➔</span>
+                        <span x-show="uploading">در حال اعمال تعدیلات کمیسیون...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: SWAP APPLICANT WITH SPOUSE -->
+    <!-- ========================================================================= -->
+    <div x-show="activeTab === 'swap_spouse'" x-cloak class="sb-tab-content">
+        <div class="sb-upload-panel">
+            <div class="sb-panel-info">
+                <div class="sb-panel-icon emerald">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+                </div>
+                <div>
+                    <div class="sb-panel-badge emerald">طرح زوجین</div>
+                    <h2 class="sb-panel-title">تعویض و انتقال امتیاز متقاضی به همسر</h2>
+                    <p class="sb-panel-desc">
+                        فایل اکسل حاوی کدملی متقاضیان را بارگذاری فرمایید. سیستم مشخصات هویتی و ثبتی متقاضی اصلی را با همسر جایگزین نموده و وضعیت پرونده را جهت <b>استعلام مجدد فرم «ج» به مرحله ۳</b> تغییر می‌دهد.
+                    </p>
+                </div>
+            </div>
+
+            <form id="swap-spouse-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_swap_spouse' %}', 'swap-spouse-form')">
+                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
+                <div class="sb-dropzone-inner">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <div style="font-weight: 800; color: #065f46; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل تعویض همسر کلیک کنید یا فایل را به اینجا بکشید</div>
+                    <div style="font-size: 0.8rem; color: #047857; margin-top: 0.25rem;">فایل باید شامل کد ملی متقاضی فعلی باشد.</div>
+                </div>
+
+                <!-- Action row: Download Template beside Upload Button -->
+                <div class="sb-action-bar">
+                    <a href="{% url 'excel_download_template' template_type='swap_spouse' %}" class="sb-btn-tpl outline-emerald" title="دانلود قالب اکسل تعویض متقاضی با همسر">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>دانلود قالب تعویض همسر (.xlsx)</span>
+                    </a>
+
+                    <button type="submit" class="sb-submit-btn emerald" :disabled="uploading">
+                        <span x-show="!uploading">اجرای عملیات جایگزینی و ارجاع به مرحله ۳ ➔</span>
+                        <span x-show="uploading">در حال جایگزینی مشخصات زوجین...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: GENERAL 35-COLUMN DOSSIER REGISTRATION & BATCH UPDATE -->
+    <!-- ========================================================================= -->
+    <div x-show="activeTab === 'standard'" x-cloak class="sb-tab-content">
+        <div class="sb-upload-panel">
+            <div class="sb-panel-info">
+                <div class="sb-panel-icon indigo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </div>
+                <div>
+                    <div class="sb-panel-badge indigo">اطلاعات جامع سامانه</div>
+                    <h2 class="sb-panel-title">ثبت جدید و بروزرسانی جامع اطلاعات پرونده‌ها (۳۵ سرستون)</h2>
+                    <p class="sb-panel-desc">
+                        شامل فیلدهای ۳۵ گانه سامانه مسکن‌یار (هویتی، پلاک ثبتی، کد نوسازی، آورده، وام‌ها و تسهیلات). رکوردها بر مبنای کدملی تطبیق و در صورت عدم وجود، پرونده جدید ثبت می‌گردد.
+                    </p>
+                </div>
+            </div>
+
+            <form id="standard-update-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_update' %}', 'standard-update-form')">
+                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
+                <div class="sb-dropzone-inner">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <div style="font-weight: 800; color: #312e81; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل اطلاعات پرونده‌ها کلیک کنید یا فایل را به اینجا بکشید</div>
+                    <div style="font-size: 0.8rem; color: #4338ca; margin-top: 0.25rem;">فرمت مجاز: XLSX, XLS (پشتیبانی از پردازش سریع دیتابیس ۳۵,۰۰۰ پرونده)</div>
+                </div>
+
+                <!-- Action row: Download Template beside Upload Button -->
+                <div class="sb-action-bar">
+                    <a href="{% url 'excel_template_update' %}" class="sb-btn-tpl outline-indigo" title="دانلود قالب اکسل بروزرسانی جامع پرونده‌ها">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>دانلود قالب اکسل ثبت و بروزرسانی (.xlsx)</span>
+                    </a>
+
+                    <button type="submit" class="sb-submit-btn indigo" :disabled="uploading">
+                        <span x-show="!uploading">بارگذاری و پردازش اکسل اطلاعات ➔</span>
+                        <span x-show="uploading">در حال پردازش و بروزرسانی رکوردها...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.sb-hub-container {
+    max-width: 1400px;
+    margin: 1.5rem auto 3.5rem;
+    padding: 0 1.25rem;
+    font-family: inherit;
+    direction: rtl;
+}
+
+.sb-hub-header {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1.5px solid #e2e8f0;
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    margin-bottom: 1.5rem;
+}
+
+.sb-hub-header-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sb-hub-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: #f0f9ff;
+    border: 1.5px solid #bae6fd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.12);
+}
+
+.sb-hub-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.sb-hub-subtitle {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.sb-hub-header-badges {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.sb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+}
+.sb-badge.blue { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.sb-badge.green { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+
+/* Dedicated Export Card */
+.sb-export-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1.5px solid #bbf7d0;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.05);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+.sb-export-card::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 5px;
+    background: #059669;
+}
+
+.sb-export-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+.sb-export-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+.sb-export-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #ecfdf5;
+    border: 1.5px solid #a7f3d0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sb-export-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #065f46;
+}
+.sb-export-desc {
+    margin: 3px 0 0;
+    font-size: 0.84rem;
+    color: #475569;
+}
+
+.sb-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.sb-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.sb-filter-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #334155;
+}
+.sb-filter-control {
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 0.65rem 0.85rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    background: #f8fafc;
+    color: #0f172a;
+    transition: all 0.15s ease;
+}
+.sb-filter-control:focus {
+    border-color: #059669;
+    background: #ffffff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+}
+
+.sb-export-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #e2e8f0;
+}
+.sb-export-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: #047857;
+}
+
+.sb-btn-export-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: linear-gradient(135deg, #059669, #047857);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 800;
+    padding: 0.75rem 1.6rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.sb-btn-export-main:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
+}
+.sb-btn-export-main:active {
+    transform: scale(0.98);
+}
+
+/* Operations Head */
+.sb-ops-section-head {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+}
+.sb-ops-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+.sb-ops-sub {
+    margin: 4px 0 0;
+    font-size: 0.84rem;
+    color: #64748b;
+}
+
+.sb-hub-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0 1.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.sb-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.3rem;
+    border-radius: 12px 12px 0 0;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-bottom: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.sb-tab-btn:hover {
+    color: #1e3a8a;
+    background: #f1f5f9;
+}
+.sb-tab-btn.active {
+    color: #1d4ed8;
+    background: #ffffff;
+    border-color: #3b82f6;
+    border-bottom: 2px solid #ffffff;
+    margin-bottom: -2px;
+    box-shadow: 0 -3px 10px rgba(59, 130, 246, 0.08);
+}
+
+.sb-upload-panel {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1.5px solid #e2e8f0;
+    padding: 1.75rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+}
+
+.sb-panel-info {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+.sb-panel-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sb-panel-icon.blue { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+.sb-panel-icon.amber { background: #fffbeb; border: 1.5px solid #fde68a; }
+.sb-panel-icon.emerald { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+.sb-panel-icon.indigo { background: #eef2ff; border: 1.5px solid #c7d2fe; }
+
+.sb-panel-badge {
+    align-self: flex-start;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.18rem 0.65rem;
+    border-radius: 6px;
+    margin-bottom: 0.35rem;
+    display: inline-block;
+}
+.sb-panel-badge.blue { background: #dbeafe; color: #1e40af; }
+.sb-panel-badge.amber { background: #fef3c7; color: #92400e; }
+.sb-panel-badge.emerald { background: #d1fae5; color: #065f46; }
+.sb-panel-badge.indigo { background: #e0e7ff; color: #3730a3; }
+
+.sb-panel-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+.sb-panel-desc {
+    margin: 0.35rem 0 0;
+    font-size: 0.86rem;
+    color: #475569;
+    line-height: 1.6;
+}
+
+.sb-dropzone-box {
+    position: relative;
+    border: 2px dashed #93c5fd;
+    border-radius: 14px;
+    background: #f8fafc;
+    padding: 2.25rem 1.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.sb-dropzone-box:hover {
+    background: #f0f9ff;
+    border-color: #3b82f6;
+}
+
+.sb-file-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 5;
+}
+
+/* Action Bar with Download Template Beside Upload Button */
+.sb-action-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px dashed #cbd5e1;
+}
+
+.sb-btn-tpl {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+.sb-btn-tpl.outline-blue {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1.5px solid #bfdbfe;
+}
+.sb-btn-tpl.outline-blue:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
+
+.sb-btn-tpl.outline-amber {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1.5px solid #fde68a;
+}
+.sb-btn-tpl.outline-amber:hover {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.sb-btn-tpl.outline-emerald {
+    background: #f0fdf4;
+    color: #047857;
+    border: 1.5px solid #bbf7d0;
+}
+.sb-btn-tpl.outline-emerald:hover {
+    background: #dcfce7;
+    border-color: #10b981;
+}
+
+.sb-btn-tpl.outline-indigo {
+    background: #eef2ff;
+    color: #4338ca;
+    border: 1.5px solid #c7d2fe;
+}
+.sb-btn-tpl.outline-indigo:hover {
+    background: #e0e7ff;
+    border-color: #6366f1;
+}
+
+.sb-submit-btn {
+    padding: 0.75rem 1.8rem;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.sb-submit-btn.blue { background: #2563eb; color: #ffffff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
+.sb-submit-btn.blue:hover { background: #1d4ed8; }
+.sb-submit-btn.amber { background: #d97706; color: #ffffff; box-shadow: 0 2px 8px rgba(217,119,6,0.25); }
+.sb-submit-btn.amber:hover { background: #b45309; }
+.sb-submit-btn.emerald { background: #059669; color: #ffffff; box-shadow: 0 2px 8px rgba(5,150,105,0.25); }
+.sb-submit-btn.emerald:hover { background: #047857; }
+.sb-submit-btn.indigo { background: #4f46e5; color: #ffffff; box-shadow: 0 2px 8px rgba(79,70,229,0.25); }
+.sb-submit-btn.indigo:hover { background: #4338ca; }
+.sb-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.sb-alert-box {
+    margin: 1.25rem 0;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+}
+.sb-alert-box.success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+.sb-alert-box.error { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+.sb-alert-box.info { background: #f0f9ff; border-color: #7dd3fc; color: #0369a1; }
+
+.sb-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid #bae6fd;
+    border-top-color: #0284c7;
+    border-radius: 50%;
+    animation: sb-spin 0.8s linear infinite;
+}
+@keyframes sb-spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

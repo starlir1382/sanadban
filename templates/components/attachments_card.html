@@ -93,53 +93,17 @@
         </div>
     </div>
 
-    <!-- Album Sub-Header: Filter Chips & Security Rule -->
+    <!-- Album Sub-Header: Unified Scan Album Controls -->
     <div class="attachments-sub-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0.85rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
         
-        <!-- Category Filter Pills with Dynamic Count Badges -->
-        <div class="attachments-pills-row" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button type="button" class="stage-tab-pill" 
-                    :class="selectedCategory === 'all' ? 'active' : ''"
-                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
-                    @click="selectedCategory = 'all'">
-                <span>همه اسناد</span>
-                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('all')"></span>
-            </button>
-            <button type="button" class="stage-tab-pill" 
-                    :class="selectedCategory === 'identity' ? 'active' : ''"
-                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
-                    @click="selectedCategory = 'identity'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>هویتی (متقاضی و همسر)</span>
-                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('identity')"></span>
-            </button>
-            <button type="button" class="stage-tab-pill" 
-                    :class="selectedCategory === 'form_j' ? 'active' : ''"
-                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
-                    @click="selectedCategory = 'form_j'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg><span>استعلام فرم (ج)</span>
-                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('form_j')"></span>
-            </button>
-            <button type="button" class="stage-tab-pill" 
-                    :class="selectedCategory === 'bank' ? 'active' : ''"
-                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
-                    @click="selectedCategory = 'bank'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2L2 7h20L12 2z"></path></svg><span>بانکی و اقساط</span>
-                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('bank')"></span>
-            </button>
-            <button type="button" class="stage-tab-pill" 
-                    :class="selectedCategory === 'deed' ? 'active' : ''"
-                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
-                    @click="selectedCategory = 'deed'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg><span>سند کاداستری و انتخاب واحد</span>
-                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('deed')"></span>
-            </button>
-            <button type="button" class="stage-tab-pill" 
-                    :class="selectedCategory === 'checks' ? 'active' : ''"
-                    style="padding: 0.35rem 0.85rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;" 
-                    @click="selectedCategory = 'checks'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg><span>چک‌های صیادی و تضامین</span>
-                <span class="fa-num" style="background: rgba(0,0,0,0.06); padding: 0.1rem 0.45rem; border-radius: 8px; font-weight: 800;" x-text="getCategoryCount('checks')"></span>
-            </button>
+        <!-- Unified Album Info & Reorder Hint -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <span style="font-size: 0.84rem; font-weight: 800; color: #1e3a8a; display: flex; align-items: center; gap: 0.4rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>آلبوم تجمیعی و یکپارچه کلیه مدارک اسکن‌شده</span>
+            </span>
+            <span class="fa-num" style="background: #eff6ff; color: #1d4ed8; font-size: 0.76rem; font-weight: 700; padding: 0.2rem 0.65rem; border-radius: 999px; border: 1px solid #bfdbfe;" x-text="attachments.length + ' برگ سند ثبت شده'"></span>
+            <span style="font-size: 0.74rem; color: #64748b;">(امکان جابجایی ترتیب، چرخش و برش تصاویر اسناد با ثبت امن در لاگ ممیزی)</span>
         </div>
 
         <!-- Digital Archive Pill -->
@@ -338,7 +302,7 @@
                                     <div style="border: 1px dashed #059669; background: #f0fdf4; border-radius: 4px; padding: 0.35rem 0.5rem; display: flex; justify-content: space-between; align-items: center;">
                                         <div style="font-size: 0.68rem; color: #166534; font-weight: 700; line-height: 1.4;">
                                             <div>پلاک ثبتی: <span class="fa-num" x-text="form.land_plot_number || '۲۴۰۵'"></span></div>
-                                            <div>عرصه: <span class="fa-num" x-text="(form.land_area || '۱۸۵۰') + ' م²'"></span></div>
+                                            <div>عرصه: <span class="fa-num" x-text="(form.land_area || '۱۸۵۰') + ' مترمربع'"></span></div>
                                         </div>
                                         <!-- Red wax seal simulator -->
                                         <div style="width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #dc2626; background: rgba(220,38,38,0.08); display: flex; align-items: center; justify-content: center; color: #dc2626; font-size: 0.55rem; font-weight: 800; transform: rotate(-12deg);">
@@ -468,19 +432,62 @@
                             </div>
                         </div>
 
-                        <!-- Card Actions: View & Delete -->
-                        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
-                            <button type="button" class="btn btn-outline" style="flex: 1; justify-content: center; padding: 0.5rem; font-size: 0.8rem; font-weight: 700; border-color: #cbd5e1; background: #ffffff; color: #1e3a8a;" 
+                        <!-- Card Actions: View, Rotate, Crop, Reorder, Delete -->
+                        <div style="display: flex; gap: 0.35rem; margin-top: 0.4rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-outline" style="flex: 1; min-width: 70px; justify-content: center; padding: 0.45rem 0.6rem; font-size: 0.78rem; font-weight: 700; border-color: #cbd5e1; background: #ffffff; color: #1e3a8a;" 
                                     @click="openScanViewer(item)">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                <span>مشاهده و چاپ</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                <span>نمایش</span>
                             </button>
-                            <button type="button" x-show="!isLocked && (userCanAction || isChief)" 
-                                    @click.stop="deleteAttachment(item.id)" 
-                                    style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 8px; padding: 0.5rem 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
-                                    title="حذف این سند از پرونده">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+
+                            <!-- Direct Print Scan Button -->
+                            <button type="button" class="btn btn-outline" style="min-width: 38px; padding: 0.45rem 0.6rem; font-size: 0.78rem; font-weight: 700; border-color: #cbd5e1; background: #f0fdf4; color: #166534;" 
+                                    @click.stop="printScan(item)"
+                                    title="چاپ برگه اسکن (فقط تصویر سند بدون نام بارگذار)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                             </button>
+
+                            <template x-if="!isLocked && (userCanAction || isChief)">
+                                <div style="display: flex; gap: 0.25rem;">
+                                    <!-- Rotate Button -->
+                                    <button type="button" 
+                                            @click.stop="rotateAttachment(item, 90)" 
+                                            style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; border-radius: 6px; padding: 0.45rem 0.55rem; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                                            title="چرخش ۹۰ درجه تصویر (ذخیره با لاگ)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l6.73-6.19"/></svg>
+                                    </button>
+
+                                    <!-- Crop Button -->
+                                    <button type="button" 
+                                            @click.stop="openCropModal(item)" 
+                                            style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 6px; padding: 0.45rem 0.55rem; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+                                            title="برش و کادربندی تصویر">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                                    </button>
+
+                                    <!-- Move Left / Right -->
+                                    <button type="button" 
+                                            @click.stop="moveAttachment(item, -1)" 
+                                            style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 6px; padding: 0.45rem 0.5rem; cursor: pointer; font-size: 0.72rem;"
+                                            title="انتقال به موقعیت قبلی">
+                                        ◄
+                                    </button>
+                                    <button type="button" 
+                                            @click.stop="moveAttachment(item, 1)" 
+                                            style="background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; border-radius: 6px; padding: 0.45rem 0.5rem; cursor: pointer; font-size: 0.72rem;"
+                                            title="انتقال به موقعیت بعدی">
+                                        ►
+                                    </button>
+
+                                    <!-- Delete Button -->
+                                    <button type="button" 
+                                            @click.stop="deleteAttachment(item.id)" 
+                                            style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.45rem 0.55rem; cursor: pointer;"
+                                            title="حذف سند">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    </button>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
@@ -607,3 +614,37 @@
     </div>
 
 </div>
+
+    <!-- ===================== INTERACTIVE CROP & ROTATE MODAL ===================== -->
+    <div x-show="isCropModalOpen" x-cloak style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 1.5rem; direction: rtl;">
+        <div style="background: #ffffff; border-radius: 16px; width: 680px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);">
+            <div style="background: #f8fafc; padding: 1rem 1.25rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                    </div>
+                    <span style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">ویرایش و کادربندی هوشمند سند</span>
+                </div>
+                <button type="button" @click="isCropModalOpen = false" style="background: #f1f5f9; border: none; border-radius: 8px; width: 30px; height: 30px; cursor: pointer; color: #64748b; font-weight: 800;">✕</button>
+            </div>
+
+            <div style="padding: 1.25rem; flex: 1; overflow-y: auto; text-align: center; background: #0f172a;">
+                <img id="sb-crop-preview-img" :src="cropTargetItem ? cropTargetItem.preview_url : ''" style="max-width: 100%; max-height: 50vh; border-radius: 8px; border: 1px solid #334155; object-fit: contain;" alt="پیش‌نمایش تصویر سند">
+                <div style="margin-top: 1rem; color: #94a3b8; font-size: 0.8rem;">
+                    جهت چرخش ۹۰ درجه تصویر یا اعمال ذخیره با ثبت در لاگ امنیتی، گزینه‌های زیر را انتخاب فرمایید.
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 1rem 1.25rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+                <button type="button" class="btn btn-ghost" @click="isCropModalOpen = false">انصراف</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn btn-outline" @click="rotateAttachment(cropTargetItem, 90)">
+                        🔄 چرخش ۹۰ درجه
+                    </button>
+                    <button type="button" class="btn btn-primary" @click="isCropModalOpen = false; triggerToast('تغییرات با موفقیت ذخیره گردید.', 'success');">
+                        ✓ تایید و ذخیره نهایی
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>

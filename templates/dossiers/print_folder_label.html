@@ -1,439 +1,536 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لیبل پرونده - بایگانی {{ dossier.archive_number }}</title>
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
-    <script src="{% static 'js/vendor/qrcode.min.js' %}"></script>
-
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: 'Vazirmatn', sans-serif;
-        }
-
-        @page {
-            size: A5 landscape;
-            margin: 5mm;
-        }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            direction: rtl;
-            color: #111827;
-            background: #e2e8f0;
-        }
-
-        body {
-            display: flex;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .fa-num {
-            font-feature-settings: "ss01";
-        }
-
-        .print-container {
-            width: 200mm;
-            height: 138mm;
-            padding: 0;
-            background: #fff;
-        }
-
-        .top-action-bar {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            z-index: 100;
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-print, .btn-close {
-            border: none;
-            border-radius: 6px;
-            padding: 10px 16px;
-            color: #fff;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .btn-print {
-            background: #2563eb;
-        }
-
-        .btn-close {
-            background: #64748b;
-        }
-
-        .folder-front-label {
-            width: 100%;
-            height: 100%;
-            border: 1.5px solid #111827;
-            border-radius: 3px;
-            padding: 4mm;
-            display: flex;
-            flex-direction: column;
-            background: #fff;
-        }
-
-        .label-header {
-            display: grid;
-            grid-template-columns: 1fr auto auto;
-            align-items: center;
-            gap: 4mm;
-            padding-bottom: 3mm;
-            margin-bottom: 3mm;
-            border-bottom: 1.5px solid #111827;
-        }
-
-        .header-title {
-            text-align: center;
-            min-width: 0;
-        }
-
-        .header-title h2 {
-            margin: 0 0 1mm;
-            font-size: 13pt;
-            font-weight: 900;
-        }
-
-        .header-title p {
-            margin: 0;
-            font-size: 8pt;
-            line-height: 1.7;
-            font-weight: 600;
-        }
-
-        .header-title .subtitle {
-            margin-top: 1mm;
-            font-size: 9pt;
-            font-weight: 900;
-        }
-
-        .archive-box {
-            min-width: 34mm;
-            border: 1.5px solid #111827;
-            padding: 3mm;
-            text-align: center;
-        }
-
-        .archive-box .lbl {
-            display: block;
-            font-size: 7.5pt;
-            font-weight: 800;
-            margin-bottom: 2mm;
-        }
-
-        .archive-box .num {
-            display: block;
-            font-size: 25pt;
-            font-weight: 900;
-            line-height: 1.2;
-        }
-
-        /* QR code */
-        .qr-box {
-            width: 29mm;
-            text-align: center;
-            flex-shrink: 0;
-        }
-
-        #qrcode {
-            width: 26mm;
-            height: 26mm;
-            margin: 0 auto 1mm;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #qrcode img,
-        #qrcode canvas {
-            max-width: 26mm;
-            max-height: 26mm;
-        }
-
-        .qr-caption {
-            font-size: 7pt;
-            font-weight: 800;
-            line-height: 1.4;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            column-gap: 4mm;
-            row-gap: 3mm;
-            flex: 1;
-            align-content: start;
-        }
-
-        .info-cell {
-            min-width: 0;
-            padding-bottom: 1.5mm;
-            border-bottom: 1px dotted #9ca3af;
-            overflow-wrap: anywhere;
-        }
-
-        .info-cell .title {
-            display: block;
-            font-size: 7.5pt;
-            color: #4b5563;
-            font-weight: 700;
-            line-height: 1.5;
-        }
-
-        .info-cell .val {
-            display: block;
-            font-size: 9.5pt;
-            color: #111827;
-            font-weight: 800;
-            line-height: 1.7;
-        }
-
-        .label-footer {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            align-items: end;
-            gap: 3mm;
-            margin-top: auto;
-            padding-top: 3mm;
-            border-top: 1px solid #9ca3af;
-            font-size: 7.5pt;
-            font-weight: 600;
-            min-height: 17mm;
-        }
-        
-        .footer-company {
-            text-align: right;
-            }               
-
-        .label-footer span {
-            min-width: 0;
-        }
-
-        @media screen {
-            .print-container {
-                box-shadow: 0 2px 15px rgba(0, 0, 0, 0.12);
-            }
-        }
-
-        @media print {
-            html, body {
-                width: 200mm;
-                height: 138mm;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #fff !important;
-            }
-
-            body {
-                display: block;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            .print-container {
-                width: 200mm;
-                height: 138mm;
-                margin: 0;
-                padding: 0;
-                box-shadow: none;
-                overflow: hidden;
-            }
-
-            .folder-front-label {
-                break-inside: avoid;
-                page-break-inside: avoid;
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="top-action-bar no-print">
-        <button class="btn-print" onclick="printLabel()">
-            🖨 چاپ لیبل A5
-        </button>
-        <button class="btn-close" onclick="window.close()">
-            بستن پنجره
-        </button>
-    </div>
-
-    <div class="print-container fa-num">
-        <div class="folder-front-label">
-
-            <div class="label-header">
-
-                <div class="header-title">
-                    <h2>جمهوری اسلامی ایران</h2>
-                    <p>وزارت راه و شهرسازی · طرح نهضت ملی مسکن</p>
-                </div>
-
-                <div class="archive-box">
-                    <span class="lbl">شماره بایگانی پرونده</span>
-                    <span class="num">{{ dossier.archive_number }}</span>
-                </div>
-
-                <div class="qr-box">
-                    <div
-                        id="qrcode"
-                        data-national-id="{{ dossier.national_id|default:''|escape }}"
-                    ></div>
-                    <div class="qr-caption">QR کد ملی متقاضی</div>
-                </div>
-
-            </div>
-
-            <div class="info-grid">
-
-                <div class="info-cell" style="grid-column: span 2;">
-                    <span class="title">نام و نام خانوادگی متقاضی:</span>
-                    <span class="val">{{ dossier.full_name }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">کد ملی متقاضی:</span>
-                    <span class="val">{{ dossier.national_id }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">شماره همراه متقاضی:</span>
-                    <span class="val">{{ dossier.applicant_phone|default:'-' }}</span>
-                </div>
-
-                <div class="info-cell" style="grid-column: span 2;">
-                    <span class="title">نام و نام خانوادگی همسر:</span>
-                    <span class="val">{{ dossier.spouse_full_name|default:'-' }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">کد ملی همسر:</span>
-                    <span class="val">{{ dossier.spouse_national_id|default:'-' }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">شماره شناسنامه همسر:</span>
-                    <span class="val">{{ dossier.spouse_id_number|default:'-' }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">عنوان پروژه مسکونی:</span>
-                    <span class="val">{{ dossier.project|default:'-' }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">نام سایت:</span>
-                    <span class="val">{{ dossier.site|default:'-' }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">بلوک / طبقه:</span>
-                    <span class="val">
-                        {{ dossier.block_name|default:'-' }} /
-                        {{ dossier.floor_number|default:'-' }}
-                    </span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">شماره واحد / متراژ:</span>
-                    <span class="val">
-                        واحد {{ dossier.unit_number|default:'-' }}
-                        ({{ dossier.unit_area|default:'-' }} م²)
-                    </span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">شماره رسمی فرم «ج»:</span>
-                    <span class="val">{{ dossier.form_j_number|default:'ثبت‌نشده' }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">وضعیت فرم «ج»:</span>
-                    <span class="val">{{ dossier.applicant_form_j_status|default:'سبز' }}</span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">پلاک اصلی و فرعی:</span>
-                    <span class="val">
-                        اصلی: {{ dossier.main_plaque|default:'-' }} /
-                        فرعی: {{ dossier.sub_plaque|default:'-' }}
-                    </span>
-                </div>
-
-                <div class="info-cell">
-                    <span class="title">بخش ثبتی و قطعه:</span>
-                    <span class="val">
-                        {{ dossier.registration_section|default:'-' }}
-                        (قطعه {{ dossier.plot_number|default:'-' }})
-                    </span>
-                </div>
-
-            </div>
-
-            <div class="label-footer">
-                <span>کارگزاری مهندسین مشاور ره آزرم بین‌الملل</span>
-                <span>تاریخ تشکیل پرونده: {{ dossier.created_at|date:"Y/m/d" }}</span>
-                <span>امضا و تأیید مسئول تشکیل پرونده</span>
-            </div>
-
-        </div>
-    </div>
-
-    <script>
-        let qrReady = false;
-
-        function generateQRCode() {
-            const qrElement = document.getElementById('qrcode');
-            const nationalId = qrElement.dataset.nationalId.trim();
-
-            if (!nationalId) {
-                qrElement.textContent = 'کد ملی ثبت نشده';
-                qrReady = true;
-                return;
-            }
-
-            if (typeof QRCode === 'undefined') {
-                qrElement.textContent = 'خطا در بارگذاری QR';
-                qrReady = false;
-                return;
-            }
-
-            new QRCode(qrElement, {
-                text: nationalId,
-                width: 180,
-                height: 180,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.M
-            });
-
-            qrReady = true;
-        }
-
-        function printLabel() {
-            if (!qrReady) {
-                alert('QR کد هنوز آماده نیست. اتصال اینترنت و بارگذاری کتابخانه را بررسی کنید.');
-                return;
-            }
-
-            window.print();
-        }
-
-        window.addEventListener('load', generateQRCode);
-    </script>
-
-</body>
-</html>
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لیبل پرونده - بایگانی {{ dossier.archive_number }}</title>
+
+    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
+    <script src="{% static 'js/vendor/qrcode.min.js' %}"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+
+        @page {
+            size: A5 landscape;
+            margin: 5mm;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            direction: rtl;
+            color: #111827;
+            background: #e2e8f0;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .fa-num {
+            font-feature-settings: "ss01";
+        }
+
+        .print-container {
+            width: 200mm;
+            height: 138mm;
+            padding: 0;
+            background: #fff;
+        }
+
+        .top-action-bar {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 100;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-print, .btn-close {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-print { background: #2563eb; }
+        .btn-close { background: #64748b; }
+
+        .folder-front-label {
+            width: 100%;
+            height: 100%;
+            border: 1.5px solid #111827;
+            border-radius: 4px;
+            padding: 4mm;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+        }
+
+        /* Header: Doc Number on the Right (3 rows), Title in Center, QR on the Left */
+        .label-header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 4.5mm;
+            padding-bottom: 3.5mm;
+            margin-bottom: 3.5mm;
+            border-bottom: 1.5px solid #111827;
+        }
+
+        .archive-box {
+            min-width: 42mm;
+            border: 1.5px solid #111827;
+            border-radius: 4px;
+            padding: 2mm 3.5mm;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        .archive-box .sub-lbl {
+            display: block;
+            font-size: 7.5pt;
+            font-weight: 700;
+            color: #4b5563;
+            margin-bottom: 0.5mm;
+        }
+
+        .archive-box .lbl {
+            display: block;
+            font-size: 8.5pt;
+            font-weight: 800;
+            color: #111827;
+            margin-bottom: 1mm;
+        }
+
+        .archive-box .num {
+            display: block;
+            font-size: 28pt;
+            font-weight: 900;
+            line-height: 1;
+            color: #0f172a;
+            letter-spacing: 0.5px;
+        }
+
+        .header-title {
+            text-align: center;
+            min-width: 0;
+        }
+
+        .header-title h2 {
+            margin: 0 0 1mm;
+            font-size: 13.5pt;
+            font-weight: 900;
+            color: #0f172a;
+        }
+
+        .header-title p {
+            margin: 0;
+            font-size: 8.5pt;
+            line-height: 1.6;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .header-title .subtitle {
+            margin-top: 1mm;
+            font-size: 8pt;
+            font-weight: 800;
+            color: #1e40af;
+        }
+
+        /* QR code on the Left */
+        .qr-box {
+            width: 29mm;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        #qrcode {
+            width: 26mm;
+            height: 26mm;
+            margin: 0 auto 1mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #qrcode img,
+        #qrcode canvas {
+            max-width: 26mm;
+            max-height: 26mm;
+        }
+
+        .qr-caption {
+            font-size: 7.5pt;
+            font-weight: 800;
+            line-height: 1.3;
+            color: #475569;
+        }
+
+        /* 3-Row Compact & High-Legibility Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            column-gap: 4.5mm;
+            row-gap: 4mm;
+            align-content: start;
+        }
+
+        .info-cell {
+            min-width: 0;
+            padding-bottom: 2mm;
+            border-bottom: 1px dotted #9ca3af;
+            overflow-wrap: anywhere;
+        }
+
+        .info-cell .title {
+            display: block;
+            font-size: 8.5pt;
+            color: #4b5563;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 1mm;
+        }
+
+        .info-cell .val {
+            display: block;
+            font-size: 10.5pt;
+            color: #111827;
+            font-weight: 800;
+            line-height: 1.6;
+        }
+
+        /* Brought-Up Signature & Approval Block */
+        .label-footer-section {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1.1fr;
+            align-items: center;
+            gap: 4mm;
+            margin-top: 5mm;
+            padding-top: 3.5mm;
+            border-top: 1.5px solid #111827;
+        }
+
+        .footer-company {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5mm;
+            font-size: 8.5pt;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .footer-company .sub {
+            font-size: 7.5pt;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .footer-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5mm;
+            font-size: 8.5pt;
+            font-weight: 700;
+            color: #1f2937;
+            text-align: center;
+        }
+
+        .signature-box {
+            border: 1.5px solid #111827;
+            border-radius: 4px;
+            padding: 2mm 3mm;
+            text-align: center;
+            background: #fafafa;
+            min-height: 22mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .signature-box .sig-title {
+            font-size: 8pt;
+            font-weight: 800;
+            color: #111827;
+            border-bottom: 1px dashed #d1d5db;
+            padding-bottom: 1mm;
+        }
+
+        .signature-box .sig-space {
+            height: 10mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 7.5pt;
+        }
+
+        .signature-box .sig-hint {
+            font-size: 7pt;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        @media screen {
+            .print-container {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            }
+        }
+
+        @media print {
+            html, body {
+                width: 200mm;
+                height: 138mm;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+
+            body {
+                display: block;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-container {
+                width: 200mm;
+                height: 138mm;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                overflow: hidden;
+            }
+
+            .folder-front-label {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="top-action-bar no-print">
+        <button class="btn-print" onclick="printLabel()">
+            🖨 چاپ لیبل A5
+        </button>
+        <button class="btn-close" onclick="window.close()">
+            بستن پنجره
+        </button>
+    </div>
+
+    <div class="print-container fa-num">
+        <div class="folder-front-label">
+
+            <!-- 1. Header: Doc number on RIGHT (3 rows), Center Title, QR on LEFT -->
+            <div class="label-header">
+
+                <!-- Right: Archive Number in 3 rows with prominent font -->
+                <div class="archive-box">
+                    <span class="sub-lbl">طرح نهضت ملی مسکن</span>
+                    <span class="lbl">شماره بایگانی پرونده</span>
+                    <span class="num">{{ dossier.archive_number }}</span>
+                </div>
+
+                <!-- Center: Official Ministry and Project Titles -->
+                <div class="header-title">
+                    <h2>جمهوری اسلامی ایران</h2>
+                    <p>وزارت راه و شهرسازی · طرح نهضت ملی مسکن</p>
+                    <div class="subtitle">شناسنامه و برچسب جلد پوشه فیزیکی متقاضی</div>
+                </div>
+
+                <!-- Left: Applicant National ID QR Code -->
+                <div class="qr-box">
+                    <div id="qrcode" data-national-id="{{ dossier.national_id|default:''|escape }}"></div>
+                    <div class="qr-caption">QR کد ملی متقاضی</div>
+                </div>
+
+            </div>
+
+            <!-- 2. Info Grid: Exactly 3 Balanced Rows with Increased Legible Font -->
+            <div class="info-grid">
+
+                <!-- ROW 1: Applicant & Spouse Identity -->
+                <div class="info-cell">
+                    <span class="title">نام و نام خانوادگی متقاضی:</span>
+                    <span class="val">{{ dossier.full_name }}</span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">کد ملی متقاضی:</span>
+                    <span class="val">{{ dossier.national_id }}</span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">شماره همراه متقاضی:</span>
+                    <span class="val">{{ dossier.applicant_phone|default:'-' }}</span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">مشخصات هویتی همسر:</span>
+                    <span class="val">
+                        {{ dossier.spouse_full_name|default:'-' }}
+                        {% if dossier.spouse_national_id %}
+                        <small style="font-size: 8.5pt; font-weight: 700; color: #4b5563;">(کد: {{ dossier.spouse_national_id }})</small>
+                        {% endif %}
+                    </span>
+                </div>
+
+                <!-- ROW 2: Project, Site & Residential Unit -->
+                <div class="info-cell">
+                    <span class="title">عنوان پروژه مسکونی:</span>
+                    <span class="val">{{ dossier.project|default:'-' }}</span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">نام سایت و محله:</span>
+                    <span class="val">{{ dossier.site|default:'-' }}</span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">بلوک / طبقه:</span>
+                    <span class="val">
+                        بلوک {{ dossier.block_name|default:'-' }} / طبقه {{ dossier.floor_number|default:'-' }}
+                    </span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">شماره واحد / متراژ:</span>
+                    <span class="val">
+                        واحد {{ dossier.unit_number|default:'-' }} ({{ dossier.unit_area|default:'-' }} م²)
+                    </span>
+                </div>
+
+                <!-- ROW 3: Registration, Form J Status & Municipal Code -->
+                <div class="info-cell">
+                    <span class="title">وضعیت و شماره فرم «ج»:</span>
+                    <span class="val">
+                        {{ dossier.applicant_form_j_status|default:'سبز (استعلام شده)' }}
+                        {% if dossier.form_j_number and dossier.form_j_number != 'ثبت‌نشده' %}
+                        <small style="font-size: 8pt; font-weight: 700; color: #1e40af;">(شماره: {{ dossier.form_j_number }})</small>
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">پلاک اصلی و فرعی:</span>
+                    <span class="val">
+                        {% if dossier.main_plaque and dossier.main_plaque != '-' or dossier.sub_plaque and dossier.sub_plaque != '-' %}
+                            {% if dossier.main_plaque and dossier.main_plaque != '-' %}اصلی: {{ dossier.main_plaque }}{% endif %}
+                            {% if dossier.main_plaque and dossier.main_plaque != '-' and dossier.sub_plaque and dossier.sub_plaque != '-' %} / {% endif %}
+                            {% if dossier.sub_plaque and dossier.sub_plaque != '-' %}فرعی: {{ dossier.sub_plaque }}{% endif %}
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">بخش ثبتی و شماره قطعه:</span>
+                    <span class="val">
+                        {% if dossier.registration_section and dossier.registration_section != '-' %}{{ dossier.registration_section }}{% endif %}
+                        {% if dossier.plot_number and dossier.plot_number != '-' %} (قطعه {{ dossier.plot_number }}){% endif %}
+                    </span>
+                </div>
+
+                <div class="info-cell">
+                    <span class="title">کد نوسازی (شهرداری):</span>
+                    <span class="val">{{ dossier.renovation_code|default:'-' }}</span>
+                </div>
+
+            </div>
+
+            <!-- 3. Brought-Up Approval & Official Signature Box (Jalali Date) -->
+            <div class="label-footer-section">
+
+                <!-- Company Branding -->
+                <div class="footer-company">
+                    <div>کارگزاری مهندسین مشاور ره آزرم بین‌الملل</div>
+                    <div class="sub">مجری و ناظر تشکیل و بایگانی پرونده‌های مسکن ملی</div>
+                </div>
+
+                <!-- Jalali Creation Date -->
+                <div class="footer-date">
+                    <div>
+                        تاریخ تشکیل پرونده: 
+                        <strong class="fa-num" style="color: #0f172a; font-size: 9.5pt;">{{ dossier.created_at_jalali|default:'۱۴۰۵/۰۸/۰۴' }}</strong>
+                    </div>
+                    <div style="font-size: 7.5pt; color: #059669; font-weight: 700;">
+                        ✓ اسناد پرونده کنترل و تطبیق اصالت گردید
+                    </div>
+                </div>
+
+                <!-- Official Signature Box -->
+                <div class="signature-box">
+                    <div class="sig-title">امضا و تأیید مسئول تشکیل پرونده</div>
+                    <div class="sig-space">محل مهر و امضای رسمی کارشناس</div>
+                    <div class="sig-hint">تاریخ و امضا: ....................</div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let qrReady = false;
+
+        function generateQRCode() {
+            const qrElement = document.getElementById('qrcode');
+            const nationalId = qrElement.dataset.nationalId.trim();
+
+            if (!nationalId) {
+                qrElement.textContent = 'کد ملی ثبت نشده';
+                qrReady = true;
+                return;
+            }
+
+            if (typeof QRCode === 'undefined') {
+                qrElement.textContent = 'خطا در بارگذاری QR';
+                qrReady = false;
+                return;
+            }
+
+            new QRCode(qrElement, {
+                text: nationalId,
+                width: 180,
+                height: 180,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            qrReady = true;
+        }
+
+        function printLabel() {
+            if (!qrReady) {
+                alert('QR کد هنوز آماده نیست. اتصال اینترنت و بارگذاری کتابخانه را بررسی کنید.');
+                return;
+            }
+
+            window.print();
+        }
+
+        window.addEventListener('load', generateQRCode);
+    </script>
+
+</body>
+</html>

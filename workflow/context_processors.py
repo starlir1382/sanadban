@@ -1,4 +1,5 @@
-import datetime
+from django.utils import timezone
+import jdatetime
 
 def to_persian_digits(s):
     persian_digits = {'0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴', '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹'}
@@ -30,7 +31,10 @@ def gregorian_to_jalali(gy, gm, gd):
     return jy, jm, jd
 
 def jalali_date_context(request):
-    now = datetime.datetime.now()
+    """
+    Returns Persian calendar date and clock strictly in Iran Standard Time (+03:30 Tehran).
+    """
+    now = timezone.localtime(timezone.now())
     jy, jm, jd = gregorian_to_jalali(now.year, now.month, now.day)
     months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
     weekdays = ['دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه', 'یکشنبه']
@@ -38,8 +42,13 @@ def jalali_date_context(request):
     
     full_str = f"{weekday} {to_persian_digits(jd)} {months[jm-1]} {to_persian_digits(jy)}"
     short_str = f"{to_persian_digits(jy)}/{to_persian_digits(f'{jm:02d}')}/{to_persian_digits(f'{jd:02d}')}"
+    time_str = f"{to_persian_digits(f'{now.hour:02d}')}:{to_persian_digits(f'{now.minute:02d}')}"
+    date_time_str = f"{short_str} - {time_str}"
     
     return {
         "today_jalali": full_str,
         "today_jalali_short": short_str,
+        "today_time_jalali": time_str,
+        "today_date_time_jalali": date_time_str,
+        "server_tz_offset": "+03:30",
     }

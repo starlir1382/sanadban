@@ -31,69 +31,87 @@
         background: linear-gradient(90deg, transparent 0%, var(--sb-accent) 50%, transparent 100%); opacity: .55;
     }
     .sb-container {
-        max-width: 1440px; margin: 0 auto; padding: 0 1.5rem; height: 80px;
-        display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 2rem;
+        max-width: 1440px; margin: 0 auto; padding: 0 1.25rem; height: 62px;
+        display: flex; align-items: center; justify-content: space-between; gap: 1.25rem;
     }
 
     /* ---------- Brand ---------- */
-    .sb-brand { display: flex; align-items: center; gap: .8rem; text-decoration: none; color: inherit; justify-self: start; border-radius: 14px; }
-    /* the favicon already has its own rounded tile, so no extra frame around it */
-    .sb-emblem { display: block; width: 52px; height: 52px; flex-shrink: 0; transition: transform .2s ease; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
-    .sb-emblem img { display: block; width: 100%; height: 100%; }
+    .sb-brand {
+        display: inline-flex; align-items: center; gap: .7rem;
+        text-decoration: none; color: inherit; flex-shrink: 0;
+        white-space: nowrap !important; border-radius: 10px;
+    }
+    .sb-emblem {
+        display: block; width: 36px; height: 36px; flex-shrink: 0;
+        transition: transform .18s ease; filter: drop-shadow(0 2px 8px rgba(0,0,0,.25));
+    }
+    .sb-emblem img { display: block; width: 100%; height: 100%; object-fit: contain; }
     .sb-brand:hover .sb-emblem { transform: scale(1.05); }
-    .sb-title { margin: 0; font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1.2; letter-spacing: -.1px; }
+    .sb-title {
+        margin: 0; font-size: 1.15rem; font-weight: 800; color: #fff;
+        line-height: 1; letter-spacing: -.1px; white-space: nowrap !important;
+        flex-shrink: 0;
+    }
 
-    /* ---------- Center nav (segmented pill group) ---------- */
+    /* ---------- Center nav (clean, compact pill group) ---------- */
     .sb-nav {
-        display: flex; align-items: center; gap: .25rem; justify-self: start;
-        padding: .35rem; border-radius: 16px;
-        background: rgba(255,255,255,.05); border: 1px solid var(--sb-line);
+        display: inline-flex; align-items: center; gap: .35rem; justify-content: flex-start;
+        flex: 0 0 auto; padding: 0; border-radius: 10px;
+        background: transparent; border: 0;
     }
     .sb-link, .sb-btn {
-        position: relative; display: flex; align-items: center; gap: .6rem; white-space: nowrap;
-        font-family: inherit; font-size: 1rem; font-weight: 700; line-height: 1;
-        padding: .8rem 1.2rem; border-radius: 12px; border: 0; background: transparent;
+        position: relative; display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap;
+        font-family: inherit; font-size: .84rem; font-weight: 700; line-height: 1;
+        padding: .35rem .7rem; min-height: 38px; border-radius: 8px;
+        border: 1px solid rgba(148, 197, 255, .12); background: rgba(255, 255, 255, .04);
         color: #b6c4d8; text-decoration: none; cursor: pointer;
-        transition: background-color .15s ease, color .15s ease;
+        touch-action: manipulation; user-select: none; -webkit-user-select: none;
+        transition: background-color 150ms ease-out, color 150ms ease-out, transform 150ms ease-out, border-color 150ms ease-out;
     }
-    .sb-link:hover, .sb-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .sb-link:active, .sb-btn:active, .sb-user-btn:active, .sb-burger:active, .sb-login:active {
+        transform: scale(0.97);
+    }
+    .sb-link:hover, .sb-btn:hover { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(56, 189, 248, .3); }
     .sb-link[aria-current="page"] {
-        color: #fff; background: linear-gradient(135deg, rgba(14,165,233,.35), rgba(56,189,248,.14));
-        box-shadow: inset 0 0 0 1px rgba(56,189,248,.45), 0 4px 14px rgba(14,165,233,.18);
+        color: #fff; background: linear-gradient(135deg, rgba(14,165,233,.3), rgba(56,189,248,.12));
+        border-color: rgba(56,189,248,.5);
+        box-shadow: 0 2px 8px rgba(14,165,233,.18);
     }
     .sb-link[aria-current="page"] svg { color: var(--sb-accent); }
-    .sb-btn[aria-expanded="true"] { background: rgba(255,255,255,.1); color: #fff; }
-    .sb-nav .sb-link > svg, .sb-nav .sb-btn > svg:not(.sb-chevron) { width: 21px; height: 21px; flex-shrink: 0; }
+    .sb-btn[aria-expanded="true"] { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(56,189,248,.4); }
+    .sb-nav .sb-link > svg, .sb-nav .sb-btn > svg:not(.sb-chevron) { width: 16px; height: 16px; flex-shrink: 0; }
     .sb-chevron { transition: transform .2s; opacity: .8; }
     [aria-expanded="true"] > .sb-chevron { transform: rotate(180deg); }
-    .sb-divider { width: 1px; height: 26px; background: var(--sb-line); margin-inline: .25rem; }
+    .sb-divider { width: 1px; height: 20px; background: var(--sb-line); margin-inline: .2rem; }
 
     /* ---------- Actions (user + burger) ---------- */
-    .sb-actions { display: flex; align-items: center; gap: .6rem; justify-self: end; }
+    .sb-actions { display: flex; align-items: center; gap: .45rem; flex-shrink: 0; }
     .sb-user-btn {
-        display: flex; align-items: center; gap: .75rem; padding: .35rem .8rem .35rem .55rem;
-        font-family: inherit; color: inherit; cursor: pointer;
+        display: flex; align-items: center; gap: .55rem; padding: .2rem .75rem .2rem .45rem;
+        font-family: inherit; color: inherit; cursor: pointer; min-height: 38px;
         background: rgba(255,255,255,.05); border: 1px solid var(--sb-line); border-radius: 999px;
-        transition: background .2s, border-color .2s;
+        touch-action: manipulation;
+        transition: background 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out;
     }
     .sb-user-btn:hover, .sb-user-btn[aria-expanded="true"] { background: rgba(255,255,255,.1); border-color: rgba(56,189,248,.4); }
     .sb-avatar {
-        width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
-        font-size: .95rem; font-weight: 800; color: #07213f;
+        width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+        font-size: .8rem; font-weight: 800; color: #07213f;
         background: linear-gradient(135deg, #7dd3fc, #38bdf8 60%, #0ea5e9);
         box-shadow: 0 0 0 2px rgba(56,189,248,.25);
     }
-    .sb-avatar--lg { width: 48px; height: 48px; font-size: 1.05rem; }
-    .sb-user-text { text-align: right; line-height: 1.4; }
-    .sb-user-name { font-size: .95rem; font-weight: 700; color: #fff; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sb-user-role { font-size: .8rem; color: #93c5fd; }
+    .sb-avatar--lg { width: 42px; height: 42px; font-size: .95rem; }
+    .sb-user-text { text-align: right; line-height: 1.25; min-width: 0; }
+    .sb-user-name { font-size: .84rem; font-weight: 700; color: #fff; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; unicode-bidi: plaintext; }
+    .sb-user-role { font-size: .74rem; color: #93c5fd; }
 
     .sb-login {
-        padding: .75rem 1.4rem; font-size: .95rem; font-weight: 800; color: #fff; text-decoration: none; border-radius: 10px;
+        padding: .5rem 1.15rem; font-size: .88rem; font-weight: 800; color: #fff; text-decoration: none; border-radius: 10px;
+        min-height: 40px; display: inline-flex; align-items: center; justify-content: center;
         background: linear-gradient(135deg, var(--sb-accent-2), #0284c7); border: 1px solid rgba(56,189,248,.6);
-        box-shadow: 0 4px 14px rgba(14,165,233,.35); transition: transform .15s ease;
+        box-shadow: 0 2px 10px rgba(14,165,233,.3); transition: transform 150ms ease-out;
     }
-    .sb-login:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(14,165,233,.45); }
+    .sb-login:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(14,165,233,.4); }
 
     /* ---------- Dropdowns ---------- */
     .sb-dropdown {
@@ -105,16 +123,16 @@
         content: ""; position: absolute; top: -6px; width: 12px; height: 12px; background: #fff;
         border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; transform: rotate(45deg);
     }
-    .sb-dropdown--mgmt { right: 0; transform-origin: top right; }
-    .sb-dropdown--mgmt::before { right: 28px; }
-    .sb-dropdown--user { left: 0; width: 270px; transform-origin: top left; }
+    .sb-dropdown--mgmt { inset-inline-end: 0; transform-origin: top right; }
+    .sb-dropdown--mgmt::before { inset-inline-end: 28px; }
+    .sb-dropdown--user { inset-inline-start: 0; width: 270px; transform-origin: top left; }
 
     /* Dropdown/panel animation: opacity + small slide only (GPU-friendly, no layout/paint cost) */
-    .sb-t-enter { transition: opacity .14s ease-out, transform .14s ease-out; }
-    .sb-t-leave { transition: opacity .1s ease-in, transform .1s ease-in; }
-    .sb-t-from  { opacity: 0; transform: translateY(-6px); }
-    .sb-t-to    { opacity: 1; transform: translateY(0); }
-    .sb-dropdown--user::before { left: 28px; }
+    .sb-t-enter { transition: opacity 150ms ease-out, transform 150ms ease-out; }
+    .sb-t-leave { transition: opacity 100ms ease-in, transform 100ms ease-in; }
+    .sb-t-from  { opacity: 0; transform: scale(0.96) translateY(-4px); }
+    .sb-t-to    { opacity: 1; transform: scale(1) translateY(0); }
+    .sb-dropdown--user::before { inset-inline-start: 28px; }
 
     .sb-menu-label { padding: .5rem .75rem .3rem; font-size: .78rem; font-weight: 700; color: #94a3b8; letter-spacing: .2px; }
     .sb-menu-item {
@@ -144,37 +162,28 @@
     .sb-menu-item:focus-visible { outline: 2px solid #0ea5e9; outline-offset: -2px; }
 
     /* ---------- Mobile ---------- */
-    .sb-burger { display: none; width: 40px; height: 40px; place-items: center; color: #fff; cursor: pointer;
-                 background: rgba(255,255,255,.07); border: 1px solid var(--sb-line); border-radius: 12px; }
+    .sb-burger { display: none; width: 40px; height: 40px; min-width: 40px; min-height: 40px; touch-action: manipulation; place-items: center; color: #fff; cursor: pointer;
+                 background: rgba(255,255,255,.07); border: 1px solid var(--sb-line); border-radius: 10px; }
     .sb-mobile-panel { display: none; }
-    /* Medium screens: keep the bigger text but save horizontal room */
-    @media (max-width: 1360px) {
-        .sb-user-text, .sb-user-btn > .sb-chevron { display: none; }
-        .sb-user-btn { padding: .3rem; }
-        .sb-link, .sb-btn { padding: .8rem 1rem; font-size: .95rem; }
-    }
-    @media (max-width: 1100px) {
-        .sb-container { grid-template-columns: 1fr auto; height: 68px; padding: 0 1rem; gap: 1rem; }
-        .sb-emblem { width: 44px; height: 44px; }
-        .sb-title { font-size: 1.2rem; }
+    @media (max-width: 1200px) {
+        .sb-container { height: 60px; padding: 0 1rem; gap: 0.75rem; }
         .sb-nav, .sb-user-text, .sb-user-btn > .sb-chevron { display: none; }
-        .sb-user-btn { padding: .2rem; }
+        .sb-user-btn { padding: .25rem; }
         .sb-burger { display: grid; }
         .sb-mobile-panel {
-            display: flex; flex-direction: column; gap: .2rem; padding: .75rem 1.25rem 1.1rem;
+            display: flex; flex-direction: column; gap: .25rem; padding: .75rem 1.25rem 1.1rem;
             background: var(--sb-bg-1); border-top: 1px solid var(--sb-line);
         }
-        .sb-mobile-panel .sb-link { padding: .95rem 1rem; font-size: 1.05rem; }
-        .sb-mobile-label { padding: .85rem 1rem .3rem; font-size: .8rem; font-weight: 700; color: #7dd3fc; }
+        .sb-mobile-panel .sb-link { padding: .75rem 1rem; font-size: .95rem; }
+        .sb-mobile-label { padding: .75rem 1rem .25rem; font-size: .8rem; font-weight: 700; color: #7dd3fc; }
         .sb-dropdown--user { left: -8px; }
     }
     @media (max-width: 480px) {
-        .sb-container { height: 58px; padding: 0 0.65rem; gap: 0.5rem; }
-        .sb-emblem { width: 36px; height: 36px; border-radius: 10px; }
-        .sb-emblem img { width: 22px; height: 22px; }
-        .sb-title { font-size: 0.92rem; }
+        .sb-container { height: 56px; padding: 0 0.75rem; gap: 0.5rem; }
+        .sb-emblem { width: 32px; height: 32px; }
+        .sb-title { font-size: 1rem; }
         .sb-actions { gap: 0.35rem; }
-        .sb-burger { width: 36px; height: 36px; border-radius: 10px; }
+        .sb-burger { width: 38px; height: 38px; min-width: 38px; min-height: 38px; }
         .sb-avatar { width: 30px; height: 30px; font-size: 0.75rem; }
     }
     @media (prefers-reduced-motion: reduce) { .sb-header, .sb-header * { transition: none !important; } }
@@ -249,6 +258,10 @@
                         <span class="sb-chip sb-chip--sky"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
                         <span>ارسال دسته‌جمعی به بانک</span>
                     </a>
+                    <a href="{% url 'excel_hub' %}" class="sb-menu-item">
+                        <span class="sb-chip sb-chip--amber" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>
+                        <span>مرکز اکسل و عملیات گروهی</span>
+                    </a>
                     <a href="{% url 'audit_logs' %}" class="sb-menu-item">
                         <span class="sb-chip sb-chip--green"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
                         <span>ممیزی و ردگیری لاگ‌ها</span>
@@ -266,6 +279,38 @@
 
         <!-- Actions -->
         <div class="sb-actions">
+            <!-- Theme Toggle Button (Light / Dark Mode) -->
+            <button type="button" 
+                    class="sb-theme-toggle-btn" 
+                    onclick="window.SanadbanTheme.toggle()" 
+                    aria-label="تغییر تم تاریک و روشن (کلید میانبر: Alt+T)"
+                    title="تغییر تم بین حالت روز و شب (میانبر: Alt+T)">
+                <span class="sb-theme-icon">
+                    <!-- Sun icon for Dark Mode -->
+                    <svg class="sb-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <!-- Moon icon for Light Mode -->
+                    <svg class="sb-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </span>
+            </button>
+
+            <!-- Tehran Clock Pill (+03:30) -->
+            <div class="sb-clock-pill fa-num" title="ساعت رسمی کشور (تهران +۰۳:۳۰)" style="display: flex; align-items: center; gap: 0.45rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(148,197,255,0.18); padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.84rem; font-weight: 700; color: #e2e8f0;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span id="sb-live-clock">{{ today_time_jalali }}</span>
+                <span style="opacity: 0.6; font-size: 0.74rem; border-right: 1px solid rgba(255,255,255,0.2); padding-right: 6px;">{{ today_jalali_short }}</span>
+            </div>
             {% if request.user.is_authenticated %}
             <div style="position: relative;" @click.away="user = false">
                 <button type="button" class="sb-user-btn" @click="user = !user; mgmt = false"
@@ -276,7 +321,7 @@
                     <span class="sb-avatar">{{ profile.full_name|default:request.user.username|slice:":2" }}</span>
                     {% endif %}
                     <span class="sb-user-text">
-                        <div class="sb-user-name">{{ profile.full_name|default:request.user.username }}</div>
+                        <div class="sb-user-name" title="{{ profile.full_name|default:request.user.username }}">{{ profile.full_name|default:request.user.username }}</div>
                         <div class="sb-user-role">{{ profile.role_title|default:'کارشناس سامانه' }}</div>
                     </span>
                     <svg class="sb-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2.2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
@@ -298,6 +343,19 @@
                         <span class="sb-chip sb-chip--slate"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
                         <span>پروفایل کاربری من</span>
                     </a>
+                    <div class="sb-sep" style="padding-top: 4px; padding-bottom: 4px;">
+                        <button type="button" class="sb-menu-theme-toggle" onclick="window.SanadbanTheme.toggle()">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span class="sb-chip sb-chip--slate" style="color: #38bdf8;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                                </span>
+                                <span>حالت شب / روز</span>
+                            </div>
+                            <div class="sb-theme-switch-track" aria-hidden="true">
+                                <div class="sb-theme-switch-thumb"></div>
+                            </div>
+                        </button>
+                    </div>
                     <div class="sb-sep">
                         {# POST logout: required by Django 5+ #}
                         <form method="post" action="{% url 'logout' %}">
@@ -332,6 +390,15 @@
             پرونده جاری (#{{ dossier.archive_number }})
         </a>
         {% endif %}
+        <div style="padding: 0.5rem 1rem;">
+            <button type="button" class="sb-theme-toggle-btn" style="width: 100%; justify-content: center; padding: 0.65rem;" onclick="window.SanadbanTheme.toggle()">
+                <span class="sb-theme-icon">
+                    <svg class="sb-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <svg class="sb-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </span>
+                <span class="sb-theme-label">تغییر تم تاریک / روشن</span>
+            </button>
+        </div>
         {% if is_manager %}
         <div class="sb-mobile-label">مدیریت سامانه</div>
         <a href="{% url 'users_management' %}" class="sb-link">مدیریت کاربران و مراحل</a>

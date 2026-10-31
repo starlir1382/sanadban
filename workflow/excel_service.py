@@ -1,3 +1,7 @@
+import os
+import tempfile
+import threading
+import time
 import io
 import re
 import hashlib
@@ -13,7 +17,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from django.http import HttpResponse
 from django.db import transaction
 from django.utils import timezone
-from .models import HousingDossier, WorkflowSignatureLog
+from .models import HousingDossier, WorkflowSignatureLog, ProjectBankMapping
 
 # ---------------------------------------------------------
 # Comprehensive Mapping for HousingDossier Fields
@@ -29,6 +33,8 @@ TEMPLATE_FIELD_SPECS = [
     ("نام خانوادگی متقاضی", "last_name", "str"),
     ("نام پدر", "father_name", "str"),
     ("تاریخ تولد متقاضی (شمسی)", "birth_date", "str"),
+    ("شماره شناسنامه متقاضی", "applicant_id_number", "str"),
+    ("محل صدور شناسنامه متقاضی", "applicant_birth_place", "str"),
     ("شماره همراه متقاضی", "applicant_phone", "str"),
     ("وضعیت تاهل", "marital_status", "str"),
     ("دهک درآمدی (۱ تا ۱۰)", "decile", "int"),
@@ -53,6 +59,12 @@ TEMPLATE_FIELD_SPECS = [
 
     # Project & Unit Specifications
     ("نام پروژه", "project", "str"),
+    ("کد پروژه", lambda d: d.project_code_display, "str"),
+    ("نام بانک متقاضی", lambda d: d.bank_display_name, "str"),
+    ("شعبه بانک متقاضی", lambda d: d.bank_branch_display, "str"),
+    ("کد پروژه", "project_code", "str"),
+    ("نام بانک متقاضی", "bank_name", "str"),
+    ("شعبه بانک متقاضی", "bank_branch", "str"),
     ("سایت", "site", "str"),
     ("نوع ساخت", "construction_type", "str"),
     ("نام بلوک", "block_name", "str"),
@@ -62,15 +74,15 @@ TEMPLATE_FIELD_SPECS = [
     ("کد واحد", "unit_code", "str"),
     ("تعداد خواب", "bedroom_count", "int"),
     ("جهت واحد", "unit_direction", "str"),
-    ("متراژ مفید واحد (م²)", "net_unit_area", "decimal"),
-    ("متراژ مشاعات (م²)", "common_area", "decimal"),
-    ("جمع کل متراژ واحد (م²)", "total_area", "decimal"),
-    ("مساحت واحد (م²)", "unit_area", "decimal"),
+    ("متراژ مفید واحد (مترمربع)", "net_unit_area", "decimal"),
+    ("متراژ مشاعات (مترمربع)", "common_area", "decimal"),
+    ("جمع کل متراژ واحد (مترمربع)", "total_area", "decimal"),
+    ("مساحت واحد (مترمربع)", "unit_area", "decimal"),
     ("شماره انباری", "storage_number", "int"),
-    ("مساحت انباری (م²)", "storage_area", "decimal"),
+    ("مساحت انباری (مترمربع)", "storage_area", "decimal"),
     ("شماره پارکینگ", "parking_number", "int"),
-    ("مساحت پارکینگ (م²)", "parking_area", "decimal"),
-    ("متراژ پارکینگ مسقف (م²)", "covered_parking_area", "decimal"),
+    ("مساحت پارکینگ (مترمربع)", "parking_area", "decimal"),
+    ("متراژ پارکینگ مسقف (مترمربع)", "covered_parking_area", "decimal"),
 
     # Registry Plaques
     ("بخش ثبتی", "registration_section", "str"),
@@ -78,6 +90,7 @@ TEMPLATE_FIELD_SPECS = [
     ("پلاک مفروز", "separated_plaque", "int"),
     ("فرعی از (پلاک فرعی)", "sub_plaque", "int"),
     ("شماره قطعه", "plot_number", "int"),
+    ("کد نوسازی", "renovation_code", "str"),
 
     # Financial & Loans (amounts in Rials)
     ("قیمت تمام شده بدون وام (ریال)", "base_cost_without_loan", "price"),
@@ -96,7 +109,7 @@ TEMPLATE_FIELD_SPECS = [
     ("نهاد تحت حمایت", "supported_institution", "str"),
 
     # Land Lease & Appraisal
-    ("جمع کل قدرالسهم (م²)", "total_land_share", "decimal"),
+    ("جمع کل قدرالسهم (مترمربع)", "total_land_share", "decimal"),
     ("مبلغ اجاره سنوات گذشته (ریال)", "past_years_rent", "price"),
     ("مبلغ اجاره سال جاری (ریال)", "current_year_rent", "price"),
     ("سال اجاره عرصه", "land_lease_year", "str"),
@@ -137,6 +150,22 @@ EXCEL_FIELD_SPECS = TEMPLATE_FIELD_SPECS + [
     ("نام همسر", "spouse_first_name", "str"),
     ("نام خانوادگی همسر", "spouse_last_name", "str"),
     ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
+    ("شماره شناسنامه", "applicant_id_number", "str"),
+    ("شناسنامه متقاضی", "applicant_id_number", "str"),
+    ("شناسنامه", "applicant_id_number", "str"),
+    ("محل صدور متقاضی", "applicant_birth_place", "str"),
+    ("محل صدور", "applicant_birth_place", "str"),
+    ("محل صدور شناسنامه", "applicant_birth_place", "str"),
+    ("محل تولد متقاضی", "applicant_birth_place", "str"),
+    ("کد پروژه ساختمانی", "project_code", "str"),
+    ("کد طرح", "project_code", "str"),
+    ("بانک متقاضی", "bank_name", "str"),
+    ("نام بانک", "bank_name", "str"),
+    ("بانک عامل", "bank_name", "str"),
+    ("بانک", "bank_name", "str"),
+    ("شعبه بانک", "bank_branch", "str"),
+    ("نام شعبه", "bank_branch", "str"),
+    ("کد شعبه", "bank_branch", "str"),
 ]
 
 def _normalize_header(val: Any) -> str:
@@ -181,7 +210,7 @@ def _clean_national_id(val: Any) -> str:
     d = _clean_digits(val)
     if d and len(d) < 10:
         d = d.zfill(10)
-    return d
+    return d[:10] if d else ""
 
 def _clean_phone(val: Any) -> str:
     d = _clean_digits(val)
@@ -360,6 +389,7 @@ def process_create_excel(excel_file, user=None, is_preview: bool = False) -> dic
         last_archive = HousingDossier.objects.order_by("-archive_number").values_list("archive_number", flat=True).first()
         next_archive = (last_archive or 100000) + 1
 
+        project_bank_map = {m.project_name: m for m in ProjectBankMapping.objects.all()}
         valid_rows = []
         errors = []
         seen_in_batch = set()
@@ -413,6 +443,24 @@ def process_create_excel(excel_file, user=None, is_preview: bool = False) -> dic
                 row_data["spouse_first_name"] = parts[0] if parts else ""
                 row_data["spouse_last_name"] = parts[1] if len(parts) > 1 else ""
                 row_data["spouse_full_name"] = sfln
+
+            # Auto-resolve bank details from ProjectBankMapping if empty
+            proj = row_data.get("project", "").strip()
+            if proj and proj in project_bank_map:
+                m = project_bank_map[proj]
+                if not row_data.get("bank_name"):
+                    row_data["bank_name"] = m.get_bank_code_display()
+                if not row_data.get("project_code") and m.project_code:
+                    row_data["project_code"] = m.project_code
+                if not row_data.get("bank_branch") and m.branch_name:
+                    row_data["bank_branch"] = m.branch_name
+
+            # Sanitize dates and national IDs against Postgres string overflow
+            for dt_field in ["birth_date", "spouse_birth_date", "bank_letter_date"]:
+                if dt_field in row_data and row_data[dt_field]:
+                    row_data[dt_field] = str(row_data[dt_field]).strip()[:30]
+            if "spouse_national_id" in row_data and row_data["spouse_national_id"]:
+                row_data["spouse_national_id"] = _clean_national_id(row_data["spouse_national_id"])
 
             nat_id = _clean_national_id(row_data.get("national_id", ""))
             row_errors = []
@@ -633,6 +681,24 @@ def process_update_excel(excel_file, user=None, is_preview: bool = False) -> dic
                 })
                 continue
 
+            # Auto-resolve bank if project was updated or missing
+            proj = item["changes"].get("project", rec.project or "").strip()
+            project_bank_map = {m.project_name: m for m in ProjectBankMapping.objects.all()}
+            if proj and proj in project_bank_map:
+                m = project_bank_map[proj]
+                if not item["changes"].get("bank_name") and not rec.bank_name:
+                    item["changes"]["bank_name"] = m.get_bank_code_display()
+                if not item["changes"].get("project_code") and not rec.project_code and m.project_code:
+                    item["changes"]["project_code"] = m.project_code
+                if not item["changes"].get("bank_branch") and not rec.bank_branch and m.branch_name:
+                    item["changes"]["bank_branch"] = m.branch_name
+
+            for dt_field in ["birth_date", "spouse_birth_date", "bank_letter_date"]:
+                if dt_field in item["changes"] and item["changes"][dt_field]:
+                    item["changes"][dt_field] = str(item["changes"][dt_field]).strip()[:30]
+            if "spouse_national_id" in item["changes"] and item["changes"]["spouse_national_id"]:
+                item["changes"]["spouse_national_id"] = _clean_national_id(item["changes"]["spouse_national_id"])
+
             # Synchronize applicant names in update diff
             if "first_name" in item["changes"] or "last_name" in item["changes"]:
                 new_fn = item["changes"].get("first_name", rec.first_name or "")
@@ -790,6 +856,8 @@ EXPORT_COLUMNS = [
     ("نام و نام خانوادگی متقاضی", "full_name", "str"),
     ("نام پدر", "father_name", "str"),
     ("تاریخ تولد متقاضی (شمسی)", "birth_date", "str"),
+    ("شماره شناسنامه متقاضی", "applicant_id_number", "str"),
+    ("محل صدور متقاضی", "applicant_birth_place", "str"),
     ("شماره همراه متقاضی", "applicant_phone", "str"),
     ("وضعیت تاهل", "marital_status", "str"),
     ("تاییدیه تاهل", lambda d: "بله" if d.is_married_confirmed else "خیر", "str"),
@@ -825,15 +893,15 @@ EXPORT_COLUMNS = [
     ("کد واحد", "unit_code", "str"),
     ("تعداد خواب", "bedroom_count", "int"),
     ("جهت واحد", "unit_direction", "str"),
-    ("متراژ مفید واحد (م²)", "net_unit_area", "decimal"),
-    ("متراژ مشاعات (م²)", "common_area", "decimal"),
-    ("جمع کل متراژ واحد (م²)", "total_area", "decimal"),
-    ("مساحت واحد (م²)", "unit_area", "decimal"),
+    ("متراژ مفید واحد (مترمربع)", "net_unit_area", "decimal"),
+    ("متراژ مشاعات (مترمربع)", "common_area", "decimal"),
+    ("جمع کل متراژ واحد (مترمربع)", "total_area", "decimal"),
+    ("مساحت واحد (مترمربع)", "unit_area", "decimal"),
     ("شماره انباری", "storage_number", "int"),
-    ("مساحت انباری (م²)", "storage_area", "decimal"),
+    ("مساحت انباری (مترمربع)", "storage_area", "decimal"),
     ("شماره پارکینگ", "parking_number", "int"),
-    ("مساحت پارکینگ (م²)", "parking_area", "decimal"),
-    ("متراژ پارکینگ مسقف (م²)", "covered_parking_area", "decimal"),
+    ("مساحت پارکینگ (مترمربع)", "parking_area", "decimal"),
+    ("متراژ پارکینگ مسقف (مترمربع)", "covered_parking_area", "decimal"),
 
     # Registry Plaques
     ("بخش ثبتی", "registration_section", "str"),
@@ -841,6 +909,7 @@ EXPORT_COLUMNS = [
     ("پلاک مفروز", "separated_plaque", "int"),
     ("فرعی از (پلاک فرعی)", "sub_plaque", "int"),
     ("شماره قطعه", "plot_number", "int"),
+    ("کد نوسازی", "renovation_code", "str"),
 
     # Financial & Loans (amounts in Rials)
     ("قیمت تمام شده بدون وام (ریال)", "base_cost_without_loan", "price"),
@@ -861,7 +930,7 @@ EXPORT_COLUMNS = [
     ("نهاد تحت حمایت", "supported_institution", "str"),
 
     # Land Lease & Appraisal
-    ("جمع کل قدرالسهم (م²)", "total_land_share", "decimal"),
+    ("جمع کل قدرالسهم (مترمربع)", "total_land_share", "decimal"),
     ("مبلغ اجاره سنوات گذشته (ریال)", "past_years_rent", "price"),
     ("مبلغ اجاره سال جاری (ریال)", "current_year_rent", "price"),
     ("سال اجاره عرصه", "land_lease_year", "str"),
@@ -894,118 +963,123 @@ EXPORT_COLUMNS = [
 ]
 
 
-def generate_dossiers_export(queryset=None) -> HttpResponse:
+# Concurrency guard & file cache for full exports
+_export_lock = threading.Lock()
+_export_cache = {}  # cache_key -> (file_path, timestamp, file_size)
+
+def generate_dossiers_export(queryset=None, cache_key: str | None = None) -> HttpResponse:
     """
     Generate and stream a comprehensive, professional Excel workbook containing
     all records, codes, plaque numbers, financial values, and tracking metadata.
+    Optimized with write_only streaming and server-side debounce caching to prevent 502 crashes.
     """
     if queryset is None:
         queryset = HousingDossier.objects.all().order_by("-archive_number")
+        if not cache_key:
+            cache_key = "all"
 
-    wb = openpyxl.Workbook()
-    ws = cast(Worksheet, wb.active)
-    ws.title = "پرونده‌های مسکن مسکن‌یار"
-    ws.views.sheetView[0].rightToLeft = True
+    now_ts = time.time()
+    if cache_key:
+        cached = _export_cache.get(cache_key)
+        if cached:
+            c_path, c_ts, c_size = cached
+            if os.path.exists(c_path) and (now_ts - c_ts) < 90:
+                with open(c_path, "rb") as f:
+                    file_bytes = f.read()
+                now_j = jdatetime.datetime.now().strftime('%Y%m%d_%H%M')
+                filename = f"MaskanYar_Dossiers_Export_{now_j}.xlsx"
+                response = HttpResponse(
+                    file_bytes,
+                    content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                response["Content-Disposition"] = f'attachment; filename="{filename}"'
+                response["Content-Length"] = str(len(file_bytes))
+                return response
 
-    headers = [col[0] for col in EXPORT_COLUMNS]
-    ws.append(headers)
+    with _export_lock:
+        now_ts = time.time()
+        if cache_key:
+            cached = _export_cache.get(cache_key)
+            if cached:
+                c_path, c_ts, c_size = cached
+                if os.path.exists(c_path) and (now_ts - c_ts) < 90:
+                    with open(c_path, "rb") as f:
+                        file_bytes = f.read()
+                    now_j = jdatetime.datetime.now().strftime('%Y%m%d_%H%M')
+                    filename = f"MaskanYar_Dossiers_Export_{now_j}.xlsx"
+                    response = HttpResponse(
+                        file_bytes,
+                        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+                    response["Content-Length"] = str(len(file_bytes))
+                    return response
 
-    header_fill = PatternFill(start_color="0F2744", end_color="0F2744", fill_type="solid")
-    key_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
-    header_font = Font(name="Tahoma", size=9, bold=True, color="FFFFFF")
-    thin = Side(style="thin", color="E2E8F0")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+        # Use write_only streaming for blazing fast, low-RAM generation
+        wb = openpyxl.Workbook(write_only=True)
+        ws = wb.create_sheet(title="پرونده‌های مسکن مسکن‌یار")
+        ws.views.sheetView[0].rightToLeft = True
 
-    ws.row_dimensions[1].height = 30
+        headers = [col[0] for col in EXPORT_COLUMNS]
+        ws.append(headers)
 
-    for col_idx in range(1, len(headers) + 1):
-        cell = ws.cell(row=1, column=col_idx)
-        cell.fill = key_fill if col_idx <= 2 else header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        cell.border = border
-
-    # Freeze panes at Column C, Row 2 (archive number and national ID remain frozen)
-    ws.freeze_panes = "C2"
-
-    zebra_fill = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
-    white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
-    data_font = Font(name="Tahoma", size=9)
-
-    for row_idx, dossier in enumerate(queryset.iterator(chunk_size=2000), start=2):
-        ws.row_dimensions[row_idx].height = 22
-        current_fill = zebra_fill if row_idx % 2 == 1 else white_fill
-
-        for col_idx, (col_title, accessor, col_type) in enumerate(EXPORT_COLUMNS, start=1):
-            cell = ws.cell(row=row_idx, column=col_idx)
-            cell.font = data_font
-            cell.border = border
-            cell.fill = current_fill
-
-            if callable(accessor):
-                val = accessor(dossier)
-            else:
-                val = getattr(dossier, accessor, "")
-
-            if val is None:
-                val = ""
-
-            if col_type == "int":
-                if val != "" and val is not None:
-                    try:
-                        cell.value = int(val)
-                        cell.number_format = "#,##0" if ("مبلغ" in col_title or "ریال" in col_title) else "0"
-                    except Exception:
-                        cell.value = str(val)
+        for dossier in queryset.iterator(chunk_size=2000):
+            row = []
+            for col_title, accessor, col_type in EXPORT_COLUMNS:
+                if callable(accessor):
+                    val = accessor(dossier)
                 else:
-                    cell.value = ""
-                cell.alignment = Alignment(horizontal="center", vertical="center")
-            elif col_type == "price":
-                if val != "" and val is not None:
-                    try:
-                        cell.value = int(val)
-                        cell.number_format = "#,##0"
-                    except Exception:
-                        cell.value = str(val)
+                    val = getattr(dossier, accessor, "")
+
+                if val is None:
+                    val = ""
+
+                if col_type == "int":
+                    if val != "" and val is not None:
+                        try:
+                            val = int(val)
+                        except Exception:
+                            val = str(val)
+                    else:
+                        val = ""
+                elif col_type == "price":
+                    if val != "" and val is not None:
+                        try:
+                            val = int(val)
+                        except Exception:
+                            val = str(val)
+                    else:
+                        val = 0
+                elif col_type == "decimal":
+                    if val != "" and val is not None:
+                        try:
+                            val = float(val)
+                        except Exception:
+                            val = str(val)
+                    else:
+                        val = ""
                 else:
-                    cell.value = 0
-                    cell.number_format = "#,##0"
-                cell.alignment = Alignment(horizontal="left", vertical="center")
-            elif col_type == "decimal":
-                if val != "" and val is not None:
-                    try:
-                        cell.value = float(val)
-                        cell.number_format = "0.00"
-                    except Exception:
-                        cell.value = str(val)
-                else:
-                    cell.value = ""
-                cell.alignment = Alignment(horizontal="center", vertical="center")
-            else:
-                s_val = str(val).strip() if val is not None else ""
-                cell.value = s_val
-                cell.number_format = "@"
-                if "کد ملی" in col_title or "شماره همراه" in col_title or "تاریخ" in col_title:
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                else:
-                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                    val = str(val).strip() if val is not None else ""
+                row.append(val)
+            ws.append(row)
 
-    # Auto-adjust column widths
-    for col_idx in range(1, len(headers) + 1):
-        letter = get_column_letter(col_idx)
-        header_len = len(headers[col_idx - 1])
-        ws.column_dimensions[letter].width = max(14, min(36, header_len + 5))
+        temp_dir = tempfile.gettempdir()
+        temp_export_path = os.path.join(temp_dir, f"sanadban_export_{cache_key or 'export'}.xlsx")
+        wb.save(temp_export_path)
 
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
+        with open(temp_export_path, "rb") as f:
+            file_bytes = f.read()
 
-    now_j = jdatetime.datetime.now().strftime('%Y%m%d_%H%M')
-    filename = f"MaskanYar_Dossiers_Export_{now_j}.xlsx"
+        if cache_key:
+            _export_cache[cache_key] = (temp_export_path, now_ts, len(file_bytes))
 
-    response = HttpResponse(
-        output.getvalue(),
-        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+        now_j = jdatetime.datetime.now().strftime('%Y%m%d_%H%M')
+        filename = f"MaskanYar_Dossiers_Export_{now_j}.xlsx"
+
+        response = HttpResponse(
+            file_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Content-Length"] = str(len(file_bytes))
+        return response

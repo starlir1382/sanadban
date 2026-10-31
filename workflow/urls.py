@@ -19,7 +19,9 @@ urlpatterns = [
     path("dossier/<int:pk>/print/checks/", views.dossier_print_checks_view, name="dossier_print_checks"),
     path("dossier/<int:pk>/checks/archive-receipt/", views.archive_check_receipt_api, name="archive_check_receipt_api"),
     path("dossier/<int:pk>/checks/upload-scan-and-create-receipt/", views.upload_check_scan_and_create_receipt_view, name="upload_check_scan_and_create_receipt"),
-    path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="dossier_upload_scan"),
+        path("dossier/<int:pk>/export-doc/notary/", views.export_notary_letter_word_view, name="export_notary_word"),
+    path("dossier/<int:pk>/export-doc/summary/", views.export_dossier_summary_word_view, name="export_summary_word"),
+path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="dossier_upload_scan"),
     path("dossier/<int:pk>/attachment/<int:attachment_id>/delete/", views.delete_scan_attachment_view, name="dossier_delete_attachment"),
     path("dossier/<int:pk>/upload-signature/", views.upload_dossier_signature_view, name="dossier_upload_signature"),
     path("api/lookup-unit/", views.lookup_preselected_unit_api, name="lookup_unit_api"),
@@ -52,5 +54,23 @@ path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
     path("bank-letter/export-excel/", views.bank_letter_export_excel, name="bank_letter_export_excel"),
     path("bank-letter/lookup/", views.bank_letter_lookup_api, name="bank_letter_lookup"),
     path("api/project-bank-mapping/", views.project_bank_mapping_api, name="project_bank_mapping_api"),
+
+    # Scan Album Image Editing & Drag & Drop Reordering
+    path("dossier/<int:pk>/attachment/reorder/", views.reorder_attachments_view, name="dossier_reorder_attachments"),
+    path("dossier/<int:pk>/attachment/<int:attachment_id>/edit/", views.edit_attachment_image_view, name="dossier_edit_attachment"),
+
+    # Swap Primary Applicant with Spouse
+    path("dossier/<int:pk>/swap-spouse/", views.swap_applicant_spouse_view, name="dossier_swap_spouse"),
+
+    # Dashboard Batch Electronic Sign & Dashboard Export
+    path("dossiers/batch-sign/", views.batch_sign_dossiers_view, name="dossiers_batch_sign"),
+    path("dossiers/export-dashboard/", views.excel_export_dashboard_view, name="excel_export_dashboard"),
+
+    # Enterprise Excel Hub & Mass Operations
+    path("excel-hub/", views.excel_hub_view, name="excel_hub"),
+    path("excel-hub/template/<str:template_type>/", views.download_excel_template_view, name="excel_download_template"),
+    path("excel-hub/upload/stage-signatures/", views.process_stage_signatures_excel_view, name="excel_upload_stage_signatures"),
+    path("excel-hub/upload/commission/", views.process_commission_excel_view, name="excel_upload_commission"),
+    path("excel-hub/upload/swap-spouse/", views.process_swap_spouse_excel_view, name="excel_upload_swap_spouse"),
 
 ]

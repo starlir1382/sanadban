@@ -14,6 +14,14 @@
     updateFileName: '',
     updateResult: null,
 
+    // Real-time Upload Progress State
+    uploadProgress: 0,
+    uploadSpeed: '',
+    uploadedSize: '',
+    uploadEta: '',
+    isUploading: false,
+    isServerProcessing: false,
+
     getCSRF() {
         const input = document.querySelector('[name=csrfmiddlewaretoken]');
         if (input && input.value) return input.value;
@@ -37,72 +45,166 @@
         this.updateResult = null;
     },
 
-    async submitExcelCreate(isPreview = false) {
+    submitExcelCreate(isPreview = false) {
         if (!this.createFile) {
             alert('لطفاً ابتدا فایل اکسل را انتخاب نمایید.');
             return;
         }
         this.isProcessing = true;
-        try {
-            const formData = new FormData();
-            formData.append('file', this.createFile);
-            if (isPreview) formData.append('preview', 'true');
-            
-            const csrfToken = this.getCSRF();
-            const res = await fetch('{% url 'excel_upload_create' %}', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken },
-                body: formData
-            });
-            let data;
-            try {
-                data = await res.json();
-            } catch (jsonErr) {
-                throw new Error('پاسخ سرور نامعتبر است (وضعیت ' + res.status + ')');
+        this.isUploading = true;
+        this.isServerProcessing = false;
+        this.uploadProgress = 0;
+        this.uploadSpeed = 'در حال محاسبه...';
+        this.uploadedSize = '۰ MB';
+        this.uploadEta = 'در حال محاسبه...';
+        this.createResult = null;
+
+        const formData = new FormData();
+        formData.append('file', this.createFile);
+        if (isPreview) formData.append('preview', 'true');
+
+        const xhr = new XMLHttpRequest();
+        const startTime = Date.now();
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && e.total > 0) {
+                const now = Date.now();
+                const elapsed = (now - startTime) / 1000;
+                const pct = Math.min(100, Math.round((e.loaded / e.total) * 100));
+                this.uploadProgress = pct;
+
+                const loadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
+                const totalMb = (e.total / (1024 * 1024)).toFixed(1);
+                this.uploadedSize = `${loadedMb} MB از ${totalMb} MB`;
+
+                const speedBps = elapsed > 0 ? (e.loaded / elapsed) : 0;
+                if (speedBps > 1024 * 1024) {
+                    this.uploadSpeed = (speedBps / (1024 * 1024)).toFixed(1) + ' MB/s';
+                } else {
+                    this.uploadSpeed = (speedBps / 1024).toFixed(0) + ' KB/s';
+                }
+
+                const remaining = e.total - e.loaded;
+                if (speedBps > 0 && remaining > 0) {
+                    const etaSec = Math.ceil(remaining / speedBps);
+                    this.uploadEta = `حدود ${etaSec} ثانیه باقیمانده`;
+                } else {
+                    this.uploadEta = 'در حال پردازش...';
+                }
+
+                if (pct >= 100) {
+                    this.isUploading = false;
+                    this.isServerProcessing = true;
+                }
             }
-            this.createResult = data;
-            if (!isPreview && data.success) {
-                setTimeout(() => { window.location.reload(); }, 1800);
-            }
-        } catch(e) {
-            alert('خطا در برقراری ارتباط با سرور: ' + (e.message || e));
-        } finally {
+        };
+
+        xhr.onload = () => {
             this.isProcessing = false;
-        }
+            this.isUploading = false;
+            this.isServerProcessing = false;
+            try {
+                const data = JSON.parse(xhr.responseText);
+                this.createResult = data;
+                if (!isPreview && data.success) {
+                    setTimeout(() => { window.location.reload(); }, 1800);
+                }
+            } catch (jsonErr) {
+                this.createResult = { success: false, error: 'پاسخ سرور نامعتبر است (وضعیت ' + xhr.status + ')' };
+            }
+        };
+
+        xhr.onerror = () => {
+            this.isProcessing = false;
+            this.isUploading = false;
+            this.isServerProcessing = false;
+            alert('خطا در برقراری ارتباط با سرور.');
+        };
+
+        xhr.open('POST', '{% url "excel_upload_create" %}', true);
+        xhr.setRequestHeader('X-CSRFToken', this.getCSRF());
+        xhr.send(formData);
     },
 
-    async submitExcelUpdate(isPreview = false) {
+    submitExcelUpdate(isPreview = false) {
         if (!this.updateFile) {
             alert('لطفاً ابتدا فایل اکسل را انتخاب نمایید.');
             return;
         }
         this.isProcessing = true;
-        try {
-            const formData = new FormData();
-            formData.append('file', this.updateFile);
-            if (isPreview) formData.append('preview', 'true');
-            
-            const csrfToken = this.getCSRF();
-            const res = await fetch('{% url 'excel_upload_update' %}', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken },
-                body: formData
-            });
-            let data;
-            try {
-                data = await res.json();
-            } catch (jsonErr) {
-                throw new Error('پاسخ سرور نامعتبر است (وضعیت ' + res.status + ')');
+        this.isUploading = true;
+        this.isServerProcessing = false;
+        this.uploadProgress = 0;
+        this.uploadSpeed = 'در حال محاسبه...';
+        this.uploadedSize = '۰ MB';
+        this.uploadEta = 'در حال محاسبه...';
+        this.updateResult = null;
+
+        const formData = new FormData();
+        formData.append('file', this.updateFile);
+        if (isPreview) formData.append('preview', 'true');
+
+        const xhr = new XMLHttpRequest();
+        const startTime = Date.now();
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && e.total > 0) {
+                const now = Date.now();
+                const elapsed = (now - startTime) / 1000;
+                const pct = Math.min(100, Math.round((e.loaded / e.total) * 100));
+                this.uploadProgress = pct;
+
+                const loadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
+                const totalMb = (e.total / (1024 * 1024)).toFixed(1);
+                this.uploadedSize = `${loadedMb} MB از ${totalMb} MB`;
+
+                const speedBps = elapsed > 0 ? (e.loaded / elapsed) : 0;
+                if (speedBps > 1024 * 1024) {
+                    this.uploadSpeed = (speedBps / (1024 * 1024)).toFixed(1) + ' MB/s';
+                } else {
+                    this.uploadSpeed = (speedBps / 1024).toFixed(0) + ' KB/s';
+                }
+
+                const remaining = e.total - e.loaded;
+                if (speedBps > 0 && remaining > 0) {
+                    const etaSec = Math.ceil(remaining / speedBps);
+                    this.uploadEta = `حدود ${etaSec} ثانیه باقیمانده`;
+                } else {
+                    this.uploadEta = 'در حال پردازش...';
+                }
+
+                if (pct >= 100) {
+                    this.isUploading = false;
+                    this.isServerProcessing = true;
+                }
             }
-            this.updateResult = data;
-            if (!isPreview && data.success) {
-                setTimeout(() => { window.location.reload(); }, 1800);
-            }
-        } catch(e) {
-            alert('خطا در برقراری ارتباط با سرور: ' + (e.message || e));
-        } finally {
+        };
+
+        xhr.onload = () => {
             this.isProcessing = false;
-        }
+            this.isUploading = false;
+            this.isServerProcessing = false;
+            try {
+                const data = JSON.parse(xhr.responseText);
+                this.updateResult = data;
+                if (!isPreview && data.success) {
+                    setTimeout(() => { window.location.reload(); }, 1800);
+                }
+            } catch (jsonErr) {
+                this.updateResult = { success: false, error: 'پاسخ سرور نامعتبر است (وضعیت ' + xhr.status + ')' };
+            }
+        };
+
+        xhr.onerror = () => {
+            this.isProcessing = false;
+            this.isUploading = false;
+            this.isServerProcessing = false;
+            alert('خطا در برقراری ارتباط با سرور.');
+        };
+
+        xhr.open('POST', '{% url "excel_upload_update" %}', true);
+        xhr.setRequestHeader('X-CSRFToken', this.getCSRF());
+        xhr.send(formData);
     }
 }" style="margin-bottom: 1.5rem;">
     {% csrf_token %}
@@ -203,10 +305,10 @@
 
     <!-- Export -->
     <div class="xl-group">
-      <a href="{% url 'excel_export_all' %}" class="xl-btn blue" title="خروجی کامل اکسل کلیه پرونده‌ها">
+      <button type="button" @click="SanadbanDownloader.download('{% url 'excel_export_all' %}', 'MaskanYar_Dossiers_Export.xlsx')" class="xl-btn blue" title="خروجی کامل اکسل کلیه پرونده‌ها">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         خروجی کامل اکسل
-      </a>
+      </button>
     </div>
   </div>
 </div>
@@ -248,6 +350,32 @@
                     </div>
                     <div style="font-size: 0.78rem; color: #64748b;">
                         فرمت مجاز: فایل اکسل (.xlsx) با سرستون‌های استاندارد سامانه
+                    </div>
+                </div>
+
+
+                <!-- Real-Time Upload Progress Tracker -->
+                <div x-show="isProcessing" x-cloak style="margin-bottom: 1.25rem; background: #f8fafc; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 1.1rem; box-shadow: 0 4px 12px rgba(15,23,42,0.06);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; border: 2.5px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: sb-spin 0.8s linear infinite;"></div>
+                            <strong style="font-size: 0.88rem; color: #1e3a8a;">
+                                <span x-show="isUploading">در حال ارسال فایل اکسل به سرور...</span>
+                                <span x-show="isServerProcessing">فایل به سرور رسید. در حال اعتبارسنجی و ثبت ردیف‌ها در پایگاه‌داده...</span>
+                            </strong>
+                        </div>
+                        <span class="fa-num" style="font-weight: 800; font-size: 0.95rem; color: #1d4ed8;" x-text="uploadProgress + '٪'"></span>
+                    </div>
+                    
+                    <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-bottom: 0.6rem;">
+                        <div style="height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.2s ease; border-radius: 999px;"
+                             :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #475569;" class="fa-num">
+                        <span x-text="'حجم ارسالی: ' + uploadedSize"></span>
+                        <span x-text="'سرعت آپلود: ' + uploadSpeed"></span>
+                        <span style="font-weight: 700; color: #0284c7;" x-text="uploadEta"></span>
                     </div>
                 </div>
 
@@ -342,6 +470,32 @@
                     </div>
                     <div style="font-size: 0.78rem; color: #64748b;">
                         ستون A: کد ملی متقاضی (کلید جستجو) • ستون‌های دیگر: فیلدهای دلخواه برای بروزرسانی
+                    </div>
+                </div>
+
+
+                <!-- Real-Time Upload Progress Tracker -->
+                <div x-show="isProcessing" x-cloak style="margin-bottom: 1.25rem; background: #f8fafc; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 1.1rem; box-shadow: 0 4px 12px rgba(15,23,42,0.06);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; border: 2.5px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: sb-spin 0.8s linear infinite;"></div>
+                            <strong style="font-size: 0.88rem; color: #1e3a8a;">
+                                <span x-show="isUploading">در حال ارسال فایل اکسل به سرور...</span>
+                                <span x-show="isServerProcessing">فایل به سرور رسید. در حال اعتبارسنجی و ثبت ردیف‌ها در پایگاه‌داده...</span>
+                            </strong>
+                        </div>
+                        <span class="fa-num" style="font-weight: 800; font-size: 0.95rem; color: #1d4ed8;" x-text="uploadProgress + '٪'"></span>
+                    </div>
+                    
+                    <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-bottom: 0.6rem;">
+                        <div style="height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.2s ease; border-radius: 999px;"
+                             :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #475569;" class="fa-num">
+                        <span x-text="'حجم ارسالی: ' + uploadedSize"></span>
+                        <span x-text="'سرعت آپلود: ' + uploadSpeed"></span>
+                        <span style="font-weight: 700; color: #0284c7;" x-text="uploadEta"></span>
                     </div>
                 </div>
 

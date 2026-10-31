@@ -8,9 +8,14 @@ from config.wsgi import application
 BASE_DIR = Path(__file__).resolve().parent
 
 if __name__ == "__main__":
+    # Check CLI argument for port (e.g. python run_waitress.py 8005)
+    cli_port = None
+    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+        cli_port = int(sys.argv[1])
+
     host = os.environ.get("SANADBAN_HOST", "127.0.0.1")
-    port = int(os.environ.get("SANADBAN_PORT", "8000"))
-    threads = int(os.environ.get("SANADBAN_THREADS", "8"))
+    port = cli_port or int(os.environ.get("SANADBAN_PORT", "8005"))
+    threads = int(os.environ.get("SANADBAN_THREADS", "16"))
 
     print("=" * 65)
     print("       SanadBan (MaskanYar) Production WSGI Server")
@@ -24,7 +29,9 @@ if __name__ == "__main__":
         host=host,
         port=port,
         threads=threads,
-        channel_timeout=90,
+        channel_timeout=180,
         cleanup_interval=30,
+        connection_limit=1000,
+        backlog=2048,
         max_request_body_size=104857600,  # 100 MB for large scan attachments
     )

@@ -1,16 +1,16 @@
 const FIELD_STAGE_MAP = {
-  national_id: [1, 8], full_name: [1, 8], father_name: [1, 8], birth_date: [1, 8], applicant_phone: [1, 8],
-  selection_rank: [1, 8], decile: [1, 4], marital_status: [1, 8], is_married_confirmed: [1, 8],
-  spouse_full_name: [1, 8], spouse_father_name: [1, 8], spouse_national_id: [1, 8],
-  spouse_birth_date: [1, 8], spouse_id_number: [1, 8], spouse_birth_place: [1, 8],
-  site: [1, 8], project: [1, 8], construction_type: [1, 8], block_name: [1, 8], block_code: [1, 8],
-  floor_number: [1, 8], unit_number: [1, 8], unit_code: [1, 8], bedroom_count: [1, 8], unit_direction: [1, 8],
-  net_unit_area: [1, 8], common_area: [1, 8], total_area: [1, 8], unit_area: [1, 8],
-  storage_number: [1, 8], storage_area: [1, 8], parking_number: [1, 8], parking_area: [1, 8], covered_parking_area: [1, 8],
-  registration_section: [2, 11, 13], main_plaque: [2, 11, 13], separated_plaque: [2, 11, 13],
-  sub_plaque: [2, 11, 13], plot_number: [2, 11, 13],
+  national_id: [1, 8, 9], full_name: [1, 8, 9], father_name: [1, 8, 9], birth_date: [1, 8, 9], applicant_id_number: [1, 8, 9], applicant_birth_place: [1, 8, 9], applicant_phone: [1, 8, 9],
+  selection_rank: [1, 8, 9], decile: [1, 4], marital_status: [1, 8, 9], is_married_confirmed: [1, 8, 9],
+  spouse_full_name: [1, 8, 9], spouse_father_name: [1, 8, 9], spouse_national_id: [1, 8, 9],
+  spouse_birth_date: [1, 8, 9], spouse_id_number: [1, 8, 9], spouse_birth_place: [1, 8, 9],
+  site: [1, 8, 9], project: [1, 8, 9], project_code: [1, 8, 9], bank_name: [1, 6, 8, 9], bank_branch: [1, 6, 8, 9], construction_type: [1, 8, 9], block_name: [1, 8, 9], block_code: [1, 8, 9],
+  floor_number: [1, 8, 9], unit_number: [1, 8, 9], unit_code: [1, 8, 9], bedroom_count: [1, 8, 9], unit_direction: [1, 8, 9],
+  net_unit_area: [1, 8, 9], common_area: [1, 8, 9], total_area: [1, 8, 9], unit_area: [1, 8, 9],
+  storage_number: [1, 8, 9], storage_area: [1, 8, 9], parking_number: [1, 8, 9], parking_area: [1, 8, 9], covered_parking_area: [1, 8, 9],
+  registration_section: [2, 8, 9, 12, 14], main_plaque: [2, 8, 9, 12, 14], separated_plaque: [2, 8, 9, 12, 14],
+  sub_plaque: [2, 8, 9, 12, 14], plot_number: [2, 8, 9, 12, 14], renovation_code: [2, 8, 9, 12, 14],
   base_cost_without_loan: [2, 18],
-  form_j_questionnaire_number: [1, 3, 8, 10],
+  form_j_questionnaire_number: [1, 3, 7, 8, 10],
   applicant_form_j_status: [1, 3, 8, 10], applicant_form_j_directorate_status: [1, 3, 8, 10], applicant_form_j_red_description: [1, 3, 8, 10],
   spouse_form_j_status: [3, 10], spouse_form_j_directorate_status: [3, 10], spouse_form_j_red_description: [3, 10],
   fund_loan_amount: [4, 18],
@@ -93,32 +93,34 @@ const PersianNumberWords = {
   }
 };
 
-// Official 21-Stage Housing Workflow Configuration (Stages 1 to 21)
-const STAGES_21 = [
-  { id: 1, unit: 'brokerage', role: 'کارشناس ثبت اطلاعات متقاضی، همسر و واحد انتخابی', title: 'ورود اطلاعات انتخاب واحد متقاضی', category: 'کارگزاری مسکن' },
-  { id: 2, unit: 'brokerage', role: 'کارشناس اطلاعات (کارگزاری)', title: 'ورود اطلاعات پلاک ثبتی و قیمت تمام شده', category: 'کارگزاری مسکن' },
-  { id: 3, unit: 'directorate', role: 'کارشناس بررسی فرم ج (عالمی)', title: 'بررسی فرم ج متقاضی و همسر', category: 'استعلامات و تسهیلات' },
-  { id: 4, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (حیدری)', title: 'ورود مبلغ وام صندوق، نامه پیمانکار و وام دهک', category: 'استعلامات و تسهیلات' },
-  { id: 5, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی)', title: 'ارسال پیامک تعیین آورده نقدی و ثبت تاریخ', category: 'استعلامات و تسهیلات' },
-  { id: 6, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (وصالی / حیدری)', title: 'تایید واریز و ثبت نامه معرفی به بانک', category: 'استعلامات و تسهیلات' },
+// Official 22-Stage Housing Workflow Configuration (Stages 1 to 22)
+const STAGES_22 = [
+  { id: 1, unit: 'brokerage', role: 'کارشناس ثبت اطلاعات متقاضی و واحد انتخابی', title: 'ورود اطلاعات انتخاب واحد (پروژه، متقاضی و همسر)', category: 'کارگزاری مسکن' },
+  { id: 2, unit: 'brokerage', role: 'کارشناس اطلاعات و عرصه', title: 'ورود اطلاعات ثبتی عرصه، پلاک، کد نوسازی و قیمت تمام‌شده', category: 'کارگزاری مسکن' },
+  { id: 3, unit: 'directorate', role: 'کارشناس بررسی فرم ج (عالمی)', title: 'بررسی فرم جیم', category: 'استعلامات و تسهیلات' },
+  { id: 4, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (تسهیلات و برآورد)', title: 'ورود وام صندوق، نامه پیمانکار، وام دهک و تعیین آورده نقدی', category: 'استعلامات و تسهیلات' },
+  { id: 5, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (اطلاع‌رسانی آورده)', title: 'ارسال پیامک آورده نقدی متقاضی و ثبت تاریخ', category: 'استعلامات و تسهیلات' },
+  { id: 6, unit: 'directorate', role: 'کارشناس برنامه ریزی مسکن (معرفی به بانک)', title: 'تایید آورده، خروجی اکسل و ثبت شماره نامه معرفی به بانک', category: 'استعلامات و تسهیلات' },
   { id: 7, unit: 'brokerage', role: 'کارشناس تشکیل پرونده کارگزاری', title: 'اسکن مدارک، دفترچه اقساط و ثبت شماره فرم ج', category: 'کارگزاری مسکن' },
-  { id: 8, unit: 'brokerage', role: 'مدیرعامل کارگزاری', title: 'تأیید مدیرعامل کارگزاری', category: 'کارگزاری مسکن' },
-  { id: 9, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن و استعلام تسهیلات بانکی', title: 'بررسی و تایید کارشناس نهضت ملی مسکن', category: 'تأییدات تخصصی اداره کل' },
-  { id: 10, unit: 'directorate', role: 'کارشناس ثبت فرم ج اداره کل', title: 'ثبت و بارگذاری استعلام فرم ج اداره کل', category: 'تأییدات تخصصی اداره کل' },
-  { id: 11, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'بررسی کارشناس فنی و مهندسی', category: 'تأییدات تخصصی اداره کل' },
-  { id: 12, unit: 'directorate', role: 'کارشناس املاک', title: 'بررسی کارشناس املاک (بارگذاری سند مالکیت)', category: 'تأییدات تخصصی اداره کل' },
-  { id: 13, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'بررسی و استعلام کارشناس بانک زمین', category: 'تأییدات تخصصی اداره کل' },
-  { id: 14, unit: 'directorate', role: 'کارشناس حقوقی', title: 'بررسی و تایید کارشناس حقوقی اداره کل', category: 'تأییدات تخصصی اداره کل' },
-  { id: 15, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)', category: 'ارزیابی و وصول' },
-  { id: 16, unit: 'brokerage', role: 'کارشناس دریافت چک‌های وام دهک', title: 'دریافت و اسکن چک‌های تسهیلات دهک', category: 'ارزیابی و وصول' },
-  { id: 17, unit: 'brokerage', role: 'کارشناس وصول درآمد، اجاره و آماده‌سازی', title: 'دریافت نقد و اقساط آماده‌سازی و اجاره عرصه', category: 'ارزیابی و وصول' },
-  { id: 18, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'بررسی کارشناس تسویه با پیمانکار', category: 'تسویه و خاتمه' },
-  { id: 19, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'تأیید نهایی فرم مراحل و صدور نامه محضر', category: 'صدور و بایگانی' },
-  { id: 20, unit: 'directorate', role: 'کارشناس اسکن قرارداد اجاره و چاپ فرم مراحل', title: 'اسکن قرارداد اجاره عرصه و چاپ فرم‌های رسمی', category: 'صدور و بایگانی' },
-  { id: 21, unit: 'directorate', role: 'مسئول بایگانی نهایی اسناد', title: 'مشاهده فرم نهایی و بایگانی قطعی پرونده', category: 'صدور و بایگانی' }
+  { id: 8, unit: 'brokerage', role: 'کارشناس ممیزی و کنترل پرونده ره آزرم', title: 'کارشناس ممیزی و کنترل پرونده ره آزرم (بازبینی و کنترل)', category: 'کارگزاری مسکن' },
+  { id: 9, unit: 'brokerage', role: 'مدیرعامل کارگزاری (رئیس کارگزاری ره آزرم)', title: 'تأیید و امضای مدیرعامل کارگزاری ره آزرم', category: 'کارگزاری مسکن' },
+  { id: 10, unit: 'directorate', role: 'کارشناس نهضت ملی مسکن و استعلام تسهیلات', title: 'بررسی و انطباق کارشناس نهضت ملی مسکن', category: 'تأییدات تخصصی اداره کل' },
+  { id: 11, unit: 'directorate', role: 'کارشناس ثبت فرم ج اداره کل', title: 'بررسی و ثبت فرم ج اداره کل', category: 'تأییدات تخصصی اداره کل' },
+  { id: 12, unit: 'directorate', role: 'کارشناس فنی و مهندسی', title: 'بررسی کارشناس فنی و مهندسی', category: 'تأییدات تخصصی اداره کل' },
+  { id: 13, unit: 'directorate', role: 'کارشناس املاک', title: 'بررسی کارشناس املاک و بارگذاری سند عرصه', category: 'تأییدات تخصصی اداره کل' },
+  { id: 14, unit: 'directorate', role: 'کارشناس بانک زمین', title: 'بررسی کارشناس بانک زمین', category: 'تأییدات تخصصی اداره کل' },
+  { id: 15, unit: 'directorate', role: 'کارشناس حقوقی', title: 'بررسی کارشناس حقوقی', category: 'تأییدات تخصصی اداره کل' },
+  { id: 16, unit: 'directorate', role: 'کارشناس ارزیابی', title: 'کارشناس ارزیابی (تعیین اجاره، آماده‌سازی و فرم ارزیابی)', category: 'ارزیابی و وصول' },
+  { id: 17, unit: 'brokerage', role: 'کارشناس اخذ چک تسهیلات دهک', title: 'دریافت و اسکن چک‌های تسهیلات وام دهک', category: 'ارزیابی و وصول' },
+  { id: 18, unit: 'brokerage', role: 'کارشناس وصول اجاره و آماده‌سازی', title: 'دریافت نقد و اقساط آماده‌سازی و اجاره عرصه', category: 'ارزیابی و وصول' },
+  { id: 19, unit: 'directorate', role: 'کارشناس تسویه با پیمانکار', title: 'بررسی کارشناس تسویه با پیمانکار', category: 'تسویه و خاتمه' },
+  { id: 20, unit: 'directorate', role: 'کارشناس صدور نامه محضر', title: 'تأیید نهایی فرم مراحل و صدور معرفی‌نامه محضر', category: 'صدور و بایگانی' },
+  { id: 21, unit: 'directorate', role: 'کارشناس قرارداد اجاره و چاپ', title: 'اسکن قرارداد اجاره عرصه و چاپ فرم‌های مراحل و ارزیابی', category: 'صدور و بایگانی' },
+  { id: 22, unit: 'directorate', role: 'کارشناس بایگانی اداره کل', title: 'بایگانی نهایی توسط اداره کل (قفل قطعی پرونده)', category: 'صدور و بایگانی' }
 ];
+const STAGES_21 = STAGES_22; // Backward compatibility alias
 
-// Comprehensive 21-Stage Workflow Guidance (Stages 1 to 21)
+// Comprehensive 22-Stage Workflow Guidance (Stages 1 to 22)
 const STAGE_GUIDANCE = {
   1: {
     actionTitle: 'ورود اطلاعات متقاضی، همسر، واحد و پروژه',
@@ -149,7 +151,7 @@ const STAGE_GUIDANCE = {
       'استعلام وضعیت فرم ج همسر متقاضی',
       'ثبت نتیجه استعلام به صورت تاییدشده و سبز'
     ],
-    targetSection: '#section-applicant'
+    targetSection: '#section-form-j'
   },
   4: {
     actionTitle: 'ورود مبلغ وام صندوق، نامه پیمانکار و وام دهک',
@@ -168,7 +170,7 @@ const STAGE_GUIDANCE = {
       'بررسی محاسبه مانده بدهی آورده نقدی متقاضی',
       'ارسال پیامک اعلام واریزی به متقاضی و ثبت تاریخ'
     ],
-    targetSection: '#section-applicant-equity'
+    targetSection: '#section-equity'
   },
   6: {
     actionTitle: 'تایید واریز و ثبت نامه معرفی به بانک',
@@ -178,7 +180,7 @@ const STAGE_GUIDANCE = {
       'ثبت تاریخ صدور نامه بانکی',
       'تعیین وضعیت ارسال به شعبه بانک'
     ],
-    targetSection: '#section-bank-letter'
+    targetSection: '#section-bank'
   },
   7: {
     actionTitle: 'اسکن مدارک، دفترچه اقساط و ثبت شماره فرم ج',
@@ -191,16 +193,26 @@ const STAGE_GUIDANCE = {
     targetSection: '#section-docs-installment'
   },
   8: {
-    actionTitle: 'تأیید مدیرعامل کارگزاری',
-    actionSummary: 'بازبینی کامل پرونده، بررسی صحت مبالغ و مدارک کارگزاری، و تایید نهایی توسط مدیرعامل کارگزاری.',
+    actionTitle: 'بازبینی، ممیزی و کنترل پرونده ره آزرم',
+    actionSummary: 'کنترل و بازبینی دقیق سایر فیلدهای اطلاعاتی پرونده، مدارک هویتی، واحد و مبالغ پیش از ارسال به رئیس کارگزاری.',
     items: [
-      'کنترل رعایت کلیه ضوابط اجرایی مراحل ۱ تا ۷',
-      'بررسی تاییدیه مالی اولیه و اطلاعات ثبتی (امکان ویرایش مرحله ۱)',
-      'ثبت امضای الکترونیک مدیرعامل کارگزاری جهت ارسال به اداره کل'
+      'کنترل و تطبیق فیلدهای پرونده و مدارک هویتی متقاضی و همسر',
+      'بازبینی ارقام مالی، استعلامات و چک‌باکس‌های مدارک',
+      'تایید ممیزی جهت ارسال به مدیرعامل کارگزاری ره آزرم'
     ],
     targetSection: '#audit-timeline-section'
   },
   9: {
+    actionTitle: 'تأیید و امضای مدیرعامل کارگزاری ره آزرم',
+    actionSummary: 'بازبینی کامل پرونده، بررسی صحت مبالغ و مدارک کارگزاری، و تایید نهایی توسط مدیرعامل کارگزاری.',
+    items: [
+      'کنترل رعایت کلیه ضوابط اجرایی مراحل ۱ تا ۸',
+      'بررسی تاییدیه مالی و گزارش ممیزی کارشناس ره آزرم',
+      'ثبت امضای الکترونیک مدیرعامل کارگزاری جهت ارسال به اداره کل'
+    ],
+    targetSection: '#audit-timeline-section'
+  },
+  10: {
     actionTitle: 'بررسی و تایید کارشناس نهضت ملی مسکن',
     actionSummary: 'بررسی کارشناسی و انطباق سوابق متقاضی در طرح نهضت ملی مسکن و تایید احراز زوجیت و دفترچه‌های اقساط.',
     items: [
@@ -210,7 +222,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#audit-timeline-section'
   },
-  10: {
+  11: {
     actionTitle: 'ثبت و بارگذاری استعلام فرم ج اداره کل',
     actionSummary: 'بارگذاری اسکن برگه استعلام رسمی فرم «ج» تاییدشده متقاضی و همسر از سامانه نهضت ملی اداره کل.',
     items: [
@@ -218,9 +230,9 @@ const STAGE_GUIDANCE = {
       'تطبیق وضعیت سبز قطعی متقاضی و همسر',
       'ثبت امضای دیجیتال کارشناس فرم ج'
     ],
-    targetSection: '#form-j-dedicated-card'
+    targetSection: '#section-form-j'
   },
-  11: {
+  12: {
     actionTitle: 'بررسی کارشناس اداره کل (فنی و مهندسی)',
     actionSummary: 'کنترل نقشه‌های معماری، پایان‌کار و تایید مشخصات فنی (با قابلیت ویرایش پلاک ثبتی).',
     items: [
@@ -230,7 +242,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#section-plot'
   },
-  12: {
+  13: {
     actionTitle: 'بررسی کارشناس اداره کل (املاک)',
     actionSummary: 'تطبیق مشخصات ملک، بارگذاری تصویر سند رسمی تک‌برگ مالکیت عرصه و احراز عدم تعارض.',
     items: [
@@ -240,7 +252,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#section-plot'
   },
-  13: {
+  14: {
     actionTitle: 'بررسی و استعلام کارشناس بانک زمین',
     actionSummary: 'استعلام و تطبیق موقعیت جغرافیایی و ثبتی ملک در سامانه جامع بانک زمین اداره کل.',
     items: [
@@ -250,7 +262,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#audit-timeline-section'
   },
-  14: {
+  15: {
     actionTitle: 'بررسی و تایید کارشناس حقوقی اداره کل',
     actionSummary: 'بررسی عدم موانع حقوقی، پرونده‌های مفتوح قضایی یا تعارضات مالکیتی و قراردادهای واگذاری.',
     items: [
@@ -260,7 +272,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#audit-timeline-section'
   },
-  15: {
+  16: {
     actionTitle: 'کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)',
     actionSummary: 'محاسبه قدرالسهم عرصه، اجاره سنواتی، اجاره سال جاری و هزینه‌های آماده‌سازی پروژه مسکونی.',
     items: [
@@ -268,9 +280,9 @@ const STAGE_GUIDANCE = {
       'محاسبه و درج مبلغ اجاره سنوات گذشته و سال جاری (ریال)',
       'تولید فرم رسمی ارزیابی و تعیین هزینه آماده‌سازی'
     ],
-    targetSection: '#section-valuation-rent'
+    targetSection: '#section-valuation'
   },
-  16: {
+  17: {
     actionTitle: 'دریافت و اسکن چک‌های تسهیلات دهک',
     actionSummary: 'دریافت، ثبت و بارگذاری اسکن چک‌های صیادی تسهیلات دهک درآمدی متقاضی.',
     items: [
@@ -280,7 +292,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#section-checks'
   },
-  17: {
+  18: {
     actionTitle: 'دریافت نقد و اقساط آماده‌سازی و اجاره عرصه',
     actionSummary: 'دریافت وجه نقد اجاره و آماده‌سازی (۲۰٪ نقد و ۸۰٪ اقساط) و بارگذاری فیش‌ها و چک‌ها.',
     items: [
@@ -290,7 +302,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#section-checks'
   },
-  18: {
+  19: {
     actionTitle: 'بررسی کارشناس تسویه با پیمانکار',
     actionSummary: 'بررسی صورت‌جلسه تسویه قطعی پیمانکار با قابلیت ویرایش مراحل ۲ و ۴.',
     items: [
@@ -300,7 +312,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#audit-timeline-section'
   },
-  19: {
+  20: {
     actionTitle: 'تأیید نهایی فرم مراحل و صدور نامه محضر',
     actionSummary: 'بررسی و تایید نهایی فرم مراحل و صدور رسمی نامه معرفی متقاضی به دفتر اسناد رسمی.',
     items: [
@@ -310,7 +322,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#section-notary'
   },
-  20: {
+  21: {
     actionTitle: 'اسکن قرارداد اجاره عرصه و چاپ فرم‌های رسمی',
     actionSummary: 'بارگذاری اسکن قرارداد اجاره عرصه امضاشده و چاپ فرم رسمی مراحل و فرم ارزیابی.',
     items: [
@@ -320,7 +332,7 @@ const STAGE_GUIDANCE = {
     ],
     targetSection: '#audit-timeline-section'
   },
-  21: {
+  22: {
     actionTitle: 'مشاهده فرم نهایی و بایگانی قطعی پرونده',
     actionSummary: 'رویت شناسنامه جامع سندی، اعمال قفل سیستمی دائم و اتمام فرآیند در آرشیو قطعی اداره کل.',
     items: [
@@ -341,7 +353,7 @@ document.addEventListener('alpine:init', () => {
     returnReason: '',
     returnBy: '',
     returnFromStage: null,
-    stages: STAGES_21,
+    stages: STAGES_22,
     archiveNumber: null,
     isLoaded: false,
     isLocked: false,
@@ -370,7 +382,14 @@ document.addEventListener('alpine:init', () => {
       if (location.hash !== '#' + t) {
         history.replaceState(null, '', '#' + t);
       }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (t === 'history') {
+        this.showAuditDetails = true;
+      }
+      const tabsEl = document.querySelector('.dt-tabs');
+      if (tabsEl) {
+        const top = tabsEl.getBoundingClientRect().top + window.pageYOffset - 80;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
     },
 
     // Modals
@@ -385,6 +404,8 @@ document.addEventListener('alpine:init', () => {
     toastType: 'success',
 
     // Upload & Scanner Form State
+    draggedIdx: null,
+    dragOverIdx: null,
     uploadForm: {
       title: '',
       doc_type: 'NATIONAL_ID',
@@ -925,13 +946,65 @@ document.addEventListener('alpine:init', () => {
     },
 
     getFilteredAttachments() {
-      if (!this.selectedCategory || this.selectedCategory === 'all') return this.attachments;
-      if (this.selectedCategory === 'identity') return this.attachments.filter(a => a.type === 'NATIONAL_ID' || a.type === 'SPOUSE_ID' || a.type === 'FORM_J' || a.doc_type === 'FORM_J');
-      if (this.selectedCategory === 'form_j') return this.attachments.filter(a => a.type === 'FORM_J' || a.doc_type === 'FORM_J');
-      if (this.selectedCategory === 'bank') return this.attachments.filter(a => a.type === 'BANK_BOOKLET' || a.type === 'BANK_LETTER');
-      if (this.selectedCategory === 'deed') return this.attachments.filter(a => a.type === 'TITLE_DEED' || a.type === 'UNIT_SELECTION');
-      if (this.selectedCategory === 'checks') return this.attachments.filter(a => a.type === 'LOAN_CHECK' || a.type === 'PREP_CHECK' || a.type === 'CHECK_RECEIPT');
-      return this.attachments;
+      // Unified album: All scans are thrown together in custom arranged order
+      return this.attachments || [];
+    },
+
+    async rotateAttachment(item, degrees = 90) {
+      if (this.isLocked) {
+        alert('این پرونده مختومه و قفل است.');
+        return;
+      }
+      try {
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const resp = await fetch(`/dossier/${this.archiveNumber}/attachment/${item.id}/edit-image/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+          body: JSON.stringify({ action: 'rotate', degrees: degrees })
+        });
+        const res = await resp.json();
+        if (res.status === 'success') {
+          item.preview_url = res.preview_url || (item.preview_url + '?t=' + Date.now());
+          if (res.new_sha256) item.sha256 = res.new_sha256;
+          this.triggerToast('چرخش تصویر با موفقیت اعمال و در لاگ امنیتی ثبت شد.', 'success');
+        } else {
+          alert('خطا در چرخش تصویر: ' + (res.message || ''));
+        }
+      } catch (e) {
+        alert('خطای ارتباط: ' + e.message);
+      }
+    },
+
+    async moveAttachment(item, direction) {
+      if (this.isLocked) return;
+      const idx = this.attachments.findIndex(a => a.id === item.id);
+      if (idx === -1) return;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= this.attachments.length) return;
+
+      const swapItem = this.attachments[targetIdx];
+      this.attachments[idx] = swapItem;
+      this.attachments[targetIdx] = item;
+      this.attachments = [...this.attachments];
+
+      const orderedIds = this.attachments.map(a => a.id);
+      try {
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        await fetch(`/dossier/${this.archiveNumber}/attachment/reorder/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+          body: JSON.stringify({ ordered_ids: orderedIds })
+        });
+        this.triggerToast('ترتیب آلبوم مدارک با موفقیت بروزرسانی شد.', 'info');
+      } catch (e) {
+        console.error('Reorder error:', e);
+      }
+    },
+
+    openCropModal(item) {
+      if (this.isLocked) return;
+      this.cropTargetItem = item;
+      this.isCropModalOpen = true;
     },
 
     getCategoryCount(cat) {
@@ -1025,6 +1098,16 @@ document.addEventListener('alpine:init', () => {
             hash: data.attachment ? data.attachment.sha256 : '',
             notes: `سند «${defaultTitle || file.name}» با موفقیت در این بخش بارگذاری گردید.`
           });
+          this.fieldChanges.unshift({
+            field_name: 'attachment',
+            field_label: 'بارگذاری و الصاق مدرک',
+            old_value: '-',
+            new_value: `${defaultTitle || file.name}`,
+            changed_by: data.attachment ? data.attachment.uploader : 'کارشناس سامانه',
+            role: this.getStage(this.currentStage)?.role || 'کارشناس',
+            stage: this.currentStage,
+            timestamp: nowStr
+          });
           this.triggerToast(`مدرک «${defaultTitle || file.name}» با موفقیت بارگذاری و الصاق شد.`, 'success');
         } else {
           this.triggerToast(data.message || 'خطا در بارگذاری مدرک.', 'error');
@@ -1051,10 +1134,35 @@ document.addEventListener('alpine:init', () => {
 
         const data = await res.json();
         if (res.ok && data.status === 'success') {
+          const removedItem = this.attachments.find(a => a.id === attId);
+          const attTitle = removedItem ? removedItem.title : `شناسه ${attId}`;
           this.attachments = this.attachments.filter(a => a.id !== attId);
           if (this.activeScan && this.activeScan.id === attId) {
             this.closeScanViewer();
           }
+          const nowStr = new Date().toLocaleDateString('fa-IR') + ' ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+          this.auditLogs.unshift({
+            step: this.currentStage,
+            fromStage: `مرحله ${this.currentStage}`,
+            toStage: `مرحله ${this.currentStage}`,
+            actor: 'کاربر سامانه',
+            role: this.getStage(this.currentStage)?.role || 'کارشناس',
+            action: 'DELETE',
+            actionLabel: `حذف مدرک: ${attTitle}`,
+            timestamp: nowStr,
+            hash: '',
+            notes: `مدرک پیوست «${attTitle}» با موفقیت از پرونده حذف شد.`
+          });
+          this.fieldChanges.unshift({
+            field_name: 'attachment',
+            field_label: 'حذف مدرک پیوست',
+            old_value: attTitle,
+            new_value: 'حذف قطعی',
+            changed_by: 'کاربر سامانه',
+            role: this.getStage(this.currentStage)?.role || 'کارشناس',
+            stage: this.currentStage,
+            timestamp: nowStr
+          });
           this.triggerToast(data.message || 'مدرک با موفقیت حذف گردید.', 'success');
         } else {
           this.triggerToast(data.message || 'خطا در حذف مدرک.', 'error');
@@ -1097,6 +1205,107 @@ document.addEventListener('alpine:init', () => {
 
     closeScanViewer() {
       this.showScanViewerModal = false;
+    },
+
+    printActiveScan() {
+      if (!this.activeScan) return;
+      this.printScan(this.activeScan);
+    },
+
+    printScan(item) {
+      if (!item) return;
+
+      // 1. If it's a check / amadesazi receipt (or any official print document):
+      // It has the official Header (dossier, project, etc.) and Footer (financials, signatures) as requested
+      if (this.isHtmlDoc(item) || (item.preview_url && item.preview_url.includes('/print/checks/'))) {
+        const printUrl = item.preview_url.includes('auto_print=1') ? item.preview_url : (item.preview_url + (item.preview_url.includes('?') ? '&' : '?') + 'auto_print=1');
+        const printWin = window.open(printUrl, '_blank');
+        if (printWin) {
+          printWin.focus();
+        }
+        return;
+      }
+
+      // 2. If it's a PDF document:
+      if (this.isPdfFile(item) && item.preview_url) {
+        const printWin = window.open(item.preview_url, '_blank');
+        if (printWin) {
+          printWin.focus();
+        }
+        return;
+      }
+
+      // 3. If it's a real scan/image in the album:
+      // Print ONLY the scan image, full-page, with NO uploader name, NO header, NO footer
+      if (item.preview_url) {
+        const printWindow = window.open('', '_blank', 'width=900,height=1200');
+        if (!printWindow) {
+          this.triggerToast('لطفاً اجازه باز شدن پنجره پاپ‌آپ (Pop-up) را در مرورگر صادر فرمایید.', 'error');
+          return;
+        }
+        printWindow.document.write(`<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>چاپ برگه اسکن</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .scan-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 8mm;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        @media print {
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .scan-container {
+                padding: 0 !important;
+            }
+            img {
+                max-width: 100vw !important;
+                max-height: 100vh !important;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="scan-container">
+        <img src="${item.preview_url}" onload="setTimeout(function(){ window.print(); window.close(); }, 350);" onerror="alert('خطا در دریافت تصویر سند'); window.close();" />
+    </div>
+</body>
+</html>`);
+        printWindow.document.close();
+        return;
+      }
+
+      // 4. Fallback for simulated documents
+      window.print();
     },
 
     // Helper methods for Document Album & File types
@@ -1145,9 +1354,7 @@ document.addEventListener('alpine:init', () => {
           }
           this.triggerToast('تصویر اسکن دریافت، سربرگ و امضاها افزوده و به عنوان رسید چک‌ها ذخیره گردید ✓', 'success');
           
-          if (data.print_url) {
-            window.open(data.print_url, '_blank');
-          }
+// No auto-print; added to scan album directly
         } else {
           this.triggerToast(data.message || 'خطا در بارگذاری اسکن چک.', 'error');
         }
@@ -1221,9 +1428,7 @@ document.addEventListener('alpine:init', () => {
 
           this.triggerToast(`تعداد ${count} برگ اسکن دریافت، سربرگ متمرکز و امضاها اعمال شد و در آلبوم اسناد ذخیره گردید ✓`, 'success');
 
-          if (data.print_url) {
-            window.open(data.print_url, '_blank');
-          }
+// No auto-print; added to scan album directly
         } else {
           this.triggerToast(data.message || 'خطا در بارگذاری اسکن چک‌ها.', 'error');
         }
@@ -1309,11 +1514,9 @@ document.addEventListener('alpine:init', () => {
       }
 
       this.uploadForm = {
-        title: finalTitle,
-        doc_type: finalType,
-        fileName: '',
-        preview_url: '',
-        rawFile: null
+        title: finalTitle || '',
+        doc_type: finalType || 'OTHER',
+        filesList: []
       };
       this.isScanning = false;
       this.showUploadModal = true;
@@ -1325,36 +1528,87 @@ document.addEventListener('alpine:init', () => {
     },
 
     handleFileSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
 
-      this.uploadForm.rawFile = file;
-      this.uploadForm.fileName = file.name;
+      files.forEach((f) => {
+        const itemObj = {
+          file: f,
+          fileName: f.name,
+          sizeStr: (f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' مگابایت' : Math.round(f.size / 1024) + ' کیلوبایت'),
+          previewUrl: '',
+          isScanner: false
+        };
+        this.uploadForm.filesList.push(itemObj);
 
-      if (!this.uploadForm.title || this.uploadForm.title.startsWith('مدرک پیوست')) {
-        this.uploadForm.title = file.name.replace(/\.[^/.]+$/, "");
+        if (f.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            itemObj.previewUrl = e.target.result;
+          };
+          reader.readAsDataURL(f);
+        }
+      });
+
+      if (!this.uploadForm.title && files.length === 1) {
+        this.uploadForm.title = files[0].name.replace(/\.[^/.]+$/, "");
       }
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.uploadForm.preview_url = e.target.result;
-      };
-      reader.readAsDataURL(file);
+      if (event.target) event.target.value = '';
+    },
+
+        moveUploadFileUp(idx) {
+      if (!this.uploadForm.filesList || idx <= 0) return;
+      const item = this.uploadForm.filesList.splice(idx, 1)[0];
+      this.uploadForm.filesList.splice(idx - 1, 0, item);
+    },
+
+    moveUploadFileDown(idx) {
+      if (!this.uploadForm.filesList || idx >= this.uploadForm.filesList.length - 1) return;
+      const item = this.uploadForm.filesList.splice(idx, 1)[0];
+      this.uploadForm.filesList.splice(idx + 1, 0, item);
+    },
+
+    reorderFiles(fromIdx, toIdx) {
+      if (!this.uploadForm.filesList || fromIdx === null || toIdx === null || fromIdx === toIdx) return;
+      const item = this.uploadForm.filesList.splice(fromIdx, 1)[0];
+      this.uploadForm.filesList.splice(toIdx, 0, item);
+    },
+
+    removeUploadFile(index) {
+      if (this.uploadForm.filesList) {
+        this.uploadForm.filesList.splice(index, 1);
+      }
+    },
+
+    clearAllUploadFiles() {
+      if (this.uploadForm.filesList) {
+        this.uploadForm.filesList = [];
+      }
     },
 
     simulateScannerDevice() {
       this.isScanning = true;
       setTimeout(() => {
         this.isScanning = false;
-        this.uploadForm.fileName = `scanner_wia_${Date.now()}.jpg`;
-        this.uploadForm.preview_url = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23f8fafc" stroke="%233b82f6" stroke-width="4"/><text x="50%" y="40%" font-size="20" font-family="Tahoma" fill="%231e3a8a" text-anchor="middle">سند اسکن شده از دستگاه اسکنر متصل (WIA/TWAIN)</text><text x="50%" y="55%" font-size="14" font-family="Tahoma" fill="%23059669" text-anchor="middle">کیفیت اسکن: 300 DPI - رنگی - تایید اصالت الکترونیکی</text><circle cx="500" cy="320" r="45" fill="none" stroke="%23dc2626" stroke-dasharray="4,4" stroke-width="2"/><text x="500" y="325" font-size="11" font-family="Tahoma" fill="%23dc2626" text-anchor="middle">مهر دبیرخانه</text></svg>';
-        this.triggerToast('سند با موفقیت از اسکنر سخت‌افزاری دریافت گردید.', 'success');
-      }, 1200);
+        const scanIdx = (this.uploadForm.filesList ? this.uploadForm.filesList.length : 0) + 1;
+        const dummySvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%23f8fafc" stroke="%233b82f6" stroke-width="4"/><text x="50%" y="40%" font-size="20" font-family="Tahoma" fill="%231e3a8a" text-anchor="middle">سند اسکن شده از دستگاه اسکنر متصل (WIA/TWAIN)</text><text x="50%" y="55%" font-size="14" font-family="Tahoma" fill="%23059669" text-anchor="middle">کیفیت اسکن: 300 DPI - رنگی - برگه ' + scanIdx + '</text><circle cx="500" cy="320" r="45" fill="none" stroke="%23dc2626" stroke-dasharray="4,4" stroke-width="2"/><text x="500" y="325" font-size="11" font-family="Tahoma" fill="%23dc2626" text-anchor="middle">مهر دبیرخانه</text></svg>';
+        
+        if (!this.uploadForm.filesList) this.uploadForm.filesList = [];
+        this.uploadForm.filesList.push({
+          file: null,
+          fileName: `scanner_wia_${Date.now()}_sheet_${scanIdx}.jpg`,
+          sizeStr: '300 DPI (اسکن سخت‌افزاری)',
+          previewUrl: dummySvg,
+          isScanner: true
+        });
+        this.triggerToast(`برگه اسکن شماره ${scanIdx} با موفقیت از دستگاه اسکنر دریافت شد.`, 'success');
+      }, 1000);
     },
 
     async submitScanUpload() {
-      if (!this.uploadForm.title || this.uploadForm.title.trim().length < 2) {
-        this.triggerToast('لطفاً عنوان مدرک را وارد فرمایید.', 'error');
+      if (!this.uploadForm.filesList || this.uploadForm.filesList.length === 0) {
+        this.triggerToast('لطفاً حداقل یک فایل مدرک انتخاب یا از طریق اسکنر دریافت نمایید.', 'error');
         return;
       }
 
@@ -1363,17 +1617,23 @@ document.addEventListener('alpine:init', () => {
         return;
       }
 
-      const hashStr = 'SHA256: ' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-      const nowStr = '۱۴۰۳/۰۵/۲۲ ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+      const totalCount = this.uploadForm.filesList.length;
+      const customTitle = (this.uploadForm.title || '').trim();
 
       try {
         const formData = new FormData();
-        formData.append('title', this.uploadForm.title);
-        formData.append('doc_type', this.uploadForm.doc_type);
-        formData.append('preview_url', this.uploadForm.preview_url || '');
-        if (this.uploadForm.rawFile) {
-          formData.append('file', this.uploadForm.rawFile);
+        if (customTitle) {
+          formData.append('title', customTitle);
         }
+        formData.append('doc_type', this.uploadForm.doc_type || 'OTHER');
+
+        this.uploadForm.filesList.forEach((item) => {
+          if (item.file) {
+            formData.append('files', item.file);
+          } else if (item.previewUrl) {
+            formData.append('preview_urls', item.previewUrl);
+          }
+        });
 
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
 
@@ -1388,34 +1648,51 @@ document.addEventListener('alpine:init', () => {
         const resData = await response.json();
 
         if (response.ok && resData.status === 'success') {
-          if (resData.attachment) {
-            this.attachments.unshift({
-              ...resData.attachment,
-              preview_url: resData.attachment.preview_url || this.uploadForm.preview_url
-            });
-          }
+          const newAttachments = resData.attachments || (resData.attachment ? [resData.attachment] : []);
+          
+          // Prepend new attachments to UI list
+          newAttachments.forEach((att) => {
+            this.attachments.unshift(att);
+          });
+
+          const nowStr = '۱۴۰۳/۰۵/۲۲ ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+          const logLabel = newAttachments.length === 1 ? `بارگذاری سند: ${newAttachments[0].title}` : `بارگذاری دسته‌جمعی ${newAttachments.length} برگ سند اسکن‌شده`;
 
           this.auditLogs.unshift({
             step: this.currentStage,
             fromStage: `مرحله ${this.currentStage}`,
             toStage: `مرحله ${this.currentStage}`,
-            actor: resData.attachment ? resData.attachment.uploader : 'کارشناس بارگذاری اسناد',
+            actor: newAttachments[0] ? newAttachments[0].uploader : 'کارشناس بایگانی اسناد',
             role: this.getStage(this.currentStage).role,
             action: 'SUBMIT',
-            actionLabel: `بارگذاری سند: ${this.uploadForm.title}`,
+            actionLabel: logLabel,
             timestamp: nowStr,
-            hash: resData.attachment ? resData.attachment.sha256 : hashStr,
-            notes: `مدرک «${this.uploadForm.title}» با موفقیت اسکن و در مرحله ${this.currentStage} ثبت گردید.`
+            hash: newAttachments[0] ? newAttachments[0].sha256 : '',
+            notes: `تعداد ${newAttachments.length} برگ سند با موفقیت در پوشه پرونده ذخیره و الصاق گردید.`
           });
 
-          this.triggerToast(`مدرک «${this.uploadForm.title}» با موفقیت بارگذاری و الصاق شد.`, 'success');
+          newAttachments.forEach((att) => {
+            this.fieldChanges.unshift({
+              field_name: 'attachment',
+              field_label: 'بارگذاری مدرک اسکن',
+              old_value: '-',
+              new_value: `${att.title} (${att.fileName || ''})`,
+              changed_by: att.uploader || 'کارشناس سامانه',
+              role: this.getStage(this.currentStage)?.role || 'کارشناس',
+              stage: this.currentStage,
+              timestamp: nowStr
+            });
+          });
+
+          this.triggerToast(`تعداد ${newAttachments.length} برگ سند اسکن‌شده با موفقیت الصاق گردید.`, 'success');
           this.showUploadModal = false;
+          this.uploadForm.filesList = [];
         } else {
-          this.triggerToast(resData.message || 'خطا در بارگذاری مدرک. بارگذاری در این مرحله مجاز نمی‌باشد.', 'error');
+          this.triggerToast(resData.message || 'خطا در بارگذاری مدارک.', 'error');
         }
       } catch (err) {
         console.error('Upload error:', err);
-        this.triggerToast('خطای ارتباط با سرور در هنگام بارگذاری مدرک.', 'error');
+        this.triggerToast('خطای ارتباط با سرور در هنگام بارگذاری مدارک.', 'error');
       }
     },
 
@@ -1467,24 +1744,60 @@ document.addEventListener('alpine:init', () => {
     },
 
     isSectionActive(sectionId) {
+      // Locked/archived dossiers have no active action stage
+      if (this.isLocked || Number(this.currentStage) >= 22) return false;
       const stg = Number(this.currentStage);
       const mapping = {
-        'section-applicant': [1, 3, 10],
-        'section-spouse': [1, 3, 10],
-        'section-plot': [2, 11, 13, 14],
-        'section-cost': [2, 18],
-        'section-loans': [4, 18],
+        'section-applicant': [1, 8],
+        'section-form-j': [3, 11],
+        'section-spouse': [1],
+        'section-plot': [2, 8, 12, 14, 15],
+        'section-cost': [2, 19],
+        'section-loans': [4, 19],
         'section-equity': [5],
-        'section-bank': [6, 9],
-        'section-docs-installment': [7, 8],
-        'section-valuation': [15, 18],
-        'section-checks': [16, 17],
-        'scans-album-section': [1, 7, 12, 16, 17, 20]
+        'section-applicant-equity': [5],
+        'section-bank': [6, 10],
+        'section-bank-letter': [6, 10],
+        'section-docs-installment': [7, 8, 9, 21, 22],
+        'section-notary': [20, 21, 22],
+        'section-valuation': [16, 19],
+        'section-valuation-rent': [16, 19],
+        'section-checks': [17, 18],
+        'scans-album-section': [1, 7, 11, 13, 17, 18, 21]
       };
       return mapping[sectionId] ? mapping[sectionId].includes(stg) : false;
     },
 
+    shouldSectionOpen(sectionId) {
+      // For archived/locked dossiers, keep all sections expanded and viewable
+      if (this.isLocked || Number(this.currentStage) >= 22) return true;
+      if (this.isChief || this.isSuperuser) return true;
+      return this.isSectionActive(sectionId);
+    },
+
     // Helper to safely get stage metadata by ID
+    
+    // --------------------------------------------------------------------------
+    // Project Autocomplete & Middle-word Substring Search
+    // --------------------------------------------------------------------------
+    getFilteredProjects(query) {
+      const list = this.projectsList || window.ALL_PROJECTS || [];
+      if (!list.length) return [];
+      if (!query || !String(query).trim()) return list.slice(0, 15);
+      const q = String(query).trim().toLowerCase();
+      // Match query anywhere in project name (including middle of word)
+      return list.filter(p => p.name && p.name.toLowerCase().includes(q)).slice(0, 20);
+    },
+
+    selectProject(p) {
+      if (!p) return;
+      this.form.project = p.name || '';
+      if (p.code) this.form.project_code = p.code;
+      if (p.bank_name) this.form.bank_name = p.bank_name;
+      if (p.branch_name) this.form.bank_branch = p.branch_name;
+      this.markDirty();
+    },
+
     getStage(id) {
       return this.stages.find(s => s.id === Number(id)) || { id, title: `مرحله ${id}`, role: 'کارشناس اقدام‌کننده', unit: 'brokerage' };
     },
@@ -1938,7 +2251,7 @@ document.addEventListener('alpine:init', () => {
           this.auditLogs.unshift({
             step: this.currentStage,
             fromStage: `مرحله ${prevStage}: ${fromInfo.title}`,
-            toStage: this.currentStage <= 21 ? `مرحله ${this.currentStage}: ${toInfo.title}` : 'خاتمه و بایگانی قطعی',
+            toStage: this.currentStage <= 22 ? `مرحله ${this.currentStage}: ${toInfo.title}` : 'خاتمه و بایگانی قطعی',
             actor: 'کاربر ارشد سازمانی',
             role: fromInfo.role,
             action: 'SIGN',
@@ -2190,10 +2503,17 @@ document.addEventListener('alpine:init', () => {
     },
 
     triggerToast(msg, type = 'success') {
-      this.toastMessage = msg;
+      if (!msg || !String(msg).trim()) return;
+      this.toastMessage = String(msg).trim();
       this.toastType = type;
       this.showToast = true;
-      setTimeout(() => { this.showToast = false; }, 4000);
+      if (this._toastTimer) clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => {
+        this.showToast = false;
+        setTimeout(() => {
+          if (!this.showToast) this.toastMessage = '';
+        }, 350);
+      }, 4000);
     }
   }));
 });
@@ -2276,3 +2596,284 @@ document.addEventListener('alpine:init', () => {
     }
   }, { passive: true });
 })();
+
+// =========================================================================
+// Real-Time Excel Downloader & Concurrency Guard with Speed & Progress Bar
+// =========================================================================
+window.SanadbanDownloader = {
+  isDownloading: false,
+  modalEl: null,
+  xhr: null,
+
+  ensureModal() {
+    if (this.modalEl && document.body.contains(this.modalEl)) return;
+    const div = document.createElement('div');
+    div.id = 'sb-download-tracker-modal';
+    div.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      z-index: 99999;
+      width: 380px;
+      max-width: 90vw;
+      background: #ffffff;
+      border: 1.5px solid #93c5fd;
+      border-radius: 14px;
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.22);
+      font-family: inherit;
+      direction: rtl;
+      padding: 14px 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: none;
+    `;
+    div.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="sb-dl-spinner" style="width: 20px; height: 20px; border: 2.5px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: sb-spin 0.8s linear infinite;"></div>
+          <span id="sb-dl-title" style="font-size: 0.86rem; font-weight: 800; color: #1e3a8a;">در حال آماده‌سازی و دریافت اکسل...</span>
+        </div>
+        <span id="sb-dl-pct" class="fa-num" style="font-size: 0.84rem; font-weight: 800; color: #2563eb;">۰٪</span>
+      </div>
+      <div style="width: 100%; height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; margin-bottom: 8px; border: 1px solid #e2e8f0;">
+        <div id="sb-dl-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #1d4ed8); transition: width 0.2s ease; border-radius: 999px;"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; color: #64748b;" class="fa-num">
+        <span id="sb-dl-size">دریافت: در حال محاسبه...</span>
+        <span id="sb-dl-speed">سرعت: در حال محاسبه...</span>
+      </div>
+      <div id="sb-dl-eta" style="font-size: 0.72rem; color: #0284c7; margin-top: 4px; text-align: left; font-weight: 700;" class="fa-num">
+        زمان باقیمانده: چند لحظه...
+      </div>
+    `;
+    document.body.appendChild(div);
+    this.modalEl = div;
+
+    if (!document.getElementById('sb-download-styles')) {
+      const style = document.createElement('style');
+      style.id = 'sb-download-styles';
+      style.textContent = `
+        @keyframes sb-spin {
+          to { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  },
+
+  download(url, filename) {
+    if (this.isDownloading) {
+      alert('یک عملیات دانلود هم‌اکنون در جریان است. لطفاً تا اتمام آن شکیبا باشید.');
+      return;
+    }
+    this.ensureModal();
+    this.isDownloading = true;
+
+    const modal = this.modalEl;
+    const bar = document.getElementById('sb-dl-bar');
+    const pct = document.getElementById('sb-dl-pct');
+    const title = document.getElementById('sb-dl-title');
+    const sizeEl = document.getElementById('sb-dl-size');
+    const speedEl = document.getElementById('sb-dl-speed');
+    const etaEl = document.getElementById('sb-dl-eta');
+    const spinner = document.getElementById('sb-dl-spinner');
+
+    modal.style.display = 'block';
+    bar.style.width = '5%';
+    pct.textContent = '۵٪';
+    title.textContent = 'در حال ارتباط با سرور و آماده‌سازی...';
+    sizeEl.textContent = 'در حال شروع...';
+    speedEl.textContent = '';
+    etaEl.textContent = 'لطفاً منتظر بمانید...';
+    spinner.style.display = 'block';
+
+    const startTime = Date.now();
+    let simPct = 5;
+    let prepTimer = setInterval(() => {
+      if (simPct < 85) {
+        simPct += Math.floor(Math.random() * 6) + 3;
+        if (simPct > 85) simPct = 85;
+        bar.style.width = simPct + '%';
+        pct.textContent = simPct.toLocaleString('fa-IR') + '٪';
+
+        if (simPct < 25) {
+          title.textContent = 'در حال استخراج رکوردها از پایگاه داده...';
+          sizeEl.textContent = 'پردازش پرونده‌های مسکن';
+        } else if (simPct < 50) {
+          title.textContent = 'در حال چینش ستون‌ها و محاسبات مالی...';
+          sizeEl.textContent = 'اعتبارسنجی ارقام و آورده‌ها';
+        } else if (simPct < 75) {
+          title.textContent = 'در حال تولید ساختار فایل اکسل...';
+          sizeEl.textContent = 'اعمال استایل و فونت فارسی';
+        } else {
+          title.textContent = 'در حال فشرده‌سازی و ارسال داده‌ها...';
+          sizeEl.textContent = 'آماده‌سازی انتقال';
+        }
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        etaEl.textContent = `زمان سپری‌شده: ${elapsed.toLocaleString('fa-IR')} ثانیه`;
+      }
+    }, 700);
+
+    const xhr = new XMLHttpRequest();
+    this.xhr = xhr;
+    xhr.open('GET', url, true);
+    xhr.responseType = 'blob';
+
+    xhr.onprogress = (e) => {
+      clearInterval(prepTimer);
+      const now = Date.now();
+      const elapsedSec = (now - startTime) / 1000;
+      const loaded = e.loaded;
+      const loadedMb = (loaded / (1024 * 1024)).toFixed(1);
+      const speedBps = elapsedSec > 0 ? (loaded / elapsedSec) : 0;
+      let speedStr = '';
+      if (speedBps > 1024 * 1024) {
+        speedStr = (speedBps / (1024 * 1024)).toFixed(1) + ' MB/s';
+      } else {
+        speedStr = (speedBps / 1024).toFixed(0) + ' KB/s';
+      }
+
+      if (e.lengthComputable && e.total > 0) {
+        const percent = Math.min(100, Math.round((loaded / e.total) * 100));
+        const totalMb = (e.total / (1024 * 1024)).toFixed(1);
+        bar.style.width = percent + '%';
+        pct.textContent = percent + '٪';
+        title.textContent = 'در حال دریافت فایل اکسل...';
+        sizeEl.textContent = `${loadedMb} MB از ${totalMb} MB`;
+        speedEl.textContent = 'سرعت: ' + speedStr;
+
+        const remainingBytes = e.total - loaded;
+        if (speedBps > 0 && remainingBytes > 0) {
+          const etaSec = Math.ceil(remainingBytes / speedBps);
+          etaEl.textContent = `زمان باقیمانده: حدود ${etaSec} ثانیه`;
+        } else {
+          etaEl.textContent = 'در حال تکمیل...';
+        }
+      } else {
+        title.textContent = 'در حال دریافت فایل اکسل...';
+        sizeEl.textContent = `دریافت شده: ${loadedMb} MB`;
+        speedEl.textContent = 'سرعت: ' + speedStr;
+        etaEl.textContent = `زمان سپری‌شده: ${Math.round(elapsedSec)} ثانیه`;
+        bar.style.width = '80%';
+        pct.textContent = '...';
+      }
+    };
+
+    xhr.onload = () => {
+      clearInterval(prepTimer);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        bar.style.width = '100%';
+        pct.textContent = '۱۰۰٪';
+        title.textContent = 'فایل آماده شد! در حال ذخیره... ✓';
+        spinner.style.display = 'none';
+
+        const blob = xhr.response;
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = filename || 'MaskanYar_Dossiers_Export.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => window.URL.revokeObjectURL(link.href), 1000);
+
+        setTimeout(() => {
+          modal.style.display = 'none';
+          this.isDownloading = false;
+        }, 2200);
+      } else {
+        title.textContent = 'خطا در دریافت فایل (' + xhr.status + ')';
+        spinner.style.display = 'none';
+        etaEl.textContent = 'لطفاً چند لحظه بعد مجدداً تلاش نمایید.';
+        setTimeout(() => {
+          modal.style.display = 'none';
+          this.isDownloading = false;
+        }, 4000);
+      }
+    };
+
+    xhr.onerror = () => {
+      clearInterval(prepTimer);
+      title.textContent = 'خطا در ارتباط با سرور';
+      spinner.style.display = 'none';
+      setTimeout(() => {
+        modal.style.display = 'none';
+        this.isDownloading = false;
+      }, 3000);
+    };
+
+    xhr.send();
+  }
+};
+
+
+// =========================================================================
+// Dark / Light Theme Manager & System Sync
+// =========================================================================
+window.SanadbanTheme = {
+  storageKey: 'sb-theme',
+
+  get() {
+    return document.documentElement.getAttribute('data-theme') || 'light';
+  },
+
+  set(theme) {
+    if (theme !== 'dark' && theme !== 'light') theme = 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem(this.storageKey, theme);
+    } catch (e) {}
+
+    window.dispatchEvent(new CustomEvent('sanadban-theme-changed', { detail: { theme } }));
+    this.syncUI();
+  },
+
+  toggle() {
+    const next = this.get() === 'dark' ? 'light' : 'dark';
+    this.set(next);
+    return next;
+  },
+
+  syncUI() {
+    const isDark = this.get() === 'dark';
+    document.querySelectorAll('.sb-theme-toggle-btn').forEach(btn => {
+      btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      btn.setAttribute('title', isDark ? 'تغییر به تم روشن (روز)' : 'تغییر به تم تاریک (شب)');
+      const label = btn.querySelector('.sb-theme-label');
+      if (label) {
+        label.textContent = isDark ? 'تم روز' : 'تم شب';
+      }
+    });
+
+    document.querySelectorAll('.sb-theme-switch-track').forEach(track => {
+      track.setAttribute('aria-checked', isDark ? 'true' : 'false');
+    });
+  },
+
+  init() {
+    try {
+      const saved = localStorage.getItem(this.storageKey);
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initial = saved || (prefersDark ? 'dark' : 'light');
+      this.set(initial);
+    } catch (e) {
+      this.set('light');
+    }
+
+    // Keyboard shortcut: Alt + T or Ctrl + Alt + D
+    window.addEventListener('keydown', (e) => {
+      if ((e.altKey && (e.key === 't' || e.key === 'T' || e.key === 'ف')) ||
+          (e.ctrlKey && e.altKey && (e.key === 'd' || e.key === 'D' || e.key === 'ی'))) {
+        e.preventDefault();
+        this.toggle();
+      }
+    });
+
+    this.syncUI();
+  }
+};
+
+// Auto-run early
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => window.SanadbanTheme.init());
+} else {
+  window.SanadbanTheme.init();
+}

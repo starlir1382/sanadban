@@ -47,11 +47,11 @@ class StageMappingTestCase(TestCase):
 
     def test_stage_roles_range_and_structure(self):
         """STAGE_ROLES must have exactly 21 steps from 1 to 21."""
-        self.assertEqual(len(STAGE_ROLES), 21)
-        self.assertEqual(set(STAGE_ROLES.keys()), set(range(1, 22)))
+        self.assertEqual(len(STAGE_ROLES), 22)
+        self.assertEqual(set(STAGE_ROLES.keys()), set(range(1, 23)))
         self.assertEqual(MIN_STAGE, 1)
-        self.assertEqual(MAX_STAGE, 21)
-        self.assertEqual(TOTAL_STAGES, 21)
+        self.assertEqual(MAX_STAGE, 22)
+        self.assertEqual(TOTAL_STAGES, 22)
 
         for stg, (unit, role, title) in STAGE_ROLES.items():
             self.assertIn(unit, ("brokerage", "directorate"))
@@ -60,8 +60,8 @@ class StageMappingTestCase(TestCase):
 
     def test_stage_details_keys(self):
         """STAGE_DETAILS must match keys 1 to 21 with required descriptive fields."""
-        self.assertEqual(len(STAGE_DETAILS), 21)
-        self.assertEqual(set(STAGE_DETAILS.keys()), set(range(1, 22)))
+        self.assertEqual(len(STAGE_DETAILS), 22)
+        self.assertEqual(set(STAGE_DETAILS.keys()), set(range(1, 23)))
         for stg, d in STAGE_DETAILS.items():
             self.assertIn("title", d)
             self.assertIn("actor", d)
@@ -73,9 +73,9 @@ class StageMappingTestCase(TestCase):
         """All old stages 0 to 21 map correctly to new stages 1 to 21."""
         expected = {
             0: 1, 1: 2, 2: 2, 3: 3, 4: 4, 5: 4, 6: 4,
-            7: 5, 8: 6, 9: 7, 10: 8, 11: 9, 12: 11,
-            13: 12, 14: 13, 15: 14, 16: 10, 17: 15,
-            18: 16, 19: 18, 20: 19, 21: 21
+            7: 5, 8: 6, 9: 7, 10: 9, 11: 10, 12: 12,
+            13: 13, 14: 14, 15: 15, 16: 11, 17: 16,
+            18: 17, 19: 19, 20: 20, 21: 22
         }
         for old_stg, exp_new in expected.items():
             self.assertEqual(map_old_to_new_stage(old_stg), exp_new, f"Mapping failed for old stage {old_stg}")
@@ -89,20 +89,21 @@ class StageMappingTestCase(TestCase):
         self.assertEqual(map_new_to_old_stage(5), 7)
         self.assertEqual(map_new_to_old_stage(6), 8)
         self.assertEqual(map_new_to_old_stage(7), 9)
-        self.assertEqual(map_new_to_old_stage(8), 10)
-        self.assertEqual(map_new_to_old_stage(9), 11)
-        self.assertEqual(map_new_to_old_stage(10), 16)
-        self.assertEqual(map_new_to_old_stage(11), 12)
-        self.assertEqual(map_new_to_old_stage(12), 13)
-        self.assertEqual(map_new_to_old_stage(13), 14)
-        self.assertEqual(map_new_to_old_stage(14), 15)
-        self.assertEqual(map_new_to_old_stage(15), 17)
-        self.assertEqual(map_new_to_old_stage(16), 18)
+        self.assertEqual(map_new_to_old_stage(8), 9)
+        self.assertEqual(map_new_to_old_stage(9), 10)
+        self.assertEqual(map_new_to_old_stage(10), 11)
+        self.assertEqual(map_new_to_old_stage(11), 16)
+        self.assertEqual(map_new_to_old_stage(12), 12)
+        self.assertEqual(map_new_to_old_stage(13), 13)
+        self.assertEqual(map_new_to_old_stage(14), 14)
+        self.assertEqual(map_new_to_old_stage(15), 15)
+        self.assertEqual(map_new_to_old_stage(16), 17)
         self.assertEqual(map_new_to_old_stage(17), 18)
-        self.assertEqual(map_new_to_old_stage(18), 19)
-        self.assertEqual(map_new_to_old_stage(19), 20)
+        self.assertEqual(map_new_to_old_stage(18), 18)
+        self.assertEqual(map_new_to_old_stage(19), 19)
         self.assertEqual(map_new_to_old_stage(20), 20)
-        self.assertEqual(map_new_to_old_stage(21), 21)
+        self.assertEqual(map_new_to_old_stage(21), 20)
+        self.assertEqual(map_new_to_old_stage(22), 21)
 
     def test_convert_allowed_stages_string(self):
         """Allowed stages string correctly maps both forward and backwards without duplicates."""
@@ -111,10 +112,10 @@ class StageMappingTestCase(TestCase):
 
         # Old: 0,1,2,10 -> New: 1,2,8
         forward_res = convert_allowed_stages_string("0, 1, 2, 10")
-        self.assertEqual(forward_res, "1,2,8")
+        self.assertEqual(forward_res, "1,2,9")
 
         # Reverse conversion: 1,2,8 -> 0,2,10
-        reverse_res = convert_allowed_stages_string("1, 2, 8", forward=False)
+        reverse_res = convert_allowed_stages_string("1, 2, 9", forward=False)
         self.assertEqual(reverse_res, "0,2,10")
 
         # Empty / whitespace handling
@@ -181,7 +182,7 @@ class WorkflowExecutionTestCase(TestCase):
         self.assertEqual(dossier.current_stage, 1)
         self.assertEqual(dossier.archive_number, 100001)
 
-        for step in range(1, 22):
+        for step in range(1, 23):
             req = self.factory.post(
                 f"/dossier/{dossier.archive_number}/action/sign/",
                 data=json.dumps({"notes": f"امضا مرحله {step}"}),
@@ -192,12 +193,12 @@ class WorkflowExecutionTestCase(TestCase):
             self.assertEqual(resp.status_code, 200)
 
             dossier.refresh_from_db()
-            if step < 21:
+            if step < 22:
                 self.assertEqual(dossier.current_stage, step + 1)
                 self.assertFalse(dossier.is_locked)
                 self.assertEqual(dossier.status, "IN_PROGRESS")
             else:
-                self.assertEqual(dossier.current_stage, 21)
+                self.assertEqual(dossier.current_stage, 22)
                 self.assertTrue(dossier.is_locked)
                 self.assertEqual(dossier.status, "COMPLETED")
 

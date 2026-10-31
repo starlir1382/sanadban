@@ -6,30 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>
-      فرم مراحل قرارداد اجاره عرصه انفرادی - پرونده {{
-      dossier.archive_number|default:'100001' }}
+      فرم مراحل قرارداد اجاره عرصه انفرادی - پرونده {{ dossier.archive_number|default:'-' }}
     </title>
 
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="{% static 'img/favicon.svg' %}"
-    />
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
     <link rel="alternate icon" href="{% static 'img/favicon.png' %}" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
-    />
+    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}" />
     <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.0" />
 
     <style>
-      * {
-        box-sizing: border-box;
-      }
-
-      html {
-        direction: rtl;
-      }
+      * { box-sizing: border-box; }
+      html { direction: rtl; }
 
       body {
         margin: 0;
@@ -44,28 +31,45 @@
         print-color-adjust: exact;
       }
 
+      /* A4 sheet: exactly 210 x 297 mm, double-line frame inside a 5 mm paper margin */
       .print-paper {
         width: 210mm;
-        min-height: 297mm;
-        padding: 8mm;
+        height: 297mm;
+        padding: 5mm;
         background: #fff;
-        border: 1px solid #cbd5e1;
         box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1);
         position: relative;
         flex-shrink: 0;
+        overflow: hidden;
+      }
+      .page-frame {
+        height: 100%;
+        border: 1.6pt solid #0f2744;
+        padding: 0.9mm;
+      }
+      .page-inner {
+        height: 100%;
+        border: 0.5pt solid #64748b;
+        padding: 3.5mm;
+        position: relative;
+        display: flex;              /* spreads the sections evenly over the full height */
+        flex-direction: column;
+        justify-content: space-between;
       }
 
+      /* ---------- generic official tables ---------- */
       .official-doc-table {
         width: 100%;
         table-layout: fixed;
         border-collapse: collapse;
-        margin: 0 0 7px;
+        margin: 0 0 3px;
         font-size: 8pt;
         line-height: 1.45;
         text-align: right;
         page-break-inside: avoid;
+        position: relative;
+        z-index: 1;
       }
-
       .official-doc-table th,
       .official-doc-table td {
         border: 1px solid #94a3b8;
@@ -74,63 +78,81 @@
         overflow-wrap: break-word;
         word-wrap: break-word;
       }
+      .official-doc-table tr { page-break-inside: avoid; break-inside: avoid; }
+      .official-doc-table tr:first-child td { border-top: 1px solid #64748b; }
 
-      .official-doc-table tr {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
-
-      .official-doc-table tr:first-child td {
-        border-top: 1px solid #64748b;
-      }
-
-      .table-section-title {
-        background: #eaf0f7;
+      .side-title {
+        width: 14%;
+        padding: 2px 3px !important;
         font-weight: 800;
-        text-align: center;
-        font-size: 8pt;
-      }
-
-      .official-doc-table td[style*="background: #e2e8f0"] {
-        background: #eaf0f7 !important;
-      }
-
-      .official-doc-table td[style*="background: #f8fafc"] {
-        background: #f7f9fc !important;
-      }
-
-      .official-doc-table td[style*="background: #f1f5f9"] {
-        background: #f0f4f8 !important;
-      }
-
-      .sig-box {
-        height: 43px;
-        padding: 4px !important;
+        background: #eaf0f7;
         text-align: center;
         vertical-align: middle;
-        position: relative;
-        background: #fff;
       }
+      .cell-head { background: #f7f9fc; }
+      .cell-sub  { background: #f0f4f8; font-weight: 700; }
 
+      /* ---------- signature card: log (right) | ink (left) ---------- */
+      .sig-cell-td { padding: 0 !important; vertical-align: top !important; background: #fff; }
+      .sig-card { width: 100%; }
+      .sig-label {
+        background: #f7f9fc;
+        border-bottom: 1px solid #94a3b8;
+        text-align: center;
+        font-weight: 800;
+        font-size: 7.5pt;
+        padding: 2px;
+      }
+      .sig-split {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        margin: 0;
+        height: 15mm;
+      }
+      .official-doc-table .sig-split tr td {
+        border: 0 !important;
+        padding: 0 !important;
+        vertical-align: middle;
+      }
+      /* RTL: first <td> is the RIGHT side -> the log */
+      .official-doc-table .sig-split .sig-log {
+        width: 40%;
+        padding: 1mm 2mm !important;
+        text-align: right;
+        border-left: 1px dashed #cbd5e1 !important;
+      }
+      .sig-name { display: block; font-size: 6.8pt; font-weight: 800; color: #0f172a; line-height: 1.35; }
+      .sig-line { display: block; font-size: 6.2pt; color: #475569; line-height: 1.35; }
+      .sig-ref  {
+        display: block; margin-top: 0.4mm;
+        font-size: 5.4pt; color: #94a3b8; line-height: 1.2;
+        font-family: monospace; direction: ltr; text-align: right; letter-spacing: 0.4px;
+      }
+      /* LEFT side -> the signature, sitting on a faint baseline like a paper form */
+      .sig-ink { text-align: center; }
+      .sig-base {
+        height: 11mm;
+        margin: 1.5mm 6% 0;
+        border-bottom: 0.6px solid #94a3b8;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .sig-base .digital-stamp { vertical-align: bottom; margin-bottom: 1.2mm; }
       .sig-img {
-        width: 34px;
-        height: 29px;
+        vertical-align: bottom;
+        max-width: 100%;
+        max-height: 10.5mm;
         object-fit: contain;
         mix-blend-mode: multiply;
-        display: inline-block;
-        margin: 0 auto;
-        vertical-align: middle;
+        transform: translateX(var(--x, 0)) rotate(var(--r, 0deg));
       }
+      /* fixed, deterministic "hand-made" variation: identical on every reprint */
+      .sig-v1 .sig-img { --r: -3deg; --x: 3px; }
+      .sig-v2 .sig-img { --r: 2deg;  --x: -4px; }
+      .sig-v3 .sig-img { --r: -1deg; --x: 2px; }
 
-      .sig-meta {
-        display: block;
-        margin-top: 2px;
-        color: #64748b;
-        font-size: 6pt;
-        line-height: 1.3;
-        white-space: normal;
-        overflow-wrap: anywhere;
-      }
+      .sig-pending-td { text-align: center; }
 
       .digital-stamp {
         display: inline-block;
@@ -142,7 +164,6 @@
         font-size: 6.2pt;
         font-weight: 700;
       }
-
       .pending-stamp {
         display: inline-block;
         padding: 3px 5px;
@@ -154,223 +175,87 @@
         font-weight: 600;
       }
 
-      .money-panel {
-        height: 100%;
-        line-height: 1.8;
-        font-size: 7.6pt;
-      }
-
+      /* ---------- money panel ---------- */
+      .money-panel { height: 100%; line-height: 1.8; font-size: 7.6pt; }
       .money-panel .money-title {
-        font-weight: 800;
-        font-size: 8pt;
-        color: #0f2744;
-        padding-bottom: 3px;
-        margin-bottom: 4px;
-        border-bottom: 1px solid #cbd5e1;
+        font-weight: 800; font-size: 8pt; color: #0f2744;
+        padding-bottom: 3px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1;
       }
-
       .money-panel .money-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        gap: 5px;
-        padding: 1px 0;
+        display: flex; justify-content: space-between; align-items: baseline;
+        gap: 5px; padding: 1px 0;
       }
+      .money-panel .money-value { font-weight: 800; color: #0f2744; text-align: left; overflow-wrap: anywhere; }
 
-      .money-panel .money-value {
-        font-weight: 800;
-        color: #0f2744;
-        text-align: left;
-        overflow-wrap: anywhere;
-      }
-
-      .section-label {
-        font-weight: 800;
-        text-align: center;
-        background: #eaf0f7;
-      }
-
-      .document-header {
-        font-size: 10.5pt;
-        font-weight: 800;
-        color: #0f172a;
-        margin-bottom: 2px;
-      }
-
-      .document-subheader {
-        font-size: 8.5pt;
-        font-weight: 700;
-        color: #334155;
-      }
-
+      /* ---------- header / footer ---------- */
+      .document-header { font-size: 10.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+      .document-subheader { font-size: 8.5pt; font-weight: 700; color: #334155; }
       .document-meta {
-        font-size: 7.2pt;
-        color: #64748b;
-        margin-top: 2px;
-        display: flex;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 3px 8px 0;
-        border-top: 1px dashed #cbd5e1;
+        font-size: 7.2pt; color: #64748b; margin-top: 2px;
+        display: flex; justify-content: space-between; gap: 8px;
+        padding: 3px 8px 0; border-top: 1px dashed #cbd5e1;
+      }
+      .document-meta span { min-width: 0; }
+
+      /* shown only while fewer than 14 signatures exist */
+      .draft-mark {
+        position: absolute; top: 46%; left: 50%;
+        transform: translate(-50%, -50%) rotate(-28deg);
+        font-size: 34pt; font-weight: 800; color: rgba(180, 83, 9, 0.09);
+        white-space: nowrap; pointer-events: none; z-index: 0;
+        border: 3px solid rgba(180, 83, 9, 0.09); padding: 4px 18px; border-radius: 8px;
       }
 
-      .document-meta span {
-        min-width: 0;
-      }
-
-      .security-footer {
-        margin-top: 6px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-        font-size: 6.8pt;
-        color: #64748b;
-        border-top: 1px solid #cbd5e1;
-        padding-top: 3px;
-      }
-
-      .security-footer span {
-        min-width: 0;
-      }
-
-      .print-controls {
-        position: fixed;
-        top: 1rem;
-        right: 2rem;
-        z-index: 100;
-        display: flex;
-        gap: 0.5rem;
-      }
-
+      .print-controls { position: fixed; top: 1rem; right: 2rem; z-index: 100; display: flex; gap: 0.5rem; }
       .print-controls button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        font-family: inherit;
-        cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 7px; font-family: inherit; cursor: pointer;
       }
 
-      @page {
-        size: A4 portrait;
-        margin: 0;
-      }
+      @page { size: A4 portrait; margin: 0; }
 
-      @media screen {
-        .print-paper {
-          margin: 0 auto;
-        }
-      }
+      @media screen { .print-paper { margin: 0 auto; } }
 
       @media print {
-        html,
-        body {
-          width: 210mm;
-          min-height: 0;
-          margin: 0 !important;
-          padding: 0 !important;
+        html, body {
+          width: 210mm; height: 296mm; overflow: hidden;
+          margin: 0 !important; padding: 0 !important;
           background: #fff !important;
         }
-
-        body {
-          display: block;
-        }
-
+        body { display: block; }
         .print-paper {
-          width: 210mm !important;
-          min-height: 0 !important;
-          margin: 0 !important;
-          padding: 7mm !important;
-          border: 1px solid #64748b !important;
-          box-shadow: none !important;
+          width: 210mm !important; height: 296mm !important;
+          margin: 0 !important; box-shadow: none !important;
         }
-
-        .official-doc-table {
-          margin-bottom: 5px;
-          font-size: 7.5pt;
-        }
-
-        .official-doc-table th,
-        .official-doc-table td {
-          padding: 3px 4px;
-        }
-
-        .sig-box {
-          height: 39px;
-        }
-
-        .sig-img {
-          height: 25px;
-        }
-
-        .no-print {
-          display: none !important;
-        }
-
-        .official-doc-table,
-        .official-doc-table tr,
-        .sig-box {
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-
-        img {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
+        .no-print { display: none !important; }
+        .official-doc-table, .official-doc-table tr, .sig-card { break-inside: avoid; page-break-inside: avoid; }
+        img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       }
 
       @media screen and (max-width: 800px) {
-        body {
-          padding: 10px;
-          overflow-x: auto;
-          justify-content: flex-start;
-        }
-
-        .print-paper {
-          transform-origin: top right;
-        }
-
-        .print-controls {
-          top: 10px;
-          right: 10px;
-        }
+        body { padding: 10px; overflow-x: auto; justify-content: flex-start; }
+        .print-paper { transform-origin: top right; }
+        .print-controls { top: 10px; right: 10px; }
       }
     </style>
   </head>
 
   <body>
-    <!-- دکمه‌های خارج از چاپ -->
+    {% if not is_word_export %}
     <div class="print-controls no-print">
       <button
         onclick="window.print()"
         class="btn btn-primary"
-        style="
-          padding: 0.55rem 1.25rem;
-          font-size: 0.85rem;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        "
+        style="padding: 0.55rem 1.25rem; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2)"
         type="button"
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-        >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <polyline points="6 9 6 2 18 2 18 9"></polyline>
-          <path
-            d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
-          ></path>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
           <rect x="6" y="14" width="12" height="8"></rect>
         </svg>
         <span>چاپ رسمی فرم</span>
       </button>
-
       <button
         onclick="window.close()"
         class="btn btn-outline"
@@ -380,57 +265,35 @@
         <span>بستن</span>
       </button>
     </div>
+    {% endif %}
 
-    <main class="print-paper fa-num">
+    <main class="print-paper fa-num"><div class="page-frame"><div class="page-inner">
+      {% with rent=dossier.tenant_price|default:dossier.current_year_rent %}
+      {% if signed_count != 14 %}<div class="draft-mark">پیش‌نویس · امضاها تکمیل نشده</div>{% endif %}
+
       <!-- 1. سربرگ رسمی -->
       <table class="official-doc-table" style="margin-bottom: 5px">
         <tr>
-          <td
-            colspan="10"
-            style="
-              background: #f8fafc;
-              text-align: center;
-              padding: 6px;
-              border: 1.5px solid #0f2744;
-            "
-          >
-            <div class="document-header">
-              فرم مراحل قرارداد اجاره عرصه انفرادی – مسکن ملی
-            </div>
+          <td colspan="10" style="background: #f8fafc; text-align: center; padding: 6px; border: 1.5px solid #0f2744">
+            <div class="document-header">فرم مراحل قرارداد اجاره عرصه انفرادی – مسکن ملی</div>
 
             <div class="document-subheader">
-              عضو شرکت تعاونی / شرکت سازنده:
-              <strong>{{ dossier.project|default:'ایراء البرز' }}</strong>
-              — سایت:
-              <strong>{{ dossier.site|default:'۲۷ هکتاری' }}</strong>
+              عضو شرکت تعاونی / شرکت سازنده: <strong>{{ dossier.project|default:'-' }}</strong>
+              — بانک عامل: <strong>{{ dossier.bank_display_name|default:'-' }}</strong>
+              — سایت: <strong>{{ dossier.site|default:'-' }}</strong>
             </div>
 
             <div class="document-meta">
+              <span>شماره پرونده بایگانی: <strong>#{{ dossier.archive_number|default:'-' }}</strong></span>
               <span>
-                شماره پرونده بایگانی:
-                <strong>#{{ dossier.archive_number|default:'-' }}</strong>
-              </span>
-
-              <span>
-                وضعیت امضاهای رسمی: {% if signed_count == 14 %}
-                <strong style="color: #15803d">
-                  تکمیل هر ۱۴ امضای رسمی ✓
-                </strong>
+                وضعیت امضاهای رسمی:
+                {% if signed_count == 14 %}
+                <strong style="color: #15803d">تکمیل هر ۱۴ امضای رسمی ✓</strong>
                 {% else %}
-                <strong style="color: #b45309">
-                  {{ signed_count|default:'0' }} از ۱۴ امضا ثبت شده است
-                </strong>
+                <strong style="color: #b45309">{{ signed_count|default:'0' }} از ۱۴ امضا ثبت شده است</strong>
                 {% endif %}
               </span>
-
-              <span>
-                تاریخ گزارش:
-                <strong
-                  >{{
-                  today_jalali|default:dossier.stage_entry_date_jalali|default:'-'
-                  }}</strong
-                >
-              </span>
+              <span>تاریخ گزارش: <strong>{{ today_jalali|default:dossier.stage_entry_date_jalali|default:'-' }}</strong></span>
             </div>
           </td>
         </tr>
@@ -438,119 +301,72 @@
 
       <!-- 2. مشخصات متقاضی و همسر -->
       <table class="official-doc-table">
-        <tr class="table-section-title">
-          <td
-            rowspan="3"
-            style="
-              width: 14%;
-              font-weight: 800;
-              background: #e2e8f0;
-              text-align: center;
-            "
-          >
-            مشخصات متقاضی و همسر
-          </td>
-
-          <td style="width: 18%; background: #f8fafc">طرف اول / عنوان</td>
-          <td style="width: 22%; background: #f8fafc">نام و نام خانوادگی</td>
-          <td style="width: 14%; background: #f8fafc">نام پدر</td>
-          <td style="width: 16%; background: #f8fafc">کد ملی</td>
-          <td style="width: 14%; background: #f8fafc">تاریخ تولد</td>
+        <tr>
+          <td rowspan="3" class="side-title">مشخصات متقاضی و همسر</td>
+          <td class="cell-head" style="width: 11%">طرف اول / عنوان</td>
+          <td class="cell-head" style="width: 18%">نام و نام خانوادگی</td>
+          <td class="cell-head" style="width: 11%">نام پدر</td>
+          <td class="cell-head" style="width: 15%">کد ملی</td>
+          <td class="cell-head" style="width: 11%">شماره شناسنامه</td>
+          <td class="cell-head" style="width: 14%">تاریخ تولد</td>
+          <td class="cell-head" style="width: 6%; text-align: center">دهک</td>
         </tr>
-
         <tr style="text-align: center; font-weight: 700">
-          <td
-            style="background: #f1f5f9; text-align: right; padding-right: 6px"
-          >
-            متقاضی
-          </td>
+          <td class="cell-sub" style="text-align: right; padding-right: 6px">متقاضی</td>
           <td>{{ dossier.full_name|default:'-' }}</td>
           <td>{{ dossier.father_name|default:'-' }}</td>
-          <td style="letter-spacing: 1px">
-            {{ dossier.national_id|default:'-' }}
-          </td>
-          <td>{{ dossier.birth_date|default:'-' }}</td>
+          <td style="letter-spacing: 1px">{{ dossier.national_id|default:'-' }}</td>
+          <td>{{ dossier.applicant_id_number|default:'-' }}</td>
+          <td style="white-space: nowrap">{{ dossier.birth_date|default:'-' }}</td>
+          <td rowspan="2" style="font-size: 11pt; font-weight: 800; color: #0f2744">{{ dossier.decile|default:'-' }}</td>
         </tr>
-
         <tr style="text-align: center; font-weight: 700">
-          <td
-            style="background: #f1f5f9; text-align: right; padding-right: 6px"
-          >
-            همسر
-          </td>
+          <td class="cell-sub" style="text-align: right; padding-right: 6px">همسر</td>
           <td>{{ dossier.spouse_full_name|default:'-' }}</td>
           <td>{{ dossier.spouse_father_name|default:'-' }}</td>
-          <td style="letter-spacing: 1px">
-            {{ dossier.spouse_national_id|default:'-' }}
-          </td>
-          <td>{{ dossier.spouse_birth_date|default:'-' }}</td>
+          <td style="letter-spacing: 1px">{{ dossier.spouse_national_id|default:'-' }}</td>
+          <td>{{ dossier.spouse_id_number|default:'-' }}</td>
+          <td style="white-space: nowrap">{{ dossier.spouse_birth_date|default:'-' }}</td>
         </tr>
       </table>
 
       <!-- 3. مشخصات مورد اجاره -->
       <table class="official-doc-table">
         <tr>
-          <td
-            rowspan="4"
-            style="
-              width: 14%;
-              font-weight: 800;
-              background: #e2e8f0;
-              text-align: center;
-            "
-          >
-            مشخصات مورد اجاره
-          </td>
-
-          <td colspan="8" style="background: #f1f5f9; font-weight: 700">
-            مشخصات واحد آپارتمانی و متعلقات اختصاصی:
-          </td>
+          <td rowspan="4" class="side-title">مشخصات مورد اجاره</td>
+          <td colspan="8" class="cell-sub">مشخصات واحد آپارتمانی و متعلقات اختصاصی:</td>
         </tr>
-
         <tr style="text-align: center">
-          <td style="width: 10%; background: #f8fafc">بلوک:</td>
-          <td style="width: 12%; font-weight: bold">
-            {{ dossier.block_name|default:'۲۷' }}
-          </td>
-          <td style="width: 10%; background: #f8fafc">طبقه:</td>
-          <td style="width: 12%; font-weight: bold">
-            {{ dossier.floor_number|default:'۴' }}
-          </td>
-          <td style="width: 10%; background: #f8fafc">شماره واحد:</td>
-          <td style="width: 14%; font-weight: bold">
-            {{ dossier.unit_number|default:'۵۳' }}
-          </td>
-          <td style="width: 12%; background: #f8fafc">مساحت واحد:</td>
-          <td style="width: 18%; font-weight: bold">
-            {{ dossier.unit_area|default:'100.57' }} م²
-          </td>
+          <td class="cell-head" style="width: 9%">بلوک:</td>
+          <td style="width: 11%; font-weight: bold">{{ dossier.block_name|default:'-' }}</td>
+          <td class="cell-head" style="width: 9%">طبقه:</td>
+          <td style="width: 11%; font-weight: bold">{{ dossier.floor_number|default:'-' }}</td>
+          <td class="cell-head" style="width: 10%">شماره واحد:</td>
+          <td style="width: 13%; font-weight: bold">{{ dossier.unit_number|default:'-' }}</td>
+          <td class="cell-head" style="width: 11%">مساحت واحد:</td>
+          <td style="width: 12%; font-weight: bold">{{ dossier.unit_area|default:'-' }} مترمربع</td>
         </tr>
-
         <tr style="text-align: center">
-          <td style="background: #f8fafc">شماره انباری:</td>
-          <td style="font-weight: bold">
-            {{ dossier.storage_number|default:'۴۵' }}
-          </td>
-          <td style="background: #f8fafc">مساحت انباری:</td>
-          <td style="font-weight: bold">
-            {{ dossier.storage_area|default:'2.72' }} م²
-          </td>
-          <td style="background: #f8fafc">شماره پارکینگ:</td>
-          <td style="font-weight: bold">
-            {{ dossier.parking_number|default:'۳۵' }}
-          </td>
-          <td style="background: #f8fafc">مساحت پارکینگ:</td>
-          <td style="font-weight: bold">
-            {{ dossier.parking_area|default:'12.50' }} م²
-          </td>
+          <td class="cell-head">شماره انباری:</td>
+          <td style="font-weight: bold">{{ dossier.storage_number|default:'-' }}</td>
+          <td class="cell-head">مساحت انباری:</td>
+          <td style="font-weight: bold">{{ dossier.storage_area|default:'-' }} مترمربع</td>
+          <td class="cell-head">شماره پارکینگ:</td>
+          <td style="font-weight: bold">{{ dossier.parking_number|default:'-' }}</td>
+          <td class="cell-head">مساحت پارکینگ:</td>
+          <td style="font-weight: bold">{{ dossier.parking_area|default:'-' }} مترمربع</td>
         </tr>
-
         <tr>
-          <td colspan="8" style="padding: 4px 6px">
-            <span>قیمت علی‌الحساب تمام شده (بدون وام):</span>
-            <br />
+          <td colspan="5" style="padding: 4px 6px">
+            <span>قیمت علی‌الحساب تمام شده (بدون وام):</span><br />
             <strong style="color: #0f2744; font-size: 8.8pt">
-              {{ dossier.base_cost_without_loan|intcomma|default:'-' }} ریال
+              {% if dossier.base_cost_without_loan %}{{ dossier.base_cost_without_loan|intcomma }}{% else %}-{% endif %} ریال
+            </strong>
+          </td>
+          <td colspan="3" style="padding: 4px 6px">
+            <span>جمع قدرالسهم از عرصه:</span><br />
+            <strong style="color: #0f2744; font-size: 8.8pt">
+              {% if dossier.total_land_share %}{{ dossier.total_land_share }} مترمربع{% else %}-{% endif %}
             </strong>
           </td>
         </tr>
@@ -559,744 +375,134 @@
       <!-- 4. مشخصات ثبتی واحد -->
       <table class="official-doc-table">
         <tr>
-          <td
-            rowspan="3"
-            style="
-              width: 14%;
-              font-weight: 800;
-              background: #e2e8f0;
-              text-align: center;
-            "
-          >
-            مشخصات ثبتی واحد
-          </td>
-
-          <td style="width: 16%; background: #f8fafc; text-align: center">
-            بخش ثبتی
-          </td>
-          <td style="width: 16%; background: #f8fafc; text-align: center">
-            اصلی
-          </td>
-          <td style="width: 18%; background: #f8fafc; text-align: center">
-            مفروز و مجزا
-          </td>
-          <td style="width: 18%; background: #f8fafc; text-align: center">
-            فرعی
-          </td>
-          <td style="width: 18%; background: #f8fafc; text-align: center">
-            قطعه
-          </td>
+          <td rowspan="2" class="side-title">مشخصات ثبتی واحد</td>
+          <td class="cell-head" style="width: 14%; text-align: center">بخش ثبتی</td>
+          <td class="cell-head" style="width: 14%; text-align: center">اصلی</td>
+          <td class="cell-head" style="width: 16%; text-align: center">مفروز و مجزا</td>
+          <td class="cell-head" style="width: 16%; text-align: center">فرعی</td>
+          <td class="cell-head" style="width: 12%; text-align: center">قطعه</td>
+          <td class="cell-head" style="width: 14%; text-align: center">کد نوسازی (شهرداری)</td>
         </tr>
-
         <tr style="text-align: center; font-weight: 700">
-          <td>{{ dossier.registration_section|default:'بخش ۱ قم' }}</td>
-          <td>{{ dossier.main_plaque|default:'۳۰۲۱' }}</td>
+          <td>{{ dossier.registration_section|default:'-' }}</td>
+          <td>{{ dossier.main_plaque|default:'-' }}</td>
           <td>{{ dossier.separated_plaque|default:'-' }}</td>
-          <td>{{ dossier.sub_plaque|default:'۴۳۰۸' }}</td>
-          <td>{{ dossier.plot_number|default:'۲۴۹' }}</td>
-        </tr>
-
-        <tr>
-          <td
-            colspan="5"
-            style="font-size: 7.5pt; line-height: 1.5; padding: 4px 6px"
-          >
-            <div>
-              <strong>مستند واگذاری:</strong>
-              ماده ۷ قانون جهش تولید مسکن و ماده ۷ آیین‌نامه اجرایی قانون
-              ساماندهی و حمایت از تولید و عرضه مسکن.
-            </div>
-
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                gap: 8px;
-                margin-top: 2px;
-              "
-            >
-              <span>
-                جمع قدرالسهم از عرصه:
-                <strong
-                  >{{ dossier.total_land_share|default:'--' }} متر مربع</strong
-                >
-              </span>
-
-              <span>
-                سال اجاره عرصه:
-                <strong>{{ dossier.land_lease_year|default:'۱۴۰۳' }}</strong>
-              </span>
-            </div>
-          </td>
+          <td>{{ dossier.sub_plaque|default:'-' }}</td>
+          <td>{{ dossier.plot_number|default:'-' }}</td>
+          <td>{{ dossier.renovation_code|default:'-' }}</td>
         </tr>
       </table>
 
-      <!-- 5. کارگزار و اجاره‌بها؛ امضای شماره ۱ -->
+      <!-- 5. کارگزار (امضای ۱) · مبالغ مالی -->
       <table class="official-doc-table">
         <colgroup>
-          <col style="width: 34%" />
-          <col style="width: 29%" />
-          <col style="width: 37%" />
+          <col style="width: 40%" />
+          <col style="width: 60%" />
         </colgroup>
-
         <tr>
-          <!-- اطلاعات کارگزاری و امضای شماره ۱ -->
-          <td style="padding: 6px 8px">
-            <div style="font-weight: 800; margin-bottom: 3px">
-              نام کارگزار: مهندسین مشاور ره آزرم بین‌الملل
-            </div>
-
+          <td style="padding: 6px 8px; vertical-align: top">
+            <div style="font-weight: 800; margin-bottom: 3px">نام کارگزار: مهندسین مشاور ره آزرم بین‌الملل</div>
             <div>مدیرعامل: مهندس مسعود رهبر</div>
-
-            <div
-              style="
-                margin-top: 7px;
-                padding-top: 5px;
-                border-top: 1px dashed #cbd5e1;
-              "
-            >
-              <div style="font-size: 7.2pt; color: #475569; margin-bottom: 4px">
-                مهر و امضاء کارگزاری:
-              </div>
-
-              {% with sig=signatures_map.brokerage %} {% if sig and
-              sig.signed_date %} {% if sig.signature_image %}
-              <div style="text-align: center">
-                <img
-                  src="{{ sig.signature_image.url }}"
-                  alt="امضای کارگزاری"
-                  style="
-                    max-height: 30px;
-                    max-width: 100px;
-                    object-fit: contain;
-                  "
-                />
-                <span class="sig-meta">
-                  {{ sig.signer_name }} • {{ sig.signed_date }}
-                </span>
-              </div>
-              {% else %}
-              <div style="text-align: center">
-                <span class="digital-stamp">
-                  تأیید و امضای دیجیتال کارگزاری ✓
-                </span>
-                <span class="sig-meta">
-                  {{ sig.signer_name }} • {{ sig.signed_date }}
-                </span>
-              </div>
-              {% endif %} {% else %}
-              <span class="pending-stamp">در انتظار تأیید و امضا</span>
-              {% endif %} {% endwith %}
+            <div style="margin-top: 5px; border: 1px solid #94a3b8">
+              {% include "dossiers/partials/sig_cell.html" with sig=signatures_map.brokerage label="مهر و امضاء کارگزاری" v="1" %}
             </div>
           </td>
 
-          <!-- اجاره‌بهای قابل پرداخت -->
-          <td style="padding: 6px 8px; text-align: center">
-            <div style="font-weight: 800; font-size: 8.2pt; margin-bottom: 7px">
-              اجاره‌بها قابل پرداخت
-            </div>
-
-            <div style="font-size: 7.5pt; color: #64748b">مبلغ اجاره:</div>
-
-            <div
-              style="
-                font-weight: 800;
-                font-size: 10pt;
-                color: #0f2744;
-                margin: 3px 0 8px;
-              "
-            >
-              {{ dossier.current_year_rent|default:'۴۵,۰۰۰,۰۰۰'|intcomma }}
-              <span style="font-size: 7pt">ریال</span>
-            </div>
-
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 5px">
-              بابت اجاره عرصه سال:
-              <strong>{{ dossier.land_lease_year|default:'۱۴۰۳' }}</strong>
-            </div>
-          </td>
-
-          <!-- مبالغ مالی و آماده‌سازی -->
-          <td style="padding: 6px 8px">
+          <td style="padding: 6px 10px; vertical-align: top">
             <div class="money-panel">
               <div class="money-title">مبالغ مالی و آماده‌سازی</div>
-
+              <div class="money-row">
+                <span>بابت اجاره عرصه سال:</span>
+                <span class="money-value">{{ lease_year|default:dossier.land_lease_year|default:'-' }}</span>
+              </div>
               <div class="money-row">
                 <span>مبلغ اجاره:</span>
-                <span class="money-value">
-                  {{
-                  dossier.tenant_price|default:dossier.current_year_rent|intcomma
-                  }} ریال
-                </span>
+                <span class="money-value">{% if rent %}{{ rent|intcomma }}{% else %}-{% endif %} ریال</span>
               </div>
-
               <div class="money-row">
                 <span>۲۰٪ نقد آماده‌سازی:</span>
-                <span class="money-value">
-                  {{ dossier.cash_preparation_amount|intcomma|default:'-' }}
-                  ریال
-                </span>
+                <span class="money-value">{{ dossier.cash_preparation_amount|intcomma|default:'-' }} ریال</span>
               </div>
-
               <div class="money-row">
                 <span>تعداد چک‌های آماده‌سازی:</span>
-                <span class="money-value">
-                  {{ dossier.preparation_check_count|default:'...' }} فقره
-                </span>
+                <span class="money-value">{{ dossier.preparation_check_count|default:'-' }} فقره</span>
               </div>
-
               <div class="money-row">
                 <span>مبلغ کل چک‌ها:</span>
-                <span class="money-value">
-                  {{
-                  dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma
-                  }} ریال
-                </span>
+                <span class="money-value">{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma }} ریال</span>
               </div>
             </div>
           </td>
         </tr>
       </table>
 
-      <!-- 6. جدول ماتریسی امضای کارشناسان؛ امضاهای ۲ تا ۱۳ -->
+      <!-- 6. امضای کارشناسان (۲ تا ۱۳): ۴ ردیف × ۳ ستون -->
       <table class="official-doc-table">
+        <colgroup>
+          <col style="width: 14%" />
+          <col /><col /><col />
+        </colgroup>
         <tr>
-          <td
-            rowspan="8"
-            style="
-              width: 14%;
-              font-weight: 800;
-              background: #e2e8f0;
-              text-align: center;
-              vertical-align: middle;
-              font-size: 7.8pt;
-              line-height: 1.4;
-            "
-          >
-            امضای کارشناسان
-            <br />
-            <span style="font-size: 6.5pt; font-weight: normal; color: #475569">
-              (تأییدات ۱۲ گانه تخصصی)
-            </span>
+          <td rowspan="4" class="side-title" style="font-size: 7.8pt; line-height: 1.4">
+            امضای کارشناسان<br />
+            <span style="font-size: 6.5pt; font-weight: normal; color: #475569">(تأییدات ۱۲ گانه تخصصی)</span>
           </td>
-
-          <td
-            style="
-              width: 28%;
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            کارشناس نهضت ملی
-          </td>
-
-          <td
-            style="
-              width: 30%;
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            استعلام تسهیلات بانکی
-          </td>
-
-          <td
-            style="
-              width: 28%;
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            تسهیلات دهک
-          </td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.national_housing label="کارشناس نهضت ملی" v="1" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.bank_facility label="استعلام تسهیلات بانکی" v="2" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.decile_facility label="تسهیلات دهک" v="3" %}</td>
         </tr>
-
-        <!-- 2. نهضت ملی -->
         <tr>
-          <td class="sig-box">
-            {% with sig=signatures_map.national_housing %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای کارشناس نهضت ملی"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 3. استعلام تسهیلات بانکی -->
-          <td class="sig-box">
-            {% with sig=signatures_map.bank_facility %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای استعلام بانکی"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 4. تسهیلات دهک -->
-          <td class="sig-box">
-            {% with sig=signatures_map.decile_facility %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای تسهیلات دهک"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.contractor_settlement label="تسویه با پیمانکار" v="2" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.applicant_settlement label="تسویه با متقاضی" v="3" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.other_facilities label="سایر تسهیلات" v="1" %}</td>
         </tr>
-
         <tr>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            تسویه با پیمانکار
-          </td>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            تسویه با متقاضی
-          </td>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            سایر تسهیلات
-          </td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.legal label="کارشناس حقوقی" v="3" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.form_j label="کارشناس فرم ج" v="1" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.evaluation label="کارشناس ارزیابی" v="2" %}</td>
         </tr>
-
         <tr>
-          <!-- 5. تسویه با پیمانکار -->
-          <td class="sig-box">
-            {% with sig=signatures_map.contractor_settlement %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای تسویه پیمانکار"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 6. تسویه با متقاضی -->
-          <td class="sig-box">
-            {% with sig=signatures_map.applicant_settlement %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای تسویه متقاضی"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 7. سایر تسهیلات -->
-          <td class="sig-box">
-            {% with sig=signatures_map.other_facilities %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای سایر تسهیلات"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-        </tr>
-
-        <tr>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            کارشناس حقوقی
-          </td>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            کارشناس فرم ج
-          </td>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            کارشناس ارزیابی
-          </td>
-        </tr>
-
-        <tr>
-          <!-- 8. کارشناس حقوقی -->
-          <td class="sig-box">
-            {% with sig=signatures_map.legal %} {% if sig and sig.signed_date %}
-            {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای کارشناس حقوقی"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 9. کارشناس فرم ج -->
-          <td class="sig-box">
-            {% with sig=signatures_map.form_j %} {% if sig and sig.signed_date
-            %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای کارشناس فرم ج"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 10. کارشناس ارزیابی -->
-          <td class="sig-box">
-            {% with sig=signatures_map.evaluation %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای کارشناس ارزیابی"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-        </tr>
-
-        <tr>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            کارشناس فنی و مهندسی
-          </td>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            کارشناس املاک
-          </td>
-          <td
-            style="
-              font-weight: 800;
-              background: #f8fafc;
-              text-align: center;
-              font-size: 7.5pt;
-              padding: 2px;
-            "
-          >
-            کارشناس بانک زمین
-          </td>
-        </tr>
-
-        <tr>
-          <!-- 11. کارشناس فنی و مهندسی -->
-          <td class="sig-box">
-            {% with sig=signatures_map.technical %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای کارشناس فنی"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 12. کارشناس املاک -->
-          <td class="sig-box">
-            {% with sig=signatures_map.real_estate %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای کارشناس املاک"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
-
-          <!-- 13. کارشناس بانک زمین -->
-          <td class="sig-box">
-            {% with sig=signatures_map.land_bank %} {% if sig and
-            sig.signed_date %} {% if sig.signature_image %}
-            <img
-              src="{{ sig.signature_image.url }}"
-              alt="امضای کارشناس بانک زمین"
-              class="sig-img"
-            />
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% else %}
-            <span class="digital-stamp">تأیید دیجیتال ثبت گردید ✓</span>
-            <span class="sig-meta"
-              >{{ sig.signer_name }} • {{ sig.signed_date }}</span
-            >
-            {% endif %} {% else %}
-            <span class="pending-stamp">در انتظار تأیید و امضا</span>
-            {% endif %} {% endwith %}
-          </td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.technical label="کارشناس فنی و مهندسی" v="2" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.real_estate label="کارشناس املاک" v="3" %}</td>
+          <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.land_bank label="کارشناس بانک زمین" v="1" %}</td>
         </tr>
       </table>
 
-      <!-- 7. اداره درآمد؛ امضای شماره ۱۴ -->
+      <!-- 7. اداره درآمد (امضای ۱۴) -->
       <table class="official-doc-table" style="margin-bottom: 0">
         <tr>
-          <td
-            style="
-              width: 14%;
-              font-weight: 800;
-              background: #e2e8f0;
-              text-align: center;
-              padding: 6px 4px;
-              font-size: 8.5pt;
-            "
-          >
-            اداره درآمد
-          </td>
-
+          <td class="side-title" style="padding: 6px 4px; font-size: 8.5pt">اداره درآمد</td>
           <td style="padding: 6px 12px; line-height: 1.8">
             <div style="font-size: 8.2pt; font-weight: 700; color: #0f2744">
               مبلغ اجاره
-              <strong style="color: #047857">
-                {{
-                dossier.tenant_price|default:dossier.current_year_rent|intcomma
-                }}
-              </strong>
+              <strong style="color: #047857">{% if rent %}{{ rent|intcomma }}{% else %}-{% endif %}</strong>
               ریال و ۲۰٪ نقد آماده‌سازی
-              <strong style="color: #047857">
-                {{ dossier.cash_preparation_amount|intcomma|default:'-' }}
-              </strong>
+              <strong style="color: #047857">{{ dossier.cash_preparation_amount|intcomma|default:'-' }}</strong>
               ریال و الباقی آماده‌سازی طی
-              <strong style="color: #047857">
-                {{ dossier.preparation_check_count|default:'...' }}
-              </strong>
+              <strong style="color: #047857">{{ dossier.preparation_check_count|default:'-' }}</strong>
               فقره چک به مبلغ
-              <strong style="color: #047857">
-                {{
-                dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma
-                }}
-              </strong>
+              <strong style="color: #047857">{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma }}</strong>
               ریال دریافت گردید.
             </div>
 
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                gap: 8px;
-                margin-top: 5px;
-                border-top: 1px dashed #94a3b8;
-                padding-top: 4px;
-              "
-            >
-              <div style="font-size: 7.8pt; color: #1e293b">
-                <span>نام و نام خانوادگی مسئول وصول و درآمد: </span>
-                <strong style="color: #0f172a">
-                  {{ signatures_map.revenue.signer_name|default:'علیرضا نظری' }}
-                </strong>
-              </div>
-
-              <div style="display: flex; align-items: center; gap: 8px">
-                {% with sig=signatures_map.revenue %} {% if sig and
-                sig.signed_date %}
-                <span
-                  class="fa-num"
-                  style="
-                    font-size: 6.5pt;
-                    color: #64748b;
-                    font-family: monospace;
-                  "
-                >
-                  {{ sig.signed_date }}
-                </span>
-
-                {% if sig.signature_image %}
-                <img
-                  src="{{ sig.signature_image.url }}"
-                  alt="امضای اداره درآمد"
-                  style="
-                    height: 36px;
-                    width: 36px;
-                    object-fit: contain;
-                    mix-blend-mode: multiply;
-                    border: none;
-                    vertical-align: middle;
-                  "
-                />
-                {% else %}
-                <span class="digital-stamp"> تأییدیه وصول درآمد ثبت شد ✓ </span>
-                {% endif %} {% else %}
-                <span class="pending-stamp">در انتظار تأیید و امضا</span>
-                {% endif %} {% endwith %}
-              </div>
-            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 5px; border-top: 1px dashed #94a3b8">
+              <tr>
+                <td style="border: 0; padding: 4px 0 0; font-size: 7.8pt; vertical-align: middle">
+                  مسئول وصول و درآمد — مهر و امضاء:
+                </td>
+                <td style="border: 0; padding: 4px 0 0; width: 78mm">
+                  <div style="border: 1px solid #94a3b8">
+                    {% include "dossiers/partials/sig_cell.html" with sig=signatures_map.revenue v="2" %}
+                  </div>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
       </table>
+
+      {% endwith %}
+      </div></div>
     </main>
   </body>
 </html>

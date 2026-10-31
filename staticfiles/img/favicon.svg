@@ -1,0 +1,38 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Back Folder Tab & Silhouette -->
+  <path d="M17 26C17 22.6863 19.6863 20 23 20H42C44.5 20 46.8 21.3 48 23.5L52 30H70C73.3137 30 76 32.6863 76 36V40H17V26Z" fill="#6E56FF" />
+  
+  <!-- Back Folder Body (Behind Check) -->
+  <rect x="12" y="33" width="76" height="42" rx="6" fill="#6E56FF" />
+
+  <!-- Cutout / Interior Shadow behind the check -->
+  <rect x="18" y="41" width="64" height="36" rx="4" fill="#0A1026" />
+
+  <!-- Foreground Check Document Border -->
+  <rect x="21" y="44" width="58" height="34" rx="3.5" fill="#0A1026" stroke="#6E56FF" stroke-width="2.6" />
+
+  <!-- Check Top Details: Text Lines -->
+  <line x1="26" y1="52" x2="42" y2="52" stroke="#6E56FF" stroke-width="2.2" stroke-linecap="round" />
+  <line x1="26" y1="57.5" x2="54" y2="57.5" stroke="#6E56FF" stroke-width="2.2" stroke-linecap="round" />
+
+  <!-- Signature Wave -->
+  <path d="M27 70C28.5 67 31 65 33 67.5C35 70 37.5 70.5 40 68.5C42 67 44 68 49 67.5" stroke="#6E56FF" stroke-width="2.2" stroke-linecap="round" fill="none" />
+
+  <!-- Check Stamp / ID Box (Top Right) -->
+  <rect x="57" y="50" width="17" height="8" rx="1.5" stroke="#6E56FF" stroke-width="2" fill="none" />
+
+  <!-- Divider Line next to Bank Logo -->
+  <line x1="57" y1="61" x2="57" y2="74" stroke="#6E56FF" stroke-width="1.8" />
+
+  <!-- Bank / Institution Pillar Icon (Pure White) -->
+  <!-- Roof -->
+  <path d="M68 60L61.5 64.5H74.5L68 60Z" fill="#FFFFFF" />
+  <!-- Architrave / Top Beam -->
+  <rect x="62.5" y="65" width="11" height="1.3" rx="0.3" fill="#FFFFFF" />
+  <!-- 3 Pillars -->
+  <rect x="63.5" y="66.8" width="2" height="4.5" rx="0.4" fill="#FFFFFF" />
+  <rect x="67" y="66.8" width="2" height="4.5" rx="0.4" fill="#FFFFFF" />
+  <rect x="70.5" y="66.8" width="2" height="4.5" rx="0.4" fill="#FFFFFF" />
+  <!-- Base Pedestal -->
+  <rect x="61.5" y="71.8" width="13" height="1.8" rx="0.4" fill="#FFFFFF" />
+</svg>

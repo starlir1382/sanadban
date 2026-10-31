@@ -1,0 +1,642 @@
+/**
+ * Sanadban (DeedFlow) - Dark Mode Theme Engine
+ * High-Contrast Accessible Enterprise Dark Theme
+ */
+
+/* ==========================================================================
+   1. Dark Theme Color Tokens & Root Overrides
+   ========================================================================== */
+html[data-theme="dark"] {
+  /* Surfaces & Backgrounds */
+  --color-bg-app: #080c14;
+  --color-surface-card: #0f172a;
+  --color-surface-subtle: #141f36;
+  --color-surface-hover: #1c2b48;
+  --color-border: #1e293b;
+  --color-border-focus: #38bdf8;
+  --color-accent: #38bdf8;
+  --color-accent-hover: #0ea5e9;
+  --color-accent-subtle: rgba(56, 189, 248, 0.12);
+  --color-accent-line: rgba(56, 189, 248, 0.3);
+  --color-text-main: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
+
+  /* Primary Accent Colors */
+  --color-primary-50: rgba(56, 189, 248, 0.12);
+  --color-primary-100: rgba(56, 189, 248, 0.22);
+  --color-primary-200: rgba(56, 189, 248, 0.32);
+  --color-primary-500: #38bdf8;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+  --color-primary-950: #081a2e;
+
+  /* Success Colors */
+  --color-success-50: rgba(16, 185, 129, 0.15);
+  --color-success-100: rgba(16, 185, 129, 0.25);
+  --color-success-600: #10b981;
+  --color-success-700: #059669;
+
+  /* Warning Colors */
+  --color-warning-50: rgba(245, 158, 11, 0.15);
+  --color-warning-100: rgba(245, 158, 11, 0.25);
+  --color-warning-500: #fbbf24;
+  --color-warning-700: #f59e0b;
+
+  /* Danger Colors */
+  --color-danger-50: rgba(239, 68, 68, 0.15);
+  --color-danger-100: rgba(239, 68, 68, 0.25);
+  --color-danger-600: #f87171;
+  --color-danger-700: #ef4444;
+
+  /* Elevation Shadows */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.7), 0 6px 10px -4px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 24px 36px -6px rgba(0, 0, 0, 0.8), 0 10px 14px -6px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.25);
+
+  /* List & Table tokens (--c-*) */
+  --c-bg: #080c14;
+  --c-card: #0f172a;
+  --c-line: #1e293b;
+  --c-line-strong: #2d3b55;
+  --c-text: #f1f5f9;
+  --c-muted: #94a3b8;
+  --c-soft: #64748b;
+  --c-primary: #38bdf8;
+  --c-primary-soft: rgba(56, 189, 248, 0.14);
+  --c-primary-line: rgba(56, 189, 248, 0.35);
+  --c-green: #10b981;
+  --c-green-soft: rgba(16, 185, 129, 0.15);
+  --c-amber: #f59e0b;
+  --c-amber-soft: rgba(245, 158, 11, 0.15);
+  --c-red: #f87171;
+  --c-red-soft: rgba(239, 68, 68, 0.15);
+  --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6);
+}
+
+/* Smooth Transition between themes */
+html {
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+body, main, nav, header, card, input, select, textarea, button, .dl-card, .form-card {
+  transition: background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+
+/* ==========================================================================
+   2. Dark Theme Global Elements
+   ========================================================================== */
+html[data-theme="dark"] body {
+  background-color: var(--color-bg-app);
+  color: var(--color-text-main);
+}
+
+html[data-theme="dark"] .main-wrapper {
+  background-color: var(--color-bg-app);
+}
+
+/* Navbar in Dark Mode */
+html[data-theme="dark"] .sb-header {
+  --sb-bg-1: #060a12;
+  --sb-bg-2: #0a1120;
+  --sb-line: rgba(56, 189, 248, 0.18);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme="dark"] .sb-nav {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(56, 189, 248, 0.2);
+}
+
+html[data-theme="dark"] .sb-dropdown {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+}
+
+html[data-theme="dark"] .sb-menu-item {
+  color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .sb-menu-item:hover {
+  background: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   3. Cards, Containers & Sections
+   ========================================================================== */
+html[data-theme="dark"] .dl-card,
+html[data-theme="dark"] .form-card,
+html[data-theme="dark"] .dt-hero,
+html[data-theme="dark"] .dt-nav-bar,
+html[data-theme="dark"] .attachments-card,
+html[data-theme="dark"] .admin-kpi-card,
+html[data-theme="dark"] .eh-card,
+html[data-theme="dark"] .user-profile-card,
+html[data-theme="dark"] .login-card {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="dark"] .dt-hero h2,
+html[data-theme="dark"] .section-title,
+html[data-theme="dark"] .dl-table-title,
+html[data-theme="dark"] .welcome-title,
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4 {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .dt-meta span {
+  background: #172033 !important;
+  color: #94a3b8 !important;
+  border: 1px solid #24344d;
+}
+
+html[data-theme="dark"] .dt-meta span b {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .form-section-header {
+  background: #131c2e !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+html[data-theme="dark"] .form-section-header:hover {
+  background: #17243c !important;
+}
+
+html[data-theme="dark"] .form-section-body {
+  background: #0f172a !important;
+}
+
+/* ==========================================================================
+   4. Form Controls, Inputs & Selects
+   ========================================================================== */
+html[data-theme="dark"] input[type="text"],
+html[data-theme="dark"] input[type="number"],
+html[data-theme="dark"] input[type="date"],
+html[data-theme="dark"] input[type="file"],
+html[data-theme="dark"] input[type="password"],
+html[data-theme="dark"] input[type="email"],
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] .input-control {
+  background: #162032 !important;
+  color: #f1f5f9 !important;
+  border: 1.5px solid #28374f !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #64748b !important;
+}
+
+html[data-theme="dark"] input:focus,
+html[data-theme="dark"] select:focus,
+html[data-theme="dark"] textarea:focus,
+html[data-theme="dark"] .input-control:focus {
+  background: #1a273e !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] select option {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+/* Locked & Read-only Fields */
+html[data-theme="dark"] input[readonly],
+html[data-theme="dark"] select[disabled],
+html[data-theme="dark"] textarea[readonly],
+html[data-theme="dark"] .field-locked .input-control {
+  background: #0b111d !important;
+  color: #94a3b8 !important;
+  border-color: #1a2538 !important;
+  opacity: 0.9;
+}
+
+html[data-theme="dark"] .field-label {
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .helper-badge {
+  background: #172033 !important;
+  color: #93c5fd !important;
+  border: 1px solid #24344d !important;
+}
+
+html[data-theme="dark"] .helper-badge.text-emerald-700 {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+html[data-theme="dark"] .helper-badge.text-blue-700 {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+/* Checklist items in Section 8 */
+html[data-theme="dark"] .fs-checklist-grid label {
+  background: #131c2e !important;
+  border-color: #24344d !important;
+  color: #cbd5e1 !important;
+}
+
+/* ==========================================================================
+   5. Tables & Grids (Dashboard & Admin)
+   ========================================================================== */
+html[data-theme="dark"] .dl-scroll,
+html[data-theme="dark"] .dl-table-card {
+  background: #0f172a !important;
+}
+
+html[data-theme="dark"] .dl-table thead th,
+html[data-theme="dark"] .admin-table thead th,
+html[data-theme="dark"] table thead th {
+  background: #131d2e !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+
+html[data-theme="dark"] .dl-table tbody td,
+html[data-theme="dark"] .admin-table tbody td,
+html[data-theme="dark"] table tbody td {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+  border-bottom: 1px solid #172033 !important;
+}
+
+html[data-theme="dark"] .dl-table tbody tr.dossier-row:hover,
+html[data-theme="dark"] .admin-table tbody tr:hover {
+  background: #162238 !important;
+}
+
+html[data-theme="dark"] .dl-id {
+  background: rgba(56, 189, 248, 0.14) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+
+html[data-theme="dark"] .dl-avatar {
+  background: linear-gradient(135deg, #1e293b, #334155) !important;
+  color: #38bdf8 !important;
+  border: 1px solid #38bdf8;
+}
+
+html[data-theme="dark"] .dl-name {
+  color: #f8fafc !important;
+}
+html[data-theme="dark"] .dl-subline {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-project {
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .dl-site {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .dl-hints .tag {
+  background: #172033 !important;
+  color: #94a3b8 !important;
+  border: 1px solid #24344d;
+}
+
+/* ==========================================================================
+   6. Stepper, Tabs & Stage Pills
+   ========================================================================== */
+html[data-theme="dark"] .dt-tabs {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border-color: #24344d !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="dark"] .dt-tab {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .dt-tab:hover {
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.1) !important;
+}
+
+html[data-theme="dark"] .dt-tab.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+}
+
+html[data-theme="dark"] .dl-pill {
+  background: #141f33 !important;
+  color: #cbd5e1 !important;
+  border-color: #24344d !important;
+}
+
+html[data-theme="dark"] .dl-pill:hover {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .dl-pill.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+}
+
+html[data-theme="dark"] .dl-pill-count {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .dl-tab-item {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-tab-item:hover {
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+}
+html[data-theme="dark"] .dl-tab-item.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* Stepper Track */
+html[data-theme="dark"] .pipeline-stepper {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .step-line {
+  background: #1e293b !important;
+}
+
+html[data-theme="dark"] .step-circle {
+  background: #141f33 !important;
+  border-color: #24344d !important;
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .step-circle.active {
+  background: #0284c7 !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.5) !important;
+}
+
+html[data-theme="dark"] .step-circle.completed {
+  background: #059669 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   7. Buttons, Dropdowns & Modals
+   ========================================================================== */
+html[data-theme="dark"] .btn-outline,
+html[data-theme="dark"] .dl-btn.ghost,
+html[data-theme="dark"] .dl-open {
+  background: #141f33 !important;
+  border-color: #28374f !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .btn-outline:hover,
+html[data-theme="dark"] .dl-btn.ghost:hover,
+html[data-theme="dark"] .dl-open:hover {
+  background: #1a2842 !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .btn-ghost {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .dl-counter {
+  background: rgba(56, 189, 248, 0.14) !important;
+  color: #7dd3fc !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+html[data-theme="dark"] .dt-menu {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+}
+
+html[data-theme="dark"] .dt-menu a,
+html[data-theme="dark"] .dt-menu button {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .dt-menu a:hover,
+html[data-theme="dark"] .dt-menu button:hover {
+  background: #172338 !important;
+  color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .dt-footer {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="dark"] .modal-overlay,
+html[data-theme="dark"] .scan-viewer-modal {
+  background: rgba(8, 12, 20, 0.88) !important;
+}
+
+html[data-theme="dark"] .modal-card,
+html[data-theme="dark"] .modal-box {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+  color: #f1f5f9 !important;
+}
+
+/* Pagination in Dark Mode */
+html[data-theme="dark"] .dl-pager {
+  border-top-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .dl-pg {
+  background: #141f33 !important;
+  color: #cbd5e1 !important;
+  border-color: #24344d !important;
+}
+
+html[data-theme="dark"] .dl-pg:hover {
+  background: #1a2842 !important;
+  color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .dl-pg.current {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+}
+
+/* ==========================================================================
+   8. Unified Scan Album & Document Cards
+   ========================================================================== */
+html[data-theme="dark"] .attachments-sub-header {
+  background: #0b111d !important;
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .attachments-album-grid > div {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .attachments-album-grid > div:hover {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="dark"] .lock-pill {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* ==========================================================================
+   9. Theme Switcher Toggle Pill Styling
+   ========================================================================== */
+.sb-theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(148, 197, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.sb-theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.sb-theme-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.sb-theme-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.sb-theme-toggle-btn:hover .sb-theme-icon {
+  transform: rotate(20deg);
+}
+
+/* Sun & Moon Icons visibility */
+html[data-theme="dark"] .sb-theme-sun {
+  display: block !important;
+  color: #fbbf24;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6));
+}
+html[data-theme="dark"] .sb-theme-moon {
+  display: none !important;
+}
+
+html:not([data-theme="dark"]) .sb-theme-sun {
+  display: none !important;
+}
+html:not([data-theme="dark"]) .sb-theme-moon {
+  display: block !important;
+  color: #38bdf8;
+}
+
+/* Mobile & Menu Theme Switch item */
+.sb-menu-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sb-menu-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sb-theme-switch-track {
+  width: 40px;
+  height: 22px;
+  background: #334155;
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="dark"] .sb-theme-switch-track {
+  background: #0284c7;
+}
+
+.sb-theme-switch-thumb {
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme="dark"] .sb-theme-switch-thumb {
+  transform: translateX(-18px);
+}
+
+/* Desktop Navbar theme toggle button: icon-only circular */
+.sb-actions .sb-theme-toggle-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}

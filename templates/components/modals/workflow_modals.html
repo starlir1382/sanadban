@@ -147,194 +147,275 @@
 </div>
 
 
-<!-- 3. Upload & Hardware Scanner Modal -->
-<div class="modal-overlay" x-show="showUploadModal" x-cloak @click.self="showUploadModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-    <div class="modal-dialog" @click.stop style="max-width: 680px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); animation: modal-appear 0.2s ease-out;">
+<!-- 3. Upload & Hardware Scanner Modal (Expanded, Clean, Arranged List) -->
+<div class="modal-overlay" x-show="showUploadModal" x-cloak @click.self="showUploadModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1.25rem;">
+    <div class="modal-dialog" @click.stop style="max-width: 1060px; width: 94vw; height: 88vh; max-height: 860px; display: flex; flex-direction: column; background: #ffffff; border-radius: 18px; overflow: hidden; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5); animation: modal-appear 0.2s ease-out;">
         
         <!-- Modal Header -->
-        <div class="modal-header" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; padding: 1.25rem 1.75rem; border-bottom: none;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5">
+        <div class="modal-header" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; padding: 1.15rem 1.75rem; border-bottom: none; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="17 8 12 3 7 8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                     </svg>
                 </div>
                 <div>
-                    <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin: 0;">بارگذاری و اسکن مدرک جدید</h3>
-                    <div style="font-size: 0.78rem; color: #93c5fd; margin-top: 2px;" class="fa-num">
-                        الصاق سند به مرحله <span x-text="currentStage"></span>: <span x-text="stages[currentStage] ? stages[currentStage].title : ''"></span>
+                    <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0;">بارگذاری و اسکن اسناد و مدارک پرونده</h3>
+                    <div style="font-size: 0.8rem; color: #93c5fd; margin-top: 3px;" class="fa-num">
+                        الصاق اسناد به مرحله <span x-text="currentStage"></span>: <strong x-text="stages[currentStage] ? stages[currentStage].title : ''" style="color: #ffffff;"></strong>
                     </div>
                 </div>
             </div>
-            <button type="button" class="modal-close" style="color: #cbd5e1; font-size: 1.3rem; line-height: 1;" @click="showUploadModal = false">✕</button>
+            <button type="button" class="modal-close" style="color: #cbd5e1; font-size: 1.4rem; line-height: 1; background: transparent; border: none; cursor: pointer; padding: 4px 8px; border-radius: 8px;" @click="showUploadModal = false">✕</button>
         </div>
 
-        <!-- Modal Body -->
-        <div class="modal-body" style="padding: 1.75rem; background: #ffffff;">
+        <!-- Modal Body (Generous Space & Vertical Flex) -->
+        <div class="modal-body" style="flex: 1; padding: 1.25rem 1.75rem; background: #ffffff; display: flex; flex-direction: column; overflow: hidden; min-height: 0; gap: 1rem;" x-data="{ dragOver: false }">
             
             <!-- Warning Banner if not allowed -->
-            <div x-show="!isUploadAllowed()" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #991b1b; display: flex; align-items: center; gap: 0.5rem;">
+            <div x-show="!isUploadAllowed()" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.82rem; color: #991b1b; display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 <span>توجه: بارگذاری مدرک در مرحله جاری مجاز نمی‌باشد یا پرونده قفل است. ثبت سند غیرمجاز است.</span>
             </div>
 
-            <!-- Quick Preset Chips -->
-            <div style="margin-bottom: 1.25rem;">
-                <div style="font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span>عناوین پیشنهادی و پرکاربرد (کلیک جهت تکمیل خودکار):</span>
-                </div>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button type="button" class="stage-tab-pill" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" 
-                            @click="setQuickScanTitle('اسکن کارت ملی هوشمند متقاضی', 'NATIONAL_ID')">کارت ملی متقاضی</button>
-                    <button type="button" class="stage-tab-pill" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" 
-                            @click="setQuickScanTitle('اسکن مدارک هویتی همسر', 'SPOUSE_ID')">مدارک همسر</button>
-                    <button type="button" class="stage-tab-pill" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; background: #ecfdf5; color: #047857; border-color: #a7f3d0;" 
-                            @click="setQuickScanTitle('تصویر و استعلام رسمی فرم (ج) اداره کل', 'FORM_J')">استعلام فرم «ج» اداره کل</button>
-                    <button type="button" class="stage-tab-pill" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" 
-                            @click="setQuickScanTitle('برگه تایید انتخاب واحد', 'UNIT_SELECTION')">انتخاب واحد</button>
-                    <button type="button" class="stage-tab-pill" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" 
-                            @click="setQuickScanTitle('اسکن دفترچه اقساط بانک مسکن', 'BANK_BOOKLET')">دفترچه قسط بانک</button>
-                    <button type="button" class="stage-tab-pill" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" 
-                            @click="setQuickScanTitle('اسکن سند مالکیت تک‌برگ عرصه و اعیان', 'TITLE_DEED')">سند مالکیت</button>
-                    <button type="button" class="stage-tab-pill" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" 
-                            @click="setQuickScanTitle('اسکن چک صیادی تسهیلات دهک', 'LOAN_CHECK')">چک صیادی وام</button>
-                </div>
-            </div>
-
-            <!-- Title & Category Inputs: Robust Flexbox Layout -->
-            <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem; width: 100%;">
-                <!-- Document Title (60% width) -->
-                <div style="flex: 3; display: flex; flex-direction: column; gap: 0.4rem;">
-                    <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">
-                        عنوان کامل مدرک <span style="color: #ef4444;">*</span>
-                    </label>
-                    <input type="text" class="input-control" x-model="uploadForm.title" 
-                           placeholder="مثال: اسکن کارت ملی هوشمند متقاضی..." 
-                           style="width: 100%; height: 44px; font-size: 0.88rem; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 0 0.85rem;">
-                </div>
-
-                <!-- Document Category (40% width) -->
-                <div style="flex: 2; display: flex; flex-direction: column; gap: 0.4rem;">
-                    <label style="font-weight: 700; font-size: 0.85rem; color: #1e293b;">
-                        دسته‌بندی و نوع سند
-                    </label>
-                    <select class="input-control" x-model="uploadForm.doc_type" 
-                            style="width: 100%; height: 44px; font-size: 0.85rem; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 0 0.85rem; cursor: pointer; background: #ffffff;">
-                        <option value="FORM_J">تصویر و استعلام رسمی فرم (ج) اداره کل</option>
-                        <option value="NATIONAL_ID">کارت ملی و شناسنامه متقاضی</option>
-                        <option value="SPOUSE_ID">مدارک هویتی همسر</option>
-                        <option value="UNIT_SELECTION">برگه انتخاب واحد</option>
-                        <option value="BANK_BOOKLET">دفترچه اقساط بانک مسکن</option>
-                        <option value="BANK_LETTER">نامه استعلام بانک</option>
-                        <option value="TITLE_DEED">سند مالکیت تک‌برگ عرصه و اعیان</option>
-                        <option value="LOAN_CHECK">چک صیادی تسهیلات دهک</option>
-                        <option value="PREP_CHECK">چک آماده‌سازی</option>
-                        <option value="OTHER">سایر مستندات و ضمائم</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Modern Upload Dropzone Card -->
-            <div style="border: 2px dashed #93c5fd; border-radius: 12px; padding: 1.75rem 1.5rem; background: #f8fafc; text-align: center; margin-bottom: 1.25rem; transition: all 0.2s;">
-                <!-- Real hidden file input -->
+            <!-- Top Action & Dropzone Area (Spacious & Clean, No ugly title input or chips) -->
+            <div style="border: 2px dashed #93c5fd; border-radius: 14px; padding: 1.15rem 1.5rem; background: #f8fafc; transition: all 0.2s; flex-shrink: 0;"
+                 :style="dragOver ? 'border-color: #2563eb; background: #eff6ff;' : ''"
+                 @dragover.prevent="dragOver = true"
+                 @dragleave.prevent="dragOver = false"
+                 @drop.prevent="dragOver = false; handleFileSelect($event)">
+                
+                <!-- Hidden multi-file input -->
                 <input type="file" x-ref="scanFileInput" style="display: none;" 
                        accept="image/*,application/pdf" 
+                       multiple 
                        @change="handleFileSelect($event)">
 
-                <!-- Cloud Icon -->
-                <div style="width: 52px; height: 52px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
+                    
+                    <!-- Left/Right: Action Buttons & Description -->
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; font-size: 0.96rem; color: #0f2744; margin-bottom: 0.2rem;">
+                                انتخاب یا اسکن تصاویر و اسناد پرونده (تک یا دسته‌جمعی)
+                            </div>
+                            <div style="font-size: 0.78rem; color: #64748b;">
+                                فایل‌ها را اینجا بکشید و رها کنید، یا از طریق دکمه‌های زیر انتخاب فرمایید
+                            </div>
+                        </div>
+                    </div>
 
-                <div style="font-weight: 800; font-size: 0.95rem; color: #0f2744; margin-bottom: 0.25rem;">
-                    فایل تصویر یا PDF مدرک را انتخاب یا اسکن کنید
-                </div>
-                <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 1.25rem;">
-                    پشتیبانی از انواع اسکنرهای تخت، فایل‌های تصویر JPG، PNG و اسناد PDF تا سقف ۲۰ مگابایت
-                </div>
+                    <!-- Action Buttons -->
+                    <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                        <!-- Category Dropdown (Clean & Integrated) -->
+                        <div style="display: flex; align-items: center; gap: 0.45rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.35rem 0.65rem;">
+                            <label style="font-weight: 700; font-size: 0.78rem; color: #475569; white-space: nowrap;">دسته‌بندی:</label>
+                            <select class="input-control" x-model="uploadForm.doc_type" 
+                                    style="height: 32px; font-size: 0.8rem; border: none; background: transparent; cursor: pointer; color: #1e293b; font-weight: 700; outline: none;">
+                                <option value="OTHER">سایر مستندات و ضمائم (عمومی)</option>
+                                <option value="NATIONAL_ID">کارت ملی و شناسنامه متقاضی</option>
+                                <option value="SPOUSE_ID">مدارک هویتی همسر</option>
+                                <option value="FORM_J">تصویر و استعلام رسمی فرم «ج» اداره کل</option>
+                                <option value="UNIT_SELECTION">برگه انتخاب واحد</option>
+                                <option value="BANK_BOOKLET">دفترچه اقساط بانک مسکن</option>
+                                <option value="BANK_LETTER">نامه استعلام بانک</option>
+                                <option value="TITLE_DEED">سند مالکیت تک‌برگ عرصه و اعیان</option>
+                                <option value="LOAN_CHECK">چک صیادی تسهیلات دهک</option>
+                                <option value="PREP_CHECK">چک آماده‌سازی</option>
+                            </select>
+                        </div>
 
-                <!-- Two Distinct Action Buttons -->
-                <div style="display: flex; justify-content: center; gap: 0.85rem; align-items: center; flex-wrap: wrap;">
-                    <!-- Option A: Browse file from PC -->
-                    <button type="button" class="btn btn-primary" style="padding: 0.65rem 1.4rem; font-size: 0.88rem; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);" @click="$refs.scanFileInput.click()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                        <span>انتخاب فایل از سیستم</span>
-                    </button>
+                        <!-- Button A: File Picker -->
+                        <button type="button" class="btn btn-primary" style="padding: 0.55rem 1.25rem; font-size: 0.84rem; font-weight: 700; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25); display: inline-flex; align-items: center; gap: 0.45rem;" @click="$refs.scanFileInput.click()">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span>انتخاب فایل‌ها از سیستم (چندتایی)</span>
+                        </button>
 
-                    <!-- Option B: Direct Hardware Scanner -->
-                    <button type="button" class="btn btn-outline" style="padding: 0.65rem 1.4rem; font-size: 0.88rem; border-color: #0284c7; color: #0284c7; background: #ffffff;" @click="simulateScannerDevice()" :disabled="isScanning">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                            <line x1="8" y1="21" x2="16" y2="21"></line>
-                            <line x1="12" y1="17" x2="12" y2="21"></line>
-                        </svg>
-                        <span x-text="isScanning ? 'در حال ارتباط با اسکنر...' : 'اسکن مستقیم با دستگاه اسکنر (WIA)'"></span>
-                    </button>
+                        <!-- Button B: Hardware Scanner -->
+                        <button type="button" class="btn btn-outline" style="padding: 0.55rem 1.25rem; font-size: 0.84rem; font-weight: 700; border-color: #0284c7; color: #0284c7; background: #ffffff; display: inline-flex; align-items: center; gap: 0.45rem;" @click="simulateScannerDevice()" :disabled="isScanning">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            <span x-text="isScanning ? 'در حال ارتباط با اسکنر...' : 'اسکن مستقیم با دستگاه اسکنر (WIA)'"></span>
+                        </button>
+                    </div>
+
                 </div>
 
                 <!-- Scanning Progress Animation -->
-                <div x-show="isScanning" style="margin-top: 1rem; padding: 0.85rem; background: #dbeafe; border-radius: 8px; color: #1e40af; font-size: 0.85rem; font-weight: bold; border: 1px solid #bfdbfe;">
-                    <svg class="spinner-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-left: 6px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> در حال اسکن مدرک با کیفیت ۳۰۰ DPI... لطفاً چند لحظه شکیبا باشید.
+                <div x-show="isScanning" style="margin-top: 0.85rem; padding: 0.75rem; background: #dbeafe; border-radius: 8px; color: #1e40af; font-size: 0.82rem; font-weight: bold; border: 1px solid #bfdbfe;">
+                    <svg class="spinner-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-left: 6px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> در حال دریافت تصویر جدید از دستگاه اسکنر (۳۰۰ DPI)...
                 </div>
             </div>
 
-            <!-- Selected File Preview Badge -->
-            <div x-show="uploadForm.preview_url || uploadForm.fileName" style="border: 1.5px solid #86efac; border-radius: 10px; padding: 0.85rem 1rem; background: #f0fdf4; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                <div style="display: flex; align-items: center; gap: 0.85rem;">
-                    <div style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: #ffffff; display: flex; align-items: center; justify-content: center; border: 1px solid #bbf7d0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                        <template x-if="uploadForm.preview_url && uploadForm.preview_url.startsWith('data:image')">
-                            <img :src="uploadForm.preview_url" style="width: 100%; height: 100%; object-fit: cover;">
-                        </template>
-                        <template x-if="!uploadForm.preview_url || !uploadForm.preview_url.startsWith('data:image')">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                        </template>
+            <!-- Main Arranged Documents List Area (Fills available space) -->
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0; border: 1.5px solid #bfdbfe; border-radius: 14px; background: #f0fdf4; padding: 1rem 1.25rem; overflow: hidden;">
+                
+                <!-- Queue Header Bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1.5px dashed #bbf7d0; padding-bottom: 0.65rem; flex-shrink: 0;">
+                    <div style="display: flex; align-items: center; gap: 0.65rem;" class="fa-num">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: #15803d; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 900;">✓</div>
+                        <span style="font-weight: 800; font-size: 0.92rem; color: #15803d;">
+                            تعداد <strong x-text="uploadForm.filesList ? uploadForm.filesList.length : 0"></strong> برگه سند آماده بارگذاری
+                        </span>
+                        <span style="font-size: 0.76rem; color: #166534; font-weight: 600; margin-right: 6px;">
+                            (جهت تنظیم و تغییر ترتیب برگه‌ها، از دکمه‌های ▲ ▼ استفاده کنید یا سطرها را با ماوس بکشید و رها نمایید)
+                        </span>
                     </div>
-                    <div>
-                        <div style="font-weight: 700; font-size: 0.88rem; color: #065f46;" x-text="uploadForm.fileName || 'سند آماده ارسال'"></div>
-                        <div style="font-size: 0.75rem; color: #15803d; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
-                            <span>✓ فایل آماده الصاق و تولید هش SHA-256</span>
-                        </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button type="button" @click="$refs.scanFileInput.click()" style="background: #ffffff; border: 1px solid #86efac; color: #15803d; border-radius: 6px; padding: 0.35rem 0.85rem; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;">
+                            + افزودن فایل‌های بیشتر
+                        </button>
+                        <button type="button" @click="clearAllUploadFiles()" style="background: #fee2e2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.35rem 0.85rem; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;">
+                            پاکسازی لیست
+                        </button>
                     </div>
                 </div>
-                <button type="button" style="background: #fee2e2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.78rem; font-weight: 600; cursor: pointer;" 
-                        @click="uploadForm.preview_url = ''; uploadForm.fileName = ''; uploadForm.rawFile = null;">
-                    ✕ حذف فایل
-                </button>
+
+                <!-- Scrollable Arranged Items List -->
+                <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-inline-end: 6px; min-height: 0;">
+                    
+                    <!-- When files are present -->
+                    <template x-if="uploadForm.filesList && uploadForm.filesList.length > 0">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <template x-for="(item, idx) in uploadForm.filesList" :key="'upload-item-' + idx + '-' + item.fileName">
+                                <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.6rem 0.85rem; gap: 0.85rem; transition: all 0.15s ease; cursor: grab;"
+                                     :style="dragOverIdx === idx ? 'border-color: #2563eb; background: #eff6ff; transform: scale(1.01); box-shadow: 0 4px 12px rgba(37,99,235,0.15);' : ''"
+                                     draggable="true"
+                                     @dragstart="draggedIdx = idx; $event.dataTransfer.effectAllowed = 'move'"
+                                     @dragover.prevent="dragOverIdx = idx"
+                                     @dragleave="if (dragOverIdx === idx) dragOverIdx = null"
+                                     @drop.prevent="reorderFiles(draggedIdx, idx); draggedIdx = null; dragOverIdx = null">
+                                    
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
+                                        
+                                        <!-- Drag Handle Grip -->
+                                        <div style="color: #94a3b8; font-size: 1.15rem; cursor: grab; user-select: none; padding: 0 4px;" title="جهت جابجایی بکشید و رها کنید (Drag & Drop)">
+                                            ⋮⋮
+                                        </div>
+
+                                        <!-- Sheet Order Badge -->
+                                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 60px; height: 26px; border-radius: 999px; background: #e0e7ff; color: #3730a3; font-weight: 900; font-size: 0.78rem; flex-shrink: 0; padding: 0 8px;" class="fa-num">
+                                            برگه <span x-text="idx + 1"></span>
+                                        </span>
+                                        
+                                        <!-- Thumbnail Image Preview -->
+                                        <div style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: #f8fafc; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+                                            <template x-if="item.previewUrl && item.previewUrl.startsWith('data:image')">
+                                                <img :src="item.previewUrl" style="width: 100%; height: 100%; object-fit: cover;">
+                                            </template>
+                                            <template x-if="!item.previewUrl || !item.previewUrl.startsWith('data:image')">
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                            </template>
+                                        </div>
+
+                                        <!-- File Name and Size Info -->
+                                        <div style="min-width: 0; line-height: 1.4; flex: 1;">
+                                            <div style="font-size: 0.86rem; font-weight: 800; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" x-text="item.fileName"></div>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.74rem; color: #64748b;" class="fa-num">
+                                                <span x-text="item.sizeStr"></span>
+                                                <template x-if="item.isScanner">
+                                                    <span style="background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 700;">دستگاه اسکنر سخت‌افزاری</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Re-Ordering (Arrangement) Controls -->
+                                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
+                                        <!-- Move Up Button -->
+                                        <button type="button" 
+                                                @click.stop="moveUploadFileUp(idx)" 
+                                                :disabled="idx === 0"
+                                                title="انتقال به بالا (برگه قبل)"
+                                                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 6px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #334155; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: all 0.15s;"
+                                                :style="idx === 0 ? 'opacity: 0.3; cursor: not-allowed;' : ''">
+                                            ▲
+                                        </button>
+
+                                        <!-- Move Down Button -->
+                                        <button type="button" 
+                                                @click.stop="moveUploadFileDown(idx)" 
+                                                :disabled="idx === uploadForm.filesList.length - 1"
+                                                title="انتقال به پایین (برگه بعد)"
+                                                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 6px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #334155; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: all 0.15s;"
+                                                :style="idx === uploadForm.filesList.length - 1 ? 'opacity: 0.3; cursor: not-allowed;' : ''">
+                                            ▼
+                                        </button>
+
+                                        <!-- Delete Button -->
+                                        <button type="button" 
+                                                @click.stop="removeUploadFile(idx)" 
+                                                title="حذف این برگه از لیست" 
+                                                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 6px; border: 1.5px solid #fecaca; background: #fff5f5; color: #dc2626; font-size: 1.15rem; line-height: 1; cursor: pointer; margin-right: 4px; transition: all 0.15s;">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Empty State when no files are chosen yet -->
+                    <template x-if="!uploadForm.filesList || uploadForm.filesList.length === 0">
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.5rem 1rem; text-align: center; color: #64748b;">
+                            <div style="width: 56px; height: 56px; border-radius: 50%; background: #ffffff; border: 1.5px solid #cbd5e1; color: #94a3b8; display: flex; align-items: center; justify-content: center; margin-bottom: 0.85rem;">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                            </div>
+                            <h4 style="font-size: 0.95rem; font-weight: 800; color: #1e293b; margin: 0 0 0.35rem;">هنوز برگه سندی انتخاب یا اسکن نشده است</h4>
+                            <p style="font-size: 0.8rem; color: #64748b; margin: 0; max-width: 440px; line-height: 1.6;">
+                                فایل‌های تصویری یا اسناد را از طریق دکمه‌های بالا انتخاب کنید، مستقیماً از اسکنر دریافت نمایید، یا فایل‌ها را به داخل این کادر بکشید.
+                            </p>
+                        </div>
+                    </template>
+
+                </div>
             </div>
+
         </div>
 
         <!-- Modal Footer -->
-        <div class="modal-footer" style="padding: 1.25rem 1.75rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 0.78rem; color: #64748b;" class="fa-num">
-                شناسه یکتای امنیتی پرونده: <strong>#<span x-text="archiveNumber"></span></strong>
+        <div class="modal-footer" style="padding: 1.15rem 1.75rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="font-size: 0.82rem; color: #64748b;" class="fa-num">
+                شناسه امنیتی پرونده: <strong>#<span x-text="archiveNumber"></span></strong>
             </div>
 
             <div style="display: flex; gap: 0.75rem; align-items: center;">
-                <button type="button" class="btn btn-outline" style="padding: 0.65rem 1.5rem; font-size: 0.88rem;" @click="showUploadModal = false">
+                <button type="button" class="btn btn-outline" style="padding: 0.6rem 1.5rem; font-size: 0.86rem; border-color: #cbd5e1; color: #475569;" @click="showUploadModal = false">
                     انصراف
                 </button>
-                <button type="button" class="btn btn-success" style="padding: 0.65rem 1.75rem; font-size: 0.9rem; font-weight: 700; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);" 
-                        @click="submitScanUpload()" :disabled="!uploadForm.title || !isUploadAllowed()">
+                <button type="button" class="btn btn-success" style="padding: 0.65rem 1.85rem; font-size: 0.9rem; font-weight: 800; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35); display: inline-flex; align-items: center; gap: 0.5rem;" 
+                        @click="submitScanUpload()" :disabled="(!uploadForm.filesList || uploadForm.filesList.length === 0) || !isUploadAllowed()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
-                    <span>ثبت و الصاق سند به پرونده</span>
+                    <span x-show="uploadForm.filesList && uploadForm.filesList.length > 0">
+                        الصاق و ذخیره نهایی (<span class="fa-num" x-text="uploadForm.filesList.length"></span> سند)
+                    </span>
+                    <span x-show="!uploadForm.filesList || uploadForm.filesList.length === 0">
+                        الصاق اسناد به پرونده
+                    </span>
                 </button>
             </div>
         </div>
     </div>
 </div>
-
-
 <!-- 4. Official Red Form J Disqualification & Archival Modal -->
 <div class="modal-overlay" x-show="showRedRejectionModal" x-cloak @click.self="showRedRejectionModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
     <div class="modal-dialog" @click.stop style="max-width: 650px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); animation: modal-appear 0.2s ease-out;">

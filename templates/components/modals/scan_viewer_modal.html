@@ -39,7 +39,7 @@
                 <span>چرخش</span>
             </button>
             <!-- Print Scan -->
-            <button type="button" class="toolbar-btn" onclick="window.print()" title="چاپ تصویر مدرک">
+            <button type="button" class="toolbar-btn" @click="printActiveScan()" title="چاپ تصویر مدرک">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 <span>چاپ سند</span>
             </button>
@@ -85,8 +85,8 @@
                         <div style="font-weight: 800; font-size: 1rem; color: #ffffff;">خطا در دریافت فایل تصویر</div>
                         <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 0.4rem;">فایل مدرک در سرور یافت نشد یا در دسترس نمی‌باشد.</div>
                     </div>
-                    <div style="margin-top: 1rem; font-size: 0.85rem; color: #cbd5e1;" class="fa-num">
-                        <strong x-text="activeScan.title"></strong> (بارگذاری‌شده توسط <span x-text="activeScan.uploader"></span>)
+                    <div style="margin-top: 1rem; font-size: 0.85rem; color: #cbd5e1;" class="fa-num hide-on-print">
+                        <strong x-text="activeScan.title"></strong>
                     </div>
                 </div>
             </template>
@@ -302,7 +302,7 @@
                     <div style="margin-top: 2rem; padding: 1rem; background: #f8fafc; border-radius: 6px; font-size: 0.85rem;" class="fa-num">
                         <div><strong>کد امنیتی SHA-256 سند:</strong> <span class="sha-hash" x-text="activeScan.sha256"></span></div>
                         <div><strong>مرحله بارگذاری:</strong> مرحله <span x-text="activeScan.stage"></span> (<span x-text="stages[activeScan.stage] ? stages[activeScan.stage].title : ''"></span>)</div>
-                        <div><strong>کاربر ثبت‌کننده:</strong> <span x-text="activeScan.uploader"></span></div>
+                        <div class="hide-on-print"><strong>کاربر ثبت‌کننده:</strong> <span x-text="activeScan.uploader"></span></div>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">

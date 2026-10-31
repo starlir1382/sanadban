@@ -1,0 +1,34 @@
+{% comment %}
+  dossiers/partials/sig_cell.html
+  One official signature box: log on the RIGHT (name / date / time / ref), ink on the LEFT.
+  Params:  sig   -> DossierSignature (or None)
+           label -> optional title bar text (e.g. "کارشناس حقوقی")
+           v     -> "1" | "2" | "3"  (fixed per-cell tilt so prints are identical every time)
+  Uses a nested <table> (not flex/grid) so it also survives the Word (.doc) export.
+{% endcomment %}<div class="sig-card">
+  {% if label %}<div class="sig-label">{{ label }}</div>{% endif %}
+  {% if sig and sig.signed_date %}
+  <table class="sig-split sig-v{{ v|default:'1' }}">
+    <tr>
+      <td class="sig-log">
+        <strong class="sig-name">{{ sig.signer_name|default:'-' }}</strong>
+        <span class="sig-line">{{ sig.date_part|default:sig.signed_date }}</span>
+        {% if sig.time_part %}<span class="sig-line">ساعت {{ sig.time_part }}</span>{% endif %}
+        {% if sig.ref_code %}<span class="sig-ref">{{ sig.ref_code }}</span>{% endif %}
+      </td>
+      <td class="sig-ink"><div class="sig-base">
+        {% if sig.signature_image %}
+          <img class="sig-img" src="{{ sig.signature_image.url }}" alt=""
+               onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'digital-stamp',textContent:'امضای دیجیتال ✓'}))" />
+        {% else %}
+          <span class="digital-stamp">امضای دیجیتال ✓</span>
+        {% endif %}
+      </div></td>
+    </tr>
+  </table>
+  {% else %}
+  <table class="sig-split">
+    <tr><td class="sig-pending-td"><span class="pending-stamp">در انتظار تأیید و امضا</span></td></tr>
+  </table>
+  {% endif %}
+</div>
