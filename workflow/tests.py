@@ -3,6 +3,7 @@ Unit tests for workflow stages and migration mapping.
 """
 
 from django.test import TestCase, RequestFactory
+from django.urls import reverse
 import json
 from django.contrib.auth.models import User
 from workflow.models import HousingDossier, UserProfile
@@ -333,7 +334,8 @@ class WorkflowExecutionTestCase(TestCase):
         resp_print = folder_label_print_view(req_print, pk=dossier.archive_number)
         self.assertEqual(resp_print.status_code, 200)
         self.assertIn(str(dossier.archive_number), resp_print.content.decode("utf-8"))
-        self.assertIn("1403/J/9988", resp_print.content.decode("utf-8"))
+        self.assertIn("دهک درآمدی", resp_print.content.decode("utf-8"))
+        self.assertIn("نهاد تحت حمایت", resp_print.content.decode("utf-8"))
 
 
 
@@ -429,3 +431,29 @@ class OptimizationAndBulkExcelTestCase(TestCase):
         # Verify father_name was updated in DB
         dossier_0 = HousingDossier.objects.get(national_id="0012345670")
         self.assertEqual(dossier_0.father_name, "پدر جدید 0")
+
+    def test_ui_mode_toggle_and_persistence(self):
+        self.client.force_login(self.admin)
+        url = reverse("set_ui_mode")
+
+        # 1. Switch to simple mode
+        resp = self.client.post(url, data=json.dumps({"mode": "simple"}), content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.admin.profile.refresh_from_db()
+        self.assertEqual(self.admin.profile.ui_mode, "simple")
+
+        # 2. Switch back to advanced mode
+        resp = self.client.post(url, data=json.dumps({"mode": "advanced"}), content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.admin.profile.refresh_from_db()
+        self.assertEqual(self.admin.profile.ui_mode, "advanced")
+
+        # 3. Invalid mode rejects with 400
+        resp = self.client.post(url, data=json.dumps({"mode": "invalid"}), content_type="application/json")
+        self.assertEqual(resp.status_code, 400)
+
+        # 4. Anonymous cannot change ui mode
+        self.client.logout()
+        resp = self.client.post(url, data=json.dumps({"mode": "simple"}), content_type="application/json")
+        self.assertEqual(resp.status_code, 302)
+

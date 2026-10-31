@@ -756,7 +756,30 @@ class UserProfile(models.Model):
     # Access Level Management & Housing Chief (رئیس مسکن)
     is_housing_chief = models.BooleanField(default=False, verbose_name="رئیس مسکن (اختیارات و دسترسی تام)")
     is_check_admin = models.BooleanField(default=False, verbose_name="مدیر کارگزاری چک (دسترسی به کارمزد و امور مالی چک)")
-    allowed_stages = models.CharField(max_length=150, default="all", verbose_name="مراحل مجاز (مثال: 0,1,2 یا all)")
+    allowed_stages = models.CharField(max_length=150, default="all", verbose_name="مراحل مجاز (مثال: 0,1,2 یا all)")
+
+    UI_MODE_CHOICES = [
+        ("advanced", "حالت پیشرفته"),
+        ("simple", "حالت ساده"),
+    ]
+    ui_mode = models.CharField(
+        max_length=10,
+        choices=UI_MODE_CHOICES,
+        default="advanced",
+        verbose_name="حالت نمایش صفحه پرونده",
+    )
+
+    @property
+    def date_joined_jalali(self):
+        """Returns the Jalali date when the user joined."""
+        try:
+            import jdatetime
+            dt = self.user.date_joined if self.user else None
+            if dt:
+                return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d")
+            return "-"
+        except Exception:
+            return "-"
 
     # Mandatory Security Onboarding & Signature
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True, verbose_name="تصویر پروفایل کارشناس")

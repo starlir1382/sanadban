@@ -431,6 +431,40 @@
     transform: rotate(-6deg);
   }
   .sha-hash { font-family: monospace; word-break: break-all; }
+  
+  /* ---------- Simple mode (حالت ساده) ---------- */
+  .sb-stepper-wrap { display: contents; }
+  .sb-stepper-wrap.sb-hide,
+  html[data-ui-mode="simple"] .sb-stepper-wrap { display: none !important; }
+
+  .dt-simple-card {
+    margin-bottom: 0.9rem; padding: 0.9rem 1.1rem; border-radius: 14px;
+    background: #eff6ff; border: 1px solid #bfdbfe; border-inline-start: 4px solid #2563eb; color: #1e3a8a;
+  }
+  .dt-simple-card-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .dt-simple-card ul { margin: 0.35rem 0 0 1.25rem; padding: 0; font-size: 0.82rem; line-height: 1.7; }
+
+  html[data-ui-mode="simple"] .dt-simple-card { display: block !important; }
+  html:not([data-ui-mode="simple"]) .dt-simple-card { display: none !important; }
+
+  .sb-simple .form-card.sb-simple-hidden,
+  html[data-ui-mode="simple"] .form-card.sb-simple-hidden { display: none !important; }
+
+  .sb-simple .sb-advanced-only,
+  html[data-ui-mode="simple"] .sb-advanced-only { display: none !important; }
+
+  .sb-simple .form-section-body,
+  html[data-ui-mode="simple"] .form-section-body { display: block !important; }   /* sections stay open */
+
+  .sb-simple .btn-section-toggle,
+  html[data-ui-mode="simple"] .btn-section-toggle { display: none !important; }
+
+  .sb-simple .form-section-header,
+  html[data-ui-mode="simple"] .form-section-header { cursor: default; }
+
+  html[data-ui-mode="simple"] button[data-tab-name="map"],
+  html[data-ui-mode="simple"] button[data-tab-name="history"] { display: none !important; }
+
   @media (prefers-reduced-motion: reduce) { .dt-tabs, .dt-tab, .dt-stage, .dt-banner { transition: none !important; animation: none !important; } }
 </style>
 
@@ -532,6 +566,35 @@
     </div>
   </div>
 
+  
+  <!-- Simple-mode summary card -->
+  <div class="dt-simple-card" x-show="simpleMode" x-cloak>
+    <div class="dt-simple-card-head">
+      <div class="fa-num" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <span class="ps-stage-badge">مرحله <span x-text="currentStage"></span> از ۲۲</span>
+        <strong x-text="getStage(currentStage).title"></strong>
+        <span class="ps-chip" style="background: #e0f2fe; color: #0369a1" x-show="status === 'IN_PROGRESS' && !isLocked" x-cloak>● در جریان</span>
+        <span class="ps-chip" style="background: #fee2e2; color: #b91c1c" x-show="status === 'RETURNED'" x-cloak>↩ برگشت‌خورده</span>
+        <span class="ps-chip" style="background: #dcfce7; color: #15803d" x-show="isLocked || status === 'COMPLETED'" x-cloak>✓ مختومه</span>
+        <span class="ps-chip" style="background: #f1f5f9; color: #475569" x-show="!userCanAction && !isLocked" x-cloak>👁 فقط مشاهده</span>
+      </div>
+      <button type="button" class="btn btn-outline" @click="window.SanadbanUiMode.toggle()">
+        نمایش همه بخش‌ها (حالت پیشرفته)
+      </button>
+    </div>
+    <div style="margin-top: 0.65rem;">
+      <div style="font-weight: 800; font-size: 0.88rem;">
+        کار شما در این پرونده:
+        <span x-text="getStageGuidance(simpleFocusStage).actionTitle"></span>
+      </div>
+      <ul>
+        <template x-for="(it, i) in getStageGuidance(simpleFocusStage).items || []" :key="i">
+          <li x-text="it"></li>
+        </template>
+      </ul>
+    </div>
+  </div>
+
   <div class="dt-hero">
     <div>
       <h2>
@@ -556,7 +619,10 @@
   </div>
 
   <!-- Slim stepper -->
-  {% include 'components/pipeline_stepper.html' %}
+  <!-- Slim stepper (hidden in simple mode) -->
+  <div class="sb-stepper-wrap" :class="{'sb-hide': simpleMode}">
+    {% include 'components/pipeline_stepper.html' %}
+  </div>
 
   <!-- Tabs -->
   <div class="dt-tabs" role="tablist">
@@ -570,7 +636,7 @@
       </svg>
       <span>فرم پرونده</span>
     </button>
-    <button type="button" class="dt-tab" :class="{active: tab==='map'}" @click="go('map')">
+    <button type="button" class="dt-tab" x-show="!simpleMode" :class="{active: tab==='map'}" @click="go('map')" data-tab-name="map">
       <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="1 6 1 22 8 18 15 22 22 18 22 2 15 6 8 2 1 6"></polygon>
         <line x1="8" y1="2" x2="8" y2="18"></line>
@@ -578,7 +644,7 @@
       </svg>
       <span>نقشه مراحل</span>
     </button>
-    <button type="button" class="dt-tab" :class="{active: tab==='history'}" @click="go('history')">
+    <button type="button" class="dt-tab" x-show="!simpleMode" :class="{active: tab==='history'}" @click="go('history')" data-tab-name="history">
       <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
         <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
@@ -598,7 +664,7 @@
   </div>
 
   <!-- TAB: form (x-show keeps inputs alive when switching tabs) -->
-  <div x-show="tab === 'form'" id="form">
+  <div x-show="tab === 'form'" id="form" :class="{'sb-simple': simpleMode}" x-effect="applySimpleModeVisibility()">
       {% include 'components/form_sections.html' %}
   </div>
 
@@ -685,7 +751,7 @@
         </div>
 
         <!-- More menu -->
-        <div class="dt-more" @click.outside="moreOpen = false">
+        <div class="dt-more" x-show="!simpleMode || isChief || isSuperuser" @click.outside="moreOpen = false">
           <button type="button" class="btn btn-outline" @click="moreOpen = !moreOpen">
             ⋯ بیشتر
           </button>

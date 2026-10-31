@@ -177,6 +177,16 @@ html[data-theme="dark"] .form-section-body {
   background: #0f172a !important;
 }
 
+html[data-theme="dark"] .dt-simple-card {
+  background: rgba(37, 99, 235, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  border-inline-start-color: #3b82f6 !important;
+  color: #bfdbfe !important;
+}
+html[data-theme="dark"] .dt-simple-card strong {
+  color: #93c5fd !important;
+}
+
 /* ==========================================================================
    4. Form Controls, Inputs & Selects
    ========================================================================== */
@@ -627,3 +637,28 @@ html[data-theme="dark"] .sb-theme-switch-track {
 html[data-theme="dark"] .sb-theme-switch-thumb {
   transform: translateX(-18px);
 }
+
+/* Desktop Navbar theme toggle button: icon-only circular */
+.sb-actions .sb-theme-toggle-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+
+/* Theme toggle text labels */
+.sb-theme-text-dark, .sb-theme-text-light {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-inline-start: 0.35rem;
+}
+html[data-theme="dark"] .sb-theme-text-light { display: none !important; }
+html[data-theme="dark"] .sb-theme-text-dark { display: inline !important; }
+html:not([data-theme="dark"]) .sb-theme-text-dark { display: none !important; }
+html:not([data-theme="dark"]) .sb-theme-text-light { display: inline !important; }

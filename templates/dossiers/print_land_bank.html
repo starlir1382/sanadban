@@ -364,7 +364,7 @@
                             <th rowspan="2" style="width: 8%;">نام خانوادگی</th>
                             <th rowspan="2" style="width: 9%; border-left: 2px solid #000000;">کدملی</th>
 
-                            <th colspan="2" style="width: 10%;">بلوک</th>
+                            <th colspan="2" style="width: 10%;">کد بلوک</th>
                             <th rowspan="2" style="width: 4%;">طبقه</th>
                             <th colspan="2" style="width: 12%;">واحد</th>
                             <th colspan="2" style="width: 12%;">پارکینگ</th>
@@ -402,7 +402,7 @@
 
                             <!-- بلوک -->
                             <td>{{ dossier.block_code|default:"-" }}</td>
-                            <td class="dashed-right">{{ dossier.block_name|default:"-" }}</td>
+                            <td class="dashed-right">{{ dossier.block_code|default:dossier.block_name|default:"-" }}</td>
 
                             <!-- طبقه -->
                             <td>{{ dossier.floor_number|default:"-" }}</td>

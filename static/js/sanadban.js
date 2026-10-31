@@ -1,3 +1,23 @@
+// Which form section belongs to which workflow stage(s)
+const SECTION_STAGE_MAP = {
+  'section-applicant': [1, 8],
+  'section-form-j': [3, 11],
+  'section-spouse': [1],
+  'section-plot': [2, 8, 12, 14, 15],
+  'section-cost': [2, 19],
+  'section-loans': [4, 19],
+  'section-equity': [5],
+  'section-applicant-equity': [5],
+  'section-bank': [6, 10],
+  'section-bank-letter': [6, 10],
+  'section-docs-installment': [7, 8, 9, 21, 22],
+  'section-notary': [20, 21, 22],
+  'section-valuation': [16, 19],
+  'section-valuation-rent': [16, 19],
+  'section-checks': [17, 18],
+  'scans-album-section': [1, 7, 11, 13, 17, 18, 21]
+};
+
 const FIELD_STAGE_MAP = {
   national_id: [1, 8, 9], full_name: [1, 8, 9], father_name: [1, 8, 9], birth_date: [1, 8, 9], applicant_id_number: [1, 8, 9], applicant_birth_place: [1, 8, 9], applicant_phone: [1, 8, 9],
   selection_rank: [1, 8, 9], decile: [1, 4], marital_status: [1, 8, 9], is_married_confirmed: [1, 8, 9],
@@ -370,10 +390,43 @@ document.addEventListener('alpine:init', () => {
         ? location.hash.slice(1)
         : 'form',
     moreOpen: false,
+    simpleMode: document.documentElement.getAttribute('data-ui-mode') === 'simple',
 
     get isRedJ() {
       return Boolean(this.isRedFormJ
         || (this.form && this.form.applicant_form_j_status && this.form.applicant_form_j_status.includes('قرمز')));
+    },
+
+    // Sections shown in simple mode: applicant (stage 1) + sections of the user's own stages
+    get simpleVisibleSections() {
+      const ids = new Set(['section-applicant']);
+      const allowed = this.userAllowedStages;
+      const restricted = Array.isArray(allowed) && allowed.length > 0 && !this.isSuperuser && !this.isChief;
+      const stages = restricted ? allowed.map(Number) : [Number(this.currentStage)];
+      Object.keys(SECTION_STAGE_MAP).forEach((sid) => {
+        if (SECTION_STAGE_MAP[sid].some((s) => stages.includes(s))) ids.add(sid);
+      });
+      return ids;
+    },
+
+    get simpleFocusStage() {
+      const allowed = Array.isArray(this.userAllowedStages) ? this.userAllowedStages : [];
+      const numeric = allowed.map(Number).filter((n) => !Number.isNaN(n) && n > 0);
+      if (numeric.length > 0) {
+        const cur = Number(this.currentStage);
+        if (numeric.includes(cur)) return cur;
+        return numeric[0];
+      }
+      return Number(this.currentStage) || 1;
+    },
+
+    applySimpleModeVisibility() {
+      const visible = this.simpleVisibleSections;
+      const on = Boolean(this.simpleMode || (document.documentElement.getAttribute('data-ui-mode') === 'simple'));
+      document.querySelectorAll('#form .form-card, .form-sections-wrapper .form-card').forEach((el) => {
+        if (!el || !el.id) return;
+        el.classList.toggle('sb-simple-hidden', on && !visible.has(el.id));
+      });
     },
 
     go(t) {
@@ -645,6 +698,26 @@ document.addEventListener('alpine:init', () => {
 
       // 2. Set Persian Today Date dynamically
       this.todayDate = this.getTodayJalaliDisplay();
+
+      // Simple / advanced mode (حالت ساده / پیشرفته)
+      window.SanadbanAppInstance = this;
+      this.simpleMode = window.SanadbanUiMode ? window.SanadbanUiMode.get() === 'simple' : false;
+      window.addEventListener('sanadban-ui-mode-changed', (e) => {
+        this.simpleMode = Boolean(e.detail && e.detail.mode === 'simple');
+        this.applySimpleModeVisibility();
+      });
+      const enforceSimpleTab = () => {
+        if (this.simpleMode && (this.tab === 'map' || this.tab === 'history')) this.tab = 'form';
+      };
+      this.$watch('simpleMode', (val) => {
+        enforceSimpleTab();
+        this.applySimpleModeVisibility();
+      });
+      this.$watch('tab', enforceSimpleTab);
+      enforceSimpleTab();
+      this.$nextTick(() => {
+        this.applySimpleModeVisibility();
+      });
 
       // 2. Read real server data injected from database
       const serverDataEl = document.getElementById('dossier-server-json');
@@ -1747,24 +1820,7 @@ document.addEventListener('alpine:init', () => {
       // Locked/archived dossiers have no active action stage
       if (this.isLocked || Number(this.currentStage) >= 22) return false;
       const stg = Number(this.currentStage);
-      const mapping = {
-        'section-applicant': [1, 8],
-        'section-form-j': [3, 11],
-        'section-spouse': [1],
-        'section-plot': [2, 8, 12, 14, 15],
-        'section-cost': [2, 19],
-        'section-loans': [4, 19],
-        'section-equity': [5],
-        'section-applicant-equity': [5],
-        'section-bank': [6, 10],
-        'section-bank-letter': [6, 10],
-        'section-docs-installment': [7, 8, 9, 21, 22],
-        'section-notary': [20, 21, 22],
-        'section-valuation': [16, 19],
-        'section-valuation-rent': [16, 19],
-        'section-checks': [17, 18],
-        'scans-album-section': [1, 7, 11, 13, 17, 18, 21]
-      };
+      const mapping = SECTION_STAGE_MAP;
       return mapping[sectionId] ? mapping[sectionId].includes(stg) : false;
     },
 
@@ -2876,4 +2932,80 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => window.SanadbanTheme.init());
 } else {
   window.SanadbanTheme.init();
+}
+
+// =========================================================================
+// UI Mode Manager: حالت ساده / حالت پیشرفته (saved on the user's profile)
+// =========================================================================
+window.SanadbanUiMode = {
+  get() {
+    const attr = document.documentElement.getAttribute('data-ui-mode');
+    if (attr === 'simple' || attr === 'advanced') return attr;
+    try {
+      const local = localStorage.getItem('sb-ui-mode');
+      if (local === 'simple' || local === 'advanced') return local;
+    } catch (_) {}
+    return 'advanced';
+  },
+
+  set(mode, persist = true) {
+    if (mode !== 'simple' && mode !== 'advanced') mode = 'advanced';
+    this._apply(mode);
+    if (persist) this.save(mode);
+  },
+
+  toggle() {
+    const next = this.get() === 'simple' ? 'advanced' : 'simple';
+    this.set(next);
+    return next;
+  },
+
+  _apply(mode) {
+    document.documentElement.setAttribute('data-ui-mode', mode);
+    try { localStorage.setItem('sb-ui-mode', mode); } catch (_) {}
+    window.dispatchEvent(new CustomEvent('sanadban-ui-mode-changed', { detail: { mode } }));
+    if (window.SanadbanAppInstance) {
+      window.SanadbanAppInstance.simpleMode = (mode === 'simple');
+      if (typeof window.SanadbanAppInstance.applySimpleModeVisibility === 'function') {
+        window.SanadbanAppInstance.applySimpleModeVisibility();
+      }
+    }
+    this.syncUI();
+  },
+
+  getCsrf() {
+    if (window.SB_CSRF_TOKEN) return window.SB_CSRF_TOKEN;
+    const input = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (input && input.value) return input.value;
+    const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  },
+
+  async save(mode) {
+    const url = window.SB_UI_MODE_URL;
+    if (!url) return;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrf() },
+        body: JSON.stringify({ mode })
+      });
+      if (!res.ok) console.warn('UI mode save status:', res.status);
+    } catch (e) {
+      console.warn('UI mode was not saved to server:', e);
+    }
+  },
+
+  syncUI() {
+    const simple = this.get() === 'simple';
+    document.querySelectorAll('[data-sb-mode-toggle]').forEach((btn) => {
+      btn.setAttribute('aria-pressed', simple ? 'true' : 'false');
+    });
+  }
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => window.SanadbanUiMode.syncUI());
+} else {
+  window.SanadbanUiMode.syncUI();
 }

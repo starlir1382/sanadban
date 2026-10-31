@@ -203,7 +203,7 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 0.25rem;">
                         <span style="color: #64748b;">تاریخ عضویت در سامانه:</span>
-                        <span class="fa-num">{{ user.date_joined|date:"Y/m/d H:i" }}</span>
+                        <span class="fa-num">{{ date_joined_jalali|default:user.profile.date_joined_jalali|default:'-' }}</span>
                     </div>
                 </div>
             </div>

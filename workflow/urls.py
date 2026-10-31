@@ -30,6 +30,7 @@ path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="d
     path("login/", views.user_login_view, name="login"),
     path("logout/", views.user_logout_view, name="logout"),
     path("profile/", views.user_profile_view, name="user_profile"),
+    path("profile/ui-mode/", views.set_ui_mode, name="set_ui_mode"),
     path("security/first-login-setup/", views.first_login_setup_view, name="first_login_setup"),
 
     # Staff & User Access Administration

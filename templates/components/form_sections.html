@@ -335,11 +335,11 @@
             
             <!-- مشخصات سایت، پروژه و واحد مسکونی -->
 
-            <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 0.85rem;">
+            <div class="sb-advanced-only" style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 0.85rem;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;"><path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M10 11h2M10 15h2M14 11h2M14 15h2M18 11h2M18 15h2M9 7V3h6v4"></path></svg>
                 <span>مشخصات سایت، پروژه و واحد مسکونی</span>
             </div>
-            <div class="fields-grid">
+            <div class="fields-grid sb-advanced-only">
                 <!-- site -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('site')}">
                     <label class="field-label"><span>نام سایت</span></label>
@@ -422,24 +422,19 @@
                 </div>
 
                 <!-- bedroom_count -->
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('bedroom_count')}">
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('bedroom_count')}">
                     <label class="field-label"><span>تعداد خواب</span></label>
                     <select class="input-control fa-num" x-model="form.bedroom_count" :disabled="!isFieldEditable('bedroom_count')">
                         <option value="1">۱ خوابه</option>
                         <option value="2">۲ خوابه</option>
                         <option value="3">۳ خوابه</option>
-                        
                     </select>
                 </div>
 
-                <!-- block_name & block_code -->
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('block_name')}">
-                    <label class="field-label"><span>نام بلوک</span></label>
-                    <input type="text" class="input-control" x-model="form.block_name" :readonly="!isFieldEditable('block_name')" placeholder="مثال: بلوک B-14">
-                </div>
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('block_code')}">
+                <!-- block_code -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('block_code')}">
                     <label class="field-label"><span>کد بلوک</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.block_code" :readonly="!isFieldEditable('block_code')" placeholder="مثال: hh89">
+                    <input type="text" class="input-control fa-num" x-model="form.block_code" :readonly="!isFieldEditable('block_code')" placeholder="مثال: 27">
                 </div>
 
                 <!-- floor_number -->
@@ -455,18 +450,14 @@
                     </select>
                 </div>
 
-                <!-- unit_number & unit_code -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('unit_number')}">
+                <!-- unit_number -->
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('unit_number')}">
                     <label class="field-label"><span>شماره واحد</span></label>
-                    <input type="number" class="input-control fa-num" x-model="form.unit_number" :readonly="!isFieldEditable('unit_number')">
-                </div>
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('unit_code')}">
-                    <label class="field-label"><span>کد واحد</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.unit_code" :readonly="!isFieldEditable('unit_code')" placeholder="مثال: 37">
+                    <input type="number" class="input-control fa-num" x-model="form.unit_number" :readonly="!isFieldEditable('unit_number')" placeholder="شماره واحد">
                 </div>
 
                 <!-- unit_direction -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('unit_direction')}">
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('unit_direction')}">
                     <label class="field-label"><span>جهت واحد</span></label>
                     <select class="input-control" x-model="form.unit_direction" :disabled="!isFieldEditable('unit_direction')">
                         <option value="شمال غربی">شمال غربی</option>
@@ -477,6 +468,11 @@
                         <option value="جنوبی">جنوبی</option>
                         <option value="دو کله">دو کله</option>
                     </select>
+                </div>
+
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('covered_parking_area')}">
+                    <label class="field-label"><span>متراژ پارکینگ مسقف (مترمربع)</span></label>
+                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.covered_parking_area" :readonly="!isFieldEditable('covered_parking_area')">
                 </div>
 
                 <!-- Areas -->
@@ -492,21 +488,17 @@
                     <label class="field-label"><span>جمع کل متراژ واحد (مترمربع)</span></label>
                     <input type="number" step="0.01" class="input-control fa-num" x-model="form.total_area" :readonly="!isFieldEditable('total_area')">
                 </div>
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('covered_parking_area')}">
-                    <label class="field-label"><span>متراژ پارکینگ مسقف (مترمربع)</span></label>
-                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.covered_parking_area" :readonly="!isFieldEditable('covered_parking_area')">
-                </div>
 
                 <!-- Storage & Parking numbers -->
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('storage_number')}">
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('storage_number')}">
                     <label class="field-label"><span>شماره انباری</span></label>
                     <input type="number" class="input-control fa-num" x-model="form.storage_number" :readonly="!isFieldEditable('storage_number')">
                 </div>
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('storage_area')}">
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('storage_area')}">
                     <label class="field-label"><span>مساحت انباری (مترمربع)</span></label>
                     <input type="number" step="0.01" class="input-control fa-num" x-model="form.storage_area" :readonly="!isFieldEditable('storage_area')">
                 </div>
-                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('parking_number')}">
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('parking_number')}">
                     <label class="field-label"><span>شماره پارکینگ</span></label>
                     <input type="number" class="input-control fa-num" x-model="form.parking_number" :readonly="!isFieldEditable('parking_number')">
                 </div>

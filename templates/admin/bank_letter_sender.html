@@ -360,7 +360,8 @@
                             full_name: d.full_name,
                             national_id: d.national_id,
                             block_code: d.block_code,
-                            unit_code: d.unit_code,
+                            unit_code: d.unit_number || d.unit_code,
+                            unit_number: d.unit_number || d.unit_code,
                             total_area: d.total_area,
                             applicant_phone: d.applicant_phone
                         }))
@@ -1130,7 +1131,7 @@
                         <th style="border: 1px solid #000000; padding: 6px 4px;">شماره تماس</th>
                         <th style="border: 1px solid #000000; padding: 6px 3px;">کد بلوک</th>
                         <th style="border: 1px solid #000000; padding: 6px 2px;">طبقه</th>
-                        <th style="border: 1px solid #000000; padding: 6px 3px;">کدواحد</th>
+                        <th style="border: 1px solid #000000; padding: 6px 3px;">شماره واحد</th>
                         <th style="border: 1px solid #000000; padding: 6px 3px;">متراژ پارکینگ مسقف</th>
                         <th style="border: 1px solid #000000; padding: 6px 3px;">شماره پارکینگ</th>
                         <th style="border: 1px solid #000000; padding: 6px 3px;">متراژ انباری</th>
@@ -1177,8 +1178,8 @@
                             <!-- 8. طبقه -->
                             <td style="border: 1px solid #000000; padding: 5px 2px;" class="fa-num" x-text="doc.floor_number"></td>
                             
-                            <!-- 9. کدواحد -->
-                            <td style="border: 1px solid #000000; padding: 5px 2px;" class="fa-num" x-text="doc.unit_code"></td>
+                            <!-- 9. شماره واحد -->
+                            <td style="border: 1px solid #000000; padding: 5px 2px;" class="fa-num" x-text="doc.unit_number || doc.unit_code"></td>
                             
                             <!-- 10. متراژ پارکینگ مسقف -->
                             <td style="border: 1px solid #000000; padding: 5px 2px;" class="fa-num" x-text="doc.covered_parking_area"></td>

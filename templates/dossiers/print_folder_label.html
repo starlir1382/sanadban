@@ -466,15 +466,7 @@
 
 
 
-        .footer-company .sub {
-
-            font-size: 7.5pt;
-
-            font-weight: 600;
-
-            color: #64748b;
-
-        }
+        
 
 
 
@@ -810,11 +802,11 @@
 
                 <div class="info-cell">
 
-                    <span class="title">بلوک / طبقه:</span>
+                    <span class="title">کد بلوک / طبقه:</span>
 
                     <span class="val">
 
-                        بلوک {{ dossier.block_name|default:'-' }} / طبقه {{ dossier.floor_number|default:'-' }}
+                        بلوک {{ dossier.block_code|default:dossier.block_name|default:'-' }} / طبقه {{ dossier.floor_number|default:'-' }}
 
                     </span>
 
@@ -839,27 +831,16 @@
                 <!-- ROW 3: Registration, Form J Status & Municipal Code -->
 
                 <div class="info-cell">
-
-                    <span class="title">وضعیت و شماره فرم «ج»:</span>
-
-                    <span class="val">
-
-                        {{ dossier.applicant_form_j_status|default:'سبز (استعلام شده)' }}
-
-                        {% if dossier.form_j_number and dossier.form_j_number != 'ثبت‌نشده' %}
-
-                        <small style="font-size: 8pt; font-weight: 700; color: #1e40af;">(شماره: {{ dossier.form_j_number }})</small>
-
-                        {% endif %}
-
-                    </span>
-
+                    <span class="title">دهک درآمدی متقاضی:</span>
+                    <span class="val">{% if dossier.decile %}دهک {{ dossier.decile }}{% else %}-{% endif %}</span>
                 </div>
 
-
+                <div class="info-cell">
+                    <span class="title">نهاد تحت حمایت:</span>
+                    <span class="val">{{ dossier.supported_institution|default:'هیچکدام' }}</span>
+                </div>
 
                 <div class="info-cell">
-
                     <span class="title">پلاک اصلی و فرعی:</span>
 
                     <span class="val">
@@ -881,27 +862,10 @@
 
 
                 <div class="info-cell">
-
-                    <span class="title">بخش ثبتی و شماره قطعه:</span>
-
+                    <span class="title">بخش ثبتی / قطعه / کد نوسازی:</span>
                     <span class="val">
-
-                        {% if dossier.registration_section and dossier.registration_section != '-' %}{{ dossier.registration_section }}{% endif %}
-
-                        {% if dossier.plot_number and dossier.plot_number != '-' %} (قطعه {{ dossier.plot_number }}){% endif %}
-
+                        {% if dossier.registration_section and dossier.registration_section != '-' %}{{ dossier.registration_section }}{% endif %}{% if dossier.plot_number and dossier.plot_number != '-' %} (قطعه {{ dossier.plot_number }}){% endif %}{% if dossier.renovation_code and dossier.renovation_code != '-' %}{% if dossier.registration_section and dossier.registration_section != '-' %} • {% endif %}نوسازی: {{ dossier.renovation_code }}{% endif %}{% if not dossier.registration_section and not dossier.renovation_code %}-{% endif %}
                     </span>
-
-                </div>
-
-
-
-                <div class="info-cell">
-
-                    <span class="title">کد نوسازی (شهرداری):</span>
-
-                    <span class="val">{% if dossier.renovation_code and dossier.renovation_code != '-' %}{{ dossier.renovation_code }}{% endif %}</span>
-
                 </div>
 
 

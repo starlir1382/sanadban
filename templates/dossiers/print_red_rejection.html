@@ -158,7 +158,7 @@
                     <td style="font-weight: bold;">پروژه و سایت اولیه:</td>
                     <td>{{ dossier.site }} - {{ dossier.project }}</td>
                     <td style="font-weight: bold;">واحد اولیه انتخابی:</td>
-                    <td>بلوک {{ dossier.block_name|default:'-' }} - واحد {{ dossier.unit_number|default:'-' }}</td>
+                    <td>بلوک {{ dossier.block_code|default:dossier.block_name|default:'-' }} - واحد {{ dossier.unit_number|default:'-' }}</td>
                 </tr>
                 <tr>
                     <td style="font-weight: bold; background: #fff5f5; color: #991b1b;">علت و شرح سوابق ملکی احراز شده (کد قرمز):</td>
