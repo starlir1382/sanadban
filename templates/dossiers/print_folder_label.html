@@ -712,7 +712,7 @@
 
                     <p>وزارت راه و شهرسازی · طرح نهضت ملی مسکن</p>
 
-                    <div class="subtitle">شناسنامه و برچسب جلد پوشه فیزیکی متقاضی</div>
+                    
 
                 </div>
 
@@ -779,12 +779,6 @@
                     <span class="val">
 
                         {{ dossier.spouse_full_name|default:'-' }}
-
-                        {% if dossier.spouse_national_id %}
-
-                        <small style="font-size: 8.5pt; font-weight: 700; color: #4b5563;">(کد: {{ dossier.spouse_national_id }})</small>
-
-                        {% endif %}
 
                     </span>
 
@@ -906,7 +900,7 @@
 
                     <span class="title">کد نوسازی (شهرداری):</span>
 
-                    <span class="val">{{ dossier.renovation_code|default:'-' }}</span>
+                    <span class="val">{% if dossier.renovation_code and dossier.renovation_code != '-' %}{{ dossier.renovation_code }}{% endif %}</span>
 
                 </div>
 
@@ -946,11 +940,7 @@
 
                     </div>
 
-                    <div style="font-size: 7.5pt; color: #059669; font-weight: 700;">
-
-                        ✓ اسناد پرونده کنترل و تطبیق اصالت گردید
-
-                    </div>
+                    
 
                 </div>
 
@@ -962,7 +952,7 @@
 
                     <div class="sig-title">امضا و تأیید مسئول تشکیل پرونده</div>
 
-                    <div class="sig-space">محل مهر و امضای رسمی کارشناس</div>
+                    <div class="sig-space"></div>
 
                     <div class="sig-hint">تاریخ و امضا: ....................</div>
 
