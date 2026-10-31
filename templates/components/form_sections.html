@@ -189,13 +189,13 @@
                 <!-- 2-A. first_name -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('first_name') && !isFieldEditable('full_name')}">
                     <label class="field-label"><span><span class="required-mark">*</span>نام متقاضی</span></label>
-                    <input type="text" class="input-control" x-model="form.first_name" @input="form.full_name = ((form.first_name || '') + ' ' + (form.last_name || '')).trim()" :readonly="!isFieldEditable('first_name') && !isFieldEditable('full_name')" placeholder="نام متقاضی...">
+                    <input type="text" class="input-control" x-model="form.first_name" @input="form.full_name = ((form.first_name || '') + ' ' + (form.last_name || '')).trim()" :readonly="!isFieldEditable('first_name') && !isFieldEditable('full_name')" placeholder="نام متقاضی">
                 </div>
 
                 <!-- 2-B. last_name -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('last_name') && !isFieldEditable('full_name')}">
                     <label class="field-label"><span><span class="required-mark">*</span>نام خانوادگی متقاضی</span></label>
-                    <input type="text" class="input-control" x-model="form.last_name" @input="form.full_name = ((form.first_name || '') + ' ' + (form.last_name || '')).trim()" :readonly="!isFieldEditable('last_name') && !isFieldEditable('full_name')" placeholder="نام خانوادگی متقاضی...">
+                    <input type="text" class="input-control" x-model="form.last_name" @input="form.full_name = ((form.first_name || '') + ' ' + (form.last_name || '')).trim()" :readonly="!isFieldEditable('last_name') && !isFieldEditable('full_name')" placeholder="نام خانوادگی متقاضی">
                 </div>
 
                 <!-- 3. father_name -->
@@ -213,13 +213,13 @@
                 <!-- 4-B. applicant_id_number -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('applicant_id_number')}">
                     <label class="field-label"><span>شماره شناسنامه متقاضی</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.applicant_id_number" :readonly="!isFieldEditable('applicant_id_number')" placeholder="شماره شناسنامه...">
+                    <input type="text" class="input-control fa-num" x-model="form.applicant_id_number" :readonly="!isFieldEditable('applicant_id_number')" placeholder="شماره شناسنامه">
                 </div>
 
                 <!-- 4-C. applicant_birth_place -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('applicant_birth_place')}">
                     <label class="field-label"><span>محل صدور شناسنامه</span></label>
-                    <input type="text" class="input-control" x-model="form.applicant_birth_place" :readonly="!isFieldEditable('applicant_birth_place')" placeholder="شهر صدور...">
+                    <input type="text" class="input-control" x-model="form.applicant_birth_place" :readonly="!isFieldEditable('applicant_birth_place')" placeholder="شهر صدور">
                 </div>
 
                 <!-- 5. applicant_phone -->
@@ -228,7 +228,7 @@
                         <span>شماره همراه متقاضی</span>
                         <span class="helper-badge text-emerald-700">تماس</span>
                     </label>
-                    <input type="text" class="input-control fa-num" x-model="form.applicant_phone" :readonly="!isFieldEditable('applicant_phone')" placeholder="0912...">
+                    <input type="text" class="input-control fa-num" x-model="form.applicant_phone" :readonly="!isFieldEditable('applicant_phone')" placeholder="0912">
                 </div>
 
                 <!-- 6. selection_rank -->
@@ -276,7 +276,7 @@
                         <span><span class="required-mark">*</span>نام همسر</span>
                         <span class="helper-badge text-blue-700">سجلی</span>
                     </label>
-                    <input type="text" class="input-control" x-model="form.spouse_first_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')" placeholder="نام همسر...">
+                    <input type="text" class="input-control" x-model="form.spouse_first_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_first_name') && !isFieldEditable('spouse_full_name')" placeholder="نام همسر">
                 </div>
 
                 <!-- 1-B. spouse_last_name -->
@@ -285,7 +285,7 @@
                         <span><span class="required-mark">*</span>نام خانوادگی همسر</span>
                         <span class="helper-badge text-blue-700">سجلی</span>
                     </label>
-                    <input type="text" class="input-control" x-model="form.spouse_last_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')" placeholder="نام خانوادگی همسر...">
+                    <input type="text" class="input-control" x-model="form.spouse_last_name" @input="form.spouse_full_name = ((form.spouse_first_name || '') + ' ' + (form.spouse_last_name || '')).trim()" :readonly="!isFieldEditable('spouse_last_name') && !isFieldEditable('spouse_full_name')" placeholder="نام خانوادگی همسر">
                 </div>
 
                 <!-- 2. spouse_national_id -->
@@ -300,13 +300,13 @@
                 <!-- 3. spouse_father_name -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_father_name')}">
                     <label class="field-label"><span>نام پدر همسر</span></label>
-                    <input type="text" class="input-control" x-model="form.spouse_father_name" :readonly="!isFieldEditable('spouse_father_name')" placeholder="نام پدر...">
+                    <input type="text" class="input-control" x-model="form.spouse_father_name" :readonly="!isFieldEditable('spouse_father_name')" placeholder="نام پدر">
                 </div>
 
                 <!-- 4. spouse_id_number -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_id_number')}">
                     <label class="field-label"><span>شماره شناسنامه همسر</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.spouse_id_number" :readonly="!isFieldEditable('spouse_id_number')" placeholder="شماره شناسنامه...">
+                    <input type="text" class="input-control fa-num" x-model="form.spouse_id_number" :readonly="!isFieldEditable('spouse_id_number')" placeholder="شماره شناسنامه">
                 </div>
 
                 <!-- 5. spouse_birth_date -->
@@ -318,7 +318,7 @@
                 <!-- 6. spouse_birth_place -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_birth_place')}">
                     <label class="field-label"><span>محل تولد / صدور همسر</span></label>
-                    <input type="text" class="input-control" x-model="form.spouse_birth_place" :readonly="!isFieldEditable('spouse_birth_place')" placeholder="شهر صدور...">
+                    <input type="text" class="input-control" x-model="form.spouse_birth_place" :readonly="!isFieldEditable('spouse_birth_place')" placeholder="شهر صدور">
                 </div>
 
                 <!-- 7. marital_status -->
@@ -368,7 +368,7 @@
                                @input="projectSearchOpen = isFieldEditable('project')"
                                @click.outside="projectSearchOpen = false"
                                :readonly="!isFieldEditable('project')" 
-                               placeholder="جستجوی نام پروژه (مثلاً: اقدم، پرنیان، داتیس)..."
+                               placeholder="جستجوی نام پروژه (مثلاً: اقدم، پرنیان، داتیس)"
                                autocomplete="off">
                         
                         <!-- Suggestions Dropdown (filters anywhere in project name) -->
@@ -394,7 +394,7 @@
                 <!-- project_code -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('project_code')}">
                     <label class="field-label"><span>کد پروژه</span><span class="helper-badge text-blue-700">سیستمی</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.project_code" :readonly="!isFieldEditable('project_code')" placeholder="کد پروژه...">
+                    <input type="text" class="input-control fa-num" x-model="form.project_code" :readonly="!isFieldEditable('project_code')" placeholder="کد پروژه">
                 </div>
 
                 <!-- bank_name -->
@@ -403,13 +403,13 @@
                         <span>نام بانک متقاضی</span>
                         <span class="helper-badge text-emerald-700" x-text="form.bank_name || 'بانک عامل'"></span>
                     </label>
-                    <input type="text" class="input-control" x-model="form.bank_name" :readonly="!isFieldEditable('bank_name')" placeholder="بانک عامل...">
+                    <input type="text" class="input-control" x-model="form.bank_name" :readonly="!isFieldEditable('bank_name')" placeholder="بانک عامل">
                 </div>
 
                 <!-- bank_branch -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('bank_branch')}">
                     <label class="field-label"><span>شعبه بانک متقاضی</span></label>
-                    <input type="text" class="input-control" x-model="form.bank_branch" :readonly="!isFieldEditable('bank_branch')" placeholder="نام یا کد شعبه...">
+                    <input type="text" class="input-control" x-model="form.bank_branch" :readonly="!isFieldEditable('bank_branch')" placeholder="نام یا کد شعبه">
                 </div>
 
                 <!-- construction_type -->
@@ -598,7 +598,7 @@
                         <span>کد نوسازی (شهرداری)</span>
                         <span class="helper-badge text-blue-700">شهرداری</span>
                     </label>
-                    <input type="text" class="input-control fa-num" x-model="form.renovation_code" :readonly="!isFieldEditable('renovation_code')" placeholder="کد نوسازی...">
+                    <input type="text" class="input-control fa-num" x-model="form.renovation_code" :readonly="!isFieldEditable('renovation_code')" placeholder="کد نوسازی">
                 </div>
             </div>
         </div>
@@ -702,7 +702,7 @@
                                        class="input-control fa-num" 
                                        x-model="form.form_j_questionnaire_number" 
                                        :readonly="!isFieldEditable('form_j_questionnaire_number')" 
-                                       placeholder="شماره پرسش نامه فرم ج را وارد نمایید..." 
+                                       placeholder="شماره پرسش نامه فرم ج را وارد نمایید" 
                                        style="font-size: 0.85rem; font-weight: 700;">
                             </div>
 
@@ -748,7 +748,7 @@
                                       x-model="form.applicant_form_j_red_description"
                                       :readonly="!isFieldEditable('applicant_form_j_red_description')"
                                       style="font-size: 0.82rem; background: #ffffff;"
-                                      placeholder="علت و توضیحات استعلام سوابق مسکن متقاضی، پلاک ثبتی یا زمین واگذاری قبلی..."></textarea>
+                                      placeholder="علت و توضیحات استعلام سوابق مسکن متقاضی، پلاک ثبتی یا زمین واگذاری قبلی"></textarea>
                         </div>
 
                         <!-- Spouse Form J Section -->
@@ -795,7 +795,7 @@
                                       x-model="form.spouse_form_j_red_description"
                                       :readonly="!isFieldEditable('spouse_form_j_red_description')"
                                       style="font-size: 0.82rem; background: #ffffff;"
-                                      placeholder="علت و توضیحات استعلام سوابق مسکن همسر، پلاک ثبتی یا زمین واگذاری قبلی..."></textarea>
+                                      placeholder="علت و توضیحات استعلام سوابق مسکن همسر، پلاک ثبتی یا زمین واگذاری قبلی"></textarea>
                         </div>
                     </div>
 
@@ -1264,7 +1264,7 @@
                         <div style="display: flex; gap: 8px; margin-top: 4px;">
                             <input type="text" class="input-control fa-num" 
                                    x-model="form.form_j_questionnaire_number" 
-                                   placeholder="شماره پرسش‌نامه فرم ج را وارد نمایید...">
+                                   placeholder="شماره پرسش‌نامه فرم ج را وارد نمایید">
                             <button type="button" class="btn btn-primary" style="white-space: nowrap; font-size: 0.82rem; padding: 0.4rem 1rem;" @click="saveDossierDraft(); triggerToast('شماره پرسش‌نامه ثبت و به بخش ۳ منتقل گردید.', 'success');">
                                 ثبت و انتقال
                             </button>

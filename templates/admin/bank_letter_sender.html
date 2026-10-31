@@ -13,8 +13,8 @@
         selectedDossiers: [],
         letterHistory: [],
         inputNumbers: '',
-        letterNumber: '۱۴۰۳/ب/۱۰۵۲',
-        letterDate: '{{ today_jalali }}',
+        letterNumber: '',
+        letterDate: '',
         letterBankCode: 'maskan',
         letterNotes: '',
         selectedProject: '',
@@ -303,13 +303,10 @@
                 alert('هیچ پرونده‌ای برای ثبت شماره نامه بانک انتخاب نشده است.');
                 return;
             }
-            if (!this.letterNumber.trim() || !this.letterDate.trim()) {
-                alert('شماره نامه رسمی و تاریخ نامه بانک الزامی هستند.');
-                return;
-            }
-
             const bankTitle = this.getBankName(this.letterBankCode);
-            const msg = `آیا از ثبت شماره نامه رسمی «${this.letterNumber}» مورخ «${this.letterDate}» برای ${targetDocs.length} پرونده (${bankTitle}) اطمینان دارید؟\nاین عملیات وضعیت پرونده‌ها را به «ارسال به بانک» تغییر داده و آن‌ها را به مرحله ۷ (اسکن مدارک و دفترچه اقساط) منتقل می‌کند.`;
+            const numText = this.letterNumber.trim() ? `شماره نامه «${this.letterNumber.trim()}»` : 'پیش‌نویس بدون شماره (ثبت بعد از اعلام دبیرخانه)';
+            const dateText = this.letterDate.trim() ? ` مورخ «${this.letterDate.trim()}»` : '';
+            const msg = `آیا از ثبت ارسال محموله معرفی به بانک به ${numText}${dateText} برای ${targetDocs.length} پرونده (${bankTitle}) اطمینان دارید؟\nاین عملیات وضعیت پرونده‌ها را به «ارسال به بانک» تغییر داده و آن‌ها را به مرحله ۷ (اسکن مدارک و دفترچه اقساط) منتقل می‌کند.`;
             if (!confirm(msg)) return;
 
             this.isSubmitting = true;
@@ -708,17 +705,17 @@
                 <!-- Letter Number Input -->
                 <div class="field-group">
                     <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
-                        <span>* شماره نامه رسمی معرفی به بانک (مرحله ۶):</span>
+                        <span>شماره نامه رسمی معرفی به بانک (اختیاری):</span>
                     </label>
-                    <input type="text" x-model="letterNumber" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="مثال: ۱۴۰۳/۱۱۰/۵۴۲۳">
+                    <input type="text" x-model="letterNumber" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="در صورت صدور شماره نامه درج نمایید">
                 </div>
 
                 <!-- Letter Date Input -->
                 <div class="field-group">
                     <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
-                        <span>* تاریخ نامه بانک (شمسی):</span>
+                        <span>تاریخ نامه بانک (اختیاری):</span>
                     </label>
-                    <input type="text" x-model="letterDate" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="۱۴۰۳/۰۸/۰۵">
+                    <input type="text" x-model="letterDate" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="در صورت صدور تاریخ درج نمایید">
                 </div>
             </div>
 
@@ -1244,11 +1241,11 @@
             <div style="margin-top: 1.5rem; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 800; color: #000000; direction: rtl;">
                 <div>
                     <span>شماره نامه رسمی: </span>
-                    <span class="fa-num" style="border-bottom: 1px dotted #000000; padding: 0 1rem;" x-text="letterNumber"></span>
+                    <span class="fa-num" style="border-bottom: 1px dotted #000000; padding: 0 1rem;" x-text="letterNumber.trim() ? letterNumber : '— (پس از ثبت در دبیرخانه درج خواهد شد)'"></span>
                 </div>
                 <div>
                     <span>تاریخ صدور: </span>
-                    <span class="fa-num" style="border-bottom: 1px dotted #000000; padding: 0 1rem;" x-text="letterDate"></span>
+                    <span class="fa-num" style="border-bottom: 1px dotted #000000; padding: 0 1rem;" x-text="letterDate.trim() ? letterDate : '— (پس از ثبت در دبیرخانه درج خواهد شد)'"></span>
                 </div>
                 <div>
                     <span>مهر و امضای کارشناس برنامه ریزی مسکن / کارگزاری: </span>

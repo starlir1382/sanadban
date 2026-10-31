@@ -76,6 +76,16 @@ DOSSIER_FIELD_LABELS = {
     "spouse_form_j_status": "وضعیت فرم ج همسر",
     "spouse_form_j_directorate_status": "استعلام اداره کل همسر",
     "spouse_form_j_red_description": "علت و توضیحات کد قرمز همسر",
+    "applicant_id_number": "شماره شناسنامه متقاضی",
+    "applicant_birth_place": "محل صدور شناسنامه متقاضی",
+    "renovation_code": "کد نوسازی (شهرداری)",
+    "first_name": "نام متقاضی",
+    "last_name": "نام خانوادگی متقاضی",
+    "spouse_first_name": "نام همسر",
+    "spouse_last_name": "نام خانوادگی همسر",
+    "bank_branch": "شعبه بانک متقاضی",
+    "project_code": "کد پروژه",
+    "bank_name": "نام بانک متقاضی",
     "marital_status": "وضعیت تاهل",
     "is_married_confirmed": "احراز زوجیت و تایید تاهل",
     "decile": "دهک درآمدی",
@@ -541,6 +551,8 @@ def dossier_detail_view(request, pk):
             "father_name": dossier.father_name,
             "national_id": dossier.national_id,
             "birth_date": dossier.birth_date,
+            "applicant_id_number": dossier.applicant_id_number or "",
+            "applicant_birth_place": dossier.applicant_birth_place or "",
             "applicant_phone": dossier.applicant_phone or "",
             "selection_rank": dossier.selection_rank,
             "form_j_questionnaire_number": dossier.form_j_questionnaire_number or "",
@@ -563,6 +575,10 @@ def dossier_detail_view(request, pk):
             "decile": dossier.decile,
             "site": dossier.site,
             "project": dossier.project,
+            "project_code": dossier.project_code or "",
+            "bank_name": dossier.bank_name or "",
+            "bank_branch": dossier.bank_branch or "",
+            "renovation_code": dossier.renovation_code or "",
             "construction_type": dossier.construction_type,
             "block_name": dossier.block_name,
             "block_code": dossier.block_code or "",
@@ -801,10 +817,22 @@ def save_dossier_draft_view(request, pk):
         "bank_letter_number", "bank_letter_date", "land_lease_year",
         "decile_loan_bank", "supported_institution", "commitment_number", "commitment_date",
         "tenant_code", "prepayment_code", "rah_letter", "rah_letter_date",
-        "bank_sent_date", "bank_sent_letter_number", "form_j_number"
+        "bank_sent_date", "bank_sent_letter_number", "form_j_number",
+        "applicant_id_number", "applicant_birth_place", "renovation_code",
+        "first_name", "last_name", "spouse_first_name", "spouse_last_name",
+        "bank_branch", "project_code", "bank_name"
     ]:
         if field in data and data[field] is not None:
             parsed_updates[field] = str(data[field]).strip()
+
+    if "first_name" in parsed_updates or "last_name" in parsed_updates:
+        fn = parsed_updates.get("first_name", dossier.first_name or "")
+        ln = parsed_updates.get("last_name", dossier.last_name or "")
+        parsed_updates["full_name"] = f"{fn} {ln}".strip()
+    if "spouse_first_name" in parsed_updates or "spouse_last_name" in parsed_updates:
+        sfn = parsed_updates.get("spouse_first_name", dossier.spouse_first_name or "")
+        sln = parsed_updates.get("spouse_last_name", dossier.spouse_last_name or "")
+        parsed_updates["spouse_full_name"] = f"{sfn} {sln}".strip()
 
     # Integer fields
     for field in [
@@ -815,7 +843,8 @@ def save_dossier_draft_view(request, pk):
         "decile_loan_amount", "past_years_rent", "current_year_rent",
         "preparation_cost", "cash_preparation_amount", "non_cash_preparation_amount",
         "check_count", "check_amount", "last_check_amount", "total_check_amount",
-        "check_service_fee", "tenant_price", "preparation_service_fee"
+        "check_service_fee", "tenant_price", "preparation_service_fee",
+        "preparation_check_count", "total_preparation_check_amount"
     ]:
         if field in data:
             val = data[field]
@@ -1078,12 +1107,13 @@ def electronic_sign_action(request, pk):
     raw_stamp = f"{dossier.archive_number}-{current_idx}-{next_stage}-{timezone.now().isoformat()}"
     sig_hash = "SHA256: " + hashlib.sha256(raw_stamp.encode()).hexdigest()[:24]
 
-    if current_idx >= 22:
+    if dossier.is_locked or current_idx >= 22:
         dossier.is_locked = True
         dossier.status = "COMPLETED"
         action = "ARCHIVE"
         action_label = "بایگانی قطعی پرونده"
         to_stage_str = "بایگانی نهایی (مختومه)"
+        next_stage = current_idx
     else:
         dossier.current_stage = next_stage
         dossier.status = "IN_PROGRESS"
@@ -3521,10 +3551,13 @@ def bank_letter_submit_api(request):
 
     if not archive_numbers:
         return JsonResponse({"status": "error", "message": "هیچ پرونده‌ای انتخاب نشده است."}, status=400)
+    import jdatetime
+    today_j = jdatetime.date.today().strftime('%Y/%m/%d')
     if not letter_number:
-        return JsonResponse({"status": "error", "message": "شماره نامه بانک الزامی است."}, status=400)
+        batch_cnt = BankLetter.objects.count() + 1
+        letter_number = f"معرفی به بانک ({today_j} - دسته {batch_cnt})"
     if not letter_date:
-        return JsonResponse({"status": "error", "message": "تاریخ نامه بانک الزامی است."}, status=400)
+        letter_date = today_j
 
     clean_archives = []
     for item in archive_numbers:
@@ -3556,8 +3589,8 @@ def bank_letter_submit_api(request):
 
     for d in dossiers:
         d.is_sent_to_bank = True
-        d.bank_letter_number = letter_number
-        d.bank_letter_date = letter_date
+        d.bank_letter_number = (body.get("letter_number") or "").strip()
+        d.bank_letter_date = (body.get("letter_date") or "").strip()
         d.bank_sent_letter_number = letter_number
         d.bank_sent_date = letter_date
         d.is_added_to_bank_shipment_list = True

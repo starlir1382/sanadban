@@ -9,7 +9,7 @@
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                     <polyline points="9 12 11 14 15 10"></polyline>
                 </svg>
-                <span>تایید و امضای الکترونیکی و انتقال پرونده (مرحله <span class="fa-num" x-text="currentStage"></span>)</span>
+                <span>تایید و امضای الکترونیکی و <span x-text="currentStage >= 22 ? 'بایگانی قطعی پرونده' : 'انتقال پرونده'"></span> (مرحله <span class="fa-num" x-text="currentStage"></span>)</span>
             </div>
             <button type="button" class="modal-close" style="color: #cbd5e1; font-size: 1.25rem;" @click="showSignatureModal = false">✕</button>
         </div>
@@ -28,7 +28,7 @@
                     </div>
 
 <!-- RTL Directional Arrow (Right to Left: Source -> Target) -->
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 0 0.5rem;" title="انتقال به مرحله بعد (راست به چپ)">
+                    <div x-show="currentStage < 22" style="display: flex; align-items: center; justify-content: center; padding: 0 0.5rem;" title="انتقال به مرحله بعد (راست به چپ)">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="19" y1="12" x2="5" y2="12"></line>
                             <polyline points="12 19 5 12 12 5"></polyline>
@@ -39,11 +39,11 @@
                     <div style="flex: 1; min-width: 200px; background: #ffffff; border: 1.5px solid #93c5fd; border-radius: 8px; padding: 0.65rem 0.85rem;">
                         <div style="font-size: 0.72rem; color: #1d4ed8; font-weight: 800; margin-bottom: 2px;">مرحله مقصد پس از تایید:</div>
                         <div style="font-size: 0.88rem; font-weight: 800; color: #1e3a8a;" class="fa-num">
-                            <span x-show="currentStage < 21">
+                            <span x-show="currentStage < 22">
                                 مرحله <span x-text="currentStage + 1"></span>: <span x-text="stages[currentStage + 1] ? stages[currentStage + 1].title : ''"></span>
                             </span>
-                            <span x-show="currentStage === 21" style="color: #15803d;">
-                                اتمام فرآیند نهایی و بایگانی پرونده
+                            <span x-show="currentStage >= 22" style="color: #15803d; font-weight: 800;">
+                                اتمام فرآیند نهایی و بایگانی قطعی پرونده (مختومه)
                             </span>
                         </div>
                     </div>
@@ -52,11 +52,11 @@
 
                 <!-- Plain-language confirmation box -->
                 <div style="background: #ffffff; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 0.85rem 1rem; margin-top: 0.75rem;">
-                    <div style="font-size: 0.9rem; font-weight: 800; color: #064e3b; margin-bottom: 0.3rem;">
-                        آیا از ارسال این پرونده به مرحله بعد مطمئن هستید؟
+                    <div style="font-size: 0.9rem; font-weight: 800; color: #064e3b; margin-bottom: 0.3rem;"
+                         x-text="currentStage >= 22 ? 'آیا از تأیید نهایی و بایگانی قطعی این پرونده مطمئن هستید؟' : 'آیا از ارسال این پرونده به مرحله بعد مطمئن هستید؟'">
                     </div>
-                    <p style="font-size: 0.82rem; color: #047857; margin: 0; line-height: 1.6;">
-                        پس از ثبت امضا، پرونده از کارتابل شما خارج شده و در کارپوشه مسئول مرحله بعد قرار می‌گیرد و دیگر برای شما قابل ویرایش نخواهد بود.
+                    <p style="font-size: 0.82rem; color: #047857; margin: 0; line-height: 1.6;"
+                       x-text="currentStage >= 22 ? 'پس از تأیید نهایی، این پرونده با وضعیت مختومه در بایگانی قطعی ثبت گردیده و فرآیند اداری آن خاتمه می‌یابد.' : 'پس از ثبت امضا، پرونده از کارتابل شما خارج شده و در کارپوشه مسئول مرحله بعد قرار می‌گیرد و دیگر برای شما قابل ویرایش نخواهد بود.'">
                     </p>
                 </div>
             </div>
@@ -89,7 +89,7 @@
                     :disabled="!signAgreement"
                     @click="confirmElectronicSignature()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span x-text="currentStage === 21 ? 'تایید نهایی و بایگانی قطعی پرونده' : 'تأیید و ارسال به مرحله بعد ←'"></span>
+                <span x-text="currentStage >= 22 ? 'تایید نهایی و بایگانی قطعی پرونده (مختومه)' : 'تأیید و ارسال به مرحله بعد ←'"></span>
             </button>
         </div>
     </div>
