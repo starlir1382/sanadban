@@ -176,18 +176,18 @@
       }
 
       /* ---------- money panel ---------- */
-      .money-panel { height: 100%; line-height: 1.8; font-size: 7.6pt; }
+      .money-panel { height: 100%; line-height: 1.5; font-size: 7.2pt; }
       .money-panel .money-title {
-        font-weight: 800; font-size: 8pt; color: #0f2744;
-        padding-bottom: 3px; margin-bottom: 4px; border-bottom: 1px solid #cbd5e1;
+        font-weight: 800; font-size: 7.8pt; color: #0f2744;
+        padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1px solid #cbd5e1;
       }
       .money-panel .money-row {
         display: flex; justify-content: space-between; align-items: baseline;
-        gap: 5px; padding: 1px 0;
+        gap: 5px; padding: 0.5px 0;
       }
       .money-panel .money-value { font-weight: 800; color: #0f2744; text-align: left; overflow-wrap: anywhere; }
 
-      /* ---------- header / footer ---------- */
+      /* ---------- header / meta ---------- */
       .document-header { font-size: 10.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
       .document-subheader { font-size: 8.5pt; font-weight: 700; color: #334155; }
       .document-meta {
@@ -196,15 +196,6 @@
         padding: 3px 8px 0; border-top: 1px dashed #cbd5e1;
       }
       .document-meta span { min-width: 0; }
-
-      /* shown only while fewer than 14 signatures exist */
-      .draft-mark {
-        position: absolute; top: 46%; left: 50%;
-        transform: translate(-50%, -50%) rotate(-28deg);
-        font-size: 34pt; font-weight: 800; color: rgba(180, 83, 9, 0.09);
-        white-space: nowrap; pointer-events: none; z-index: 0;
-        border: 3px solid rgba(180, 83, 9, 0.09); padding: 4px 18px; border-radius: 8px;
-      }
 
       .print-controls { position: fixed; top: 1rem; right: 2rem; z-index: 100; display: flex; gap: 0.5rem; }
       .print-controls button {
@@ -269,7 +260,6 @@
 
     <main class="print-paper fa-num"><div class="page-frame"><div class="page-inner">
       {% with rent=dossier.tenant_price|default:dossier.current_year_rent %}
-      {% if signed_count != 14 %}<div class="draft-mark">پیش‌نویس · امضاها تکمیل نشده</div>{% endif %}
 
       <!-- 1. سربرگ رسمی -->
       <table class="official-doc-table" style="margin-bottom: 5px">
@@ -333,7 +323,7 @@
       <!-- 3. مشخصات مورد اجاره -->
       <table class="official-doc-table">
         <tr>
-          <td rowspan="4" class="side-title">مشخصات مورد اجاره</td>
+          <td rowspan="3" class="side-title">مشخصات مورد اجاره</td>
           <td colspan="8" class="cell-sub">مشخصات واحد آپارتمانی و متعلقات اختصاصی:</td>
         </tr>
         <tr style="text-align: center">
@@ -344,31 +334,17 @@
           <td class="cell-head" style="width: 10%">شماره واحد:</td>
           <td style="width: 13%; font-weight: bold">{{ dossier.unit_number|default:'-' }}</td>
           <td class="cell-head" style="width: 11%">مساحت واحد:</td>
-          <td style="width: 12%; font-weight: bold">{{ dossier.unit_area|default:'-' }} مترمربع</td>
+          <td style="width: 12%; font-weight: bold">{% if dossier.unit_area and dossier.unit_area != '-' %}{{ dossier.unit_area }} مترمربع{% else %}-{% endif %}</td>
         </tr>
         <tr style="text-align: center">
           <td class="cell-head">شماره انباری:</td>
           <td style="font-weight: bold">{{ dossier.storage_number|default:'-' }}</td>
           <td class="cell-head">مساحت انباری:</td>
-          <td style="font-weight: bold">{{ dossier.storage_area|default:'-' }} مترمربع</td>
+          <td style="font-weight: bold">{% if dossier.storage_area and dossier.storage_area != '-' %}{{ dossier.storage_area }} مترمربع{% else %}-{% endif %}</td>
           <td class="cell-head">شماره پارکینگ:</td>
           <td style="font-weight: bold">{{ dossier.parking_number|default:'-' }}</td>
           <td class="cell-head">مساحت پارکینگ:</td>
-          <td style="font-weight: bold">{{ dossier.parking_area|default:'-' }} مترمربع</td>
-        </tr>
-        <tr>
-          <td colspan="5" style="padding: 4px 6px">
-            <span>قیمت علی‌الحساب تمام شده (بدون وام):</span><br />
-            <strong style="color: #0f2744; font-size: 8.8pt">
-              {% if dossier.base_cost_without_loan %}{{ dossier.base_cost_without_loan|intcomma }}{% else %}-{% endif %} ریال
-            </strong>
-          </td>
-          <td colspan="3" style="padding: 4px 6px">
-            <span>جمع قدرالسهم از عرصه:</span><br />
-            <strong style="color: #0f2744; font-size: 8.8pt">
-              {% if dossier.total_land_share %}{{ dossier.total_land_share }} مترمربع{% else %}-{% endif %}
-            </strong>
-          </td>
+          <td style="font-weight: bold">{% if dossier.parking_area and dossier.parking_area != '-' %}{{ dossier.parking_area }} مترمربع{% else %}-{% endif %}</td>
         </tr>
       </table>
 
@@ -396,8 +372,8 @@
       <!-- 5. کارگزار (امضای ۱) · مبالغ مالی -->
       <table class="official-doc-table">
         <colgroup>
-          <col style="width: 40%" />
-          <col style="width: 60%" />
+          <col style="width: 38%" />
+          <col style="width: 62%" />
         </colgroup>
         <tr>
           <td style="padding: 6px 8px; vertical-align: top">
@@ -412,24 +388,32 @@
             <div class="money-panel">
               <div class="money-title">مبالغ مالی و آماده‌سازی</div>
               <div class="money-row">
+                <span>قیمت علی‌الحساب تمام شده (بدون وام):</span>
+                <span class="money-value">{% if dossier.base_cost_without_loan %}{{ dossier.base_cost_without_loan|intcomma:False }} ریال{% else %}-{% endif %}</span>
+              </div>
+              <div class="money-row">
+                <span>جمع قدرالسهم از عرصه:</span>
+                <span class="money-value">{% if dossier.total_land_share and dossier.total_land_share != '-' %}{{ dossier.total_land_share }} مترمربع{% else %}-{% endif %}</span>
+              </div>
+              <div class="money-row">
                 <span>بابت اجاره عرصه سال:</span>
                 <span class="money-value">{{ lease_year|default:dossier.land_lease_year|default:'-' }}</span>
               </div>
               <div class="money-row">
                 <span>مبلغ اجاره:</span>
-                <span class="money-value">{% if rent %}{{ rent|intcomma }}{% else %}-{% endif %} ریال</span>
+                <span class="money-value">{% if rent %}{{ rent|intcomma:False }} ریال{% else %}-{% endif %}</span>
               </div>
               <div class="money-row">
                 <span>۲۰٪ نقد آماده‌سازی:</span>
-                <span class="money-value">{{ dossier.cash_preparation_amount|intcomma|default:'-' }} ریال</span>
+                <span class="money-value">{% if dossier.cash_preparation_amount %}{{ dossier.cash_preparation_amount|intcomma:False }} ریال{% else %}-{% endif %}</span>
               </div>
               <div class="money-row">
                 <span>تعداد چک‌های آماده‌سازی:</span>
-                <span class="money-value">{{ dossier.preparation_check_count|default:'-' }} فقره</span>
+                <span class="money-value">{% if dossier.preparation_check_count %}{{ dossier.preparation_check_count }} فقره{% else %}-{% endif %}</span>
               </div>
               <div class="money-row">
                 <span>مبلغ کل چک‌ها:</span>
-                <span class="money-value">{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma }} ریال</span>
+                <span class="money-value">{% if dossier.total_preparation_check_amount or dossier.non_cash_preparation_amount %}{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma:False }} ریال{% else %}-{% endif %}</span>
               </div>
             </div>
           </td>
@@ -475,13 +459,13 @@
           <td style="padding: 6px 12px; line-height: 1.8">
             <div style="font-size: 8.2pt; font-weight: 700; color: #0f2744">
               مبلغ اجاره
-              <strong style="color: #047857">{% if rent %}{{ rent|intcomma }}{% else %}-{% endif %}</strong>
+              <strong style="color: #047857">{% if rent %}{{ rent|intcomma:False }}{% else %}-{% endif %}</strong>
               ریال و ۲۰٪ نقد آماده‌سازی
-              <strong style="color: #047857">{{ dossier.cash_preparation_amount|intcomma|default:'-' }}</strong>
+              <strong style="color: #047857">{{ dossier.cash_preparation_amount|intcomma:False|default:'-' }}</strong>
               ریال و الباقی آماده‌سازی طی
               <strong style="color: #047857">{{ dossier.preparation_check_count|default:'-' }}</strong>
               فقره چک به مبلغ
-              <strong style="color: #047857">{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma }}</strong>
+              <strong style="color: #047857">{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma:False }}</strong>
               ریال دریافت گردید.
             </div>
 
