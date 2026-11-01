@@ -125,7 +125,7 @@
         <!-- Gallery Grid (Responsive 3 or 4 columns) -->
         <div class="attachments-album-grid" 
              style="display: grid; gap: 1.25rem;"
-             :style="albumPerPage === 3 ? 'grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));' : 'grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));'">
+             :style="albumPerPage === 3 ? 'grid-template-columns: repeat(3, 1fr);' : 'grid-template-columns: repeat(4, 1fr);'">
             
             <template x-for="item in getPaginatedAttachments()" :key="item.id">
                 <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; position: relative; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 2px 10px rgba(0,0,0,0.04); cursor: pointer;"
@@ -153,7 +153,7 @@
                     </div>
 
                     <!-- Photo Display Container (240px Height Phone Gallery View) -->
-                    <div style="height: 240px; background: #0b1120; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <div style="height: 200px; background: #0b1120; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
                         
                         <!-- 1. PDF Document Card Preview -->
                         <template x-if="isPdfFile(item)">
