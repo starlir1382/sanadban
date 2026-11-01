@@ -449,6 +449,7 @@ document.addEventListener('alpine:init', () => {
     showSignatureModal: false,
     showReturnModal: false,
     showScanViewerModal: false,
+    showGuidanceModal: false,
     albumPage: 1,
     albumPerPage: 4,
     attachmentViewMode: 'album',
@@ -2681,10 +2682,12 @@ document.addEventListener('alpine:init', () => {
       if (diff > 0 && currentScrollY > 70) {
         // Scrolling DOWN -> Hide only the top brand header, KEEP tabs & action bar sticky and visible
         document.body.classList.add('nav-hidden');
+        document.documentElement.classList.add('nav-hidden');
         if (header) header.classList.add('nav-hidden');
       } else if (diff < 0) {
         // Scrolling UP -> Reveal top brand header
         document.body.classList.remove('nav-hidden');
+        document.documentElement.classList.remove('nav-hidden');
         if (header) header.classList.remove('nav-hidden');
       }
       lastScrollY = currentScrollY;

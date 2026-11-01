@@ -1,350 +1,81 @@
-<!-- Interactive Scan Viewer & Document Lightbox Modal -->
+<!-- Scan Viewer: Full-Screen Phone Gallery Lightbox -->
 <div class="scan-viewer-modal" x-show="showScanViewerModal" x-cloak
      @keydown.right.window="if (showScanViewerModal) prevScan()"
      @keydown.left.window="if (showScanViewerModal) nextScan()"
-     @keydown.escape.window="if (showScanViewerModal) closeScanViewer()">
-    <!-- Top Toolbar -->
-    <div class="scan-viewer-topbar">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <div>
-                <h3 style="font-size: 0.95rem; font-weight: 700;" x-text="activeScan.title"></h3>
-                <div style="font-size: 0.72rem; color: #94a3b8;">
-                    <span x-text="activeScan.fileName"></span>
-                    <span> • </span>
-                    <span class="fa-num" x-text="activeScan.uploader"></span>
-                </div>
-            </div>
-        </div>
+     @keydown.escape.window="if (showScanViewerModal) closeScanViewer()"
+     style="position: fixed; inset: 0; z-index: 99999; background: #000; display: flex; flex-direction: column;">
 
-        <!-- Lightbox Controls -->
-        <div class="scan-toolbar-controls">
-            <!-- Gallery Counter & Easy Navigation -->
-            <span class="fa-num" style="background: rgba(255,255,255,0.14); color: #e2e8f0; font-size: 0.78rem; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2); margin-left: 0.35rem;" x-show="getFilteredAttachments().length > 0">
-                تصویر <span x-text="activeScanIndex + 1"></span> از <span x-text="getFilteredAttachments().length"></span>
-            </span>
-            <button type="button" class="toolbar-btn" @click="prevScan()" title="تصویر قبلی (کلید جهت راست)">
-                <span>قبلی ►</span>
+    <!-- Slim Top Bar -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 1rem; height: 44px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); flex-shrink: 0;">
+        <!-- Counter -->
+        <span class="fa-num" style="color: #e2e8f0; font-size: 0.82rem; font-weight: 700;"
+              x-show="getFilteredAttachments().length > 0"
+              x-text="(activeScanIndex + 1) + ' / ' + getFilteredAttachments().length"></span>
+
+        <!-- Toolbar: zoom, rotate, print, close -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" @click="zoomInScan()" title="بزرگ‌نمایی"
+                    style="background: rgba(255,255,255,0.12); border: none; color: #fff; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
             </button>
-            <button type="button" class="toolbar-btn" @click="nextScan()" title="تصویر بعدی (کلید جهت چپ)">
-                <span>◄ بعدی</span>
+            <button type="button" @click="zoomOutScan()" title="کوچک‌نمایی"
+                    style="background: rgba(255,255,255,0.12); border: none; color: #fff; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
             </button>
-            <!-- Zoom Controls -->
-            <button type="button" class="toolbar-btn" @click="zoomInScan()" title="بزرگ‌نمایی (+)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                <span>بزرگ‌نمایی</span>
+            <button type="button" @click="resetScan()" title="بازنشانی زوم"
+                    style="background: rgba(255,255,255,0.12); border: none; color: #e2e8f0; border-radius: 6px; padding: 0 8px; height: 32px; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: monospace;"
+                    x-text="Math.round(activeScan.zoom * 100) + '%'"></button>
+            <button type="button" @click="rotateScan()" title="چرخش ۹۰ درجه"
+                    style="background: rgba(255,255,255,0.12); border: none; color: #fff; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             </button>
-            <button type="button" class="toolbar-btn" @click="zoomOutScan()" title="کوچک‌نمایی (-)">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-                <span>کوچک‌نمایی</span>
+            <button type="button" @click="printActiveScan()" title="چاپ"
+                    style="background: rgba(255,255,255,0.12); border: none; color: #fff; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             </button>
-            <button type="button" class="toolbar-btn fa-num" @click="resetScan()" title="اندازه واقعی">
-                <span x-text="Math.round(activeScan.zoom * 100) + '%'"></span>
-            </button>
-            <!-- Rotate -->
-            <button type="button" class="toolbar-btn" @click="rotateScan()" title="چرخش ۹۰ درجه">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                <span>چرخش</span>
-            </button>
-            <!-- Print Scan -->
-            <button type="button" class="toolbar-btn" @click="printActiveScan()" title="چاپ تصویر مدرک">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                <span>چاپ سند</span>
-            </button>
-            <!-- Close -->
-            <button type="button" class="toolbar-btn" @click="closeScanViewer()" style="background: #dc2626; border-color: #ef4444; color: #fff;">
-                ✕ بستن
-            </button>
+            <button type="button" @click="closeScanViewer()"
+                    style="background: #dc2626; border: none; color: #fff; border-radius: 6px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; font-weight: 700;">✕</button>
         </div>
     </div>
 
-    <!-- Viewer Stage Area -->
-    <div class="scan-viewer-stage" @click.self="closeScanViewer()">
-        <!-- Floating Prev & Next Nav Buttons (Phone Gallery Style) -->
+    <!-- Image Stage -->
+    <div style="flex: 1; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center;"
+         @click.self="closeScanViewer()">
+
+        <!-- Prev / Next floating buttons -->
         <template x-if="getFilteredAttachments().length > 1">
             <div>
-                <button type="button" @click.stop="prevScan()" 
-                        style="position: fixed; right: 20px; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(15, 23, 42, 0.85); border: 1.5px solid rgba(255,255,255,0.3); color: #fff; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; backdrop-filter: blur(8px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); transition: all 0.2s;" 
-                        @mouseenter="$el.style.background='#2563eb'; $el.style.transform='translateY(-50%) scale(1.1)';" 
-                        @mouseleave="$el.style.background='rgba(15, 23, 42, 0.85)'; $el.style.transform='translateY(-50%) scale(1)';"
-                        title="تصویر قبلی (کلید جهت راست)">
-                    ›
-                </button>
-                <button type="button" @click.stop="nextScan()" 
-                        style="position: fixed; left: 20px; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(15, 23, 42, 0.85); border: 1.5px solid rgba(255,255,255,0.3); color: #fff; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; backdrop-filter: blur(8px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); transition: all 0.2s;" 
-                        @mouseenter="$el.style.background='#2563eb'; $el.style.transform='translateY(-50%) scale(1.1)';" 
-                        @mouseleave="$el.style.background='rgba(15, 23, 42, 0.85)'; $el.style.transform='translateY(-50%) scale(1)';"
-                        title="تصویر بعدی (کلید جهت چپ)">
-                    ‹
-                </button>
+                <button type="button" @click.stop="prevScan()"
+                        style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; backdrop-filter: blur(6px);">›</button>
+                <button type="button" @click.stop="nextScan()"
+                        style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; backdrop-filter: blur(6px);">‹</button>
             </div>
         </template>
-        <div class="scan-document-canvas" 
-             :style="`transform: scale(${activeScan.zoom}) rotate(${activeScan.rotation}deg);`">
-            
-            <div class="scan-security-watermark">سامانه جامع مسکن یار - نهضت ملی مسکن</div>
 
-            <!-- 0A. REAL UPLOADED PDF & HTML DOCUMENT VIEWER (IF USER UPLOADED A PDF OR CHECK RECEIPT) -->
-            <template x-if="activeScan.preview_url && (isPdfFile(activeScan) || isHtmlDoc(activeScan))">
-                <div style="width: 100%; min-height: 820px; display: flex; flex-direction: column; align-items: center; background: #0f172a; border-radius: 10px; overflow: hidden; padding: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <iframe :src="activeScan.preview_url" style="width: 100%; height: 780px; border: none; border-radius: 6px; background: #ffffff;"></iframe>
-                    <div style="display: flex; gap: 0.85rem; margin-top: 0.75rem; align-items: center; justify-content: center; flex-wrap: wrap;">
-                        <a :href="activeScan.preview_url" target="_blank" download class="toolbar-btn" style="background: #2563eb; color: #ffffff; text-decoration: none; padding: 0.45rem 1.15rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                            <span>چاپ سند در پنجره اختصاصی (A4)</span>
-                        </a>
-                        <a :href="activeScan.preview_url" target="_blank" class="toolbar-btn" style="background: rgba(255,255,255,0.15); color: #ffffff; text-decoration: none; padding: 0.45rem 1.15rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid rgba(255,255,255,0.25);">
-                            <span>مشاهده در تب مجزا ↗</span>
-                        </a>
-                    </div>
-                </div>
-            </template>
+        <!-- Zoomable / rotatable content -->
+        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto;"
+             :style="`transform: scale(${activeScan.zoom}) rotate(${activeScan.rotation}deg); transform-origin: center center;`">
 
-            <!-- 0B. REAL UPLOADED IMAGE PREVIEW (IF USER UPLOADED AN IMAGE FILE) -->
+            <!-- Real uploaded image -->
             <template x-if="activeScan.preview_url && !isPdfFile(activeScan) && !isHtmlDoc(activeScan)">
-                <div style="text-align: center; padding: 1rem;">
-                    <img :src="activeScan.preview_url" 
-                         style="max-width: 100%; max-height: 800px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); object-fit: contain;"
-                         @error="$el.style.display='none'; if ($el.nextElementSibling) $el.nextElementSibling.style.display='block'">
-                    <!-- Error fallback -->
-                    <div style="display: none; padding: 2.5rem; background: #1e293b; border-radius: 8px; color: #f87171; border: 1px solid #334155; margin: 1rem auto; max-width: 500px;">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 0.5rem;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        <div style="font-weight: 800; font-size: 1rem; color: #ffffff;">خطا در دریافت فایل تصویر</div>
-                        <div style="font-size: 0.82rem; color: #94a3b8; margin-top: 0.4rem;">فایل مدرک در سرور یافت نشد یا در دسترس نمی‌باشد.</div>
-                    </div>
-                    <div style="margin-top: 1rem; font-size: 0.85rem; color: #cbd5e1;" class="fa-num hide-on-print">
-                        <strong x-text="activeScan.title"></strong>
-                    </div>
-                </div>
+                <img :src="activeScan.preview_url"
+                     style="max-width: 100%; max-height: calc(100vh - 44px); object-fit: contain; display: block; margin: auto;"
+                     @error="$el.style.opacity='0.3'">
             </template>
 
-            <!-- 1. NATIONAL ID CARD SCAN PREVIEW (IF NO CUSTOM FILE) -->
-            <template x-if="!activeScan.preview_url && (activeScan.type === 'NATIONAL_ID' || activeScan.type === 'SPOUSE_ID')">
-                <div style="border: 2px solid #cbd5e1; border-radius: 12px; padding: 1.5rem; background: linear-gradient(135deg, #f8fafc, #f1f5f9); position: relative; overflow: hidden;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0284c7; padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 24px; height: 16px; background: linear-gradient(#22c55e 33%, #ffffff 33%, #ffffff 66%, #ef4444 66%); border: 1px solid #94a3b8;"></div>
-                            <strong style="font-size: 1rem; color: #0369a1;">جمهوری اسلامی ایران - سازمان ثبت احوال کشور</strong>
-                        </div>
-                        <div style="font-weight: 800; font-size: 0.9rem; color: #0f172a;">کارت هوشمند ملی</div>
-                    </div>
-
-                    <div style="display: flex; gap: 1.5rem; align-items: center;">
-                        <!-- Photo placeholder -->
-                        <div style="width: 110px; height: 140px; border: 2px solid #94a3b8; border-radius: 8px; background: #e2e8f0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b;">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            <span style="font-size: 0.65rem; margin-top: 4px;">تصویر پرسنلی</span>
-                        </div>
-
-                        <!-- Card Data -->
-                        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.9rem;">
-                            <div>
-                                <span style="color: #64748b;">نام و نام خانوادگی: </span>
-                                <strong x-text="activeScan.type === 'SPOUSE_ID' ? form.spouse_full_name : form.full_name"></strong>
-                            </div>
-                            <div>
-                                <span style="color: #64748b;">نام پدر: </span>
-                                <strong x-text="activeScan.type === 'SPOUSE_ID' ? 'سید جواد' : form.father_name"></strong>
-                            </div>
-                            <div>
-                                <span style="color: #64748b;">شماره ملی: </span>
-                                <strong class="fa-num" style="color: #1e40af; font-size: 1.1rem; letter-spacing: 2px;" 
-                                        x-text="activeScan.type === 'SPOUSE_ID' ? form.spouse_national_id : form.national_id"></strong>
-                            </div>
-                            <div>
-                                <span style="color: #64748b;">تاریخ تولد: </span>
-                                <strong class="fa-num" x-text="form.birth_date"></strong>
-                            </div>
-                            <div style="grid-column: span 2;">
-                                <span style="color: #64748b;">اعتبار سند: </span>
-                                <span style="color: #15803d; font-weight: bold;">تایید اصالت آنلاین از ثبت احوال کشور ✓</span>
-                            </div>
-                        </div>
-
-                        <!-- Smart Chip simulation -->
-                        <div style="width: 50px; height: 40px; border: 1px solid #d97706; border-radius: 6px; background: #fef3c7; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #b45309; font-weight: bold;">
-                            CHIP
-                        </div>
-                    </div>
-
-                    <!-- Barcode footer -->
-                    <div style="margin-top: 1.5rem; border-top: 1px dashed #cbd5e1; padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="font-family: monospace; font-size: 0.75rem; color: #475569;" x-text="'IRN<<' + form.national_id + '<<<<<<<<<<4412'"></div>
-                        <div class="scan-official-seal">
-                            <span>ثبت احوال</span>
-                            <span>اصالت تایید شد</span>
-                        </div>
-                    </div>
-                </div>
+            <!-- PDF / HTML: iframe embed -->
+            <template x-if="activeScan.preview_url && (isPdfFile(activeScan) || isHtmlDoc(activeScan))">
+                <iframe :src="activeScan.preview_url"
+                        style="width: min(900px, 95vw); height: calc(100vh - 80px); border: none; border-radius: 6px; background: #fff;"></iframe>
             </template>
 
-            <!-- 2. TITLE DEED SCAN PREVIEW (سند مالکیت تک‌برگ) -->
-            <template x-if="!activeScan.preview_url && activeScan.type === 'TITLE_DEED'">
-                <div style="border: 4px double #b45309; border-radius: 8px; padding: 2rem; background: #fffdf5; position: relative;">
-                    <div style="text-align: center; border-bottom: 2px solid #b45309; padding-bottom: 1rem; margin-bottom: 1.5rem;">
-                        <div style="font-weight: 800; font-size: 1.1rem; color: #78350f;">قوه قضائیه - سازمان ثبت اسناد و املاک کشور</div>
-                        <h2 style="font-size: 1.35rem; font-weight: 900; color: #92400e; margin: 0.35rem 0;">سند مالکیت تک‌برگ کاداستری</h2>
-                        <div style="font-size: 0.8rem; color: #a16207;" class="fa-num">شماره چاپی سند: ۵۸۴۲۱ / الف - بخش ثبتی: <span x-text="form.registration_section"></span></div>
-                    </div>
-
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.88rem;" class="fa-num">
-                        <tbody>
-                            <tr style="border-bottom: 1px solid #fed7aa;">
-                                <td style="padding: 6px; font-weight: bold; width: 25%;">پلاک اصلی:</td>
-                                <td style="padding: 6px;" x-text="form.main_plaque"></td>
-                                <td style="padding: 6px; font-weight: bold; width: 25%;">پلاک مفروز:</td>
-                                <td style="padding: 6px;" x-text="form.separated_plaque"></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #fed7aa;">
-                                <td style="padding: 6px; font-weight: bold;">فرعی از:</td>
-                                <td style="padding: 6px;" x-text="form.sub_plaque"></td>
-                                <td style="padding: 6px; font-weight: bold;">شماره قطعه:</td>
-                                <td style="padding: 6px;" x-text="form.plot_number"></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #fed7aa;">
-                                <td style="padding: 6px; font-weight: bold;">مساحت مفید واحد:</td>
-                                <td style="padding: 6px;" x-text="form.unit_area + ' متر مربع'"></td>
-                                <td style="padding: 6px; font-weight: bold;">قدرالسهم از عرصه:</td>
-                                <td style="padding: 6px;" x-text="form.total_land_share + ' متر مربع'"></td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 6px; font-weight: bold;">مالک اولیه:</td>
-                                <td style="padding: 6px;" colspan="3">سازمان ملی زمین و مسکن (انتقال به متقاضی: <strong x-text="form.full_name"></strong>)</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 2rem;">
-                        <div style="font-size: 0.75rem; color: #78350f;">
-                            <div>کد کاداستر جام: ۹۸۴۵۱-۱۴۲۰-۸۵</div>
-                            <div>تاریخ ثبت دفتر الکترونیک: ۱۴۰۳/۰۵/۱۷</div>
-                        </div>
-                        <div class="scan-official-seal" style="border-color: #92400e; color: #92400e;">
-                            <span>اداره کل ثبت اسناد</span>
-                            <span>امضای الکترونیکی</span>
-                            <span>سند رسمی</span>
-                        </div>
-                    </div>
+            <!-- No file uploaded: plain placeholder -->
+            <template x-if="!activeScan.preview_url">
+                <div style="text-align: center; color: #64748b; padding: 3rem;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" style="margin: 0 auto 1rem;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <div style="font-size: 0.9rem; color: #94a3b8;">فایلی بارگذاری نشده است</div>
                 </div>
             </template>
-
-            <!-- 3. BANK INSTALLMENT BOOKLET SCAN PREVIEW (دفترچه قسط بانک) -->
-            <template x-if="!activeScan.preview_url && activeScan.type === 'BANK_BOOKLET'">
-                <div style="border: 2px solid #1e3a8a; border-radius: 8px; padding: 1.5rem; background: #ffffff;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
-                        <div>
-                            <strong style="font-size: 1.1rem; color: #1e3a8a;">بانک مسکن - شعبه مرکزی</strong>
-                            <div style="font-size: 0.78rem; color: #475569;">دفترچه فروش اقساطی تسهیلات نهضت ملی مسکن</div>
-                        </div>
-                        <div class="fa-num" style="font-size: 0.85rem; font-weight: bold; color: #1e40af;">
-                            شماره تسهیلات: BM-650-88412
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.88rem; margin-bottom: 1.5rem;" class="fa-num">
-                        <div>نام تسهیلات‌گیرنده: <strong x-text="form.full_name"></strong></div>
-                        <div>کد ملی: <strong x-text="form.national_id"></strong></div>
-                        <div>مبلغ کل تسهیلات بانکی: <strong>۵,۵۰۰,۰۰۰,۰۰۰ ریال</strong></div>
-                        <div>مدت بازپرداخت: <strong>۲۴۰ ماهه (۲۰ سال)</strong></div>
-                        <div>مبلغ قسط ماهیانه: <strong>۹۳,۵۰۰,۰۰۰ ریال</strong></div>
-                        <div>نرخ سود مصوب: <strong>۱۸ درصد سالیانه</strong></div>
-                    </div>
-
-                    <table style="width: 100%; border: 1px solid #cbd5e1; border-collapse: collapse; font-size: 0.8rem; text-align: center;" class="fa-num">
-                        <thead style="background: #eff6ff;">
-                            <tr>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px;">شماره قسط</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px;">سررسید قسط</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px;">مبلغ قسط (ریال)</th>
-                                <th style="border: 1px solid #cbd5e1; padding: 4px;">وضعیت پرداخت</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px;">قسط ۱</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px;">۱۴۰۳/۰۶/۱۵</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px;">۹۳,۵۰۰,۰۰۰</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px; color: #166534; font-weight: bold;">پرداخت شده ✓</td>
-                            </tr>
-                            <tr>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px;">قسط ۲</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px;">۱۴۰۳/۰۷/۱۵</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px;">۹۳,۵۰۰,۰۰۰</td>
-                                <td style="border: 1px solid #cbd5e1; padding: 4px; color: #b45309;">سررسید آتی</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
-                        <div class="scan-official-seal" style="border-color: #1e40af; color: #1e40af;">
-                            <span>بانک مسکن</span>
-                            <span>شعبه تخصصی</span>
-                            <span>مهر تسهیلات</span>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            <!-- 4. CHECK SCAN PREVIEW (چک صیادی بنفش) -->
-            <template x-if="!activeScan.preview_url && (activeScan.type === 'LOAN_CHECK' || activeScan.type === 'PREP_CHECK')">
-                <div style="border: 2px dashed #7c3aed; border-radius: 10px; padding: 1.5rem; background: linear-gradient(135deg, #fbfaff, #f3e8ff); position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #7c3aed; padding-bottom: 0.5rem; margin-bottom: 1rem;">
-                        <div style="font-weight: 800; color: #6d28d9; font-size: 1rem;">سامانه صیاد - چک امنیتی بانکی</div>
-                        <div class="fa-num" style="font-size: 0.85rem; font-weight: bold; color: #6d28d9;">
-                            شناسه صیادی: ۳۲۴۱-۰۹۸۷-۵۵۴۱-۹۰۱۲
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.88rem; margin-bottom: 1rem;" class="fa-num">
-                        <div>تاریخ سررسید: <strong>۱۴۰۳/۰۶/۳۰</strong></div>
-                        <div>شماره سریال چک: <strong>۷۸۹۴۵۶/۱۴</strong></div>
-                        <div style="grid-column: span 2;">در وجه: <strong>کارگزاری نهضت ملی مسکن</strong></div>
-                        <div style="grid-column: span 2;">مبلغ به عدد: <strong class="text-purple-900" x-text="formatNumber(form.decile_loan_amount) + ' ریال'"></strong></div>
-                        <div style="grid-column: span 2;">مبلغ به حروف: <strong x-text="toWords(form.decile_loan_amount)"></strong></div>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd6fe; padding-top: 0.75rem;">
-                        <div style="font-size: 0.75rem; color: #6b21a8;">
-                            بابت: تضامین تسهیلات دهک ۴ پروژه نهضت ملی مسکن
-                        </div>
-                        <div class="scan-official-seal" style="border-color: #7c3aed; color: #7c3aed;">
-                            <span>تایید صیادی</span>
-                            <span>ثبت چک تایید شد</span>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
-            <!-- 5. DEFAULT / OTHER DOCUMENT SCAN -->
-            <template x-if="!activeScan.preview_url && (activeScan.type === 'UNIT_SELECTION' || activeScan.type === 'BANK_LETTER' || activeScan.type === 'OTHER')">
-                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 2rem; background: #ffffff;">
-                    <div style="text-align: center; border-bottom: 2px solid #334155; padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
-                        <strong style="font-size: 1.1rem; color: #1e293b;">طرح نهضت ملی مسکن - کارگزاری اجرایی</strong>
-                        <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-top: 0.25rem;" x-text="activeScan.title"></h3>
-                        <div style="font-size: 0.8rem; color: #64748b;" class="fa-num">شماره پیگیری: <span x-text="archiveNumber"></span> • متقاضی: <span x-text="form.full_name"></span></div>
-                    </div>
-
-                    <p style="font-size: 0.95rem; line-height: 1.9; text-align: justify; color: #334155;" x-text="activeScan.desc"></p>
-
-                    <div style="margin-top: 2rem; padding: 1rem; background: #f8fafc; border-radius: 6px; font-size: 0.85rem;" class="fa-num">
-                        <div><strong>کد امنیتی SHA-256 سند:</strong> <span class="sha-hash" x-text="activeScan.sha256"></span></div>
-                        <div class="hide-on-print"><strong>کاربر ثبت‌کننده:</strong> <span x-text="activeScan.uploader"></span></div>
-                    </div>
-
-                    <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
-                        <div class="scan-official-seal">
-                            <span>کارگزاری</span>
-                            <span>تایید دبیرخانه</span>
-                        </div>
-                    </div>
-                </div>
-            </template>
-
         </div>
     </div>
 </div>
