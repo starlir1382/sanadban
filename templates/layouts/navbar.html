@@ -7,9 +7,9 @@
     window.SB_UI_MODE_URL = "{% url 'set_ui_mode' %}";
     window.SB_CSRF_TOKEN = "{{ csrf_token }}";
     (function() {
-        var serverMode = "{{ profile.ui_mode|default:'advanced'|escapejs }}";
+        var serverMode = "{{ profile.ui_mode|default:'simple'|escapejs }}";
         var localMode = localStorage.getItem('sb-ui-mode');
-        var mode = serverMode || localMode || 'advanced';
+        var mode = localMode || serverMode || 'simple';
         document.documentElement.setAttribute('data-ui-mode', mode);
     })();
 </script>
@@ -249,6 +249,8 @@
                     } else if (delta < -8) {
                         this.hidden = false;            // scrolling up: show
                     }
+                    document.body.classList.toggle('nav-hidden', this.hidden);
+                    document.documentElement.classList.toggle('nav-hidden', this.hidden);
                     if (Math.abs(delta) > 8 || y < 90) this.lastY = y;
                     this.ticking = false;
                 });

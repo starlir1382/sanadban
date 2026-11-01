@@ -765,7 +765,7 @@ class UserProfile(models.Model):
     ui_mode = models.CharField(
         max_length=10,
         choices=UI_MODE_CHOICES,
-        default="advanced",
+        default="simple",
         verbose_name="حالت نمایش صفحه پرونده",
     )
 

@@ -1,4 +1,4 @@
-// Which form section belongs to which workflow stage(s)
+﻿// Which form section belongs to which workflow stage(s)
 const SECTION_STAGE_MAP = {
   'section-applicant': [1, 8],
   'section-form-j': [3, 11],
@@ -449,6 +449,10 @@ document.addEventListener('alpine:init', () => {
     showSignatureModal: false,
     showReturnModal: false,
     showScanViewerModal: false,
+    albumPage: 1,
+    albumPerPage: 4,
+    attachmentViewMode: 'album',
+    activeScanIndex: 0,
     showUploadModal: false,
     isScanning: false,
     isSaving: false,
@@ -701,20 +705,14 @@ document.addEventListener('alpine:init', () => {
 
       // Simple / advanced mode (حالت ساده / پیشرفته)
       window.SanadbanAppInstance = this;
-      this.simpleMode = window.SanadbanUiMode ? window.SanadbanUiMode.get() === 'simple' : false;
+      this.simpleMode = window.SanadbanUiMode ? window.SanadbanUiMode.get() === 'simple' : true;
       window.addEventListener('sanadban-ui-mode-changed', (e) => {
         this.simpleMode = Boolean(e.detail && e.detail.mode === 'simple');
         this.applySimpleModeVisibility();
       });
-      const enforceSimpleTab = () => {
-        if (this.simpleMode && (this.tab === 'map' || this.tab === 'history')) this.tab = 'form';
-      };
-      this.$watch('simpleMode', (val) => {
-        enforceSimpleTab();
+      this.$watch('simpleMode', () => {
         this.applySimpleModeVisibility();
       });
-      this.$watch('tab', enforceSimpleTab);
-      enforceSimpleTab();
       this.$nextTick(() => {
         this.applySimpleModeVisibility();
       });
@@ -968,13 +966,16 @@ document.addEventListener('alpine:init', () => {
           if (Array.isArray(data.new_changes) && data.new_changes.length > 0) {
             this.fieldChanges.unshift(...data.new_changes);
           }
+          return true;
         } else {
           const errData = await res.json().catch(() => ({}));
           this.triggerToast(errData.message || 'خطا در ذخیره اطلاعات بر روی سرور.', 'error');
+          return false;
         }
       } catch (err) {
         console.error('Save draft error:', err);
         this.triggerToast('خطا در برقراری ارتباط با سرور پایگاه داده.', 'error');
+        return false;
       } finally {
         this.isSaving = false;
       }
@@ -1246,13 +1247,79 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    getPaginatedAttachments() {
+      const all = this.getFilteredAttachments() || [];
+      const start = (this.albumPage - 1) * this.albumPerPage;
+      return all.slice(start, start + this.albumPerPage);
+    },
+
+    totalAlbumPages() {
+      const all = this.getFilteredAttachments() || [];
+      if (!all.length) return 1;
+      return Math.max(1, Math.ceil(all.length / this.albumPerPage));
+    },
+
+    nextAlbumPage() {
+      if (this.albumPage < this.totalAlbumPages()) {
+        this.albumPage++;
+      }
+    },
+
+    prevAlbumPage() {
+      if (this.albumPage > 1) {
+        this.albumPage--;
+      }
+    },
+
+    setAlbumPage(p) {
+      if (p >= 1 && p <= this.totalAlbumPages()) {
+        this.albumPage = p;
+      }
+    },
+
+    setAlbumPerPage(num) {
+      this.albumPerPage = Number(num) === 3 ? 3 : 4;
+      this.albumPage = 1;
+    },
+
     openScanViewer(item) {
+      const list = this.getFilteredAttachments() || [];
+      const idx = list.findIndex(a => a.id === item.id);
+      this.activeScanIndex = idx >= 0 ? idx : 0;
       this.activeScan = {
         ...item,
         zoom: 1,
         rotation: 0
       };
       this.showScanViewerModal = true;
+    },
+
+    nextScan() {
+      const list = this.getFilteredAttachments() || [];
+      if (!list.length) return;
+      this.activeScanIndex = (this.activeScanIndex + 1) % list.length;
+      const nextItem = list[this.activeScanIndex];
+      if (nextItem) {
+        this.activeScan = {
+          ...nextItem,
+          zoom: 1,
+          rotation: 0
+        };
+      }
+    },
+
+    prevScan() {
+      const list = this.getFilteredAttachments() || [];
+      if (!list.length) return;
+      this.activeScanIndex = (this.activeScanIndex - 1 + list.length) % list.length;
+      const prevItem = list[this.activeScanIndex];
+      if (prevItem) {
+        this.activeScan = {
+          ...prevItem,
+          zoom: 1,
+          rotation: 0
+        };
+      }
     },
 
     zoomInScan() {
@@ -2280,7 +2347,12 @@ document.addEventListener('alpine:init', () => {
 
     async confirmElectronicSignature() {
       // First save current form edits to database
-      await this.saveDossierDraft(false);
+      const saved = await this.saveDossierDraft(false);
+      if (!saved) {
+        this.triggerToast('ذخیره‌سازی اطلاعات ناموفق بود. امضای الکترونیکی لغو شد.', 'error');
+        this.showSignatureModal = false;
+        return;
+      }
 
       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
       try {
@@ -2607,17 +2679,13 @@ document.addEventListener('alpine:init', () => {
 
     if (Math.abs(diff) > threshold) {
       if (diff > 0 && currentScrollY > 70) {
-        // Scrolling DOWN -> Hide header and footer
+        // Scrolling DOWN -> Hide only the top brand header, KEEP tabs & action bar sticky and visible
         document.body.classList.add('nav-hidden');
         if (header) header.classList.add('nav-hidden');
-        if (actionBar && !nearBottom) actionBar.classList.add('nav-hidden');
-        if (tabs) tabs.classList.add('top-pinned');
       } else if (diff < 0) {
-        // Scrolling UP -> Reveal header and footer
+        // Scrolling UP -> Reveal top brand header
         document.body.classList.remove('nav-hidden');
         if (header) header.classList.remove('nav-hidden');
-        if (actionBar) actionBar.classList.remove('nav-hidden');
-        if (tabs) tabs.classList.remove('top-pinned');
       }
       lastScrollY = currentScrollY;
     }
@@ -2907,8 +2975,8 @@ window.SanadbanTheme = {
   init() {
     try {
       const saved = localStorage.getItem(this.storageKey);
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initial = saved || (prefersDark ? 'dark' : 'light');
+      // Default to 'light' (Day theme)
+      const initial = saved || 'light';
       this.set(initial);
     } catch (e) {
       this.set('light');
@@ -2945,7 +3013,7 @@ window.SanadbanUiMode = {
       const local = localStorage.getItem('sb-ui-mode');
       if (local === 'simple' || local === 'advanced') return local;
     } catch (_) {}
-    return 'advanced';
+    return 'simple';
   },
 
   set(mode, persist = true) {

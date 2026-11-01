@@ -2,14 +2,17 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <!-- Early Dark/Light Theme Initialization (FOUC Prevention) -->
+    <!-- Early Day/Light Theme & Simple Mode Initialization (FOUC Prevention) -->
     <script>
         (function() {
             try {
                 var saved = localStorage.getItem('sb-theme');
-                var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                var theme = saved ? saved : (prefersDark ? 'dark' : 'light');
+                var theme = saved ? saved : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
+
+                var savedMode = localStorage.getItem('sb-ui-mode');
+                var mode = savedMode ? savedMode : 'simple';
+                document.documentElement.setAttribute('data-ui-mode', mode);
             } catch (e) {}
         })();
     </script>

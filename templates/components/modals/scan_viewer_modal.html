@@ -1,5 +1,8 @@
 <!-- Interactive Scan Viewer & Document Lightbox Modal -->
-<div class="scan-viewer-modal" x-show="showScanViewerModal" x-cloak>
+<div class="scan-viewer-modal" x-show="showScanViewerModal" x-cloak
+     @keydown.right.window="if (showScanViewerModal) prevScan()"
+     @keydown.left.window="if (showScanViewerModal) nextScan()"
+     @keydown.escape.window="if (showScanViewerModal) closeScanViewer()">
     <!-- Top Toolbar -->
     <div class="scan-viewer-topbar">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -21,6 +24,16 @@
 
         <!-- Lightbox Controls -->
         <div class="scan-toolbar-controls">
+            <!-- Gallery Counter & Easy Navigation -->
+            <span class="fa-num" style="background: rgba(255,255,255,0.14); color: #e2e8f0; font-size: 0.78rem; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2); margin-left: 0.35rem;" x-show="getFilteredAttachments().length > 0">
+                تصویر <span x-text="activeScanIndex + 1"></span> از <span x-text="getFilteredAttachments().length"></span>
+            </span>
+            <button type="button" class="toolbar-btn" @click="prevScan()" title="تصویر قبلی (کلید جهت راست)">
+                <span>قبلی ►</span>
+            </button>
+            <button type="button" class="toolbar-btn" @click="nextScan()" title="تصویر بعدی (کلید جهت چپ)">
+                <span>◄ بعدی</span>
+            </button>
             <!-- Zoom Controls -->
             <button type="button" class="toolbar-btn" @click="zoomInScan()" title="بزرگ‌نمایی (+)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -52,6 +65,25 @@
 
     <!-- Viewer Stage Area -->
     <div class="scan-viewer-stage" @click.self="closeScanViewer()">
+        <!-- Floating Prev & Next Nav Buttons (Phone Gallery Style) -->
+        <template x-if="getFilteredAttachments().length > 1">
+            <div>
+                <button type="button" @click.stop="prevScan()" 
+                        style="position: fixed; right: 20px; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(15, 23, 42, 0.85); border: 1.5px solid rgba(255,255,255,0.3); color: #fff; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; backdrop-filter: blur(8px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); transition: all 0.2s;" 
+                        @mouseenter="$el.style.background='#2563eb'; $el.style.transform='translateY(-50%) scale(1.1)';" 
+                        @mouseleave="$el.style.background='rgba(15, 23, 42, 0.85)'; $el.style.transform='translateY(-50%) scale(1)';"
+                        title="تصویر قبلی (کلید جهت راست)">
+                    ›
+                </button>
+                <button type="button" @click.stop="nextScan()" 
+                        style="position: fixed; left: 20px; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(15, 23, 42, 0.85); border: 1.5px solid rgba(255,255,255,0.3); color: #fff; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; backdrop-filter: blur(8px); box-shadow: 0 4px 16px rgba(0,0,0,0.4); transition: all 0.2s;" 
+                        @mouseenter="$el.style.background='#2563eb'; $el.style.transform='translateY(-50%) scale(1.1)';" 
+                        @mouseleave="$el.style.background='rgba(15, 23, 42, 0.85)'; $el.style.transform='translateY(-50%) scale(1)';"
+                        title="تصویر بعدی (کلید جهت چپ)">
+                    ‹
+                </button>
+            </div>
+        </template>
         <div class="scan-document-canvas" 
              :style="`transform: scale(${activeScan.zoom}) rotate(${activeScan.rotation}deg);`">
             
@@ -301,7 +333,6 @@
 
                     <div style="margin-top: 2rem; padding: 1rem; background: #f8fafc; border-radius: 6px; font-size: 0.85rem;" class="fa-num">
                         <div><strong>کد امنیتی SHA-256 سند:</strong> <span class="sha-hash" x-text="activeScan.sha256"></span></div>
-                        <div><strong>مرحله بارگذاری:</strong> مرحله <span x-text="activeScan.stage"></span> (<span x-text="stages[activeScan.stage] ? stages[activeScan.stage].title : ''"></span>)</div>
                         <div class="hide-on-print"><strong>کاربر ثبت‌کننده:</strong> <span x-text="activeScan.uploader"></span></div>
                     </div>
 

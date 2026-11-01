@@ -89,28 +89,42 @@
     border-bottom: none;
     margin-bottom: 1.25rem;
     overflow-x: auto;
-    position: sticky;
-    top: calc(var(--sb-header-height, 74px) + 8px);
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
-    z-index: 25;
+    position: sticky !important;
+    top: calc(var(--sb-header-height, 62px) + 8px);
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.05) !important;
+    z-index: 95 !important;
     padding: 0.35rem 0.4rem;
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease, box-shadow 0.2s ease;
-    will-change: transform, opacity;
     scrollbar-width: none;
     -ms-overflow-style: none;
     max-width: 100%;
+    transition: top 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease !important;
   }
   .dt-tabs::-webkit-scrollbar { display: none; }
+
+  /* When navbar hides on scroll, stick immediately to the very top edge */
+  .sb-header.sb-header--hidden ~ main .dt-tabs,
+  .sb-header.sb-header--hidden ~ * .dt-tabs,
   body.nav-hidden .dt-tabs,
-  .dt-tabs.top-pinned {
-    transform: translateY(calc(-100% - 130px)) !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
+  html.nav-hidden .dt-tabs {
+    top: 8px !important;
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.18), 0 3px 8px -2px rgba(15, 23, 42, 0.1) !important;
+  }
+
+  @media (max-width: 768px) {
+    .dt-tabs {
+      top: calc(var(--sb-header-height, 56px) + 6px);
+    }
+    .sb-header.sb-header--hidden ~ main .dt-tabs,
+    .sb-header.sb-header--hidden ~ * .dt-tabs,
+    body.nav-hidden .dt-tabs,
+    html.nav-hidden .dt-tabs {
+      top: 6px !important;
+    }
   }
   .dt-tab {
     background: transparent;
@@ -462,8 +476,7 @@
   .sb-simple .form-section-header,
   html[data-ui-mode="simple"] .form-section-header { cursor: default; }
 
-  html[data-ui-mode="simple"] button[data-tab-name="map"],
-  html[data-ui-mode="simple"] button[data-tab-name="history"] { display: none !important; }
+  /* Tabs remain visible in both simple and advanced mode */
 
   @media (prefers-reduced-motion: reduce) { .dt-tabs, .dt-tab, .dt-stage, .dt-banner { transition: none !important; animation: none !important; } }
 </style>
@@ -547,9 +560,28 @@
       {% endif %}
     </div>
 
-    <div style="font-size: 0.84rem; font-weight: 800; color: #334155; display: flex; align-items: center; gap: 6px;" class="fa-num">
+    <div style="font-size: 0.84rem; font-weight: 800; color: #334155; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" class="fa-num">
       <span style="color: #64748b; font-weight: 600;">پرونده باز:</span>
       <span style="color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 6px;">#{{ dossier.archive_number }}</span>
+
+      <!-- راهنمایی Button -->
+      <button type="button" 
+              class="btn btn-outline" 
+              @click="showGuidanceModal = true"
+              style="padding: 0.25rem 0.75rem; font-size: 0.78rem; font-weight: 800; border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;"
+              title="مشاهده راهنمای مرحله، وظایف و وضعیت پرونده">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>راهنمایی</span>
+      </button>
+
+      <!-- Toggle Simple / Advanced Mode Button -->
+      <button type="button" 
+              class="btn btn-ghost" 
+              @click="window.SanadbanUiMode.toggle()"
+              style="padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 700; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px;"
+              title="تغییر حالت نمایش بین ساده و پیشرفته">
+        <span x-text="simpleMode ? 'حالت پیشرفته' : 'حالت ساده'"></span>
+      </button>
     </div>
 
     <div style="display: flex; align-items: center; gap: 0.4rem;">
@@ -567,31 +599,80 @@
   </div>
 
   
-  <!-- Simple-mode summary card -->
-  <div class="dt-simple-card" x-show="simpleMode" x-cloak>
-    <div class="dt-simple-card-head">
-      <div class="fa-num" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-        <span class="ps-stage-badge">مرحله <span x-text="currentStage"></span> از ۲۲</span>
-        <strong x-text="getStage(currentStage).title"></strong>
-        <span class="ps-chip" style="background: #e0f2fe; color: #0369a1" x-show="status === 'IN_PROGRESS' && !isLocked" x-cloak>● در جریان</span>
-        <span class="ps-chip" style="background: #fee2e2; color: #b91c1c" x-show="status === 'RETURNED'" x-cloak>↩ برگشت‌خورده</span>
-        <span class="ps-chip" style="background: #dcfce7; color: #15803d" x-show="isLocked || status === 'COMPLETED'" x-cloak>✓ مختومه</span>
-        <span class="ps-chip" style="background: #f1f5f9; color: #475569" x-show="!userCanAction && !isLocked" x-cloak>👁 فقط مشاهده</span>
+  <!-- Stage Guidance Modal (راهنمایی پرونده) -->
+  <div x-show="showGuidanceModal" x-cloak 
+       style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1.25rem; direction: rtl;"
+       @click.self="showGuidanceModal = false"
+       @keydown.escape.window="showGuidanceModal = false">
+    
+    <div style="background: #ffffff; border-radius: 18px; width: 620px; max-width: 95vw; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); overflow: hidden; border: 1.5px solid #bfdbfe;">
+      
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 1.1rem 1.5rem; border-bottom: 1px solid #bfdbfe; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #1e3a8a;">راهنمای اقدام و مراحل پرونده</h3>
+            <div style="font-size: 0.78rem; color: #3b82f6; margin-top: 2px;">
+              پرونده شماره: <span class="fa-num" style="font-weight: 700;" x-text="archiveNumber"></span>
+            </div>
+          </div>
+        </div>
+        <button type="button" @click="showGuidanceModal = false" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; color: #475569; font-weight: 800; display: flex; align-items: center; justify-content: center; transition: all 0.15s;" @mouseenter="$el.style.background='#fee2e2'; $el.style.color='#dc2626';" @mouseleave="$el.style.background='#ffffff'; $el.style.color='#475569';">✕</button>
       </div>
-      <button type="button" class="btn btn-outline" @click="window.SanadbanUiMode.toggle()">
-        نمایش همه بخش‌ها (حالت پیشرفته)
-      </button>
-    </div>
-    <div style="margin-top: 0.65rem;">
-      <div style="font-weight: 800; font-size: 0.88rem;">
-        کار شما در این پرونده:
-        <span x-text="getStageGuidance(simpleFocusStage).actionTitle"></span>
+
+      <!-- Modal Body -->
+      <div style="padding: 1.5rem; max-height: 75vh; overflow-y: auto;">
+        
+        <!-- Status & Stage Bar -->
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;" class="fa-num">
+          <span class="ps-stage-badge" style="font-size: 0.85rem; font-weight: 800; background: #2563eb; color: #fff; padding: 0.35rem 0.85rem; border-radius: 8px;">مرحله <span x-text="currentStage"></span> از ۲۲</span>
+          <strong style="font-size: 0.95rem; color: #0f172a;" x-text="getStage(currentStage).title"></strong>
+          <span class="ps-chip" style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="status === 'IN_PROGRESS' && !isLocked" x-cloak>● در جریان</span>
+          <span class="ps-chip" style="background: #fee2e2; color: #b91c1c; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="status === 'RETURNED'" x-cloak>↩ برگشت‌خورده</span>
+          <span class="ps-chip" style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="isLocked || status === 'COMPLETED'" x-cloak>✓ مختومه</span>
+          <span class="ps-chip" style="background: #f1f5f9; color: #475569; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="!userCanAction && !isLocked" x-cloak>👁 فقط مشاهده</span>
+        </div>
+
+        <!-- Role Guidance -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.15rem; margin-bottom: 1.25rem;">
+          <div style="font-weight: 800; font-size: 0.92rem; color: #1e3a8a; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.45rem;">
+            <span>📌</span>
+            <span>کار شما در این پرونده:</span>
+            <span style="color: #2563eb;" x-text="getStageGuidance(simpleFocusStage).actionTitle"></span>
+          </div>
+          <ul style="margin: 0; padding-right: 1.25rem; font-size: 0.86rem; color: #334155; line-height: 1.85;">
+            <template x-for="(it, i) in getStageGuidance(simpleFocusStage).items || []" :key="i">
+              <li x-text="it" style="margin-bottom: 0.35rem;"></li>
+            </template>
+          </ul>
+        </div>
+
+        <!-- Mode Toggle Hint -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.85rem 1rem;">
+          <div style="font-size: 0.82rem; color: #1e40af;">
+            برای مشاهده تمام فیلدها و فرم‌های ۲۲ گانه می‌توانید حالت پیشرفته را فعال فرمایید.
+          </div>
+          <button type="button" class="btn btn-primary" style="padding: 0.4rem 0.95rem; font-size: 0.78rem; font-weight: 800;" @click="window.SanadbanUiMode.toggle(); showGuidanceModal = false;">
+            <span x-text="simpleMode ? 'تغییر به حالت پیشرفته' : 'تغییر به حالت ساده'"></span>
+          </button>
+        </div>
+
       </div>
-      <ul>
-        <template x-for="(it, i) in getStageGuidance(simpleFocusStage).items || []" :key="i">
-          <li x-text="it"></li>
-        </template>
-      </ul>
+
+      <!-- Modal Footer -->
+      <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-outline" @click="showGuidanceModal = false" style="font-weight: 700; padding: 0.45rem 1.25rem;">
+          متوجه شدم (بستن)
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -636,7 +717,7 @@
       </svg>
       <span>فرم پرونده</span>
     </button>
-    <button type="button" class="dt-tab" x-show="!simpleMode" :class="{active: tab==='map'}" @click="go('map')" data-tab-name="map">
+    <button type="button" class="dt-tab" :class="{active: tab==='map'}" @click="go('map')" data-tab-name="map">
       <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="1 6 1 22 8 18 15 22 22 18 22 2 15 6 8 2 1 6"></polygon>
         <line x1="8" y1="2" x2="8" y2="18"></line>
@@ -644,7 +725,7 @@
       </svg>
       <span>نقشه مراحل</span>
     </button>
-    <button type="button" class="dt-tab" x-show="!simpleMode" :class="{active: tab==='history'}" @click="go('history')" data-tab-name="history">
+    <button type="button" class="dt-tab" :class="{active: tab==='history'}" @click="go('history')" data-tab-name="history">
       <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
         <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
@@ -654,11 +735,13 @@
       <span>سوابق امضا</span>
       <span class="dt-count fa-num" x-text="auditLogs.length"></span>
     </button>
-    <button type="button" class="dt-tab" :class="{active: tab==='scans'}" @click="go('scans')">
+    <button type="button" class="dt-tab" :class="{active: tab==='scans'}" @click="go('scans')" data-tab-name="scans">
       <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <polyline points="21 15 16 10 5 21"></polyline>
       </svg>
-      <span>اسناد اسکن‌شده</span>
+      <span>آلبوم تصاویر و مدارک</span>
       <span class="dt-count fa-num" x-text="attachments.length"></span>
     </button>
   </div>
