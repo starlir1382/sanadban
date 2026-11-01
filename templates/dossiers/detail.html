@@ -1,14 +1,15 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}پرونده مسکن متقاضی: {{ dossier.full_name|default:'پرونده مسکن' }} (شماره بایگانی: {{ dossier.archive_number }}) | سامانه مسکن یار{% endblock %}
-
-{% block content %}
+{% extends 'base.html' %} {% load static %} {% block title %}پرونده مسکن متقاضی:
+{{ dossier.full_name|default:'پرونده مسکن' }} (شماره بایگانی: {{
+dossier.archive_number }}) | سامانه مسکن یار{% endblock %} {% block content %}
 {% csrf_token %}
-<script id="dossier-server-json" type="application/json">{{ dossier_json|safe }}</script>
+<script id="dossier-server-json" type="application/json">
+  {{ dossier_json|safe }}
+</script>
 
 <style>
-  [x-cloak] { display: none !important; }
+  [x-cloak] {
+    display: none !important;
+  }
 
   /* ---------- Banners ---------- */
   .dt-banner {
@@ -96,15 +97,21 @@
     -webkit-backdrop-filter: blur(16px) !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 16px !important;
-    box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(15, 23, 42, 0.05) !important;
+    box-shadow:
+      0 4px 18px -2px rgba(15, 23, 42, 0.1),
+      0 2px 6px -1px rgba(15, 23, 42, 0.05) !important;
     z-index: 95 !important;
     padding: 0.35rem 0.4rem;
     scrollbar-width: none;
     -ms-overflow-style: none;
     max-width: 100%;
-    transition: top 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease !important;
+    transition:
+      top 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.2s ease !important;
   }
-  .dt-tabs::-webkit-scrollbar { display: none; }
+  .dt-tabs::-webkit-scrollbar {
+    display: none;
+  }
 
   /* When navbar hides on scroll, stick immediately to the very top edge */
   .sb-header.sb-header--hidden ~ main .dt-tabs,
@@ -112,7 +119,9 @@
   body.nav-hidden .dt-tabs,
   html.nav-hidden .dt-tabs {
     top: 8px !important;
-    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.18), 0 3px 8px -2px rgba(15, 23, 42, 0.1) !important;
+    box-shadow:
+      0 8px 24px -4px rgba(15, 23, 42, 0.18),
+      0 3px 8px -2px rgba(15, 23, 42, 0.1) !important;
   }
 
   @media (max-width: 768px) {
@@ -143,7 +152,10 @@
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
-    transition: transform 150ms ease-out, background-color 150ms ease-out, color 150ms ease-out;
+    transition:
+      transform 150ms ease-out,
+      background-color 150ms ease-out,
+      color 150ms ease-out;
   }
   .dt-tab:active {
     transform: scale(0.97);
@@ -180,7 +192,9 @@
     padding: 2px 8px;
     border-radius: 999px;
     line-height: 1.2;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
   }
   .dt-tab:hover .dt-count {
     background: #cbd5e1;
@@ -205,7 +219,9 @@
     background: #fff;
     cursor: pointer;
     font-size: 0.8rem;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
   }
   .dt-stage:hover {
     transform: translateY(-2px);
@@ -220,16 +236,22 @@
     border-color: #3b82f6;
     box-shadow: 0 3px 10px rgba(37, 99, 235, 0.15);
   }
-  .dt-stage.todo { opacity: 0.7; }
+  .dt-stage.todo {
+    opacity: 0.7;
+  }
   .dt-stage b {
     display: block;
     color: #0f172a;
     margin: 0.2rem 0;
   }
-  .dt-stage small { color: #64748b; }
+  .dt-stage small {
+    color: #64748b;
+  }
 
   /* ---------- More menu ---------- */
-  .dt-more { position: relative; }
+  .dt-more {
+    position: relative;
+  }
   .dt-menu {
     position: absolute;
     bottom: 110%;
@@ -260,8 +282,12 @@
     text-decoration: none;
   }
   .dt-menu a:hover,
-  .dt-menu button:hover { background: #f1f5f9; }
-  .dt-menu .danger { color: #b91c1c; }
+  .dt-menu button:hover {
+    background: #f1f5f9;
+  }
+  .dt-menu .danger {
+    color: #b91c1c;
+  }
 
   /* ---------- Action bar: sticky instead of fixed (no dead scroll space) ---------- */
   .sticky-action-bar {
@@ -297,10 +323,16 @@
     font-weight: 700;
     font-size: 0.84rem;
     padding: 0.5rem 1.1rem;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
   }
-  .sticky-action-bar .btn:hover { transform: translateY(-1px); }
-  .sticky-action-bar .btn-success { box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28); }
+  .sticky-action-bar .btn:hover {
+    transform: translateY(-1px);
+  }
+  .sticky-action-bar .btn-success {
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.28);
+  }
 
   @media (max-width: 768px) {
     .dt-hero {
@@ -400,7 +432,9 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .toolbar-btn:hover { background: #334155; }
+  .toolbar-btn:hover {
+    background: #334155;
+  }
   .scan-viewer-stage {
     flex: 1;
     overflow: auto;
@@ -444,51 +478,159 @@
     font-weight: 800;
     transform: rotate(-6deg);
   }
-  .sha-hash { font-family: monospace; word-break: break-all; }
-  
+  .sha-hash {
+    font-family: monospace;
+    word-break: break-all;
+  }
+
   /* ---------- Simple mode (حالت ساده) ---------- */
-  .sb-stepper-wrap { display: contents; }
+  .sb-stepper-wrap {
+    display: contents;
+  }
   .sb-stepper-wrap.sb-hide,
-  html[data-ui-mode="simple"] .sb-stepper-wrap { display: none !important; }
+  html[data-ui-mode="simple"] .sb-stepper-wrap {
+    display: none !important;
+  }
 
   .dt-simple-card {
-    margin-bottom: 0.9rem; padding: 0.9rem 1.1rem; border-radius: 14px;
-    background: #eff6ff; border: 1px solid #bfdbfe; border-inline-start: 4px solid #2563eb; color: #1e3a8a;
+    margin-bottom: 0.9rem;
+    padding: 0.9rem 1.1rem;
+    border-radius: 14px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-inline-start: 4px solid #2563eb;
+    color: #1e3a8a;
   }
-  .dt-simple-card-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-  .dt-simple-card ul { margin: 0.35rem 0 0 1.25rem; padding: 0; font-size: 0.82rem; line-height: 1.7; }
+  .dt-simple-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .dt-simple-card ul {
+    margin: 0.35rem 0 0 1.25rem;
+    padding: 0;
+    font-size: 0.82rem;
+    line-height: 1.7;
+  }
 
-  html[data-ui-mode="simple"] .dt-simple-card { display: block !important; }
-  html:not([data-ui-mode="simple"]) .dt-simple-card { display: none !important; }
+  html[data-ui-mode="simple"] .dt-simple-card {
+    display: block !important;
+  }
+  html:not([data-ui-mode="simple"]) .dt-simple-card {
+    display: none !important;
+  }
 
   .sb-simple .form-card.sb-simple-hidden,
-  html[data-ui-mode="simple"] .form-card.sb-simple-hidden { display: none !important; }
+  html[data-ui-mode="simple"] .form-card.sb-simple-hidden {
+    display: none !important;
+  }
 
   .sb-simple .sb-advanced-only,
-  html[data-ui-mode="simple"] .sb-advanced-only { display: none !important; }
+  html[data-ui-mode="simple"] .sb-advanced-only {
+    display: none !important;
+  }
 
   .sb-simple .form-section-body,
-  html[data-ui-mode="simple"] .form-section-body { display: block !important; }   /* sections stay open */
+  html[data-ui-mode="simple"] .form-section-body {
+    display: block !important;
+  } /* sections stay open */
 
   .sb-simple .btn-section-toggle,
-  html[data-ui-mode="simple"] .btn-section-toggle { display: none !important; }
+  html[data-ui-mode="simple"] .btn-section-toggle {
+    display: none !important;
+  }
 
   .sb-simple .form-section-header,
-  html[data-ui-mode="simple"] .form-section-header { cursor: default; }
+  html[data-ui-mode="simple"] .form-section-header {
+    cursor: default;
+  }
 
   /* Tabs remain visible in both simple and advanced mode */
 
-  @media (prefers-reduced-motion: reduce) { .dt-tabs, .dt-tab, .dt-stage, .dt-banner { transition: none !important; animation: none !important; } }
+  /* Guidance Modal Styles (Centered & Spacious) */
+  .guidance-modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    direction: rtl;
+    box-sizing: border-box;
+  }
+  .guidance-modal-overlay[x-cloak],
+  .guidance-modal-overlay[style*="display: none"] {
+    display: none !important;
+  }
+  .guidance-modal-card {
+    margin: auto !important;
+    width: 840px !important;
+    max-width: 95vw !important;
+    max-height: 88vh !important;
+    background: #ffffff !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 60px -12px rgba(15, 23, 42, 0.35) !important;
+    border: 1.5px solid #bfdbfe !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    animation: modal-appear 0.2s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dt-tabs,
+    .dt-tab,
+    .dt-stage,
+    .dt-banner {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
 </style>
 
 <!-- Loading skeleton placeholder while data loads -->
-<div x-show="!isLoaded" class="dl-skel" style="height: 380px; border-radius: 16px; background: linear-gradient(90deg,#eef1f6 0%,#f8fafc 50%,#eef1f6 100%); background-size: 200% 100%; animation: sk 1.2s infinite; margin: 1.5rem 0;"></div>
-<style>@keyframes sk { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }  @media (prefers-reduced-motion: reduce) { .dt-tabs, .dt-tab, .dt-stage, .dt-banner { transition: none !important; animation: none !important; } }
+<div
+  x-show="!isLoaded"
+  class="dl-skel"
+  style="
+    height: 380px;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #eef1f6 0%, #f8fafc 50%, #eef1f6 100%);
+    background-size: 200% 100%;
+    animation: sk 1.2s infinite;
+    margin: 1.5rem 0;
+  "
+></div>
+<style>
+  @keyframes sk {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dt-tabs,
+    .dt-tab,
+    .dt-stage,
+    .dt-banner {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
 </style>
 
 <!-- Page-level scope (inherits everything cleanly from sanadbanApp parent component) -->
 <div x-show="isLoaded">
-
   <!-- Returned banner -->
   <template x-if="status === 'RETURNED'">
     <div class="dt-banner warn">
@@ -515,7 +657,10 @@
         <strong>فرم «ج» قرمز — فاقد شرایط دریافت مسکن</strong>
         <div style="margin-top: 0.25rem">
           <template x-if="!isRejected">
-            <span>پرونده جهت صدور ابلاغیه رد صلاحیت به رئیس مسکن ارجاع شده است.</span>
+            <span
+              >پرونده جهت صدور ابلاغیه رد صلاحیت به رئیس مسکن ارجاع شده
+              است.</span
+            >
           </template>
           <template x-if="isRejected">
             <span>
@@ -526,153 +671,170 @@
           </template>
         </div>
       </div>
-      <span style="font-size: 0.78rem; font-weight: 700">اقدامات در منوی «بیشتر» نوار پایین</span>
+      <span style="font-size: 0.78rem; font-weight: 700"
+        >اقدامات در منوی «بیشتر» نوار پایین</span
+      >
     </div>
   </template>
 
   <!-- Top navigation: back to inbox -->
   <div style="margin-bottom: 0.9rem">
     <a
-  href="{% url 'dossier_list' %}"
-  class="btn btn-outline"
-  style="display: inline-flex; align-items: center; justify-content: center; min-height: 44px; gap: 0.5rem; background: #ffffff; padding: 0.5rem 1.1rem; font-weight: 700; font-size: 0.85rem; border-color: #cbd5e1; border-radius: 10px; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,0.04); text-decoration: none; touch-action: manipulation;"
+      href="{% url 'dossier_list' %}"
+      class="btn btn-outline"
+      style="
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        gap: 0.5rem;
+        background: #ffffff;
+        padding: 0.5rem 1.1rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border-color: #cbd5e1;
+        border-radius: 10px;
+        color: #1e293b;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        text-decoration: none;
+        touch-action: manipulation;
+      "
     >
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <polyline points="9 18 15 12 9 6"></polyline>
-    </svg>
-    <span>بازگشت به کارتابل من</span>
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+      >
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+      <span>بازگشت به کارتابل من</span>
     </a>
   </div>
 
   <!-- Hero (compact) -->
-    <!-- Dossier Fast Navigation (First, Prev, Next, Last) -->
-  <div class="dt-nav-bar" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.45rem 0.85rem; box-shadow: 0 1px 3px rgba(15,39,68,0.04);">
-    <div style="display: flex; align-items: center; gap: 0.4rem;">
-      {% if first_archive_number and first_archive_number != dossier.archive_number %}
-        <a href="{% url 'dossier_detail' pk=first_archive_number %}" class="btn btn-ghost" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 700;" title="رفتن به اولین پرونده (#{{ first_archive_number }})">
-          « اولین پرونده
-        </a>
-      {% endif %}
-      {% if prev_archive_number %}
-        <a href="{% url 'dossier_detail' pk=prev_archive_number %}" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 700;" title="پرونده قبلی (#{{ prev_archive_number }})">
-          ‹ قبلی (#{{ prev_archive_number }})
-        </a>
+  <!-- Dossier Fast Navigation (First, Prev, Next, Last) -->
+  <div
+    class="dt-nav-bar"
+    style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.45rem 0.85rem;
+      box-shadow: 0 1px 3px rgba(15, 39, 68, 0.04);
+    "
+  >
+    <div style="display: flex; align-items: center; gap: 0.4rem">
+      {% if first_archive_number and first_archive_number !=
+      dossier.archive_number %}
+      <a
+        href="{% url 'dossier_detail' pk=first_archive_number %}"
+        class="btn btn-ghost"
+        style="padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 700"
+        title="رفتن به اولین پرونده (#{{ first_archive_number }})"
+      >
+        « اولین پرونده
+      </a>
+      {% endif %} {% if prev_archive_number %}
+      <a
+        href="{% url 'dossier_detail' pk=prev_archive_number %}"
+        class="btn btn-outline"
+        style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 700"
+        title="پرونده قبلی (#{{ prev_archive_number }})"
+      >
+        ‹ قبلی (#{{ prev_archive_number }})
+      </a>
       {% endif %}
     </div>
 
-    <div style="font-size: 0.84rem; font-weight: 800; color: #334155; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" class="fa-num">
-      <span style="color: #64748b; font-weight: 600;">پرونده باز:</span>
-      <span style="color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 6px;">#{{ dossier.archive_number }}</span>
+    <div
+      style="
+        font-size: 0.84rem;
+        font-weight: 800;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      "
+      class="fa-num"
+    >
+      <span style="color: #64748b; font-weight: 600">پرونده باز:</span>
+      <span
+        style="
+          color: #2563eb;
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          padding: 2px 8px;
+          border-radius: 6px;
+        "
+        >#{{ dossier.archive_number }}</span
+      >
 
       <!-- راهنمایی Button -->
-      <button type="button" 
-              class="btn btn-outline" 
-              @click="showGuidanceModal = true"
-              style="padding: 0.25rem 0.75rem; font-size: 0.78rem; font-weight: 800; border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;"
-              title="مشاهده راهنمای مرحله، وظایف و وضعیت پرونده">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      <button
+        type="button"
+        class="btn btn-outline"
+        @click="showGuidanceModal = true"
+        style="
+          padding: 0.25rem 0.75rem;
+          font-size: 0.78rem;
+          font-weight: 800;
+          border-color: #93c5fd;
+          background: #eff6ff;
+          color: #1d4ed8;
+          border-radius: 8px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+        "
+        title="مشاهده راهنمای مرحله، وظایف و وضعیت پرونده"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+        >
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
         <span>راهنمایی</span>
       </button>
-
-      <!-- Toggle Simple / Advanced Mode Button -->
-      <button type="button" 
-              class="btn btn-ghost" 
-              @click="window.SanadbanUiMode.toggle()"
-              style="padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 700; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px;"
-              title="تغییر حالت نمایش بین ساده و پیشرفته">
-        <span x-text="simpleMode ? 'حالت پیشرفته' : 'حالت ساده'"></span>
-      </button>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 0.4rem;">
+    <div style="display: flex; align-items: center; gap: 0.4rem">
       {% if next_archive_number %}
-        <a href="{% url 'dossier_detail' pk=next_archive_number %}" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 700;" title="پرونده بعدی (#{{ next_archive_number }})">
-          بعدی (#{{ next_archive_number }}) ›
-        </a>
+      <a
+        href="{% url 'dossier_detail' pk=next_archive_number %}"
+        class="btn btn-outline"
+        style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 700"
+        title="پرونده بعدی (#{{ next_archive_number }})"
+      >
+        بعدی (#{{ next_archive_number }}) ›
+      </a>
+      {% endif %} {% if last_archive_number and last_archive_number !=
+      dossier.archive_number %}
+      <a
+        href="{% url 'dossier_detail' pk=last_archive_number %}"
+        class="btn btn-ghost"
+        style="padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 700"
+        title="رفتن به آخرین پرونده (#{{ last_archive_number }})"
+      >
+        آخرین پرونده »
+      </a>
       {% endif %}
-      {% if last_archive_number and last_archive_number != dossier.archive_number %}
-        <a href="{% url 'dossier_detail' pk=last_archive_number %}" class="btn btn-ghost" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 700;" title="رفتن به آخرین پرونده (#{{ last_archive_number }})">
-          آخرین پرونده »
-        </a>
-      {% endif %}
-    </div>
-  </div>
-
-  
-  <!-- Stage Guidance Modal (راهنمایی پرونده) -->
-  <div x-show="showGuidanceModal" x-cloak 
-       style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1.25rem; direction: rtl;"
-       @click.self="showGuidanceModal = false"
-       @keydown.escape.window="showGuidanceModal = false">
-    
-    <div style="background: #ffffff; border-radius: 18px; width: 620px; max-width: 95vw; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); overflow: hidden; border: 1.5px solid #bfdbfe;">
-      
-      <!-- Modal Header -->
-      <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 1.1rem 1.5rem; border-bottom: 1px solid #bfdbfe; display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 0.65rem;">
-          <div style="width: 38px; height: 38px; border-radius: 10px; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-          </div>
-          <div>
-            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #1e3a8a;">راهنمای اقدام و مراحل پرونده</h3>
-            <div style="font-size: 0.78rem; color: #3b82f6; margin-top: 2px;">
-              پرونده شماره: <span class="fa-num" style="font-weight: 700;" x-text="archiveNumber"></span>
-            </div>
-          </div>
-        </div>
-        <button type="button" @click="showGuidanceModal = false" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; color: #475569; font-weight: 800; display: flex; align-items: center; justify-content: center; transition: all 0.15s;" @mouseenter="$el.style.background='#fee2e2'; $el.style.color='#dc2626';" @mouseleave="$el.style.background='#ffffff'; $el.style.color='#475569';">✕</button>
-      </div>
-
-      <!-- Modal Body -->
-      <div style="padding: 1.5rem; max-height: 75vh; overflow-y: auto;">
-        
-        <!-- Status & Stage Bar -->
-        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;" class="fa-num">
-          <span class="ps-stage-badge" style="font-size: 0.85rem; font-weight: 800; background: #2563eb; color: #fff; padding: 0.35rem 0.85rem; border-radius: 8px;">مرحله <span x-text="currentStage"></span> از ۲۲</span>
-          <strong style="font-size: 0.95rem; color: #0f172a;" x-text="getStage(currentStage).title"></strong>
-          <span class="ps-chip" style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="status === 'IN_PROGRESS' && !isLocked" x-cloak>● در جریان</span>
-          <span class="ps-chip" style="background: #fee2e2; color: #b91c1c; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="status === 'RETURNED'" x-cloak>↩ برگشت‌خورده</span>
-          <span class="ps-chip" style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="isLocked || status === 'COMPLETED'" x-cloak>✓ مختومه</span>
-          <span class="ps-chip" style="background: #f1f5f9; color: #475569; padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.76rem;" x-show="!userCanAction && !isLocked" x-cloak>👁 فقط مشاهده</span>
-        </div>
-
-        <!-- Role Guidance -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.15rem; margin-bottom: 1.25rem;">
-          <div style="font-weight: 800; font-size: 0.92rem; color: #1e3a8a; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.45rem;">
-            <span>📌</span>
-            <span>کار شما در این پرونده:</span>
-            <span style="color: #2563eb;" x-text="getStageGuidance(simpleFocusStage).actionTitle"></span>
-          </div>
-          <ul style="margin: 0; padding-right: 1.25rem; font-size: 0.86rem; color: #334155; line-height: 1.85;">
-            <template x-for="(it, i) in getStageGuidance(simpleFocusStage).items || []" :key="i">
-              <li x-text="it" style="margin-bottom: 0.35rem;"></li>
-            </template>
-          </ul>
-        </div>
-
-        <!-- Mode Toggle Hint -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.85rem 1rem;">
-          <div style="font-size: 0.82rem; color: #1e40af;">
-            برای مشاهده تمام فیلدها و فرم‌های ۲۲ گانه می‌توانید حالت پیشرفته را فعال فرمایید.
-          </div>
-          <button type="button" class="btn btn-primary" style="padding: 0.4rem 0.95rem; font-size: 0.78rem; font-weight: 800;" @click="window.SanadbanUiMode.toggle(); showGuidanceModal = false;">
-            <span x-text="simpleMode ? 'تغییر به حالت پیشرفته' : 'تغییر به حالت ساده'"></span>
-          </button>
-        </div>
-
-      </div>
-
-      <!-- Modal Footer -->
-      <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
-        <button type="button" class="btn btn-outline" @click="showGuidanceModal = false" style="font-weight: 700; padding: 0.45rem 1.25rem;">
-          متوجه شدم (بستن)
-        </button>
-      </div>
-
     </div>
   </div>
 
@@ -693,7 +855,9 @@
     </div>
     <div style="display: flex; align-items: center; gap: 0.6rem">
       <span x-show="isLocked" x-cloak class="dt-meta">
-        <span style="background: #fef2f2; color: #991b1b">🔒 قفل نهایی (فقط خواندنی)</span>
+        <span style="background: #fef2f2; color: #991b1b"
+          >🔒 قفل نهایی (فقط خواندنی)</span
+        >
       </span>
       <div class="dt-id fa-num">#<span x-text="archiveNumber"></span></div>
     </div>
@@ -707,9 +871,24 @@
 
   <!-- Tabs -->
   <div class="dt-tabs" role="tablist">
-    <button type="button" class="dt-tab" :class="{active: tab==='form'}" @click="go('form')">
-      <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='form'}"
+      @click="go('form')"
+    >
+      <svg
+        class="dt-tab-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+        ></path>
         <polyline points="14 2 14 8 20 8"></polyline>
         <line x1="16" y1="13" x2="8" y2="13"></line>
         <line x1="16" y1="17" x2="8" y2="17"></line>
@@ -717,16 +896,44 @@
       </svg>
       <span>فرم پرونده</span>
     </button>
-    <button type="button" class="dt-tab" :class="{active: tab==='map'}" @click="go('map')" data-tab-name="map">
-      <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='map'}"
+      @click="go('map')"
+      data-tab-name="map"
+    >
+      <svg
+        class="dt-tab-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <polygon points="1 6 1 22 8 18 15 22 22 18 22 2 15 6 8 2 1 6"></polygon>
         <line x1="8" y1="2" x2="8" y2="18"></line>
         <line x1="15" y1="6" x2="15" y2="22"></line>
       </svg>
       <span>نقشه مراحل</span>
     </button>
-    <button type="button" class="dt-tab" :class="{active: tab==='history'}" @click="go('history')" data-tab-name="history">
-      <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='history'}"
+      @click="go('history')"
+      data-tab-name="history"
+    >
+      <svg
+        class="dt-tab-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
         <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
         <path d="M2 2l7.586 7.586"></path>
@@ -735,8 +942,22 @@
       <span>سوابق امضا</span>
       <span class="dt-count fa-num" x-text="auditLogs.length"></span>
     </button>
-    <button type="button" class="dt-tab" :class="{active: tab==='scans'}" @click="go('scans')" data-tab-name="scans">
-      <svg class="dt-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <button
+      type="button"
+      class="dt-tab"
+      :class="{active: tab==='scans'}"
+      @click="go('scans')"
+      data-tab-name="scans"
+    >
+      <svg
+        class="dt-tab-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
         <circle cx="8.5" cy="8.5" r="1.5"></circle>
         <polyline points="21 15 16 10 5 21"></polyline>
@@ -747,8 +968,13 @@
   </div>
 
   <!-- TAB: form (x-show keeps inputs alive when switching tabs) -->
-  <div x-show="tab === 'form'" id="form" :class="{'sb-simple': simpleMode}" x-effect="applySimpleModeVisibility()">
-      {% include 'components/form_sections.html' %}
+  <div
+    x-show="tab === 'form'"
+    id="form"
+    :class="{'sb-simple': simpleMode}"
+    x-effect="applySimpleModeVisibility()"
+  >
+    {% include 'components/form_sections.html' %}
   </div>
 
   <!-- TAB: stage map -->
@@ -767,9 +993,24 @@
           ></span>
           <b x-text="stg.title"></b>
           <small x-text="stg.role"></small>
-          <div x-show="stg.id < currentStage" style="margin-top: 0.4rem; padding-top: 0.35rem; border-top: 1px dashed #bbf7d0; font-size: 0.72rem; color: #166534;">
-            <span>امضا: <strong x-text="getStageSignerName(stg.id)"></strong></span><br />
-            <span class="fa-num" style="color: #64748b;" x-text="getStageSignerDate(stg.id)"></span>
+          <div
+            x-show="stg.id < currentStage"
+            style="
+              margin-top: 0.4rem;
+              padding-top: 0.35rem;
+              border-top: 1px dashed #bbf7d0;
+              font-size: 0.72rem;
+              color: #166534;
+            "
+          >
+            <span
+              >امضا: <strong x-text="getStageSignerName(stg.id)"></strong></span
+            ><br />
+            <span
+              class="fa-num"
+              style="color: #64748b"
+              x-text="getStageSignerDate(stg.id)"
+            ></span>
           </div>
         </div>
       </template>
@@ -805,10 +1046,28 @@
           x-show="!isLocked"
           x-cloak
           @click="openUploadScanModal()"
-          style="display: inline-flex; align-items: center; gap: 6px; border-color: #93c5fd; color: #1d4ed8; background: #eff6ff;"
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-color: #93c5fd;
+            color: #1d4ed8;
+            background: #eff6ff;
+          "
           title="بارگذاری اسناد، مدارک و تصاویر"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
           <span>بارگذاری مدرک / تصویر</span>
         </button>
 
@@ -818,36 +1077,88 @@
           class="btn btn-outline"
           x-show="currentStage === 15"
           x-cloak
-          style="display: inline-flex; align-items: center; gap: 6px; border-color: #0284c7; color: #0369a1; background: #f0f9ff; font-weight: 700;"
+          style="
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-color: #0284c7;
+            color: #0369a1;
+            background: #f0f9ff;
+            font-weight: 700;
+          "
           title="چاپ فرم مشخصات قطعه و قدرالسهم بانک زمین (A4 افقی)"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+          >
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path
+              d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+            ></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
           <span>چاپ مشخصات قطعه (مرحله ۱۵)</span>
         </a>
 
         <div
           x-show="!userCanAction && !isLocked"
           x-cloak
-          style="display: none; background: #fffbeb; color: #92400e; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #fde68a;"
+          style="
+            display: none;
+            background: #fffbeb;
+            color: #92400e;
+            padding: 0.4rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid #fde68a;
+          "
         >
           🔒 فقط خواندنی: اقدام مختص کارشناس مربوطه یا رئیس مسکن است.
         </div>
 
         <!-- More menu -->
-        <div class="dt-more" x-show="!simpleMode || isChief || isSuperuser" @click.outside="moreOpen = false">
-          <button type="button" class="btn btn-outline" @click="moreOpen = !moreOpen">
+        <div
+          class="dt-more"
+          x-show="!simpleMode || isChief || isSuperuser"
+          @click.outside="moreOpen = false"
+        >
+          <button
+            type="button"
+            class="btn btn-outline"
+            @click="moreOpen = !moreOpen"
+          >
             ⋯ بیشتر
           </button>
           <div class="dt-menu" x-show="moreOpen" x-cloak style="display: none">
             {% if not dossier.is_locked and is_full_admin %}
-            <a href="{% url 'dossier_swap_spouse' pk=dossier.archive_number %}" onclick="return confirm('آیا از تعویض متقاضی اصلی با همسر و ارجاع پرونده به مرحله ۳ جهت استعلام فرم ج اطمینان دارید؟');" style="color: #d97706; font-weight: 800; background: #fffbeb;">
+            <a
+              href="{% url 'dossier_swap_spouse' pk=dossier.archive_number %}"
+              onclick="
+                return confirm(
+                  'آیا از تعویض متقاضی اصلی با همسر و ارجاع پرونده به مرحله ۳ جهت استعلام فرم ج اطمینان دارید؟',
+                );
+              "
+              style="color: #d97706; font-weight: 800; background: #fffbeb"
+            >
               🔄 تعویض متقاضی با همسر (ارجاع به مرحله ۳)
             </a>
             {% endif %}
-            <a href="{% url 'dossier_summary_print' pk=dossier.archive_number %}" target="_blank">
+            <a
+              href="{% url 'dossier_summary_print' pk=dossier.archive_number %}"
+              target="_blank"
+            >
               🖨 چاپ فرم مراحل و امضاها (۱۴ امضا)
             </a>
-            <a href="{% url 'folder_label_print' pk=dossier.archive_number %}" target="_blank">
+            <a
+              href="{% url 'folder_label_print' pk=dossier.archive_number %}"
+              target="_blank"
+            >
               🖨 چاپ برچسب / لیبل پوشه
             </a>
             <a
@@ -914,27 +1225,330 @@
           @click="saveDossierDraft()"
           :disabled="isSaving"
         >
-          <span x-text="isSaving ? 'در حال ذخیره...' : '💾 ذخیره پیش‌نویس'"></span>
+          <span
+            x-text="isSaving ? 'در حال ذخیره...' : '💾 ذخیره پیش‌نویس'"
+          ></span>
         </button>
 
         <button
           type="button"
-          class="btn btn-success"
+          :class="isRedJ ? 'btn btn-danger' : 'btn btn-success'"
           x-show="userCanAction && !isLocked && !isRejected"
           x-cloak
           style="display: none"
           @click="openSignatureModal()"
         >
-          <span x-text="currentStage === 22 ? '✓ تایید و بایگانی قطعی' : '✓ تایید و امضای الکترونیکی'"></span>
+          <span
+            x-text="isRedJ ? '⛔ ارجاع به رئیس مسکن (فرم ج قرمز)' : (currentStage === 22 ? '✓ تایید و بایگانی قطعی' : '✓ تایید و امضای الکترونیکی')"
+          ></span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- Modals (inside the Alpine scope) -->
-  {% include 'components/modals/workflow_modals.html' %}
-  {% include 'components/modals/scan_viewer_modal.html' %}
-  {% include 'components/modals/date_picker_modal.html' %}
+  {% include 'components/modals/workflow_modals.html' %} {% include
+  'components/modals/scan_viewer_modal.html' %} {% include
+  'components/modals/date_picker_modal.html' %}
 
+  <!-- Stage Guidance Modal (راهنمایی پرونده: بزرگ‌تر، کاملاً وسط‌چین و استاندارد) -->
+  <div
+    class="guidance-modal-overlay"
+    x-show="showGuidanceModal"
+    x-cloak
+    style="display: none;"
+    @click.self="showGuidanceModal = false"
+    @keydown.escape.window="showGuidanceModal = false"
+  >
+    <div class="guidance-modal-card" @click.stop>
+      <!-- Modal Header -->
+      <div
+        style="
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+          padding: 1.25rem 1.75rem;
+          border-bottom: 1px solid #bfdbfe;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-shrink: 0;
+        "
+      >
+        <div style="display: flex; align-items: center; gap: 0.85rem">
+          <div
+            style="
+              width: 44px;
+              height: 44px;
+              border-radius: 12px;
+              background: #2563eb;
+              color: #ffffff;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+              flex-shrink: 0;
+            "
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+          <div>
+            <h3
+              style="
+                margin: 0;
+                font-size: 1.15rem;
+                font-weight: 800;
+                color: #1e3a8a;
+              "
+            >
+              راهنمای اقدام و مراحل پرونده
+            </h3>
+            <div
+              style="font-size: 0.82rem; color: #3b82f6; margin-top: 3px"
+              class="fa-num"
+            >
+              پرونده شماره:
+              <span style="font-weight: 700" x-text="archiveNumber"></span> •
+              متقاضی: <strong>{{ dossier.full_name|default:'---' }}</strong>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          @click="showGuidanceModal = false"
+          style="
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            color: #475569;
+            font-size: 1.1rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+          "
+          @mouseenter="$el.style.background='#fee2e2'; $el.style.color='#dc2626'; $el.style.borderColor='#fca5a5';"
+          @mouseleave="$el.style.background='#ffffff'; $el.style.color='#475569'; $el.style.borderColor='#cbd5e1';"
+          title="بستن پنجره راهنما"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div style="padding: 1.75rem 2rem; overflow-y: auto; flex: 1">
+        <!-- Status & Stage Bar -->
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid #e2e8f0;
+          "
+          class="fa-num"
+        >
+          <span
+            class="ps-stage-badge"
+            style="
+              font-size: 0.9rem;
+              font-weight: 800;
+              background: #2563eb;
+              color: #fff;
+              padding: 0.4rem 1rem;
+              border-radius: 10px;
+              box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+            "
+          >
+            مرحله <span x-text="currentStage"></span> از ۲۲
+          </span>
+          <strong
+            style="font-size: 1.05rem; color: #0f172a"
+            x-text="getStage(currentStage).title"
+          ></strong>
+          <span
+            class="ps-chip"
+            style="
+              background: #e0f2fe;
+              color: #0369a1;
+              padding: 0.3rem 0.75rem;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 0.8rem;
+            "
+            x-show="status === 'IN_PROGRESS' && !isLocked"
+            x-cloak
+            >● در جریان</span
+          >
+          <span
+            class="ps-chip"
+            style="
+              background: #fee2e2;
+              color: #b91c1c;
+              padding: 0.3rem 0.75rem;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 0.8rem;
+            "
+            x-show="status === 'RETURNED'"
+            x-cloak
+            >↩ برگشت‌خورده</span
+          >
+          <span
+            class="ps-chip"
+            style="
+              background: #dcfce7;
+              color: #15803d;
+              padding: 0.3rem 0.75rem;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 0.8rem;
+            "
+            x-show="isLocked || status === 'COMPLETED'"
+            x-cloak
+            >✓ مختومه</span
+          >
+          <span
+            class="ps-chip"
+            style="
+              background: #f1f5f9;
+              color: #475569;
+              padding: 0.3rem 0.75rem;
+              border-radius: 8px;
+              font-weight: 700;
+              font-size: 0.8rem;
+            "
+            x-show="!userCanAction && !isLocked"
+            x-cloak
+            >👁 فقط مشاهده</span
+          >
+        </div>
+
+        <!-- Role Guidance Card -->
+        <div
+          style="
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 1.35rem 1.5rem;
+            margin-bottom: 1.5rem;
+          "
+        >
+          <div
+            style="
+              font-weight: 800;
+              font-size: 1rem;
+              color: #1e3a8a;
+              margin-bottom: 0.85rem;
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+            "
+          >
+            <span style="font-size: 1.15rem">📌</span>
+            <span>کار شما در این پرونده:</span>
+            <span
+              style="color: #2563eb"
+              x-text="getStageGuidance(simpleFocusStage).actionTitle"
+            ></span>
+          </div>
+          <ul
+            style="
+              margin: 0;
+              padding-right: 1.5rem;
+              font-size: 0.92rem;
+              color: #334155;
+              line-height: 2;
+            "
+          >
+            <template
+              x-for="(it, i) in getStageGuidance(simpleFocusStage).items || []"
+              :key="i"
+            >
+              <li x-text="it" style="margin-bottom: 0.45rem"></li>
+            </template>
+          </ul>
+        </div>
+
+        <!-- Mode Toggle Box -->
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #eff6ff;
+            border: 1.5px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+          "
+        >
+          <div style="font-size: 0.88rem; color: #1e40af; line-height: 1.6">
+            برای مشاهده تمام فیلدها و فرم‌های ۲۲ گانه سامانه، می‌توانید حالت
+            پیشرفته را فعال فرمایید.
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary"
+            style="
+              padding: 0.45rem 1.1rem;
+              font-size: 0.84rem;
+              font-weight: 800;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+            @click="window.SanadbanUiMode.toggle(); showGuidanceModal = false;"
+          >
+            <span
+              x-text="simpleMode ? 'تغییر به حالت پیشرفته' : 'تغییر به حالت ساده'"
+            ></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div
+        style="
+          background: #f8fafc;
+          padding: 1rem 1.75rem;
+          border-top: 1px solid #e2e8f0;
+          display: flex;
+          justify-content: flex-end;
+          flex-shrink: 0;
+        "
+      >
+        <button
+          type="button"
+          class="btn btn-outline"
+          @click="showGuidanceModal = false"
+          style="
+            font-weight: 800;
+            font-size: 0.88rem;
+            padding: 0.5rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+          "
+        >
+          متوجه شدم (بستن)
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
