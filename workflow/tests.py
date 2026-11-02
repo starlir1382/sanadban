@@ -26,20 +26,21 @@ from workflow.stages import (
     STAGE_5_SMS_CONTRIBUTION,
     STAGE_6_BANK_LETTER,
     STAGE_7_SCAN_DOCS_INSTALLMENT,
-    STAGE_8_BROKERAGE_CEO,
-    STAGE_9_NATIONAL_HOUSING,
-    STAGE_10_FORM_J_REGISTRATION,
-    STAGE_11_TECHNICAL_ENGINEERING,
-    STAGE_12_REAL_ESTATE,
-    STAGE_13_LAND_BANK,
-    STAGE_14_LEGAL,
-    STAGE_15_EVALUATION,
-    STAGE_16_DECILE_CHECKS,
-    STAGE_17_PREPARATION_RENT,
-    STAGE_18_CONTRACTOR_SETTLEMENT,
-    STAGE_19_NOTARY_LETTER,
-    STAGE_20_LEASE_SCAN_PRINT,
-    STAGE_21_ARCHIVE,
+    STAGE_8_RAH_AZARM_AUDIT,
+    STAGE_9_BROKERAGE_CEO,
+    STAGE_10_NATIONAL_HOUSING,
+    STAGE_11_FORM_J_REGISTRATION,
+    STAGE_12_TECHNICAL_ENGINEERING,
+    STAGE_13_REAL_ESTATE,
+    STAGE_14_LAND_BANK,
+    STAGE_15_LEGAL,
+    STAGE_16_EVALUATION,
+    STAGE_17_DECILE_CHECKS,
+    STAGE_18_PREPARATION_RENT,
+    STAGE_19_CONTRACTOR_SETTLEMENT,
+    STAGE_20_NOTARY_LETTER,
+    STAGE_21_LEASE_SCAN_PRINT,
+    STAGE_22_ARCHIVE,
 )
 
 
@@ -132,20 +133,21 @@ class StageMappingTestCase(TestCase):
         self.assertEqual(STAGE_5_SMS_CONTRIBUTION, 5)
         self.assertEqual(STAGE_6_BANK_LETTER, 6)
         self.assertEqual(STAGE_7_SCAN_DOCS_INSTALLMENT, 7)
-        self.assertEqual(STAGE_8_BROKERAGE_CEO, 8)
-        self.assertEqual(STAGE_9_NATIONAL_HOUSING, 9)
-        self.assertEqual(STAGE_10_FORM_J_REGISTRATION, 10)
-        self.assertEqual(STAGE_11_TECHNICAL_ENGINEERING, 11)
-        self.assertEqual(STAGE_12_REAL_ESTATE, 12)
-        self.assertEqual(STAGE_13_LAND_BANK, 13)
-        self.assertEqual(STAGE_14_LEGAL, 14)
-        self.assertEqual(STAGE_15_EVALUATION, 15)
-        self.assertEqual(STAGE_16_DECILE_CHECKS, 16)
-        self.assertEqual(STAGE_17_PREPARATION_RENT, 17)
-        self.assertEqual(STAGE_18_CONTRACTOR_SETTLEMENT, 18)
-        self.assertEqual(STAGE_19_NOTARY_LETTER, 19)
-        self.assertEqual(STAGE_20_LEASE_SCAN_PRINT, 20)
-        self.assertEqual(STAGE_21_ARCHIVE, 21)
+        self.assertEqual(STAGE_8_RAH_AZARM_AUDIT, 8)
+        self.assertEqual(STAGE_9_BROKERAGE_CEO, 9)
+        self.assertEqual(STAGE_10_NATIONAL_HOUSING, 10)
+        self.assertEqual(STAGE_11_FORM_J_REGISTRATION, 11)
+        self.assertEqual(STAGE_12_TECHNICAL_ENGINEERING, 12)
+        self.assertEqual(STAGE_13_REAL_ESTATE, 13)
+        self.assertEqual(STAGE_14_LAND_BANK, 14)
+        self.assertEqual(STAGE_15_LEGAL, 15)
+        self.assertEqual(STAGE_16_EVALUATION, 16)
+        self.assertEqual(STAGE_17_DECILE_CHECKS, 17)
+        self.assertEqual(STAGE_18_PREPARATION_RENT, 18)
+        self.assertEqual(STAGE_19_CONTRACTOR_SETTLEMENT, 19)
+        self.assertEqual(STAGE_20_NOTARY_LETTER, 20)
+        self.assertEqual(STAGE_21_LEASE_SCAN_PRINT, 21)
+        self.assertEqual(STAGE_22_ARCHIVE, 22)
 
 
 class WorkflowExecutionTestCase(TestCase):

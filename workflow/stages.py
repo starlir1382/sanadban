@@ -17,33 +17,19 @@ STAGE_5_SMS_CONTRIBUTION = 5
 STAGE_6_BANK_LETTER = 6
 STAGE_7_SCAN_DOCS_INSTALLMENT = 7
 STAGE_8_RAH_AZARM_AUDIT = 8
-STAGE_8_BROKERAGE_CEO = 8
 STAGE_9_BROKERAGE_CEO = 9
-STAGE_9_NATIONAL_HOUSING = 9
 STAGE_10_NATIONAL_HOUSING = 10
-STAGE_10_FORM_J_REGISTRATION = 10
 STAGE_11_FORM_J_REGISTRATION = 11
-STAGE_11_TECHNICAL_ENGINEERING = 11
 STAGE_12_TECHNICAL_ENGINEERING = 12
-STAGE_12_REAL_ESTATE = 12
 STAGE_13_REAL_ESTATE = 13
-STAGE_13_LAND_BANK = 13
 STAGE_14_LAND_BANK = 14
-STAGE_14_LEGAL = 14
 STAGE_15_LEGAL = 15
-STAGE_15_EVALUATION = 15
 STAGE_16_EVALUATION = 16
-STAGE_16_DECILE_CHECKS = 16
 STAGE_17_DECILE_CHECKS = 17
-STAGE_17_PREPARATION_RENT = 17
 STAGE_18_PREPARATION_RENT = 18
-STAGE_18_CONTRACTOR_SETTLEMENT = 18
 STAGE_19_CONTRACTOR_SETTLEMENT = 19
-STAGE_19_NOTARY_LETTER = 19
 STAGE_20_NOTARY_LETTER = 20
-STAGE_20_LEASE_SCAN_PRINT = 20
 STAGE_21_LEASE_SCAN_PRINT = 21
-STAGE_21_ARCHIVE = 21
 STAGE_22_ARCHIVE = 22
 
 MIN_STAGE = 1
@@ -340,3 +326,43 @@ def convert_allowed_stages_string(allowed_stages_str: str, forward: bool = True)
         return ""
 
     return ",".join(str(s) for s in sorted(result_stages))
+
+
+# stage -> archival signature slots filled automatically when that stage is signed
+# Step 8 (semi-admin audit) has NO slot: it is logged per stage but does not touch the 14-slot sheet.
+# Slot "brokerage" (official brokerage stamp) belongs to the CEO, step 9, only.
+# Form J slot is signed at directorate registration (step 10/11) only, NOT at step 3 inquiry review.
+STAGE_TO_SLOTS = {
+    4:  ["other_facilities", "decile_facility"],
+    5:  ["applicant_settlement"],
+    6:  ["bank_facility"],
+    9:  ["brokerage"],
+    10: ["national_housing", "bank_facility", "form_j"],
+    11: ["form_j"],
+    12: ["technical"],
+    13: ["real_estate"],
+    14: ["land_bank"],
+    15: ["legal"],
+    16: ["evaluation"],
+    17: ["decile_facility"],
+    18: ["revenue"],
+    19: ["contractor_settlement"],
+}
+
+# slot -> stages whose experts may upload that slot's signature
+SLOT_TO_STAGES = {
+    "brokerage": [1, 2, 7, 8, 9],
+    "national_housing": [10],
+    "bank_facility": [6, 10],
+    "decile_facility": [4, 17],
+    "contractor_settlement": [4, 19],
+    "applicant_settlement": [5],
+    "other_facilities": [4],
+    "legal": [15],
+    "form_j": [10, 11],
+    "evaluation": [16],
+    "technical": [12],
+    "real_estate": [13],
+    "land_bank": [14],
+    "revenue": [18],
+}

@@ -1,3 +1,4 @@
+from .stages import STAGE_TO_SLOTS
 from django.views.decorators.http import require_POST
 from .excel_hub_views import (
 
@@ -98,22 +99,6 @@ ARCHIVAL_SLOTS = [
     "legal", "form_j", "evaluation", "technical", "real_estate", "land_bank", "revenue",
 
 ]
-
-STAGE_TO_SLOTS = {
-
-    1: ["brokerage"], 3: ["form_j"], 4: ["other_facilities", "decile_facility"],
-
-    5: ["applicant_settlement"], 6: ["bank_facility"], 8: ["brokerage"],
-
-    9: ["national_housing", "bank_facility"], 10: ["form_j"], 11: ["technical"],
-
-    12: ["real_estate"], 13: ["land_bank"], 14: ["legal"], 15: ["evaluation"],
-
-    16: ["decile_facility"], 17: ["revenue"], 18: ["contractor_settlement"],
-
-}
-
-
 
 DOSSIER_FIELD_LABELS = {
 
@@ -441,6 +426,7 @@ def get_token_search_condition(token: str):
 
 @login_required(login_url='login')
 
+@ensure_csrf_cookie
 def dossier_list_view(request):
 
     """
@@ -1121,6 +1107,8 @@ def dossier_detail_view(request, pk):
 
             "applicant_form_j_red_description": dossier.applicant_form_j_red_description or "",
 
+            "form_j_registration_type": getattr(dossier, "form_j_registration_type", "خودکار") or "خودکار",
+
             "spouse_first_name": dossier.spouse_first_name,
 
             "spouse_last_name": dossier.spouse_last_name,
@@ -1218,6 +1206,8 @@ def dossier_detail_view(request, pk):
             "applicant_equity": dossier.applicant_equity,
 
             "is_sms_sent": dossier.is_sms_sent,
+
+            "sms_sent_date": getattr(dossier, "sms_sent_date", "") or "",
 
             "is_equity_funded": dossier.is_equity_funded,
 
@@ -1369,7 +1359,7 @@ def dossier_detail_view(request, pk):
 
     stage_signatures = {}
 
-    for log in dossier.audit_logs.filter(action__in=["SIGN", "APPROVE", "ARCHIVE"]).order_by("timestamp"):
+    for log in dossier.audit_logs.filter(action__in=["SIGN", "SIGN_EXCEL", "APPROVE", "ARCHIVE"]).order_by("timestamp"):
 
         m = re.search(r'مرحله\s+(\d+)', log.from_stage)
 
@@ -1643,7 +1633,7 @@ def save_dossier_draft_view(request, pk):
 
         "first_name", "last_name", "spouse_first_name", "spouse_last_name",
 
-        "bank_branch", "project_code", "bank_name"
+        "bank_branch", "project_code", "bank_name", "form_j_registration_type", "sms_sent_date"
 
     ]:
 
@@ -2137,9 +2127,87 @@ def set_dossier_stage_view(request, pk):
 
 
 
-@csrf_exempt
-
 @transaction.atomic
+def execute_dossier_sign(dossier, user, notes="تایید و امضای الکترونیکی با موفقیت انجام شد.", action="SIGN", target_stage=None):
+    """
+    Executes a single dossier electronic signature and stage advancement.
+    Shared identically between interactive GUI signing and Excel bulk signing.
+    """
+    if dossier.is_locked:
+        return False, "این پرونده نهایی و مختومه گردیده است."
+
+    current_idx = target_stage if target_stage is not None else dossier.current_stage
+
+    profile = getattr(user, 'profile', None)
+    can_action = user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(current_idx))
+    if not can_action:
+        return False, f"دسترسی مجاز برای امضا در مرحله {current_idx} را ندارید."
+
+    if profile and not profile.can_sign:
+        return False, "حق امضای الکترونیکی برای حساب کاربری شما فعال نیست."
+
+    current_role = dossier.STAGE_ROLES.get(current_idx, ("-", "-", "-"))[1]
+    current_title = dossier.STAGE_ROLES.get(current_idx, ("-", "-", f"مرحله {current_idx}"))[2]
+
+    next_stage = dossier.find_next_actionable_stage(current_idx)
+
+    import hashlib, uuid
+    sig_hash = "SHA256: " + hashlib.sha256(f"{action}:{dossier.id}:{uuid.uuid4()}".encode()).hexdigest()[:24]
+
+    if current_idx >= 22 or next_stage >= 23:
+        dossier.is_locked = True
+        dossier.status = "COMPLETED"
+        log_action = "ARCHIVE" if action == "SIGN" else action
+        action_label = "بایگانی قطعی پرونده"
+        to_stage_str = "بایگانی نهایی (مختومه)"
+        dossier.current_stage = 22
+    else:
+        dossier.current_stage = next_stage
+        dossier.status = "IN_PROGRESS"
+        dossier.return_reason = ""
+        dossier.return_by = ""
+        dossier.return_from_stage = None
+        log_action = action
+        action_label = "امضای گروهی از طریق اکسل" if action == "SIGN_EXCEL" else "تایید و امضای الکترونیکی"
+        to_stage_str = f"مرحله {next_stage}: {dossier.STAGE_ROLES.get(next_stage, ('','',f'مرحله {next_stage}'))[2]}"
+
+    dossier.save()
+
+    actor_name = profile.full_name if profile and profile.full_name else (user.get_full_name() or user.username)
+    actor_role = profile.role_title if profile and profile.role_title else current_role
+
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage=f"مرحله {current_idx}: {current_title}",
+        to_stage=to_stage_str,
+        actor=actor_name,
+        role=actor_role,
+        action=log_action,
+        action_label=action_label,
+        signature_hash=sig_hash,
+        notes=notes
+    )
+
+    # Auto-link expert profile signature to official archival slots
+    target_slots = STAGE_TO_SLOTS.get(current_idx, [])
+    import jdatetime
+    try:
+        now_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d - %H:%M")
+    except Exception:
+        now_jalali = timezone.now().strftime("%Y/%m/%d %H:%M")
+
+    for slot_key in target_slots:
+        sig_obj, _ = DossierSignature.objects.get_or_create(dossier=dossier, slot_key=slot_key)
+        sig_obj.signer_name = actor_name
+        sig_obj.signer_title = actor_role
+        sig_obj.signed_date = now_jalali
+        sig_obj.uploaded_by = user.username
+        if profile and profile.signature_image:
+            sig_obj.signature_image = profile.signature_image
+        sig_obj.save()
+
+    return True, next_stage
+
 
 def electronic_sign_action(request, pk):
 
@@ -2427,7 +2495,7 @@ def return_stage_action(request, pk):
 
     is_chief_or_admin = request.user.is_superuser or (profile and profile.is_housing_chief)
 
-    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or profile.can_action_stage(3) or profile.can_action_stage(10)))
+    user_can_action = is_chief_or_admin or (profile and (profile.can_action_stage(dossier.current_stage) or profile.can_action_stage(3) or profile.can_action_stage(11)))
 
     if not user_can_action:
 
@@ -2905,7 +2973,7 @@ def get_dossier_signatures_summary(dossier):
 
     sigs = {s.slot_key: s for s in dossier.signatures.all()}
 
-    logs = list(dossier.audit_logs.filter(action__in=["SIGN", "APPROVE", "ARCHIVE"]).order_by("timestamp"))
+    logs = list(dossier.audit_logs.filter(action__in=["SIGN", "SIGN_EXCEL", "APPROVE", "ARCHIVE"]).order_by("timestamp"))
 
 
 
@@ -2976,6 +3044,11 @@ def get_dossier_signatures_summary(dossier):
                     sig.signature_image = prof_img
 
 
+
+    # Form J signature in print_summary is signed at step 10 / 11, never at step 3
+    signed_stages_set = dossier.get_signed_stages_set()
+    if "form_j" in sigs and 10 not in signed_stages_set and 11 not in signed_stages_set:
+        sigs.pop("form_j", None)
 
     signed_count = sum(1 for k in ARCHIVAL_SLOTS if k in sigs and sigs[k].signed_date)
 
@@ -3181,7 +3254,7 @@ def dossier_print_checks_view(request, pk):
 
     dossier = get_object_or_404(HousingDossier, archive_number=pk)
 
-    check_type = request.GET.get('type', 'prep' if request.GET.get('stage') == '17' else 'loan').lower()
+    check_type = request.GET.get('type', 'prep' if request.GET.get('stage') == '18' else 'loan').lower()
 
     check_type_norm = "prep" if check_type in ("prep", "preparation", "amadesazi") else "loan"
 
@@ -3975,9 +4048,7 @@ def return_red_form_j_action(request, pk):
 
         target_stage = 0
 
-    if target_stage not in [0, 1]:
-
-        target_stage = 0
+    target_stage = 1
 
 
 
@@ -5497,7 +5568,7 @@ def edit_user_action(request, user_id):
 
         else:
 
-            allowed_stages = "0"
+            allowed_stages = ""
 
 
 
@@ -5625,7 +5696,7 @@ def create_user_action(request):
 
         else:
 
-            allowed_stages = "0"
+            allowed_stages = ""
 
 
 
@@ -5893,7 +5964,7 @@ def _check_admin_access(user):
 
     profile = getattr(user, 'profile', None)
 
-    if profile and (profile.is_housing_chief or profile.role == "SYSTEM_ADMIN" or profile.allowed_stages == "ALL"):
+    if profile and (profile.is_housing_chief or profile.organization == "system" or profile.allowed_stages == "all"):
 
         return True
 
@@ -5904,170 +5975,137 @@ def _check_admin_access(user):
 @login_required
 
 def excel_template_create_view(request):
-
     """Download Excel template for adding new dossiers."""
-
     if not _check_admin_access(request.user):
-
         messages.error(request, "دسترسی غیرمجاز: این قابلیت صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد.")
-
         return redirect("dossier_list")
-
-    from .excel_service import generate_create_template
-
-    return generate_create_template()
-
-
-
-@login_required
+    from .excel_utils import generate_create_template
+    buf = generate_create_template()
+    resp = HttpResponse(buf.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="MaskanYar_Template_Create.xlsx"'
+    return resp
 
 def excel_template_update_view(request):
-
     """Download Excel template for bulk-updating existing dossiers by national_id."""
-
     if not _check_admin_access(request.user):
-
         messages.error(request, "دسترسی غیرمجاز: این قابلیت صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد.")
-
         return redirect("dossier_list")
+    from .excel_utils import generate_update_template
+    buf = generate_update_template()
+    resp = HttpResponse(buf.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="MaskanYar_Template_Update.xlsx"'
+    return resp
 
-    from .excel_service import generate_update_template
+def excel_template_group_sign_view(request):
+    """Download Excel template for group signing."""
+    if not request.user.is_authenticated:
+        messages.error(request, "ورود به سامانه الزامی است.")
+        return redirect("login")
+    from .excel_utils import generate_group_sign_template
+    buf = generate_group_sign_template()
+    resp = HttpResponse(buf.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="MaskanYar_Template_GroupSign.xlsx"'
+    return resp
 
-    return generate_update_template()
-
-
-
-@login_required
+def excel_template_swap_view(request):
+    """Download Excel template for spouse swapping."""
+    if not _check_admin_access(request.user):
+        messages.error(request, "دسترسی غیرمجاز: این قابلیت صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد.")
+        return redirect("dossier_list")
+    from .excel_utils import generate_spouse_swap_template
+    buf = generate_spouse_swap_template()
+    resp = HttpResponse(buf.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = 'attachment; filename="MaskanYar_Template_SpouseSwap.xlsx"'
+    return resp
 
 def excel_upload_create_view(request):
-
     """Upload Excel file to create new dossiers."""
-
     if not _check_admin_access(request.user):
-
         return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
-
     if request.method != "POST":
-
         return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
-
     
-
-    excel_file = request.FILES.get("file")
-
+    excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
-
         return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
-
     
-
     is_preview = request.POST.get("preview") in ["true", "1", True]
-
     try:
-
-        from .excel_service import process_create_excel
-
-        res = process_create_excel(excel_file, user=request.user, is_preview=is_preview)
-
+        from .excel_utils import process_excel_create
+        res = process_excel_create(excel_file, user=request.user, preview=is_preview)
         return JsonResponse(res)
-
     except Exception as e:
-
-        import traceback
-
-        traceback.print_exc()
-
-        return JsonResponse({"success": False, "error": f"خطا در ایجاد پرونده‌ها از اکسل: {str(e)}"}, status=500)
-
-
-
-@login_required
+        return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
 
 def excel_upload_update_view(request):
-
     """Upload Excel file to bulk-update dossiers matched by national_id."""
-
     if not _check_admin_access(request.user):
-
         return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
-
     if request.method != "POST":
-
         return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
-
     
-
-    excel_file = request.FILES.get("file")
-
+    excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
-
         return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
-
     
-
     is_preview = request.POST.get("preview") in ["true", "1", True]
-
     try:
-
-        from .excel_service import process_update_excel
-
-        res = process_update_excel(excel_file, user=request.user, is_preview=is_preview)
-
+        from .excel_utils import process_excel_update
+        res = process_excel_update(excel_file, user=request.user, preview=is_preview)
         return JsonResponse(res)
-
     except Exception as e:
+        return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
 
-        import traceback
-
-        traceback.print_exc()
-
-        return JsonResponse({"success": False, "error": f"خطا در پردازش فایل بروزرسانی اکسل: {str(e)}"}, status=500)
-
-
-
-
-
-
-
-def _parse_filter_date(date_str):
-
-    if not date_str:
-
-        return None
-
+def excel_upload_group_sign_view(request):
+    """Upload Excel file for group electronic signing."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"success": False, "error": "ورود به سامانه الزامی است."}, status=401)
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+    
+    excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
+    if not excel_file:
+        return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
+    
+    is_preview = request.POST.get("preview") in ["true", "1", True]
     try:
+        from .excel_utils import process_excel_group_sign
+        res = process_excel_group_sign(excel_file, user=request.user, preview=is_preview)
+        return JsonResponse(res)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
 
-        import jdatetime
+def excel_upload_swap_view(request):
+    """Upload Excel file for spouse swapping."""
+    if not _check_admin_access(request.user):
+        return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+    
+    excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
+    if not excel_file:
+        return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
+    
+    is_preview = request.POST.get("preview") in ["true", "1", True]
+    try:
+        from .excel_utils import process_excel_spouse_swap
+        res = process_excel_spouse_swap(excel_file, user=request.user, preview=is_preview)
+        return JsonResponse(res)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
 
-        import datetime
-
-        clean = str(date_str).strip().replace('-', '/')
-
-        parts = clean.split('/')
-
-        if len(parts) == 3:
-
-            y, m, d = int(parts[0]), int(parts[1]), int(parts[2])
-
-            if y > 1600:
-
-                return datetime.date(y, m, d)
-
-            elif y >= 1300:
-
-                return jdatetime.date(y, m, d).togregorian()
-
-    except Exception:
-
-        pass
-
-    return None
-
-
-
-
-
-@login_required
+def excel_report_download_view(request, report_id):
+    """Download failure and spouse match report."""
+    if not request.user.is_authenticated:
+        return HttpResponse("ورود به سامانه الزامی است.", status=401)
+    from .excel_utils import get_report_file_path
+    fpath = get_report_file_path(str(report_id), request.user.id)
+    if not fpath or not os.path.exists(fpath):
+        raise Http404("فایل گزارش یافت نشد یا منقضی گردیده است.")
+    f = open(fpath, "rb")
+    resp = FileResponse(f, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = f'attachment; filename="MaskanYar_Report_{report_id}.xlsx"'
+    return resp
 
 def excel_export_all_view(request):
 
@@ -6401,7 +6439,7 @@ def project_bank_mapping_api(request):
 
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
 
-    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(9))
+    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(10))
 
     if not (is_chief_or_admin or can_action_bank):
 
@@ -6541,7 +6579,7 @@ def bank_letter_sender_view(request):
 
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
 
-    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(9))
+    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(10))
 
     
 
@@ -7108,7 +7146,7 @@ def bank_letter_submit_api(request):
 
     is_chief_or_admin = request.user.is_superuser or request.user.is_staff or (profile and profile.is_housing_chief)
 
-    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(9))
+    can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(10))
 
     
 

@@ -1509,7 +1509,10 @@ document.addEventListener("alpine:init", () => {
     // Stage 9: Send SMS simulation
     sendEquitySMS() {
       this.form.is_sms_sent = true;
-      this.form.sms_sent_at = "1403/05/18 14:20";
+      if (!this.form.sms_sent_date) {
+        this.form.sms_sent_date = this.getTodayJalali();
+      }
+      this.form.sms_sent_at = this.getTodayJalali() + " 14:20";
 
       this.auditLogs.unshift({
         step: 9,

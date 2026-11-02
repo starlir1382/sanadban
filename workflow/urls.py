@@ -46,8 +46,13 @@ path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="d
     # Bulk Excel Dossier Operations (Admin & Housing Chief Only)
     path("excel/template/create/", views.excel_template_create_view, name="excel_template_create"),
     path("excel/template/update/", views.excel_template_update_view, name="excel_template_update"),
+    path("excel/template/group-sign/", views.excel_template_group_sign_view, name="excel_template_group_sign"),
+    path("excel/template/swap/", views.excel_template_swap_view, name="excel_template_swap"),
     path("excel/upload/create/", views.excel_upload_create_view, name="excel_upload_create"),
     path("excel/upload/update/", views.excel_upload_update_view, name="excel_upload_update"),
+    path("excel/upload/group-sign/", views.excel_upload_group_sign_view, name="excel_upload_group_sign"),
+    path("excel/upload/swap/", views.excel_upload_swap_view, name="excel_upload_swap"),
+    path("excel/report/<uuid:report_id>/", views.excel_report_download_view, name="excel_report_download"),
 path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
     # Bank Letter Sender Component (ارسال دسته جمعی نامه بانک)
     path("bank-letter/", views.bank_letter_sender_view, name="bank_letter_sender"),

@@ -1,6 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block title %}پرونده مسکن متقاضی:
-{{ dossier.full_name|default:'پرونده مسکن' }} (شماره بایگانی: {{
-dossier.archive_number }}) | سامانه مسکن یار{% endblock %} {% block content %}
+{% extends 'base.html' %} {% load static %} {% block title %}پرونده مسکن متقاضی: {{ dossier.full_name|default:'پرونده مسکن' }} (شماره بایگانی: {{ dossier.archive_number }}) | سامانه مسکن یار{% endblock %} {% block content %}
 {% csrf_token %}
 <script id="dossier-server-json" type="application/json">
   {{ dossier_json|safe }}
@@ -732,8 +730,7 @@ dossier.archive_number }}) | سامانه مسکن یار{% endblock %} {% block
     "
   >
     <div style="display: flex; align-items: center; gap: 0.4rem">
-      {% if first_archive_number and first_archive_number !=
-      dossier.archive_number %}
+      {% if first_archive_number and first_archive_number != dossier.archive_number %}
       <a
         href="{% url 'dossier_detail' pk=first_archive_number %}"
         class="btn btn-ghost"
@@ -824,8 +821,7 @@ dossier.archive_number }}) | سامانه مسکن یار{% endblock %} {% block
       >
         بعدی (#{{ next_archive_number }}) ›
       </a>
-      {% endif %} {% if last_archive_number and last_archive_number !=
-      dossier.archive_number %}
+      {% endif %} {% if last_archive_number and last_archive_number != dossier.archive_number %}
       <a
         href="{% url 'dossier_detail' pk=last_archive_number %}"
         class="btn btn-ghost"
@@ -1247,9 +1243,7 @@ dossier.archive_number }}) | سامانه مسکن یار{% endblock %} {% block
   </div>
 
   <!-- Modals (inside the Alpine scope) -->
-  {% include 'components/modals/workflow_modals.html' %} {% include
-  'components/modals/scan_viewer_modal.html' %} {% include
-  'components/modals/date_picker_modal.html' %}
+  {% include 'components/modals/workflow_modals.html' %} {% include 'components/modals/scan_viewer_modal.html' %} {% include 'components/modals/date_picker_modal.html' %}
 
   <!-- Stage Guidance Modal (راهنمایی پرونده: بزرگ‌تر، کاملاً وسط‌چین و استاندارد) -->
   <div

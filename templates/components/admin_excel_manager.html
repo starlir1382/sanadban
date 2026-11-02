@@ -1,20 +1,30 @@
-<!-- Component: Admin Excel Batch Operations (Add & Bulk Update) -->
-<div x-data="{
-    showExcelCreateModal: false,
-    showExcelUpdateModal: false,
+<!-- Component: Admin Excel Batch Operations (Create, Update, Group Sign, Spouse Swap) -->
+<div @open-excel-modal.window="showExcelModal = true; if ($event.detail && $event.detail.tab) activeTab = $event.detail.tab;" x-data="{
+    showExcelModal: false,
+    activeTab: 'create', // 'create' | 'update' | 'group_sign' | 'swap'
     isProcessing: false,
-    
-    // Create Excel state
-    createFile: null,
-    createFileName: '',
-    createResult: null,
-    
-    // Update Excel state
-    updateFile: null,
-    updateFileName: '',
-    updateResult: null,
 
-    // Real-time Upload Progress State
+    // File objects and names per kind
+    files: {
+        create: null,
+        update: null,
+        group_sign: null,
+        swap: null
+    },
+    fileNames: {
+        create: '',
+        update: '',
+        group_sign: '',
+        swap: ''
+    },
+    results: {
+        create: null,
+        update: null,
+        group_sign: null,
+        swap: null
+    },
+
+    // Progress Tracker State
     uploadProgress: 0,
     uploadSpeed: '',
     uploadedSize: '',
@@ -29,27 +39,31 @@
         return match ? decodeURIComponent(match[1]) : '';
     },
 
-    handleCreateFileSelect(event) {
+    handleFileSelect(event, kind) {
         const file = event.target.files[0];
         if (!file) return;
-        this.createFile = file;
-        this.createFileName = file.name;
-        this.createResult = null;
+        this.files[kind] = file;
+        this.fileNames[kind] = file.name;
+        this.results[kind] = null;
     },
 
-    handleUpdateFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        this.updateFile = file;
-        this.updateFileName = file.name;
-        this.updateResult = null;
-    },
-
-    submitExcelCreate(isPreview = false) {
-        if (!this.createFile) {
-            alert('لطفاً ابتدا فایل اکسل را انتخاب نمایید.');
+    submitExcel(kind, isPreview = false) {
+        const file = this.files[kind];
+        if (!file) {
+            alert('لطفاً ابتدا فایل اکسل مورد نظر را انتخاب نمایید.');
             return;
         }
+
+        const urls = {
+            create: '{% url "excel_upload_create" %}',
+            update: '{% url "excel_upload_update" %}',
+            group_sign: '{% url "excel_upload_group_sign" %}',
+            swap: '{% url "excel_upload_swap" %}'
+        };
+
+        const targetUrl = urls[kind];
+        if (!targetUrl) return;
+
         this.isProcessing = true;
         this.isUploading = true;
         this.isServerProcessing = false;
@@ -57,11 +71,13 @@
         this.uploadSpeed = 'در حال محاسبه...';
         this.uploadedSize = '۰ MB';
         this.uploadEta = 'در حال محاسبه...';
-        this.createResult = null;
+        this.results[kind] = null;
 
         const formData = new FormData();
-        formData.append('file', this.createFile);
-        if (isPreview) formData.append('preview', 'true');
+        formData.append('file', file);
+        if (isPreview) {
+            formData.append('preview', 'true');
+        }
 
         const xhr = new XMLHttpRequest();
         const startTime = Date.now();
@@ -104,13 +120,20 @@
             this.isUploading = false;
             this.isServerProcessing = false;
             try {
-                const data = JSON.parse(xhr.responseText);
-                this.createResult = data;
-                if (!isPreview && data.success) {
-                    setTimeout(() => { window.location.reload(); }, 1800);
+                const resp = JSON.parse(xhr.responseText);
+                this.results[kind] = resp;
+                if (resp.success && !resp.preview) {
+                    if (!resp.failed_count || resp.failed_count === 0) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1800);
+                    }
                 }
-            } catch (jsonErr) {
-                this.createResult = { success: false, error: 'پاسخ سرور نامعتبر است (وضعیت ' + xhr.status + ')' };
+            } catch (err) {
+                this.results[kind] = {
+                    success: false,
+                    error: 'پاسخ سرور قابل پردازش نیست: ' + xhr.responseText.slice(0, 150)
+                };
             }
         };
 
@@ -118,473 +141,502 @@
             this.isProcessing = false;
             this.isUploading = false;
             this.isServerProcessing = false;
-            alert('خطا در برقراری ارتباط با سرور.');
+            this.results[kind] = {
+                success: false,
+                error: 'خطا در ارتباط شبکه با سرور.'
+            };
         };
 
-        xhr.open('POST', '{% url "excel_upload_create" %}', true);
-        xhr.setRequestHeader('X-CSRFToken', this.getCSRF());
-        xhr.send(formData);
-    },
-
-    submitExcelUpdate(isPreview = false) {
-        if (!this.updateFile) {
-            alert('لطفاً ابتدا فایل اکسل را انتخاب نمایید.');
-            return;
-        }
-        this.isProcessing = true;
-        this.isUploading = true;
-        this.isServerProcessing = false;
-        this.uploadProgress = 0;
-        this.uploadSpeed = 'در حال محاسبه...';
-        this.uploadedSize = '۰ MB';
-        this.uploadEta = 'در حال محاسبه...';
-        this.updateResult = null;
-
-        const formData = new FormData();
-        formData.append('file', this.updateFile);
-        if (isPreview) formData.append('preview', 'true');
-
-        const xhr = new XMLHttpRequest();
-        const startTime = Date.now();
-
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable && e.total > 0) {
-                const now = Date.now();
-                const elapsed = (now - startTime) / 1000;
-                const pct = Math.min(100, Math.round((e.loaded / e.total) * 100));
-                this.uploadProgress = pct;
-
-                const loadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
-                const totalMb = (e.total / (1024 * 1024)).toFixed(1);
-                this.uploadedSize = `${loadedMb} MB از ${totalMb} MB`;
-
-                const speedBps = elapsed > 0 ? (e.loaded / elapsed) : 0;
-                if (speedBps > 1024 * 1024) {
-                    this.uploadSpeed = (speedBps / (1024 * 1024)).toFixed(1) + ' MB/s';
-                } else {
-                    this.uploadSpeed = (speedBps / 1024).toFixed(0) + ' KB/s';
-                }
-
-                const remaining = e.total - e.loaded;
-                if (speedBps > 0 && remaining > 0) {
-                    const etaSec = Math.ceil(remaining / speedBps);
-                    this.uploadEta = `حدود ${etaSec} ثانیه باقیمانده`;
-                } else {
-                    this.uploadEta = 'در حال پردازش...';
-                }
-
-                if (pct >= 100) {
-                    this.isUploading = false;
-                    this.isServerProcessing = true;
-                }
-            }
-        };
-
-        xhr.onload = () => {
-            this.isProcessing = false;
-            this.isUploading = false;
-            this.isServerProcessing = false;
-            try {
-                const data = JSON.parse(xhr.responseText);
-                this.updateResult = data;
-                if (!isPreview && data.success) {
-                    setTimeout(() => { window.location.reload(); }, 1800);
-                }
-            } catch (jsonErr) {
-                this.updateResult = { success: false, error: 'پاسخ سرور نامعتبر است (وضعیت ' + xhr.status + ')' };
-            }
-        };
-
-        xhr.onerror = () => {
-            this.isProcessing = false;
-            this.isUploading = false;
-            this.isServerProcessing = false;
-            alert('خطا در برقراری ارتباط با سرور.');
-        };
-
-        xhr.open('POST', '{% url "excel_upload_update" %}', true);
+        xhr.open('POST', targetUrl, true);
         xhr.setRequestHeader('X-CSRFToken', this.getCSRF());
         xhr.send(formData);
     }
-}" style="margin-bottom: 1.5rem;">
-    {% csrf_token %}
-
-<style>
-  .xl-bar {
-    background: #fff; border: 1px solid #e8edf3; border-radius: 16px; padding: 0.9rem 1.2rem;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
-    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  }
-  .xl-title { display: flex; align-items: center; gap: 0.65rem; }
-  .xl-ic {
-    width: 40px; height: 40px; border-radius: 12px; background: #ecfdf5; color: #059669;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .xl-title h3 { margin: 0; font-size: 0.95rem; font-weight: 800; color: #0f172a; }
-  .xl-title p { margin: 2px 0 0; font-size: 0.74rem; color: #64748b; }
-  .xl-groups { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-  .xl-group {
-    display: inline-flex; align-items: center; gap: 0.3rem; padding: 4px; border-radius: 12px;
-    background: #f6f8fb; border: 1px solid #e8edf3;
-  }
-  .xl-group .lbl { font-size: 0.7rem; font-weight: 800; color: #64748b; padding: 0 0.5rem; }
-  .xl-btn {
-    display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.42rem 0.8rem; border-radius: 9px;
-    font-size: 0.76rem; font-weight: 700; text-decoration: none; cursor: pointer; border: 1px solid transparent;
-    background: #fff; color: #334155; border-color: #d5dde8; transition: all 0.15s ease; white-space: nowrap;
-  }
-  .xl-btn:hover { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
-  .xl-btn.green { background: #059669; color: #fff; border-color: #059669; }
-  .xl-btn.green:hover { background: #047857; }
-  .xl-btn.amber { background: #d97706; color: #fff; border-color: #d97706; }
-  .xl-btn.amber:hover { background: #b45309; }
-  .xl-btn.blue { background: #4f46e5; color: #fff; border-color: #4f46e5; }
-  .xl-btn.blue:hover { background: #4338ca; }
-
-  @media (max-width: 768px) {
+}">
+  {% csrf_token %}
+  <style>
     .xl-bar {
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: 0.85rem !important;
-      padding: 0.85rem !important;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 0.85rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .xl-groups {
-      width: 100% !important;
-      flex-direction: column !important;
-      gap: 0.5rem !important;
+    .xl-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
-    .xl-group {
-      width: 100% !important;
-      justify-content: space-between !important;
+    .xl-ic {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #eef2ff;
+      color: #4f46e5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .xl-title h3 {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #0f2744;
+      margin: 0 0 2px 0;
+    }
+    .xl-title p {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin: 0;
+    }
+    .xl-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
     }
     .xl-btn {
-      flex: 1 !important;
-      justify-content: center !important;
-      min-height: 38px !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.48rem 0.95rem;
+      border-radius: 9px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
-  }
-</style>
+    .xl-btn.primary {
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #4338ca;
+    }
+    .xl-btn.primary:hover {
+      background: #4338ca;
+    }
+    .xl-btn.green {
+      background: #059669;
+      color: #ffffff;
+      border-color: #047857;
+    }
+    .xl-btn.green:hover {
+      background: #047857;
+    }
+    .xl-tab-btn {
+      padding: 0.65rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .xl-tab-btn.active {
+      color: #4f46e5;
+      border-bottom-color: #4f46e5;
+      background: #f8fafc;
+    }
+    .xl-tab-btn:hover:not(.active) {
+      color: #1e293b;
+      background: #f1f5f9;
+    }
+  </style>
 
-<div class="xl-bar">
-  <div class="xl-title">
-    <div class="xl-ic">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+  <!-- Control Bar on Page -->
+  <div class="xl-bar">
+    <div class="xl-title">
+      <div class="xl-ic">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+      </div>
+      <div>
+        <h3>مدیریت دسته‌جمعی اکسل</h3>
+        <p>ثبت پرونده‌های جدید، بروزرسانی اطلاعات، امضای گروهی و تعویض مالکیت متقاضی و همسر</p>
+      </div>
     </div>
-    <div>
-      <h3>مدیریت دسته‌جمعی اکسل</h3>
-      <p>ثبت پرونده‌های جدید، بروزرسانی با کدملی و خروجی کامل</p>
+
+    <div class="xl-actions">
+      <button type="button" class="xl-btn primary" @click="showExcelModal = true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>مدیریت اکسل</span>
+      </button>
+
+      <button type="button" @click="SanadbanDownloader.download('{% url 'excel_export_all' %}', 'MaskanYar_Dossiers_Export.xlsx')" class="xl-btn green" title="خروجی جامع اکسل کل پرونده‌ها">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>خروجی کامل اکسل</span>
+      </button>
     </div>
   </div>
 
-  <div class="xl-groups">
-    <!-- New dossiers -->
-    <div class="xl-group">
-      <span class="lbl">ثبت جدید</span>
-      <a href="{% url 'excel_template_create' %}" class="xl-btn" title="دانلود فایل اکسل خام جهت ورود پرونده‌های جدید">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        قالب
-      </a>
-      <button type="button" class="xl-btn green" @click="showExcelCreateModal = true; createResult = null;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        بارگذاری و ایجاد
-      </button>
-    </div>
+  <!-- =========================================================================
+       ONE EXCEL MODAL WITH 4 TABS (CREATE, UPDATE, GROUP SIGN, SPOUSE SWAP)
+       ========================================================================= -->
+  <div class="modal-overlay" x-show="showExcelModal" x-cloak @click.self="if (!isProcessing) showExcelModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+    <div class="modal-dialog" @click.stop style="max-width: 820px; width: 96%; max-height: 92vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+      
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.6rem;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          <span>مدیریت دسته‌جمعی اکسل پرونده‌ها</span>
+        </div>
+        <button type="button" @click="if (!isProcessing) showExcelModal = false" style="background: none; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer; padding: 2px 6px;">✕</button>
+      </div>
 
-    <!-- Bulk update -->
-    <div class="xl-group">
-      <span class="lbl">بروزرسانی</span>
-      <a href="{% url 'excel_template_update' %}" class="xl-btn" title="دانلود قالب بروزرسانی با ستون کلیدی کد ملی">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        قالب
-      </a>
-      <button type="button" class="xl-btn amber" @click="showExcelUpdateModal = true; updateResult = null;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-        بارگذاری و بروزرسانی
-      </button>
-    </div>
+      <!-- Navigation Tabs -->
+      <div style="display: flex; border-bottom: 1px solid #e2e8f0; background: #f8fafc; overflow-x: auto;">
+        <button type="button" class="xl-tab-btn" :class="{ 'active': activeTab === 'create' }" @click="activeTab = 'create'">
+          <span>ایجاد پرونده‌های جدید</span>
+        </button>
+        <button type="button" class="xl-tab-btn" :class="{ 'active': activeTab === 'update' }" @click="activeTab = 'update'">
+          <span>بروزرسانی پرونده‌ها</span>
+        </button>
+        <button type="button" class="xl-tab-btn" :class="{ 'active': activeTab === 'group_sign' }" @click="activeTab = 'group_sign'">
+          <span>امضای گروهی</span>
+        </button>
+        <button type="button" class="xl-tab-btn" :class="{ 'active': activeTab === 'swap' }" @click="activeTab = 'swap'">
+          <span>جابجایی با همسر</span>
+        </button>
+      </div>
 
-    <!-- Export -->
-    <div class="xl-group">
-      <button type="button" @click="SanadbanDownloader.download('{% url 'excel_export_all' %}', 'MaskanYar_Dossiers_Export.xlsx')" class="xl-btn blue" title="خروجی کامل اکسل کلیه پرونده‌ها">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        خروجی کامل اکسل
-      </button>
+      <!-- Modal Body (Scrollable) -->
+      <div style="padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1;">
+
+        <!-- ==================== TAB 1: CREATE ==================== -->
+        <div x-show="activeTab === 'create'">
+          <!-- 1. Rules Box -->
+          <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.1rem; font-size: 0.82rem; color: #166534; line-height: 1.6;">
+            <strong>قوانین ایجاد پرونده جدید:</strong> ستون «کد ملی متقاضی» الزامی، دقیقاً ۱۰ رقم و یکتا است. شماره بایگانی به طور خودکار توسط سامانه تولید می‌شود. تعارض زن و شوهر (عدم ثبت دو پرونده مجزا برای یک زوج) به صورت خودکار کنترل می‌گردد.
+          </div>
+
+          <!-- 2. Download Template Button -->
+          <div style="margin-bottom: 1.1rem; display: flex; justify-content: flex-start;">
+            <a href="{% url 'excel_template_create' %}" class="xl-btn green" title="دانلود فایل اکسل خام با ساختار استاندارد ثبت پرونده">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>دانلود قالب اکسل ایجاد پرونده جدید (.xlsx)</span>
+            </a>
+          </div>
+
+          <!-- 3. File Chooser -->
+          <div style="border: 2px dashed #86efac; border-radius: 12px; padding: 1.5rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.1rem;"
+               onmouseover="this.style.background = '#f0fdf4'; this.style.borderColor = '#22c55e';"
+               onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#86efac';"
+               @click="$refs.createFileInput.click()">
+            <input type="file" x-ref="createFileInput" @change="handleFileSelect($event, 'create') substitute" accept=".xlsx,.xls" style="display: none;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: #dcfce7; color: #15803d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div style="font-weight: 800; font-size: 0.92rem; color: #166534; margin-bottom: 0.2rem;">
+              <span x-show="!fileNames.create">برای انتخاب فایل اکسل ایجاد پرونده‌ها اینجا کلیک کنید</span>
+              <span x-show="fileNames.create" x-text="'فایل انتخاب شده: ' + fileNames.create" style="direction: ltr; font-family: monospace;"></span>
+            </div>
+            <div style="font-size: 0.76rem; color: #64748b;">فرمت‌های مجاز: xlsx. یا xls.</div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 2: UPDATE ==================== -->
+        <div x-show="activeTab === 'update'">
+          <!-- 1. Rules Box -->
+          <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.1rem; font-size: 0.82rem; color: #92400e; line-height: 1.6;">
+            <strong>قوانین بروزرسانی هوشمند:</strong> ستون کلیدی «کد ملی متقاضی» است که ابتدا با متقاضی و سپس با همسر تطبیق داده می‌شود. این بخش <u>هرگز پرونده جدید ایجاد نمی‌کند</u>. خانه‌های خالی در اکسل تغییری ایجاد نکرده و اطلاعات قبلی را پاک نمی‌کنند.
+          </div>
+
+          <!-- 2. Download Template Button -->
+          <div style="margin-bottom: 1.1rem; display: flex; justify-content: flex-start;">
+            <a href="{% url 'excel_template_update' %}" class="xl-btn" style="background: #d97706; color: #fff; border-color: #b45309;" title="دانلود فایل راهنما و قالب بروزرسانی">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>دانلود قالب اکسل بروزرسانی (.xlsx)</span>
+            </a>
+          </div>
+
+          <!-- 3. File Chooser -->
+          <div style="border: 2px dashed #fcd34d; border-radius: 12px; padding: 1.5rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.1rem;"
+               onmouseover="this.style.background = '#fffbeb'; this.style.borderColor = '#f59e0b';"
+               onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#fcd34d';"
+               @click="$refs.updateFileInput.click()">
+            <input type="file" x-ref="updateFileInput" @change="handleFileSelect($event, 'update')" accept=".xlsx,.xls" style="display: none;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: #fef3c7; color: #b45309; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div style="font-weight: 800; font-size: 0.92rem; color: #78350f; margin-bottom: 0.2rem;">
+              <span x-show="!fileNames.update">برای انتخاب فایل اکسل بروزرسانی اینجا کلیک کنید</span>
+              <span x-show="fileNames.update" x-text="'فایل انتخاب شده: ' + fileNames.update" style="direction: ltr; font-family: monospace;"></span>
+            </div>
+            <div style="font-size: 0.76rem; color: #64748b;">ستون A: کد ملی متقاضی (کلید جستجو) • ستون‌های دلخواه جهت ویرایش</div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 3: GROUP SIGN ==================== -->
+        <div x-show="activeTab === 'group_sign'">
+          <!-- 1. Rules Box -->
+          <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.1rem; font-size: 0.82rem; color: #1e40af; line-height: 1.6;">
+            <strong>قوانین امضای گروهی:</strong> ستون کلیدی «کد ملی متقاضی» است. ستون «مرحله» اختیاری بوده و در صورت خالی بودن، پرونده در مرحله جاری خود امضا خواهد شد. امضا منوط به دارا بودن دسترسی به آن مرحله و عدم قفل بودن پرونده است.
+          </div>
+
+          <!-- 2. Download Template Button -->
+          <div style="margin-bottom: 1.1rem; display: flex; justify-content: flex-start;">
+            <a href="{% url 'excel_template_group_sign' %}" class="xl-btn" style="background: #2563eb; color: #fff; border-color: #1d4ed8;" title="دانلود قالب امضای گروهی">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>دانلود قالب اکسل امضای گروهی (.xlsx)</span>
+            </a>
+          </div>
+
+          <!-- 3. File Chooser -->
+          <div style="border: 2px dashed #93c5fd; border-radius: 12px; padding: 1.5rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.1rem;"
+               onmouseover="this.style.background = '#eff6ff'; this.style.borderColor = '#3b82f6';"
+               onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#93c5fd';"
+               @click="$refs.groupSignFileInput.click()">
+            <input type="file" x-ref="groupSignFileInput" @change="handleFileSelect($event, 'group_sign')" accept=".xlsx,.xls" style="display: none;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: #dbeafe; color: #1d4ed8; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div style="font-weight: 800; font-size: 0.92rem; color: #1e3a8a; margin-bottom: 0.2rem;">
+              <span x-show="!fileNames.group_sign">برای انتخاب فایل اکسل امضای گروهی اینجا کلیک کنید</span>
+              <span x-show="fileNames.group_sign" x-text="'فایل انتخاب شده: ' + fileNames.group_sign" style="direction: ltr; font-family: monospace;"></span>
+            </div>
+            <div style="font-size: 0.76rem; color: #64748b;">ستون A: کد ملی • ستون B: مرحله (اختیاری) • ستون C: توضیحات امضا</div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 4: SPOUSE SWAP ==================== -->
+        <div x-show="activeTab === 'swap'">
+          <!-- 1. Rules Box -->
+          <div style="background: #fdf2f8; border: 1.5px solid #fbcfe8; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.1rem; font-size: 0.82rem; color: #9d174d; line-height: 1.6;">
+            <strong>قوانین جابجایی متقاضی با همسر:</strong> ستون کلیدی «کد ملی متقاضی (مالک فعلی)» است. با ثبت این فایل، هویت متقاضی و همسر، استعلامات فرم ج و نوع تصاویر شناسنامه‌ای پیوست با یکدیگر جابجا شده و همسر مالک اصلی پرونده می‌گردد. شماره بایگانی بدون تغییر می‌ماند.
+          </div>
+
+          <!-- 2. Download Template Button -->
+          <div style="margin-bottom: 1.1rem; display: flex; justify-content: flex-start;">
+            <a href="{% url 'excel_template_swap' %}" class="xl-btn" style="background: #db2777; color: #fff; border-color: #be185d;\" title="دانلود قالب جابجایی با همسر">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>دانلود قالب اکسل جابجایی متقاضی با همسر (.xlsx)</span>
+            </a>
+          </div>
+
+          <!-- 3. File Chooser -->
+          <div style="border: 2px dashed #f472b6; border-radius: 12px; padding: 1.5rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.1rem;"
+               onmouseover="this.style.background = '#fdf2f8'; this.style.borderColor = '#ec4899';"
+               onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#f472b6';"
+               @click="$refs.swapFileInput.click()">
+            <input type="file" x-ref="swapFileInput" @change="handleFileSelect($event, 'swap')" accept=".xlsx,.xls" style="display: none;">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: #fce7f3; color: #be185d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div style="font-weight: 800; font-size: 0.92rem; color: #831843; margin-bottom: 0.2rem;">
+              <span x-show="!fileNames.swap">برای انتخاب فایل اکسل جابجایی متقاضی با همسر اینجا کلیک کنید</span>
+              <span x-show="fileNames.swap" x-text="'فایل انتخاب شده: ' + fileNames.swap" style="direction: ltr; font-family: monospace;"></span>
+            </div>
+            <div style="font-size: 0.76rem; color: #64748b;">ستون A: کد ملی متقاضی (مالک فعلی پرونده)</div>
+          </div>
+        </div>
+
+        <!-- ==================== SHARED PROGRESS BAR ==================== -->
+        <div x-show="isProcessing" x-cloak style="margin-bottom: 1.25rem; background: #f8fafc; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 1.1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 20px; height: 20px; border: 2.5px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: sb-spin 0.8s linear infinite;"></div>
+              <strong style="font-size: 0.88rem; color: #1e3a8a;">
+                <span x-show="isUploading">در حال ارسال فایل اکسل به سرور...</span>
+                <span x-show="isServerProcessing">فایل به سرور رسید. در حال بررسی، اعتبارسنجی و ثبت ردیف‌ها در پایگاه داده...</span>
+              </strong>
+            </div>
+            <span class="fa-num" style="font-weight: 800; font-size: 0.95rem; color: #1d4ed8;" x-text="uploadProgress + '٪'"></span>
+          </div>
+          
+          <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-bottom: 0.6rem;">
+            <div style="height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.2s ease; border-radius: 999px;" :style="'width: ' + uploadProgress + '%'"></div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #475569;" class="fa-num">
+            <span x-text="'حجم ارسالی: ' + uploadedSize"></span>
+            <span x-text="'سرعت آپلود: ' + uploadSpeed"></span>
+            <span style="font-weight: 700; color: #0284c7;" x-text="uploadEta"></span>
+          </div>
+        </div>
+
+        <!-- ==================== RESULTS BLOCK (PER ACTIVE TAB) ==================== -->
+        <template x-if="results[activeTab]">
+          <div style="margin-top: 1rem;">
+            <!-- Global Error Banner -->
+            <div x-show="!results[activeTab].success && results[activeTab].error" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; color: #991b1b; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">
+              <span x-text="results[activeTab].error"></span>
+            </div>
+
+            <!-- Warnings Banner if any -->
+            <template x-if="results[activeTab].warnings && results[activeTab].warnings.length > 0">
+              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; color: #92400e;">
+                <template x-for="(warn, wIdx) in results[activeTab].warnings" :key="wIdx">
+                  <div style="margin-bottom: 2px;">⚠️ <span x-text="warn"></span></div>
+                </template>
+              </div>
+            </template>
+
+            <!-- Success Banner (on confirm) -->
+            <div x-show="results[activeTab].success && !results[activeTab].preview" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 1rem; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 1rem;">
+              <span x-show="activeTab === 'create'">✓ تعداد <span class="fa-num" x-text="results.create.created_count"></span> پرونده جدید با موفقیت ایجاد گردید.</span>
+              <span x-show="activeTab === 'update'">✓ تعداد <span class="fa-num" x-text="results.update.updated_count"></span> پرونده با موفقیت در سامانه بروزرسانی شد.</span>
+              <span x-show="activeTab === 'group_sign'">✓ تعداد <span class="fa-num" x-text="results.group_sign.signed_count"></span> پرونده با موفقیت امضا گردید.</span>
+              <span x-show="activeTab === 'swap'">✓ جابجایی متقاضی و همسر در <span class="fa-num" x-text="results.swap.swapped_count"></span> پرونده با موفقیت اعمال شد.</span>
+              
+              <div x-show="results[activeTab].failed_count === 0" style="margin-top: 0.4rem; font-size: 0.8rem; color: #047857;">
+                صفحه تا لحظاتی دیگر به صورت خودکار بارگذاری مجدد می‌شود...
+              </div>
+              <div x-show="results[activeTab].failed_count > 0" style="margin-top: 0.5rem;">
+                <span style="font-size: 0.82rem; color: #b91c1c;">برخی ردیف‌ها دارای خطا بودند. لطفاً فایل خطاها را دریافت و پس از اصلاح مجدداً بارگذاری نمایید.</span>
+                <div style="margin-top: 0.5rem;">
+                  <button type="button" @click="window.location.reload()" class="xl-btn primary" style="padding: 0.4rem 0.8rem; font-size: 0.78rem;">
+                    بستن و بارگذاری مجدد صفحه
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Download Failure Report Link -->
+            <div x-show="results[activeTab].report_url" style="margin-bottom: 1rem;">
+              <a :href="results[activeTab].report_url" target="_blank" class="xl-btn" style="background: #dc2626; color: #fff; border-color: #b91c1c;" title="دانلود فایل اکسل ردیف‌های خطا دار جهت اصلاح">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>دانلود فایل خطاها و موارد نیازمند بررسی (.xlsx)</span>
+              </a>
+            </div>
+
+            <!-- Preview Counters Grid -->
+            <div x-show="results[activeTab].preview" style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+              <div style="flex: 1; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #065f46;">ردیف‌های معتبر / قابل اجرا</div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #047857;" class="fa-num" x-text="results[activeTab].valid_count || 0"></div>
+              </div>
+              <div x-show="activeTab === 'update'" style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #475569;">بدون تغییر در فیلدها</div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #334155;" class="fa-num" x-text="results.update.unchanged_count || 0"></div>
+              </div>
+              <div style="flex: 1; background: #fef2f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                <div style="font-size: 0.75rem; color: #991b1b;">ردیف‌های دارای خطا / رد شده</div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #b91c1c;" class="fa-num" x-text="results[activeTab].failed_count || 0"></div>
+              </div>
+            </div>
+
+            <!-- Update Preview Diff Table -->
+            <div x-show="activeTab === 'update' && results.update.updates_preview && results.update.updates_preview.length > 0" style="max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1rem;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: right;">
+                <thead style="background: #f1f5f9; color: #334155; position: sticky; top: 0;">
+                  <tr>
+                    <th style="padding: 6px 10px;">کد ملی</th>
+                    <th style="padding: 6px 10px;">نام متقاضی</th>
+                    <th style="padding: 6px 10px;">فیلدهای در حال تغییر</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="(item, idx) in results.update.updates_preview" :key="idx">
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                      <td style="padding: 6px 10px; font-family: monospace; white-space: nowrap;" class="fa-num">
+                        <span x-text="item.national_id"></span>
+                        <span x-show="item.matched_via === 'spouse'" style="background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; margin-right: 4px;">تطبیق از طریق همسر</span>
+                      </td>
+                      <td style="padding: 6px 10px; font-weight: 700; white-space: nowrap;" x-text="item.name"></td>
+                      <td style="padding: 6px 10px;">
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                          <template x-for="(ch, cIdx) in item.diff_display" :key="cIdx">
+                            <span style="background: #fef3c7; color: #92400e; padding: 1px 5px; border-radius: 4px; font-size: 0.7rem;">
+                              <strong x-text="ch.label"></strong>: <span x-text="ch.new"></span>
+                            </span>
+                          </template>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Group Sign Preview Table -->
+            <div x-show="activeTab === 'group_sign' && results.group_sign.preview_list && results.group_sign.preview_list.length > 0" style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1rem;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: right;">
+                <thead style="background: #f1f5f9; color: #334155; position: sticky; top: 0;">
+                  <tr>
+                    <th style="padding: 6px 10px;">بایگانی</th>
+                    <th style="padding: 6px 10px;">کد ملی</th>
+                    <th style="padding: 6px 10px;">نام متقاضی</th>
+                    <th style="padding: 6px 10px;">تغییر مرحله</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="(item, idx) in results.group_sign.preview_list" :key="idx">
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                      <td style="padding: 6px 10px; font-weight: 800;" class="fa-num" x-text="'#' + item.archive_number"></td>
+                      <td style="padding: 6px 10px; font-family: monospace;" class="fa-num" x-text="item.national_id"></td>
+                      <td style="padding: 6px 10px; font-weight: 700;" x-text="item.name"></td>
+                      <td style="padding: 6px 10px; color: #2563eb; font-weight: 700;" x-text="item.action_display"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Spouse Swap Preview Table -->
+            <div x-show="activeTab === 'swap' && results.swap.preview_list && results.swap.preview_list.length > 0" style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1rem;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: right;">
+                <thead style="background: #f1f5f9; color: #334155; position: sticky; top: 0;">
+                  <tr>
+                    <th style="padding: 6px 10px;">بایگانی</th>
+                    <th style="padding: 6px 10px;">مالک قبلی پرونده</th>
+                    <th style="padding: 6px 10px;">مالک جدید (همسر قبلی)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="(item, idx) in results.swap.preview_list" :key="idx">
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                      <td style="padding: 6px 10px; font-weight: 800;" class="fa-num" x-text="'#' + item.archive_number"></td>
+                      <td style="padding: 6px 10px;">
+                        <span style="font-weight: 700;" x-text="item.old_owner_name"></span> (<span class="fa-num" x-text="item.old_owner_id"></span>)
+                        <span x-show="item.matched_via === 'spouse'" style="background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; margin-right: 4px;">تطبیق از طریق همسر</span>
+                      </td>
+                      <td style="padding: 6px 10px; color: #059669; font-weight: 700;">
+                        <span x-text="item.new_owner_name"></span> (<span class="fa-num" x-text="item.new_owner_id"></span>)
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Errors List -->
+            <div x-show="results[activeTab].errors && results[activeTab].errors.length > 0" style="max-height: 160px; overflow-y: auto; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
+              <div style="font-weight: 800; color: #9f1239; margin-bottom: 0.4rem;">گزارش خطاهای ردیف‌ها:</div>
+              <template x-for="(err, idx) in results[activeTab].errors" :key="idx">
+                <div style="padding: 0.35rem 0; border-bottom: 1px dashed #fecdd3; color: #881337;">
+                  ردیف <span class="fa-num" x-text="err.row"></span> (کدملی: <span class="fa-num" x-text="err.national_id"></span><span x-show="err.name" x-text="' - ' + err.name"></span>):
+                  <strong x-text="err.reasons ? err.reasons.join(' | ') : ''"></strong>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 0.9rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" @click="if (!isProcessing) showExcelModal = false" class="btn btn-outline" style="font-size: 0.82rem;">بستن پنجره</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-outline" :disabled="isProcessing || !files[activeTab]" @click="submitExcel(activeTab, true)" style="font-weight: 700; font-size: 0.82rem;">
+            پیش‌نمایش و بررسی صحت اطلاعات
+          </button>
+          <button type="button" class="btn btn-primary" :disabled="isProcessing || !files[activeTab]" @click="submitExcel(activeTab, false)" style="font-weight: 800; font-size: 0.82rem;">
+            <span x-show="!isProcessing">تایید و اعمال نهایی</span>
+            <span x-show="isProcessing">در حال پردازش و ثبت...</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-
-    <!-- =========================================================================
-         MODAL 1: Upload Excel & Create Dossiers
-         ========================================================================= -->
-    <div class="modal-overlay" x-show="showExcelCreateModal" x-cloak @click.self="showExcelCreateModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-        <div class="modal-dialog" @click.stop style="max-width: 720px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); animation: modal-appear 0.2s ease-out;">
-            
-            <div style="background: linear-gradient(135deg, #0f2744 0%, #15803d 100%); color: #ffffff; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    <span>ثبت و ایجاد پرونده‌های جدید از طریق فایل اکسل</span>
-                </div>
-                <button type="button" @click="showExcelCreateModal = false" style="background: none; border: none; color: #cbd5e1; font-size: 1.25rem; cursor: pointer;">✕</button>
-            </div>
-
-            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
-                <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #166534; line-height: 1.6;">
-                    <strong>راهنما:</strong> ستون «کد ملی متقاضی» الزامی بوده و نباید تکراری باشد. کلیه ستون‌های دیگر اختیاری هستند. شماره بایگانی پرونده‌ها به صورت خودکار از آخرین شماره موجود تخصیص داده می‌شود.
-                </div>
-
-                <!-- File Chooser Area -->
-                <div style="border: 2px dashed #86efac; border-radius: 12px; padding: 1.75rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.25rem;"
-                     onmouseover="this.style.background = '#f0fdf4'; this.style.borderColor = '#10b981';"
-                     onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#86efac';"
-                     @click="$refs.createFileInput.click()">
-                    
-                    <input type="file" x-ref="createFileInput" @change="handleCreateFileSelect($event)" accept=".xlsx,.xls" style="display: none;">
-                    
-                    <div style="width: 52px; height: 52px; border-radius: 50%; background: #dcfce7; color: #15803d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.65rem;">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    </div>
-
-                    <div style="font-weight: 800; font-size: 0.95rem; color: #064e3b; margin-bottom: 0.25rem;">
-                        <span x-show="!createFileName">برای انتخاب فایل اکسل ثبت پرونده اینجا کلیک کنید</span>
-                        <span x-show="createFileName" x-text="'فایل انتخاب شده: ' + createFileName" style="direction: ltr; font-family: monospace;"></span>
-                    </div>
-                    <div style="font-size: 0.78rem; color: #64748b;">
-                        فرمت مجاز: فایل اکسل (.xlsx) با سرستون‌های استاندارد سامانه
-                    </div>
-                </div>
-
-
-                <!-- Real-Time Upload Progress Tracker -->
-                <div x-show="isProcessing" x-cloak style="margin-bottom: 1.25rem; background: #f8fafc; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 1.1rem; box-shadow: 0 4px 12px rgba(15,23,42,0.06);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 20px; height: 20px; border: 2.5px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: sb-spin 0.8s linear infinite;"></div>
-                            <strong style="font-size: 0.88rem; color: #1e3a8a;">
-                                <span x-show="isUploading">در حال ارسال فایل اکسل به سرور...</span>
-                                <span x-show="isServerProcessing">فایل به سرور رسید. در حال اعتبارسنجی و ثبت ردیف‌ها در پایگاه‌داده...</span>
-                            </strong>
-                        </div>
-                        <span class="fa-num" style="font-weight: 800; font-size: 0.95rem; color: #1d4ed8;" x-text="uploadProgress + '٪'"></span>
-                    </div>
-                    
-                    <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-bottom: 0.6rem;">
-                        <div style="height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.2s ease; border-radius: 999px;"
-                             :style="'width: ' + uploadProgress + '%'"></div>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #475569;" class="fa-num">
-                        <span x-text="'حجم ارسالی: ' + uploadedSize"></span>
-                        <span x-text="'سرعت آپلود: ' + uploadSpeed"></span>
-                        <span style="font-weight: 700; color: #0284c7;" x-text="uploadEta"></span>
-                    </div>
-                </div>
-
-                <!-- Preview / Results Display -->
-                <template x-if="createResult">
-                    <div>
-                        <!-- Error Banner -->
-                        <div x-show="!createResult.success && createResult.error" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; color: #991b1b; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span x-text="createResult.error"></span>
-                        </div>
-
-                        <!-- Success Banner -->
-                        <div x-show="createResult.success && !createResult.preview" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 1rem; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 1rem;">
-                            ✓ تعداد <span class="fa-num" x-text="createResult.created_count"></span> پرونده با موفقیت در سامانه ایجاد و ثبت گردید. صفحه در حال بارگذاری مجدد است...
-                        </div>
-
-                        <!-- Preview Counts -->
-                        <div x-show="createResult.preview" style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
-                            <div style="flex: 1; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.75rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: #065f46;">ردیف‌های معتبر آماده ثبت</div>
-                                <div style="font-size: 1.3rem; font-weight: 800; color: #047857;" class="fa-num" x-text="createResult.valid_count"></div>
-                            </div>
-                            <div style="flex: 1; background: #fef2f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: #991b1b;">ردیف‌های دارای خطا یا تکراری</div>
-                                <div style="font-size: 1.3rem; font-weight: 800; color: #b91c1c;" class="fa-num" x-text="createResult.failed_count"></div>
-                            </div>
-                        </div>
-
-                        <!-- Error List if any -->
-                        <div x-show="createResult.errors && createResult.errors.length > 0" style="max-height: 180px; overflow-y: auto; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
-                            <div style="font-weight: 800; color: #9f1239; margin-bottom: 0.4rem;">گزارش خطاهای ردیف‌ها:</div>
-                            <template x-for="err in createResult.errors" :key="err.row">
-                                <div style="padding: 0.35rem 0; border-bottom: 1px dashed #fecdd3; color: #881337;">
-                                    ردیف <span class="fa-num" x-text="err.row"></span> (کدملی: <span class="fa-num" x-text="err.national_id"></span> - <span x-text="err.name"></span>):
-                                    <strong x-text="err.reasons.join(' | ')"></strong>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-            </div>
-
-            <div style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                <button type="button" @click="showExcelCreateModal = false" class="btn btn-outline">بستن</button>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="btn btn-outline" :disabled="isProcessing || !createFile" @click="submitExcelCreate(true)" style="font-weight: 700;">
-                        پیش‌نمایش و بررسی صحت فایل
-                    </button>
-                    <button type="button" class="btn btn-success" :disabled="isProcessing || !createFile" @click="submitExcelCreate(false)" style="font-weight: 800;">
-                        <span x-show="!isProcessing">تایید و ثبت نهایی پرونده‌ها</span>
-                        <span x-show="isProcessing">در حال پردازش و ثبت...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- =========================================================================
-         MODAL 2: Upload Excel & Bulk Update by National ID
-         ========================================================================= -->
-    <div class="modal-overlay" x-show="showExcelUpdateModal" x-cloak @click.self="showExcelUpdateModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-        <div class="modal-dialog" @click.stop style="max-width: 760px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); animation: modal-appear 0.2s ease-out;">
-            
-            <div style="background: linear-gradient(135deg, #0f2744 0%, #b45309 100%); color: #ffffff; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                    <span>بروزرسانی دسته‌جمعی پرونده‌ها با تطبیق کد ملی</span>
-                </div>
-                <button type="button" @click="showExcelUpdateModal = false" style="background: none; border: none; color: #cbd5e1; font-size: 1.25rem; cursor: pointer;">✕</button>
-            </div>
-
-            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
-                <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #92400e; line-height: 1.6;">
-                    <strong>قانون بروزرسانی هوشمند:</strong> ستون اول باید «کد ملی متقاضی» باشد. هر رکوردی که با این کدملی در سیستم یافت شود، فیلدهای غیرخالی آن بروزرسانی می‌شوند. خانه‌های خالی در فایل اکسل بدون تغییر می‌مانند و مقادیر قبلی را پاک نمی‌کنند.
-                </div>
-
-                <!-- File Chooser Area -->
-                <div style="border: 2px dashed #fcd34d; border-radius: 12px; padding: 1.75rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; margin-bottom: 1.25rem;"
-                     onmouseover="this.style.background = '#fffbeb'; this.style.borderColor = '#f59e0b';"
-                     onmouseout="this.style.background = '#f8fafc'; this.style.borderColor = '#fcd34d';"
-                     @click="$refs.updateFileInput.click()">
-                    
-                    <input type="file" x-ref="updateFileInput" @change="handleUpdateFileSelect($event)" accept=".xlsx,.xls" style="display: none;">
-                    
-                    <div style="width: 52px; height: 52px; border-radius: 50%; background: #fef3c7; color: #b45309; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.65rem;">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    </div>
-
-                    <div style="font-weight: 800; font-size: 0.95rem; color: #78350f; margin-bottom: 0.25rem;">
-                        <span x-show="!updateFileName">برای انتخاب فایل اکسل بروزرسانی اینجا کلیک کنید</span>
-                        <span x-show="updateFileName" x-text="'فایل انتخاب شده: ' + updateFileName" style="direction: ltr; font-family: monospace;"></span>
-                    </div>
-                    <div style="font-size: 0.78rem; color: #64748b;">
-                        ستون A: کد ملی متقاضی (کلید جستجو) • ستون‌های دیگر: فیلدهای دلخواه برای بروزرسانی
-                    </div>
-                </div>
-
-
-                <!-- Real-Time Upload Progress Tracker -->
-                <div x-show="isProcessing" x-cloak style="margin-bottom: 1.25rem; background: #f8fafc; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 1.1rem; box-shadow: 0 4px 12px rgba(15,23,42,0.06);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 20px; height: 20px; border: 2.5px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: sb-spin 0.8s linear infinite;"></div>
-                            <strong style="font-size: 0.88rem; color: #1e3a8a;">
-                                <span x-show="isUploading">در حال ارسال فایل اکسل به سرور...</span>
-                                <span x-show="isServerProcessing">فایل به سرور رسید. در حال اعتبارسنجی و ثبت ردیف‌ها در پایگاه‌داده...</span>
-                            </strong>
-                        </div>
-                        <span class="fa-num" style="font-weight: 800; font-size: 0.95rem; color: #1d4ed8;" x-text="uploadProgress + '٪'"></span>
-                    </div>
-                    
-                    <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-bottom: 0.6rem;">
-                        <div style="height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); transition: width 0.2s ease; border-radius: 999px;"
-                             :style="'width: ' + uploadProgress + '%'"></div>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: #475569;" class="fa-num">
-                        <span x-text="'حجم ارسالی: ' + uploadedSize"></span>
-                        <span x-text="'سرعت آپلود: ' + uploadSpeed"></span>
-                        <span style="font-weight: 700; color: #0284c7;" x-text="uploadEta"></span>
-                    </div>
-                </div>
-
-                <!-- Preview / Results Display -->
-                <template x-if="updateResult">
-                    <div>
-                        <!-- Error Banner -->
-                        <div x-show="!updateResult.success && updateResult.error" style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 0.85rem 1rem; color: #991b1b; font-weight: 700; font-size: 0.85rem; margin-bottom: 1rem;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-left: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span x-text="updateResult.error"></span>
-                        </div>
-
-                        <!-- Success Banner -->
-                        <div x-show="updateResult.success && !updateResult.preview" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 1rem; color: #065f46; font-weight: 700; font-size: 0.9rem; margin-bottom: 1rem;">
-                            ✓ تعداد <span class="fa-num" x-text="updateResult.updated_count"></span> پرونده با موفقیت در سامانه بروزرسانی شد. صفحه در حال بارگذاری مجدد است...
-                        </div>
-
-                        <!-- Preview Counts -->
-                        <div x-show="updateResult.preview" style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
-                            <div style="flex: 1; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.75rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: #065f46;">پرونده‌های دارای تغییر</div>
-                                <div style="font-size: 1.3rem; font-weight: 800; color: #047857;" class="fa-num" x-text="updateResult.valid_count"></div>
-                            </div>
-                            <div style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.75rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: #475569;">پرونده‌های بدون تغییر</div>
-                                <div style="font-size: 1.3rem; font-weight: 800; color: #334155;" class="fa-num" x-text="updateResult.unchanged_count"></div>
-                            </div>
-                            <div style="flex: 1; background: #fef2f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: #991b1b;">یافت‌نشده یا دارای خطا</div>
-                                <div style="font-size: 1.3rem; font-weight: 800; color: #b91c1c;" class="fa-num" x-text="updateResult.failed_count"></div>
-                            </div>
-                        </div>
-
-                        <!-- Changes Preview Table -->
-                        <div x-show="updateResult.updates_preview && updateResult.updates_preview.length > 0" style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1rem;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: right;">
-                                <thead style="background: #f1f5f9; color: #334155; position: sticky; top: 0;">
-                                    <tr>
-                                        <th style="padding: 6px 10px;">کد ملی</th>
-                                        <th style="padding: 6px 10px;">نام متقاضی</th>
-                                        <th style="padding: 6px 10px;">فیلدهای در حال تغییر</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="item in updateResult.updates_preview" :key="item.national_id">
-                                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                                            <td style="padding: 6px 10px; font-family: monospace;" class="fa-num" x-text="item.national_id"></td>
-                                            <td style="padding: 6px 10px; font-weight: 700;" x-text="item.name"></td>
-                                            <td style="padding: 6px 10px;">
-                                                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                                                    <template x-for="ch in item.diff_display" :key="ch.field">
-                                                        <span style="background: #fef3c7; color: #92400e; padding: 1px 5px; border-radius: 4px; font-size: 0.7rem;">
-                                                            <strong x-text="ch.label"></strong>: <span x-text="ch.new"></span>
-                                                        </span>
-                                                    </template>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Error List if any -->
-                        <div x-show="updateResult.errors && updateResult.errors.length > 0" style="max-height: 150px; overflow-y: auto; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 0.75rem; font-size: 0.78rem;">
-                            <div style="font-weight: 800; color: #9f1239; margin-bottom: 0.4rem;">گزارش کدهای ملی یافت‌نشده یا خطاها:</div>
-                            <template x-for="err in updateResult.errors" :key="err.row">
-                                <div style="padding: 0.35rem 0; border-bottom: 1px dashed #fecdd3; color: #881337;">
-                                    ردیف <span class="fa-num" x-text="err.row"></span> (کدملی: <span class="fa-num" x-text="err.national_id"></span>):
-                                    <strong x-text="err.reasons.join(' | ')"></strong>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-            </div>
-
-            <div style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                <button type="button" @click="showExcelUpdateModal = false" class="btn btn-outline">بستن</button>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="btn btn-outline" :disabled="isProcessing || !updateFile" @click="submitExcelUpdate(true)" style="font-weight: 700;">
-                        پیش‌نمایش تغییرات
-                    </button>
-                    <button type="button" class="btn btn-primary" :disabled="isProcessing || !updateFile" @click="submitExcelUpdate(false)" style="background: #d97706; border-color: #b45309; font-weight: 800;">
-                        <span x-show="!isProcessing">تایید و اعمال بروزرسانی</span>
-                        <span x-show="isProcessing">در حال اعمال تغییرات...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>

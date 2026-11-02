@@ -125,46 +125,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </div>
-                <span>بخش ۱: اطلاعات متقاضی، مشخصات همسر، پروژه و واحد مسکونی (مرحله ۱)</span>
+                <span>بخش ۱: اطلاعات متقاضی، مشخصات همسر، پروژه و واحد مسکونی</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                    <button type="button" 
-                            class="btn-header-docs" 
-                            style="background: #eff6ff; color: #1d4ed8; border-color: #93c5fd;"
-                            @click="openUploadScanModal('NATIONAL_ID', 'اسکن مدارک هویتی متقاضی و همسر')" 
-                            title="بارگذاری اسناد و مدارک هویتی">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        <span>بارگذاری / اسکن مدرک</span>
-                    </button>
-                    <template x-if="getSectionAttachments(['NATIONAL_ID', 'SPOUSE_ID', 'UNIT_SELECTION']).length > 0">
-                        <button type="button" class="btn-header-docs" @click="scrollToCategory('identity')" title="مشاهده اسناد هویتی متقاضی در آلبوم پرونده">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>مدارک پیوست (<span class="fa-num" x-text="getSectionAttachments(['NATIONAL_ID', 'SPOUSE_ID', 'UNIT_SELECTION']).length"></span>)</span>
-                        </button>
-                    </template>
-                </div>
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-applicant')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
-                    <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'قابل ویرایش (با ثبت لاگ ممیزی)'"></span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <!-- Sub-group: مشخصات فردی و هویتی متقاضی -->
             <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
@@ -519,38 +496,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline></svg>
                 </div>
-                <span>بخش ۲: کنترل و ورود اطلاعات ثبتی عرصه، پلاک و مساحت (مراحل ۱، ۲، ۱۲ و ۱۴)</span>
+                <span>بخش ۲: کنترل و ورود اطلاعات ثبتی عرصه، پلاک و مساحت</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                    <template x-if="getSectionAttachments(['TITLE_DEED']).length > 0">
-                        <button type="button" class="btn-header-docs" @click="scrollToCategory('cadastre')" title="مشاهده اسناد ثبتی و سند مالکیت در آلبوم پرونده">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>اسناد ثبتی (<span class="fa-num" x-text="getSectionAttachments(['TITLE_DEED']).length"></span>)</span>
-                        </button>
-                    </template>
-                </div>
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-plot')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge" :class="[1, 11, 13, 14].includes(currentStage) ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 14 ? 'ممیزی املاک اداره کل (مرحله ۱۴)' : 'تایید عرصه و پلاک'"></span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <!-- Bank & Project Info Banner -->
             <div style="margin-bottom: 1rem; background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 0.75rem 1.15rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.65rem;">
@@ -607,46 +569,23 @@
                 <div class="section-title-icon" style="background: #dcfce7; color: #15803d;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                 </div>
-                <span>بخش ۳: استعلام رسمی، شماره پرسش‌نامه و صفحه فرم «ج» متقاضی و همسر (مراحل ۳ و ۱۰)</span>
+                <span>بخش ۳: استعلام رسمی، شماره پرسش‌نامه و فرم «ج» متقاضی و همسر</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                    <button type="button" 
-                            class="btn-header-docs" 
-                            style="background: #f0fdf4; color: #166534; border-color: #86efac;"
-                            @click="openUploadScanModal('FORM_J', 'استعلام فرم ج متقاضی و همسر')" 
-                            title="بارگذاری اسکن استعلام فرم ج">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        <span>بارگذاری تصویر فرم «ج»</span>
-                    </button>
-                    <template x-if="getSectionAttachments(['FORM_J']).length > 0">
-                        <button type="button" class="btn-header-docs" @click="scrollToCategory('form_j')" title="مشاهده استعلام فرم ج در آلبوم اسکن‌ها">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>اسناد فرم ج (<span class="fa-num" x-text="getSectionAttachments(['FORM_J']).length"></span>)</span>
-                        </button>
-                    </template>
-                </div>
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-form-j')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge" :class="isLocked ? 'locked' : 'editable'">
-                    <span x-text="isLocked ? 'قفل نهایی بایگانی' : 'استعلام مسکن و شهرسازی (مراحل ۳ و ۱۰)'"></span>
-                </div>
             </div>
         </div>
+        
 
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <div id="form-j-dedicated-card" style="margin: 0.5rem 0; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border: 1.5px solid #86efac; border-radius: 12px; padding: 1.25rem; box-shadow: 0 4px 14px rgba(22, 101, 52, 0.06);">
@@ -684,6 +623,32 @@
                     <!-- Right Sub-Column: Form J Statuses & Fields -->
                     <div>
                         <div class="fields-grid fs-mini-grid">
+                            <!-- project_code -->
+                            <div class="field-group" :class="{'field-locked': !isFieldEditable('project_code')}">
+                                <label class="field-label" style="font-size: 0.82rem;">
+                                    <span>کد پروژه</span>
+                                    <span class="helper-badge text-blue-700">پروژه تخصیص‌یافته</span>
+                                </label>
+                                <input type="text" 
+                                       class="input-control fa-num" 
+                                       x-model="form.project_code" 
+                                       :readonly="!isFieldEditable('project_code')" 
+                                       placeholder="کد پروژه" 
+                                       style="font-size: 0.85rem; font-weight: 700;">
+                            </div>
+
+                            <!-- form_j_registration_type -->
+                            <div class="field-group" :class="{'field-locked': !isFieldEditable('form_j_registration_type')}">
+                                <label class="field-label" style="font-size: 0.82rem;">
+                                    <span>نحوه ثبت فرم ج (ثبت دستی / خودکار)</span>
+                                    <span class="helper-badge text-emerald-700">نوع ثبت</span>
+                                </label>
+                                <select class="input-control" x-model="form.form_j_registration_type" :disabled="!isFieldEditable('form_j_registration_type')" style="font-size: 0.84rem; font-weight: 700;">
+                                    <option value="خودکار">ثبت خودکار</option>
+                                    <option value="دستی">ثبت دستی</option>
+                                </select>
+                            </div>
+
                             <!-- form_j_questionnaire_number -->
                             <div class="field-group" style="grid-column: 1 / -1;" :class="{'field-locked': !isFieldEditable('form_j_questionnaire_number')}">
                                 <label class="field-label" style="font-size: 0.82rem;">
@@ -843,31 +808,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line></svg>
                 </div>
-                <span>بخش ۴: مبالغ قرارداد، قیمت تمام‌شده و سهم تسهیلات وام بانکی (مراحل ۲ و ۱۸)</span>
+                <span>بخش ۴: مبالغ قرارداد، قیمت تمام‌شده و سهم تسهیلات وام بانکی</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-cost')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge editable">
-                    <span>مبالغ تمام شده و قرارداد</span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <div class="fields-grid">
                 <!-- Bank Loan Amount with 650M and 550M toggle buttons -->
@@ -962,31 +919,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
                 </div>
-                <span>بخش ۵: وام صندوق ملی، کسر نامه پیمانکار و وام دهک (مراحل ۴، ۵ و ۶)</span>
+                <span>بخش ۵: وام صندوق ملی، کسر نامه پیمانکار و وام دهک</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-loans')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge editable">
-                    <span>تسهیلات و کسورات مصوب</span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <div class="fields-grid">
                 <!-- Stage 6: fund_loan_amount -->
@@ -1054,31 +1003,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"></path></svg>
                 </div>
-                <span>بخش ۶: تعیین مبلغ آورده نقدی و ارسال پیامک‌های اطلاع‌رسانی (مرحله ۵)</span>
+                <span>بخش ۶: تعیین مبلغ آورده نقدی و ارسال پیامک‌های اطلاع‌رسانی</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-equity')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge editable">
-                    <span x-text="currentStage === 5 ? 'مرحله جاری: تعیین آورده و ارسال پیامک' : 'اطلاع‌رسانی آورده'"></span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <div class="fields-grid">
                 <div class="field-group col-6 field-locked">
@@ -1094,6 +1035,29 @@
                     <div class="currency-word-display" x-show="form.applicant_equity">
                         <span>مبلغ آورده به حروف: </span>
                         <strong x-text="toWords(form.applicant_equity)"></strong>
+                    </div>
+                </div>
+
+                <!-- SMS Sent Date (Direct Input or Date Picker) -->
+                <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('sms_sent_date')}">
+                    <label class="field-label">
+                        <span>تاریخ ارسال پیامک آورده نقدی (شمسی)</span>
+                        <span class="helper-badge text-blue-700">تقویم یا درج دستی</span>
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="text"
+                               class="input-control fa-num"
+                               style="direction: ltr; flex: 1; font-weight: 700;"
+                               x-model="form.sms_sent_date"
+                               :readonly="!isFieldEditable('sms_sent_date')"
+                               placeholder="۱۴۰۳/۰۸/۱۲">
+                        <button type="button"
+                                @click="openDatePicker('sms_sent_date', form.sms_sent_date, 'تاریخ ارسال پیامک تعیین آورده')"
+                                :disabled="!isFieldEditable('sms_sent_date')"
+                                class="btn-date-picker"
+                                title="انتخاب تاریخ از تقویم">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -1136,38 +1100,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
                 </div>
-                <span>بخش ۷: ارسال و درج شماره نامه بانک و استعلام تسهیلات (مراحل ۶، ۹، ۱۱ و ۱۳)</span>
+                <span>بخش ۷: ارسال و درج شماره نامه بانک و استعلام تسهیلات</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                    <template x-if="getSectionAttachments(['BANK_LETTER', 'BANK_BOOKLET']).length > 0">
-                        <button type="button" class="btn-header-docs" @click="scrollToCategory('bank')" title="مشاهده اسناد بانکی در آلبوم پرونده">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>مدارک بانکی (<span class="fa-num" x-text="getSectionAttachments(['BANK_LETTER', 'BANK_BOOKLET']).length"></span>)</span>
-                        </button>
-                    </template>
-                </div>
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-bank')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge editable">
-                    <span x-text="'امور ' + (form.bank_name || 'بانک مسکن')"></span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <div class="fields-grid">
                 <div class="field-group col-6" :class="{'field-locked': !isFieldEditable('bank_letter_number')}">
@@ -1219,31 +1168,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 </div>
-                <span>بخش ۸: تشکیل پرونده کارگزاری، کنترل مدارک و دفترچه اقساط (مراحل ۷، ۸، ۹، ۲۱ و ۲۲)</span>
+                <span>بخش ۸: تشکیل پرونده کارگزاری، کنترل مدارک و دفترچه اقساط</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-docs-installment')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge editable">
-                    <span>تشکیل پرونده و دفترچه اقساط</span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <div class="fields-grid">
                 <!-- ورود شماره پرسش‌نامه فرم ج در مرحله ۷ (انتقال به بخش ۳ و ناپدید شدن از مرحله ۷) -->
@@ -1355,31 +1296,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path></svg>
                 </div>
-                <span>بخش ۹: ارزیابی کارشناسی اداره کل - تعیین اجاره و آماده‌سازی (مراحل ۱۵ و ۱۸)</span>
+                <span>بخش ۹: ارزیابی کارشناسی اداره کل، تعیین اجاره و آماده‌سازی</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-valuation')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge" :class="[15, 18].includes(currentStage) ? 'editable' : 'locked'">
-                    <span x-text="currentStage === 15 ? 'ویرایش ارزیابی اداره کل (مرحله ۱۵)' : (currentStage === 18 ? 'تسویه پیمانکار (مرحله ۱۸)' : 'ممیزی اداره کل')"></span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             <div class="fields-grid">
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('total_land_share')}">
@@ -1442,39 +1375,23 @@
                 <div class="section-title-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
                 </div>
-                <span>بخش ۱۰: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره (مراحل ۱۶ و ۱۷)</span>
+                <span>بخش ۱۰: دریافت چک‌های وام دهک، نقد و اقساط آماده‌سازی و اجاره</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;" @click.stop>
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                    <template x-if="getSectionAttachments(['LOAN_CHECK', 'PREP_CHECK', 'COMMITMENT_LETTER']).length > 0">
-                        <button type="button" class="btn-header-docs" @click="scrollToCategory('checks')" title="مشاهده اسکن چک‌ها و رسیدها در آلبوم پرونده">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span>چک‌ها و اسکن‌ها (<span class="fa-num" x-text="getSectionAttachments(['LOAN_CHECK', 'PREP_CHECK', 'COMMITMENT_LETTER']).length"></span>)</span>
-                        </button>
-                    </template>
-                </div>
-
-                <template x-if="!isLocked && currentStage < 22 && isSectionActive('section-checks')">
-                    <span class="active-stage-indicator" style="background: #2563eb; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
-                        <span style="width: 7px; height: 7px; border-radius: 50%; background: #ffffff; display: inline-block; box-shadow: 0 0 5px #ffffff; margin-left: 2px;"></span><span>اقدام مرحله جاری (<span class="fa-num" x-text="'مرحله ' + currentStage"></span>)</span>
-                    </span>
-                </template>
+            <div style="display: flex; align-items: center; gap: 0.5rem;" @click.stop>
                 <button type="button"
                         @click="sectionOpen = !sectionOpen"
                         class="btn-section-toggle"
-                        :title="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'">
-                    <span x-text="sectionOpen ? 'بستن بخش' : 'نمایش جزئیات'"></span>
+                        :title="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'">
+                    <span x-text="sectionOpen ? 'بستن بخش' : 'باز کردن بخش'"></span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                          :style="sectionOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
                          style="transition: transform 0.2s;">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </button>
-                <div class="section-stage-badge editable">
-                    <span>سامانه جامع چک‌های صیادی و اقساط</span>
-                </div>
             </div>
         </div>
+        
         <div class="form-section-body" x-show="sectionOpen" x-transition>
             
             <!-- =========================================================================

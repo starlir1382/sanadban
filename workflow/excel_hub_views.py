@@ -32,6 +32,7 @@ from .models import (
     UserProfile,
 )
 from .stages import (
+    STAGE_TO_SLOTS,
     STAGE_ROLES,
     STAGE_DETAILS,
     MIN_STAGE,
@@ -426,7 +427,7 @@ def process_stage_signatures_excel_view(request):
                     )
 
                     # Stamp official archival DossierSignature slot with signature scan image
-                    target_slots = stage_to_slots_map.get(stg_num, [])
+                    target_slots = STAGE_TO_SLOTS.get(stg_num, [])
                     now_jalali = _format_tehran_jalali(fmt="%Y/%m/%d %H:%M")
                     for slot_key in target_slots:
                         sig_obj, _ = DossierSignature.objects.get_or_create(dossier=dossier, slot_key=slot_key)
@@ -992,7 +993,7 @@ def batch_sign_dossiers_view(request):
                 18: ["revenue"],
                 19: ["contractor_settlement"],
             }
-            target_slots = stage_to_slots_map.get(current_idx, [])
+            target_slots = STAGE_TO_SLOTS.get(current_idx, [])
             for slot_key in target_slots:
                 sig_obj, _ = DossierSignature.objects.get_or_create(dossier=dossier, slot_key=slot_key)
                 sig_obj.signer_name = actor_name

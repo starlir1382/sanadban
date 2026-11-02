@@ -1,3 +1,4 @@
+from .stages import SLOT_TO_STAGES
 """
 workflow/field_permissions.py
 Centralized Field & Action Authorization Matrix.
@@ -18,9 +19,9 @@ FIELD_STAGE_MAP = {
     "selection_rank": [1, 8],
     "decile": [1, 4],
     "marital_status": [1, 8],
-    "is_married_confirmed": [1, 8, 9],
-    "is_installment_booklet_confirmed": [7, 8, 9],
-    "is_land_deed_confirmed": [11, 12],
+    "is_married_confirmed": [1, 8, 10],
+    "is_installment_booklet_confirmed": [7, 8, 10],
+    "is_land_deed_confirmed": [12, 13],
 
     # Spouse fields (Step 1 & Step 8)
     "spouse_first_name": [1, 8],
@@ -35,6 +36,7 @@ FIELD_STAGE_MAP = {
     # Unit specifications (Step 1 & Step 8)
     "site": [1, 8],
     "project": [1, 8],
+    "project_code": [1, 2, 3, 8, 10, 11],
     "construction_type": [1, 8],
     "block_name": [1, 8],
     "block_code": [1, 8],
@@ -55,44 +57,46 @@ FIELD_STAGE_MAP = {
 
     # Step 2: ورود پلاک ثبتی و قیمت تمام شده
     # پلاک ثبتی: مرحله 2، مرحله 11 (کارشناس فنی و مهندسی)، مرحله 13 (بانک زمین)
-    "registration_section": [2, 11, 13],
-    "main_plaque": [2, 11, 13],
-    "separated_plaque": [2, 11, 13],
-    "sub_plaque": [2, 11, 13],
-    "plot_number": [2, 11, 13],
+    "registration_section": [2, 12, 14],
+    "main_plaque": [2, 12, 14],
+    "separated_plaque": [2, 12, 14],
+    "sub_plaque": [2, 12, 14],
+    "plot_number": [2, 12, 14],
     # قیمت تمام شده پایه بدون وام: مرحله 2 و مرحله 18 (کارشناس تسویه با پیمانکار)
-    "base_cost_without_loan": [2, 18],
+    "base_cost_without_loan": [2, 19],
 
     # Step 3 & Step 10: کارشناس بررسی فرم ج (عالمی) / کارشناس ثبت فرم ج اداره کل
-    "applicant_form_j_status": [3, 10],
-    "applicant_form_j_directorate_status": [3, 10],
-    "applicant_form_j_red_description": [3, 10],
-    "spouse_form_j_status": [3, 10],
-    "spouse_form_j_directorate_status": [3, 10],
-    "spouse_form_j_red_description": [3, 10],
+    "applicant_form_j_status": [3, 11],
+    "applicant_form_j_directorate_status": [3, 11],
+    "applicant_form_j_red_description": [3, 11],
+    "spouse_form_j_status": [3, 11],
+    "spouse_form_j_directorate_status": [3, 11],
+    "spouse_form_j_red_description": [3, 11],
+    "form_j_registration_type": [3, 10, 11],
 
     # Step 4: وام صندوق، نامه پیمانکار، تسهیلات دهک (قابل ویرایش در مرحله 4 و تسویه پیمانکار مرحله 18)
-    "fund_loan_amount": [4, 18],
-    "contractor_letter_amount": [4, 18],
-    "decile_loan_amount": [4, 18],
+    "fund_loan_amount": [4, 19],
+    "contractor_letter_amount": [4, 19],
+    "decile_loan_amount": [4, 19],
 
     # Step 5: ارسال پیامک تعیین آورده نقدی و ثبت تاریخ (وصالی)
     "applicant_equity": [5],
     "is_sms_sent": [5],
     "sms_sent_at": [5],
+    "sms_sent_date": [5],
     "is_equity_funded": [5],
 
     # Step 6 & Step 9: تایید واریز و ثبت نامه معرفی به بانک / استعلام تسهیلات نهضت ملی
-    "bank_loan_amount": [6, 9],
-    "bank_letter_number": [6, 9],
-    "bank_letter_date": [6, 9],
-    "is_added_to_bank_shipment_list": [6, 9],
-    "is_sent_to_bank": [6, 9],
-    "bank_sent_date": [6, 9],
-    "bank_sent_letter_number": [6, 9],
+    "bank_loan_amount": [6, 10],
+    "bank_letter_number": [6, 10],
+    "bank_letter_date": [6, 10],
+    "is_added_to_bank_shipment_list": [6, 10],
+    "is_sent_to_bank": [6, 10],
+    "bank_sent_date": [6, 10],
+    "bank_sent_letter_number": [6, 10],
 
     # Step 7: تشکیل پرونده کارگزاری، ثبت شماره فرم ج و چک‌باکس مدارک فیزیکی
-    "form_j_number": [3, 7, 8, 10],
+    "form_j_number": [3, 7, 8, 11],
     "has_installment_booklet": [7, 8],
     "has_info_form": [7, 8],
     "has_form_j": [7, 8],
@@ -101,14 +105,14 @@ FIELD_STAGE_MAP = {
     "has_national_id_doc": [7, 8],
 
     # Step 15: کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)
-    "total_land_share": [15],
-    "past_years_rent": [15],
-    "current_year_rent": [15],
-    "land_lease_year": [15],
-    "preparation_cost": [15],
+    "total_land_share": [16],
+    "past_years_rent": [16],
+    "current_year_rent": [16],
+    "land_lease_year": [16],
+    "preparation_cost": [16],
 
     # Step 16: دریافت چک‌های وام دهک
-    "decile_loan_bank": [16],
+    "decile_loan_bank": [17],
     "supported_institution": [16],
     "check_count": [16],
     "check_amount": [16],
@@ -118,43 +122,27 @@ FIELD_STAGE_MAP = {
     "commitment_number": [16],
     "commitment_date": [16],
     "check_entries_json": [16],
-    "is_decile_loan_confirmed": [16],
+    "is_decile_loan_confirmed": [17],
 
     # Step 17: دریافت نقد و اقساط آماده سازی و اجاره
-    "tenant_price": [17],
+    "tenant_price": [18],
     "tenant_code": [17],
     "is_cash_rent_confirmed": [17],
     "cash_preparation_amount": [17],
     "prepayment_code": [17],
     "non_cash_preparation_amount": [17],
     "preparation_service_fee": [17],
-    "preparation_check_count": [17],
+    "preparation_check_count": [18],
     "total_preparation_check_amount": [17],
     "preparation_check_entries_json": [17],
-    "is_preparation_checks_confirmed": [17],
+    "is_preparation_checks_confirmed": [18],
 
     # Step 19: صدور و ثبت نامه محضر اداره کل
-    "rah_letter": [19],
-    "rah_letter_date": [19],
+    "rah_letter": [20],
+    "rah_letter_date": [20],
 }
 
-# 2. 14 Archival Signatures Slot to Stage Mapping (Official 21-step workflow)
-SLOT_TO_STAGES = {
-    "brokerage": [1, 2, 7, 8],
-    "national_housing": [9],
-    "bank_facility": [6, 9],
-    "decile_facility": [4, 16],
-    "contractor_settlement": [4, 18],
-    "applicant_settlement": [5],
-    "other_facilities": [4],
-    "legal": [14],
-    "form_j": [3, 10],
-    "evaluation": [15],
-    "technical": [11],
-    "real_estate": [12],
-    "land_bank": [13],
-    "revenue": [17],
-}
+# 2. 14 Archival Signatures Slot to Stage Mapping (imported from stages.py)
 
 SLOT_TITLES = {
     "brokerage": "۱. مهر و امضاء کارگزاری (مهندسین مشاور ره آزرم بین‌الملل)",
@@ -174,27 +162,12 @@ SLOT_TITLES = {
 }
 
 STAGE_TO_DEFAULT_SLOT = {
-    1: "brokerage",
-    2: "brokerage",
-    3: "form_j",
-    4: "other_facilities",
-    5: "applicant_settlement",
-    6: "bank_facility",
-    7: "brokerage",
-    8: "brokerage",
-    9: "national_housing",
-    10: "form_j",
-    11: "technical",
-    12: "real_estate",
-    13: "land_bank",
-    14: "legal",
-    15: "evaluation",
-    16: "decile_facility",
-    17: "revenue",
-    18: "contractor_settlement",
-    19: "national_housing",
-    20: "national_housing",
-    21: "national_housing",
+    1: "brokerage", 2: "brokerage", 3: "form_j", 4: "other_facilities",
+    5: "applicant_settlement", 6: "bank_facility", 7: "brokerage",
+    9: "brokerage", 10: "national_housing", 11: "form_j", 12: "technical",
+    13: "real_estate", 14: "land_bank", 15: "legal", 16: "evaluation",
+    17: "decile_facility", 18: "revenue", 19: "contractor_settlement",
+    20: "national_housing", 21: "national_housing", 22: "national_housing",
 }
 
 def get_user_allowed_stages_set(user):

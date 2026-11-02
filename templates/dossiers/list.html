@@ -1088,6 +1088,10 @@
   <!-- ===================== TAB 1: DOSSIERS LIST ===================== -->
   <div x-show="!isFullAdmin || activeTab === 'dossiers'">
 
+  {% if is_full_admin or request.user.profile.is_housing_chief %}
+    {% include 'components/admin_excel_manager.html' %}
+  {% endif %}
+
   {% if is_full_admin %}
   <!-- ===================== STAGE TRACK (ADMIN) ===================== -->
   <div class="dl-card dl-track">
@@ -1203,7 +1207,7 @@
           </a>
           {% endif %}
 
-          <button type="button" @click="showExcelModal = true" class="dl-btn indigo" title="امضای سریع گروهی مراحل با بارگذاری فایل اکسل">
+          <button type="button" @click="if (isFullAdmin) { window.dispatchEvent(new CustomEvent('open-excel-modal', {detail: {tab: 'group_sign'}})); } else { showExcelModal = true; }" class="dl-btn indigo" title="امضای سریع گروهی مراحل با بارگذاری فایل اکسل">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             <span>امضای گروهی با اکسل</span>
           </button>

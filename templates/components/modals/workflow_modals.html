@@ -23,7 +23,7 @@
                     <div style="flex: 1; min-width: 200px; background: #ffffff; border: 1.5px solid #86efac; border-radius: 8px; padding: 0.65rem 0.85rem;">
                         <div style="font-size: 0.72rem; color: #047857; font-weight: 800; margin-bottom: 2px;">مرحله در حال اقدام (مبدأ):</div>
                         <div style="font-size: 0.88rem; font-weight: 800; color: #064e3b;" class="fa-num">
-                            مرحله <span x-text="currentStage"></span>: <span x-text="stages[currentStage] ? stages[currentStage].title : ''"></span>
+                            مرحله <span x-text="currentStage"></span>: <span x-text="getStage(currentStage) ? getStage(currentStage).title : ''"></span>
                         </div>
                     </div>
 
@@ -36,13 +36,21 @@
                     </div>
 
                     <!-- Target Stage (Destination) -->
-                    <div style="flex: 1; min-width: 200px; background: #ffffff; border: 1.5px solid #93c5fd; border-radius: 8px; padding: 0.65rem 0.85rem;">
-                        <div style="font-size: 0.72rem; color: #1d4ed8; font-weight: 800; margin-bottom: 2px;">مرحله مقصد پس از تایید:</div>
-                        <div style="font-size: 0.88rem; font-weight: 800; color: #1e3a8a;" class="fa-num">
-                            <span x-show="currentStage < 22">
-                                مرحله <span x-text="currentStage + 1"></span>: <span x-text="stages[currentStage + 1] ? stages[currentStage + 1].title : ''"></span>
+                    <div style="flex: 1; min-width: 200px; background: #ffffff; border: 1.5px solid #93c5fd; border-radius: 8px; padding: 0.65rem 0.85rem;"
+                         :style="isRedJ ? 'border-color: #fca5a5; background: #fff5f5;' : ''">
+                        <div style="font-size: 0.72rem; font-weight: 800; margin-bottom: 2px;"
+                             :style="isRedJ ? 'color: #b91c1c;' : 'color: #1d4ed8;'"
+                             x-text="isRedJ ? 'مقصد پرونده (عدم انطباق فرم ج):' : 'مرحله مقصد پس از تایید:'">
+                        </div>
+                        <div style="font-size: 0.88rem; font-weight: 800;" class="fa-num"
+                             :style="isRedJ ? 'color: #991b1b;' : 'color: #1e3a8a;'">
+                            <span x-show="isRedJ" style="color: #dc2626; font-weight: 800;">
+                                ⛔ کارتابل رئیس مسکن (بررسی رد صلاحیت فرم ج)
                             </span>
-                            <span x-show="currentStage >= 22" style="color: #15803d; font-weight: 800;">
+                            <span x-show="!isRedJ && currentStage < 22">
+                                مرحله <span x-text="currentStage + 1"></span>: <span x-text="getStage(currentStage + 1) ? getStage(currentStage + 1).title : ''"></span>
+                            </span>
+                            <span x-show="!isRedJ && currentStage >= 22" style="color: #15803d; font-weight: 800;">
                                 اتمام فرآیند نهایی و بایگانی قطعی پرونده (مختومه)
                             </span>
                         </div>
@@ -51,12 +59,15 @@
                 </div>
 
                 <!-- Plain-language confirmation box -->
-                <div style="background: #ffffff; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 0.85rem 1rem; margin-top: 0.75rem;">
+                <div style="background: #ffffff; border: 1.5px solid #a7f3d0; border-radius: 8px; padding: 0.85rem 1rem; margin-top: 0.75rem;"
+                     :style="isRedJ ? 'border-color: #fca5a5; background: #fff5f5;' : ''">
                     <div style="font-size: 0.9rem; font-weight: 800; color: #064e3b; margin-bottom: 0.3rem;"
-                         x-text="currentStage >= 22 ? 'آیا از تأیید نهایی و بایگانی قطعی این پرونده مطمئن هستید؟' : 'آیا از ارسال این پرونده به مرحله بعد مطمئن هستید؟'">
+                         :style="isRedJ ? 'color: #991b1b;' : 'color: #064e3b;'"
+                         x-text="isRedJ ? 'آیا از ارجاع پرونده به کارتابل رئیس مسکن به دلیل کد قرمز فرم «ج» اطمینان دارید؟' : (currentStage >= 22 ? 'آیا از تأیید نهایی و بایگانی قطعی این پرونده مطمئن هستید؟' : 'آیا از ارسال این پرونده به مرحله بعد مطمئن هستید؟')">
                     </div>
-                    <p style="font-size: 0.82rem; color: #047857; margin: 0; line-height: 1.6;"
-                       x-text="currentStage >= 22 ? 'پس از تأیید نهایی، این پرونده با وضعیت مختومه در بایگانی قطعی ثبت گردیده و فرآیند اداری آن خاتمه می‌یابد.' : 'پس از ثبت امضا، پرونده از کارتابل شما خارج شده و در کارپوشه مسئول مرحله بعد قرار می‌گیرد و دیگر برای شما قابل ویرایش نخواهد بود.'">
+                    <p style="font-size: 0.82rem; margin: 0; line-height: 1.6;"
+                       :style="isRedJ ? 'color: #b91c1c;' : 'color: #047857;'"
+                       x-text="isRedJ ? 'به علت قرمز بودن استعلام فرم ج، این پرونده به مراحل بعدی منتقل نخواهد شد و مستقیماً در کارتابل رئیس مسکن جهت بررسی و صدور ابلاغیه رد صلاحیت قرار می‌گیرد.' : (currentStage >= 22 ? 'پس از تأیید نهایی، این پرونده با وضعیت مختومه در بایگانی قطعی ثبت گردیده و فرآیند اداری آن خاتمه می‌یابد.' : 'پس از ثبت امضا، پرونده از کارتابل شما خارج شده و در کارپوشه مسئول مرحله بعد قرار می‌گیرد و دیگر برای شما قابل ویرایش نخواهد بود.')">
                     </p>
                 </div>
             </div>
@@ -89,7 +100,7 @@
                     :disabled="!signAgreement"
                     @click="confirmElectronicSignature()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span x-text="currentStage >= 22 ? 'تایید نهایی و بایگانی قطعی پرونده (مختومه)' : 'تأیید و ارسال به مرحله بعد ←'"></span>
+                <span x-text="isRedJ ? '⛔ ارجاع به کارتابل رئیس مسکن (فرم ج قرمز)' : (currentStage >= 22 ? 'تایید نهایی و بایگانی قطعی پرونده (مختومه)' : 'تأیید و ارسال به مرحله بعد ←')"></span>
             </button>
         </div>
     </div>
@@ -164,7 +175,7 @@
                 <div>
                     <h3 style="font-size: 1.15rem; font-weight: 800; color: #ffffff; margin: 0;">بارگذاری و اسکن اسناد و مدارک پرونده</h3>
                     <div style="font-size: 0.8rem; color: #93c5fd; margin-top: 3px;" class="fa-num">
-                        الصاق اسناد به مرحله <span x-text="currentStage"></span>: <strong x-text="stages[currentStage] ? stages[currentStage].title : ''" style="color: #ffffff;"></strong>
+                        الصاق اسناد به مرحله <span x-text="currentStage"></span>: <strong x-text="getStage(currentStage) ? getStage(currentStage).title : ''" style="color: #ffffff;"></strong>
                     </div>
                 </div>
             </div>
