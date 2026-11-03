@@ -1,7 +1,7 @@
 from .stages import STAGE_TO_SLOTS
 from django.views.decorators.http import require_POST
 from .excel_hub_views import (
-
+    
     excel_hub_view,
 
     download_excel_template_view,
@@ -38,7 +38,8 @@ import re
 
 from django.shortcuts import render, get_object_or_404, redirect
 
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse, FileResponse, Http404
+from django.urls import reverse
 
 
 
@@ -1555,7 +1556,7 @@ def save_dossier_draft_view(request, pk):
 
             stg = int(data.get("current_stage"))
 
-            if 1 <= stg <= 21:
+            if 1 <= stg <= 22:
 
                 dossier.current_stage = stg
 
@@ -2209,258 +2210,67 @@ def execute_dossier_sign(dossier, user, notes="تایید و امضای الکت
     return True, next_stage
 
 
+@login_required(login_url='login')
+@require_POST
+@transaction.atomic
 def electronic_sign_action(request, pk):
-
-    """
-
-    Handles electronic signature and forwards the dossier to the next stage (select_for_update).
-
-    Supports all 21 stages (1 to 21).
-
-    Enforces role-based permissions unless user is Superadmin or Housing Chief.
-
-    """
-
-    if request.method != "POST":
-
-        return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
-
-
-
-    dossier = HousingDossier.objects.select_for_update().get(archive_number=pk)
-
-
-
-    if dossier.is_locked:
-
-        return JsonResponse({"status": "error", "message": "این پرونده نهایی و مختومه گردیده است."}, status=400)
-
-
-
-    # Permission check for active stage
-
-    profile = getattr(request.user, 'profile', None)
-
-    user_can_action = request.user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(dossier.current_stage))
-
-    if not user_can_action:
-
-        return JsonResponse({
-
-            "status": "error",
-
-            "message": f"شما دسترسی مجاز برای تایید و امضای الکترونیک در مرحله {dossier.current_stage} را ندارید. این اقدام مختص «{dossier.current_role}» یا رئیس مسکن می‌باشد."
-
-        }, status=403)
-
-
-
-    try:
-
-        body_data = json.loads(request.body.decode('utf-8')) if request.body else {}
-
-    except Exception:
-
-        body_data = {}
-
-
-
-    current_idx = dossier.current_stage
-
-    current_role = dossier.current_role
-
-    current_title = dossier.current_stage_title
-
-
-
-    next_stage = current_idx + 1
-
-
-
-    # Generate SHA-256 integrity hash
-
-    raw_stamp = f"{dossier.archive_number}-{current_idx}-{next_stage}-{timezone.now().isoformat()}"
-
-    sig_hash = "SHA256: " + hashlib.sha256(raw_stamp.encode()).hexdigest()[:24]
-
-
-
-    if dossier.is_locked or current_idx >= 22:
-
-        dossier.is_locked = True
-
-        dossier.status = "COMPLETED"
-
-        action = "ARCHIVE"
-
-        action_label = "بایگانی قطعی پرونده"
-
-        to_stage_str = "بایگانی نهایی (مختومه)"
-
-        next_stage = current_idx
-
-    else:
-
-        dossier.current_stage = next_stage
-
-        dossier.status = "IN_PROGRESS"
-
-        dossier.return_reason = ""
-
-        dossier.return_by = ""
-
-        dossier.return_from_stage = None
-
-        action = "SIGN"
-
-        action_label = "تایید و امضای الکترونیکی"
-
-        to_stage_str = f"مرحله {next_stage}: {dossier.STAGE_ROLES.get(next_stage, ('','',f'مرحله {next_stage}'))[2]}"
-
-
-
-    dossier.save()
-
-
-
-    notes = body_data.get("notes") or request.POST.get("notes", "تایید و امضای الکترونیکی با موفقیت انجام شد.")
-
-
-
-    if request.user.is_authenticated:
-
-        profile = getattr(request.user, 'profile', None)
-
-        actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
-
-        actor_role = profile.role_title if profile and profile.role_title else current_role
-
-    else:
-
-        actor_name = "کارشناس اقدام‌کننده"
-
-        actor_role = current_role
-
-
-
-    WorkflowSignatureLog.objects.create(
-
-        dossier=dossier,
-
-        from_stage=f"مرحله {current_idx}: {current_title}",
-
-        to_stage=to_stage_str,
-
-        actor=actor_name,
-
-        role=actor_role,
-
-        action=action,
-
-        action_label=action_label,
-
-        signature_hash=sig_hash,
-
-        notes=notes
-
+    """Interactive electronic signature. Uses the same logic as Excel group signing."""
+    dossier = get_object_or_404(
+        HousingDossier.objects.select_for_update(), archive_number=pk
     )
 
-
-
-    # Auto-link expert profile signature to official archival slots (شناسنامه جامع بایگانی)
-
-    target_slots = STAGE_TO_SLOTS.get(current_idx, [])
-
-    import jdatetime
+    if dossier.is_locked:
+        return JsonResponse(
+            {"status": "error", "message": "این پرونده نهایی و مختومه گردیده است."},
+            status=400,
+        )
 
     try:
-
-        now_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d - %H:%M")
-
+        body_data = json.loads(request.body.decode("utf-8")) if request.body else {}
     except Exception:
+        body_data = {}
+    notes = (
+        body_data.get("notes")
+        or request.POST.get("notes")
+        or "تایید و امضای الکترونیکی با موفقیت انجام شد."
+    )
 
-        now_jalali = timezone.now().strftime("%Y/%m/%d %H:%M")
+    ok, result = execute_dossier_sign(dossier, request.user, notes=notes)
+    if not ok:
+        return JsonResponse({"status": "error", "message": result}, status=403)
 
-
-
-    for slot_key in target_slots:
-
-        sig_obj, _ = DossierSignature.objects.get_or_create(dossier=dossier, slot_key=slot_key)
-
-        sig_obj.signer_name = actor_name
-
-        sig_obj.signer_title = actor_role
-
-        sig_obj.signed_date = now_jalali
-
-        sig_obj.uploaded_by = request.user.username if request.user.is_authenticated else actor_name
-
-        if profile and profile.signature_image:
-
-            sig_obj.signature_image = profile.signature_image
-
-        sig_obj.save()
-
-
-
-    from django.urls import reverse
-
-    is_full_admin = request.user.is_superuser or request.user.is_staff or bool(profile and (profile.is_housing_chief or profile.allowed_stages == 'all'))
-
+    profile = getattr(request.user, "profile", None)
+    is_full_admin = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or bool(profile and (profile.is_housing_chief or profile.allowed_stages == "all"))
+    )
     can_access_next = is_full_admin or bool(profile and profile.can_action_stage(dossier.current_stage))
 
-
-
     if can_access_next:
-
         redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.archive_number})
-
     else:
-
         redirect_url = reverse("dossier_list")
-
-        stage_title = dossier.current_stage_title
-
-        try:
-
-            if dossier.is_locked or dossier.current_stage >= 22:
-
-                messages.success(request, f"پرونده #{dossier.archive_number} تایید و به بایگانی نهایی منتقل گردید.")
-
-            else:
-
-                messages.success(request, f"پرونده #{dossier.archive_number} با موفقیت به مرحله {dossier.current_stage} ({stage_title}) ارسال گردید.")
-
-        except Exception:
-
-            pass
-
-
+        if dossier.is_locked:
+            messages.success(request, f"پرونده #{dossier.archive_number} تایید و به بایگانی نهایی منتقل گردید.")
+        else:
+            messages.success(
+                request,
+                f"پرونده #{dossier.archive_number} با موفقیت به مرحله {dossier.current_stage} ({dossier.current_stage_title}) ارسال گردید.",
+            )
 
     if request.headers.get("HX-Request"):
-
         return redirect(redirect_url)
 
-
-
+    last_log = dossier.audit_logs.order_by("-timestamp").first()
     return JsonResponse({
-
         "status": "success",
-
         "new_stage": dossier.current_stage,
-
         "is_locked": dossier.is_locked,
-
-        "hash": sig_hash,
-
+        "hash": last_log.signature_hash if last_log else "",
         "redirect_url": redirect_url,
-
-        "message": f"پرونده با موفقیت به مرحله {dossier.current_stage} منتقل گردید."
-
+        "message": f"پرونده با موفقیت به مرحله {dossier.current_stage} منتقل گردید.",
     })
-
-
-
 
 
 @csrf_exempt
@@ -6107,6 +5917,25 @@ def excel_report_download_view(request, report_id):
     resp["Content-Disposition"] = f'attachment; filename="MaskanYar_Report_{report_id}.xlsx"'
     return resp
 
+def _parse_filter_date(raw):
+    """Parse YYYY/MM/DD or YYYY-MM-DD (Jalali or Gregorian) into a Gregorian date, or None."""
+    if not raw:
+        return None
+    import datetime
+    import jdatetime
+    s = normalize_digits(raw, "ascii").replace("-", "/").strip()
+    try:
+        y, m, d = [int(p) for p in s.split("/")]
+    except ValueError:
+        return None
+    try:
+        if y < 1700:
+            return jdatetime.date(y, m, d).togregorian()
+        return datetime.date(y, m, d)
+    except ValueError:
+        return None
+
+
 def excel_export_all_view(request):
 
     """
@@ -7766,7 +7595,7 @@ def bank_letter_export_excel(request):
 
         enc_fname = urllib.parse.quote(f"Nameh_Bank_{b_name.replace(' ', '_')}.xlsx")
 
-        resp["Content-Disposition"] = f'attachment; filename="{enc_fname}"; filename*=UTF-8''{enc_fname}'
+        resp["Content-Disposition"] = f"attachment; filename=\"{enc_fname}\"; filename*=UTF-8''{enc_fname}"
 
         return resp
 
