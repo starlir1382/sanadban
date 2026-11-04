@@ -1,0 +1,10 @@
+{% comment %}
+Text input bound to form.<name>.
+Params: sfx (id suffix when the same field appears twice), name, label, ph, cols(3), req, num (Persian digits), mode (inputmode), maxlen, ltr,
+        invalid (JS expression that flags the field), show (x-show expression)
+{% endcomment %}<div class="df-field df-col-{{ cols|default:'3' }}" {% if show %}x-show="{{ show }}" {% endif %}:class="{'is-locked': !isFieldEditable('{{ name }}')}">
+    <label class="df-label" for="f_{{ name }}{{ sfx }}">{% if req %}<b class="df-req">*</b>{% endif %}{{ label }}</label>
+    <input id="f_{{ name }}{{ sfx }}" type="text" class="df-input{% if num %} fa-num{% endif %}{% if ltr %} df-ltr{% endif %}"
+           x-model="form.{{ name }}" :readonly="!isFieldEditable('{{ name }}')" placeholder="{{ ph }}"
+           {% if mode %}inputmode="{{ mode }}" {% endif %}{% if maxlen %}maxlength="{{ maxlen }}" {% endif %}{% if ltr %}dir="ltr" {% endif %}{% if invalid %}:class="{'is-invalid': {{ invalid }}}"{% endif %}>
+</div>

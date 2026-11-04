@@ -1,0 +1,15 @@
+{% comment %}
+Jalali date text input + calendar button.
+Params: model (JS expression, e.g. form.sms_sent_date), keyexpr / titleexpr (raw JS passed to openDatePicker),
+        ph, ed (editable key, optional), label, cols(3), bare (no wrapper/label – used inside tables)
+{% endcomment %}{% if not bare %}<div class="df-field df-col-{{ cols|default:'3' }}"{% if ed %} :class="{'is-locked': !isFieldEditable('{{ ed }}')}"{% endif %}>
+    {% if label %}<label class="df-label">{{ label }}</label>{% endif %}
+{% endif %}<div class="df-date">
+        <input type="text" class="df-input fa-num df-ltr" dir="ltr" inputmode="numeric" x-model="{{ model }}"
+               {% if ed %}:readonly="!isFieldEditable('{{ ed }}')" {% endif %}placeholder="{{ ph }}">
+        <button type="button" class="df-date-btn" title="انتخاب تاریخ از تقویم" aria-label="انتخاب تاریخ"
+                @click="openDatePicker({{ keyexpr }}, {{ model }}, {{ titleexpr }})"{% if ed %} :disabled="!isFieldEditable('{{ ed }}')"{% endif %}>
+            <svg class="df-i"><use href="#i-cal"/></svg>
+        </button>
+    </div>
+{% if not bare %}</div>{% endif %}

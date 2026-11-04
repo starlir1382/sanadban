@@ -1,0 +1,8 @@
+{% comment %}
+Appraisal hint chip with an optional "apply" button.
+Params: theme, label, value (JS expr), apply (method name without parens, optional), ed (editable key for the button), btn
+{% endcomment %}<div class="df-chip fa-num df-theme-{{ theme|default:'blue' }}">
+    <span>{{ label }}</span>
+    <strong x-text="formatNumber({{ value }}) + ' ریال'"></strong>
+    {% if apply %}<button type="button" class="df-btn df-btn-soft df-btn-xs" @click="{{ apply }}()" :disabled="!isFieldEditable('{{ ed }}')">{{ btn|default:'اعمال' }}</button>{% endif %}
+</div>

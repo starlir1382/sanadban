@@ -1,0 +1,89 @@
+{% comment %}
+Editable cheque table with a total / ceiling balance bar.
+Params: theme, title, entries (JS array expr), ed (editable key), add / remove / recalc (method names, no parens),
+        row (row label: چک | قسط), keyexpr / titleexpr (raw JS for the date picker, can use idx), ph_date, total (JS expr),
+        ceiling (JS expr), ceiling_label
+Rows are keyed by `check.id` when the backend provides one, otherwise by index.
+{% endcomment %}<div class="df-tablebox df-theme-{{ theme }}">
+    <div class="df-tablebox-head">
+        <div class="df-panel-title"><svg class="df-i"><use href="#i-cal"/></svg><span>{{ title }}</span></div>
+        <button type="button" class="df-btn df-btn-soft" @click="{{ add }}()" :disabled="!isFieldEditable('{{ ed }}')">
+            <svg class="df-i"><use href="#i-plus"/></svg><span>افزودن ردیف</span>
+        </button>
+    </div>
+
+    <div class="df-scroll">
+        <table class="df-table">
+            <thead>
+                <tr>
+                    <th style="width: 76px;">ردیف</th>
+                    <th style="width: 25%;">سررسید (شمسی)</th>
+                    <th style="width: 23%;">شناسه صیادی</th>
+                    <th style="width: 20%;">بانک صادرکننده</th>
+                    <th style="width: 24%;">مبلغ</th>
+                    <th style="width: 44px;"><span class="sr-only" style="position:absolute;left:-9999px;">حذف</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="(check, idx) in {{ entries }}" :key="check.id || idx">
+                    <tr>
+                        <td><span class="df-rowno fa-num" x-text="'{{ row }} ' + (idx + 1)"></span></td>
+                        <td>
+                            {% include "df/_date.html" with bare=1 model="check.cash_date" ph=ph_date keyexpr=keyexpr titleexpr=titleexpr %}
+                        </td>
+                        <td>
+                            <input type="text" maxlength="16" inputmode="numeric" class="df-input df-ltr df-strong fa-num" dir="ltr"
+                                   x-model="check.check_sayadi_code" :readonly="!isFieldEditable('{{ ed }}')"
+                                   :class="{'is-invalid': check.check_sayadi_code && check.check_sayadi_code.length !== 16}"
+                                   placeholder="۱۶ رقم">
+                        </td>
+                        <td>
+                            <input type="text" class="df-input" x-model="check.bank_name" :readonly="!isFieldEditable('{{ ed }}')" placeholder="مثال: مسکن">
+                        </td>
+                        <td>
+                            <div class="df-money">
+                                <input type="text" inputmode="numeric" class="df-input fa-num"
+                                       :value="check.check_amount ? formatNumber(check.check_amount) : ''"
+                                       @input="updateFormattedAmount(check, 'check_amount', $event); {{ recalc }}()"
+                                       @blur="formatAmountOnBlur(check, 'check_amount', $event); {{ recalc }}()"
+                                       :readonly="!isFieldEditable('{{ ed }}')" placeholder="۰">
+                                <span class="df-unit">ریال</span>
+                            </div>
+                        </td>
+                        <td>
+                            <button type="button" class="df-icon-btn" title="حذف این چک" aria-label="حذف این چک" @click="{{ remove }}(idx)"
+                                    :disabled="!isFieldEditable('{{ ed }}') || ({{ entries }}.length <= 1 && idx === 0 && !check.check_amount && !check.cash_date)">
+                                <svg class="df-i"><use href="#i-x"/></svg>
+                            </button>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="df-summary fa-num">
+        <div>
+            مجموع <strong x-text="{{ entries }} ? {{ entries }}.length : 0"></strong> چک
+        </div>
+        <div>
+            <span class="df-summary-total" x-text="formatNumber({{ total }} || 0)"></span>
+            <span>ریال</span>
+            <span class="df-pill">(<span x-text="formatNumber(Math.round(({{ total }} || 0) / 10))"></span> تومان)</span>
+        </div>
+        <div class="df-summary-sub">
+            <div>{{ ceiling_label }}: <strong x-text="formatNumber({{ ceiling }} || 0) + ' ریال'"></strong></div>
+            <div>
+                <template x-if="({{ total }} || 0) === (Number({{ ceiling }}) || 0) && {{ total }} > 0">
+                    <span class="df-pill df-pill-green"><svg class="df-i"><use href="#i-check"/></svg>مجموع چک‌ها با سقف برابر است</span>
+                </template>
+                <template x-if="({{ total }} || 0) < (Number({{ ceiling }}) || 0)">
+                    <span class="df-pill" style="background:#fef3c7;color:#92400e;border-color:#fde68a;"><svg class="df-i"><use href="#i-alert"/></svg>مانده تا سقف: <strong x-text="formatNumber((Number({{ ceiling }}) || 0) - ({{ total }} || 0)) + ' ریال'"></strong></span>
+                </template>
+                <template x-if="({{ total }} || 0) > (Number({{ ceiling }}) || 0)">
+                    <span class="df-pill df-pill-red"><svg class="df-i"><use href="#i-alert"/></svg>مجموع چک‌ها از سقف بیشتر است</span>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>

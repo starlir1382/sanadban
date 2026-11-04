@@ -1,0 +1,9 @@
+{% comment %}
+First/last name input that also keeps the combined full-name field in sync.
+Params: name (this field), a (first-name key), b (last-name key), full (full-name key), label, ph, cols, req
+{% endcomment %}<div class="df-field df-col-{{ cols|default:'3' }}" :class="{'is-locked': !isFieldEditable('{{ name }}') && !isFieldEditable('{{ full }}')}">
+    <label class="df-label" for="f_{{ name }}">{% if req %}<b class="df-req">*</b>{% endif %}{{ label }}</label>
+    <input id="f_{{ name }}" type="text" class="df-input" x-model="form.{{ name }}"
+           @input="form.{{ full }} = ((form.{{ a }} || '') + ' ' + (form.{{ b }} || '')).trim()"
+           :readonly="!isFieldEditable('{{ name }}') && !isFieldEditable('{{ full }}')" placeholder="{{ ph }}">
+</div>

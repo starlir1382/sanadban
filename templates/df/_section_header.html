@@ -1,0 +1,8 @@
+{% comment %}Collapsible section header. Params: id, icon, title. Needs `sectionOpen` from the parent x-data.{% endcomment %}
+<h3 class="df-head-wrap">
+    <button type="button" class="df-head" @click="sectionOpen = !sectionOpen" :aria-expanded="sectionOpen" aria-controls="{{ id }}-body">
+        <span class="df-head-icon"><svg class="df-i"><use href="#i-{{ icon }}"/></svg></span>
+        <span class="df-head-title">{{ title }}</span>
+        <svg class="df-chev" viewBox="0 0 24 24" :class="{'is-open': sectionOpen}"><use href="#i-chev"/></svg>
+    </button>
+</h3>

@@ -1,0 +1,15 @@
+{% comment %}Income decile select bound to form.decile. Params: cols(2), label{% endcomment %}<div class="df-field df-col-{{ cols|default:'2' }}" :class="{'is-locked': !isFieldEditable('decile')}">
+    <label class="df-label" for="f_decile{{ suffix }}">{{ label|default:'دهک درآمدی' }}</label>
+    <select id="f_decile{{ suffix }}" class="df-input fa-num" x-model="form.decile" :disabled="!isFieldEditable('decile')">
+        <option value="1">دهک ۱</option>
+        <option value="2">دهک ۲</option>
+        <option value="3">دهک ۳</option>
+        <option value="4">دهک ۴</option>
+        <option value="5">دهک ۵</option>
+        <option value="6">دهک ۶</option>
+        <option value="7">دهک ۷</option>
+        <option value="8">دهک ۸</option>
+        <option value="9">دهک ۹</option>
+        <option value="10">دهک ۱۰</option>
+    </select>
+</div>

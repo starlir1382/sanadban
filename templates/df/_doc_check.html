@@ -1,0 +1,4 @@
+{% comment %}Physical-document checklist item bound to form.<name>. Params: name, label{% endcomment %}<label class="df-check" :class="{'is-on': form.{{ name }}}">
+    <input type="checkbox" x-model="form.{{ name }}" :disabled="!isFieldEditable('{{ name }}')">
+    <span>{{ label }}</span>
+</label>

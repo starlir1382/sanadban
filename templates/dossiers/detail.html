@@ -592,6 +592,35 @@
       animation: none !important;
     }
   }
+  .sticky-scan-tab {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 9999;
+    background: #1d4ed8;
+    color: #ffffff;
+    border: none;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 2px 4px 16px rgba(29, 78, 216, 0.45);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .sticky-scan-tab:hover {
+    background: #1e40af;
+    padding-left: 11px;
+    box-shadow: 4px 6px 20px rgba(29, 78, 216, 0.65);
+  }
 </style>
 
 <!-- Loading skeleton placeholder while data loads -->
@@ -772,7 +801,7 @@
           padding: 2px 8px;
           border-radius: 6px;
         "
-        >#{{ dossier.archive_number }}</span
+        >{{ dossier.archive_number }}</span
       >
 
       <!-- راهنمایی Button -->
@@ -970,7 +999,7 @@
     :class="{'sb-simple': simpleMode}"
     x-effect="applySimpleModeVisibility()"
   >
-    {% include 'components/form_sections.html' %}
+    {% include "df/form_sections.html" %}
   </div>
 
   <!-- TAB: stage map -->
@@ -1226,16 +1255,25 @@
           ></span>
         </button>
 
+        <!-- Red Form J Alert (No advancing / sending forward) -->
+        <div
+          x-show="isRedJ"
+          x-cloak
+          style="display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1rem; border-radius: 8px; background: #fee2e2; border: 1.5px solid #f87171; color: #991b1b; font-size: 0.82rem; font-weight: 800;"
+        >
+          <span>⛔ وضعیت فرم «ج» قرمز است؛ پرونده متوقف شده و امکان ارسال به ادمین/مرحله بعد وجود ندارد.</span>
+        </div>
+
         <button
           type="button"
-          :class="isRedJ ? 'btn btn-danger' : 'btn btn-success'"
-          x-show="userCanAction && !isLocked && !isRejected"
+          class="btn btn-success"
+          x-show="userCanAction && !isLocked && !isRejected && !isRedJ"
           x-cloak
           style="display: none"
           @click="openSignatureModal()"
         >
           <span
-            x-text="isRedJ ? '⛔ ارجاع به رئیس مسکن (فرم ج قرمز)' : (currentStage === 22 ? '✓ تایید و بایگانی قطعی' : '✓ تایید و امضای الکترونیکی')"
+            x-text="currentStage === 22 ? '✓ تایید و بایگانی قطعی' : '✓ تایید و امضای الکترونیکی'"
           ></span>
         </button>
       </div>
@@ -1243,6 +1281,22 @@
   </div>
 
   <!-- Modals (inside the Alpine scope) -->
+  
+  <!-- Sticky Button on Left Edge: Quick Toggle for Maps & Scans Album -->
+  <button
+    type="button"
+    class="sticky-scan-tab no-print"
+    @click="tab = (tab === 'scans' ? 'form' : 'scans'); if(tab === 'scans') { $nextTick(() => { document.getElementById('scans').scrollIntoView({ behavior: 'smooth' }); }); }"
+    :title="tab === 'scans' ? 'بستن آلبوم و بازگشت به فرم' : 'مشاهده نقشه‌ها و آلبوم مدارک'"
+  >
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="transform: rotate(90deg);">
+      <polygon points="1 6 1 22 8 18 15 22 22 18 22 2 15 6 8 2 1 6"></polygon>
+      <line x1="8" y1="2" x2="8" y2="18"></line>
+      <line x1="15" y1="6" x2="15" y2="22"></line>
+    </svg>
+    <span x-text="tab === 'scans' ? 'بستن نقشه‌ها' : 'مشاهده نقشه‌ها'"></span>
+  </button>
+
   {% include 'components/modals/workflow_modals.html' %} {% include 'components/modals/scan_viewer_modal.html' %} {% include 'components/modals/date_picker_modal.html' %}
 
   <!-- Stage Guidance Modal (راهنمایی پرونده: بزرگ‌تر، کاملاً وسط‌چین و استاندارد) -->

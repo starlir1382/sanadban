@@ -1,0 +1,39 @@
+{% comment %}
+Auto-generator panel for a list of cheque rows.
+Params: theme (amber|green), title, gen (Alpine object, e.g. checkGenerator), datemodel (gen + ".startDate"), action (JS to run), ed (editable key),
+        min, max, c1..c4 (quick-pick counts), ph (date placeholder), keyexpr, titleexpr (for the date picker),
+        interval (1 = show interval select), interval_text (static text otherwise)
+{% endcomment %}<div class="df-panel df-theme-{{ theme }}">
+    <div class="df-panel-head">
+        <div class="df-panel-title"><svg class="df-i"><use href="#i-bolt"/></svg><span>{{ title }}</span></div>
+        <button type="button" class="df-btn df-btn-accent" @click="{{ action }}" :disabled="!isFieldEditable('{{ ed }}')">
+            <svg class="df-i"><use href="#i-bolt"/></svg><span>تولید و تقسیط خودکار</span>
+        </button>
+    </div>
+    <div class="df-grid">
+        <div class="df-field df-col-4">
+            <label class="df-label" for="{{ gen }}_count">تعداد چک‌ها</label>
+            <div class="df-count">
+                <input id="{{ gen }}_count" type="number" min="{{ min }}" max="{{ max }}" class="df-input fa-num" x-model.number="{{ gen }}.count">
+                <div class="df-seg fa-num">
+                    <button type="button" class="df-seg-btn" :class="{'is-on': {{ gen }}.count === {{ c1 }}}" @click="{{ gen }}.count = {{ c1 }}">{{ c1 }} چک</button>
+                    <button type="button" class="df-seg-btn" :class="{'is-on': {{ gen }}.count === {{ c2 }}}" @click="{{ gen }}.count = {{ c2 }}">{{ c2 }} چک</button>
+                    <button type="button" class="df-seg-btn" :class="{'is-on': {{ gen }}.count === {{ c3 }}}" @click="{{ gen }}.count = {{ c3 }}">{{ c3 }} چک</button>
+                    {% if c4 %}<button type="button" class="df-seg-btn" :class="{'is-on': {{ gen }}.count === {{ c4 }}}" @click="{{ gen }}.count = {{ c4 }}">{{ c4 }} چک</button>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% include "df/_date.html" with label="سررسید چک اول" cols=4 model=datemodel keyexpr=keyexpr titleexpr=titleexpr ph=ph %}
+        <div class="df-field df-col-4">
+            <label class="df-label" for="{{ gen }}_interval">فاصله سررسیدها</label>
+            {% if interval %}
+            <select id="{{ gen }}_interval" class="df-input" x-model="{{ gen }}.interval">
+                <option value="1year">سالانه (+۱ سال)</option>
+                <option value="6months">شش‌ماهه (+۶ ماه)</option>
+            </select>
+            {% else %}
+            <input id="{{ gen }}_interval" type="text" class="df-input" value="{{ interval_text }}" readonly>
+            {% endif %}
+        </div>
+    </div>
+</div>

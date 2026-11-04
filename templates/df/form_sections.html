@@ -1,0 +1,569 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/dossier_form.css' %}">
+{% include "df/_icons.html" %}
+
+{# `form-sections-wrapper` / `form-card` are kept only as hooks for existing JS/CSS selectors. #}
+<div class="df form-sections-wrapper" dir="rtl">
+
+    <!-- ======================= بخش ۱: متقاضی، همسر، پروژه و واحد ======================= -->
+    <section class="df-card form-card" id="section-applicant"
+             :class="{'is-active': isSectionActive('section-applicant')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-applicant') }">
+        {% include "df/_section_header.html" with id="section-applicant" icon="user" title="بخش ۱: متقاضی، همسر، پروژه و واحد مسکونی" %}
+
+        <div class="df-body" id="section-applicant-body" x-show="sectionOpen" x-cloak x-transition>
+
+            <fieldset class="df-set">
+                <legend class="df-legend"><svg class="df-i"><use href="#i-user"/></svg>متقاضی (سرپرست خانوار)</legend>
+                <div class="df-grid">
+                    {% include "df/_field.html" with name="national_id" label="کد ملی" req=1 cols=3 num=1 mode="numeric" maxlen=10 ph="0012345678" invalid="form.national_id && form.national_id.length !== 10" %}
+                    {% include "df/_name_field.html" with name="first_name" a="first_name" b="last_name" full="full_name" label="نام" req=1 cols=3 ph="نام متقاضی" %}
+                    {% include "df/_name_field.html" with name="last_name" a="first_name" b="last_name" full="full_name" label="نام خانوادگی" req=1 cols=3 ph="نام خانوادگی متقاضی" %}
+                    {% include "df/_field.html" with name="father_name" label="نام پدر" req=1 cols=3 ph="نام پدر" %}
+                    {% include "df/_field.html" with name="birth_date" label="تاریخ تولد (شمسی)" cols=3 num=1 mode="numeric" ph="1365/01/01" %}
+                    {% include "df/_field.html" with name="applicant_id_number" label="شماره شناسنامه" cols=3 num=1 mode="numeric" ph="شماره شناسنامه" %}
+                    {% include "df/_field.html" with name="applicant_birth_place" label="محل صدور" cols=3 ph="شهر صدور" %}
+                    {% include "df/_field.html" with name="applicant_phone" label="شماره همراه" cols=3 num=1 mode="tel" ph="09123456789" %}
+                    {% include "df/_field.html" with name="selection_rank" label="رتبه انتخاب واحد" cols=3 num=1 mode="numeric" ph="45" %}
+                    {% include "df/_decile_select.html" with cols=3 label="دهک درآمدی" %}
+                </div>
+            </fieldset>
+
+            <fieldset class="df-set">
+                <legend class="df-legend" style="color:#065f46;"><svg class="df-i"><use href="#i-users"/></svg>همسر</legend>
+                <div class="df-grid">
+                    {% include "df/_name_field.html" with name="spouse_first_name" a="spouse_first_name" b="spouse_last_name" full="spouse_full_name" label="نام" req=1 cols=3 ph="نام همسر" %}
+                    {% include "df/_name_field.html" with name="spouse_last_name" a="spouse_first_name" b="spouse_last_name" full="spouse_full_name" label="نام خانوادگی" req=1 cols=3 ph="نام خانوادگی همسر" %}
+                    {% include "df/_field.html" with name="spouse_national_id" label="کد ملی" req=1 cols=3 num=1 mode="numeric" maxlen=10 ph="0029876543" invalid="form.spouse_national_id && form.spouse_national_id.length !== 10" %}
+                    {% include "df/_field.html" with name="spouse_father_name" label="نام پدر" cols=3 ph="نام پدر" %}
+                    {% include "df/_field.html" with name="spouse_id_number" label="شماره شناسنامه" cols=3 num=1 mode="numeric" ph="شماره شناسنامه" %}
+                    {% include "df/_field.html" with name="spouse_birth_date" label="تاریخ تولد (شمسی)" cols=3 num=1 mode="numeric" ph="1365/01/01" %}
+                    {% include "df/_field.html" with name="spouse_birth_place" label="محل تولد / صدور" cols=3 ph="شهر صدور" %}
+                    <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('marital_status')}">
+                        <label class="df-label" for="f_marital_status">وضعیت تاهل</label>
+                        <select id="f_marital_status" class="df-input" x-model="form.marital_status" :disabled="!isFieldEditable('marital_status')">
+                            <option value="متاهل (واجد شرایط طرح زوجین)">متاهل (واجد شرایط طرح زوجین)</option>
+                            <option value="متاهل سرپرست خانوار">متاهل سرپرست خانوار</option>
+                        </select>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="df-set sb-advanced-only">
+                <legend class="df-legend"><svg class="df-i"><use href="#i-building"/></svg>سایت، پروژه و واحد مسکونی</legend>
+                <div class="df-grid">
+                    <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('site')}">
+                        <label class="df-label" for="f_site">نام سایت</label>
+                        <select id="f_site" class="df-input" x-model="form.site" :disabled="!isFieldEditable('site')">
+                            <option value="">انتخاب سایت</option>
+                            <option value="رئیسی 560 هکتار">رئیسی 560 هکتار</option>
+                            <option value="27 هکتاری">27 هکتاری</option>
+                            <option value="پرنیان">پرنیان</option>
+                            <option value="قنوات">قنوات</option>
+                            <option value="سلفچگان">سلفچگان</option>
+                            <option value="جعفریه">جعفریه</option>
+                        </select>
+                    </div>
+
+                    <!-- جستجوی پروژه با پیمایش کیبوردی -->
+                    <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('project')}" x-data="{ open: false, hi: -1 }">
+                        <label class="df-label" for="f_project">نام پروژه</label>
+                        <div class="df-combo">
+                            <input id="f_project" type="text" class="df-input" autocomplete="off" role="combobox" :aria-expanded="open"
+                                   x-model="form.project"
+                                   @focus="open = isFieldEditable('project')"
+                                   @input="open = isFieldEditable('project'); hi = -1"
+                                   @click.outside="open = false"
+                                   @keydown.escape="open = false"
+                                   @keydown.arrow-down.prevent="open = isFieldEditable('project'); hi = Math.min(hi + 1, getFilteredProjects(form.project).length - 1)"
+                                   @keydown.arrow-up.prevent="hi = Math.max(hi - 1, 0)"
+                                   @keydown.enter="if (open && hi >= 0) { $event.preventDefault(); selectProject(getFilteredProjects(form.project)[hi]); open = false; }"
+                                   :readonly="!isFieldEditable('project')"
+                                   placeholder="جستجو: اقدم، پرنیان، داتیس">
+                            <div class="df-combo-list" role="listbox"
+                                 x-show="open && isFieldEditable('project') && getFilteredProjects(form.project).length > 0" x-cloak>
+                                <template x-for="(p, i) in getFilteredProjects(form.project)" :key="p.code || p.name">
+                                    <div class="df-combo-item" role="option" :class="{'is-hi': i === hi}"
+                                         @mousedown.prevent="selectProject(p); open = false">
+                                        <div>
+                                            <strong x-text="p.name"></strong>
+                                            <small x-text="p.bank_name ? '(' + p.bank_name + ')' : ''"></small>
+                                        </div>
+                                        <span class="df-combo-code fa-num" x-text="p.code"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% include "df/_field.html" with name="project_code" label="کد پروژه" cols=2 num=1 ph="کد پروژه" %}
+                    {% include "df/_field.html" with name="bank_name" label="بانک متقاضی" cols=3 ph="بانک عامل" %}
+                    {% include "df/_field.html" with name="bank_branch" label="شعبه بانک" cols=3 ph="نام یا کد شعبه" %}
+
+                    <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('construction_type')}">
+                        <label class="df-label" for="f_construction_type">نوع ساخت</label>
+                        <select id="f_construction_type" class="df-input" x-model="form.construction_type" :disabled="!isFieldEditable('construction_type')">
+                            <option value="آپارتمانی">آپارتمانی</option>
+                            <option value="ویلایی">ویلایی</option>
+                        </select>
+                    </div>
+                    <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('bedroom_count')}">
+                        <label class="df-label" for="f_bedroom_count">تعداد خواب</label>
+                        <select id="f_bedroom_count" class="df-input fa-num" x-model="form.bedroom_count" :disabled="!isFieldEditable('bedroom_count')">
+                            <option value="1">۱ خوابه</option>
+                            <option value="2">۲ خوابه</option>
+                            <option value="3">۳ خوابه</option>
+                        </select>
+                    </div>
+                    {% include "df/_field.html" with name="block_code" label="کد بلوک" cols=3 num=1 mode="numeric" ph="27" %}
+                    <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('floor_number')}">
+                        <label class="df-label" for="f_floor_number">طبقه</label>
+                        <select id="f_floor_number" class="df-input fa-num" x-model="form.floor_number" :disabled="!isFieldEditable('floor_number')">
+                            <option value="0">همکف</option>
+                            <option value="1" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۱</option>
+                            <option value="2" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۲</option>
+                            <option value="3" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۳</option>
+                            <option value="4" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۴</option>
+                            <option value="5" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۵</option>
+                        </select>
+                    </div>
+
+                    {% include "df/_field.html" with name="unit_number" label="شماره واحد" cols=3 num=1 mode="numeric" ph="شماره واحد" %}
+                    <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('unit_direction')}">
+                        <label class="df-label" for="f_unit_direction">جهت واحد</label>
+                        <select id="f_unit_direction" class="df-input" x-model="form.unit_direction" :disabled="!isFieldEditable('unit_direction')">
+                            <option value="شمال غربی">شمال غربی</option>
+                            <option value="شمال شرقی">شمال شرقی</option>
+                            <option value="جنوب غربی">جنوب غربی</option>
+                            <option value="جنوب شرقی">جنوب شرقی</option>
+                            <option value="شمالی">شمالی</option>
+                            <option value="جنوبی">جنوبی</option>
+                            <option value="دو کله">دو کله</option>
+                        </select>
+                    </div>
+                    {% include "df/_field.html" with name="net_unit_area" label="متراژ مفید (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                    {% include "df/_field.html" with name="common_area" label="متراژ مشاعات (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                    {% include "df/_field.html" with name="total_area" label="جمع کل متراژ (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                    {% include "df/_field.html" with name="covered_parking_area" label="پارکینگ مسقف (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                    {% include "df/_field.html" with name="storage_number" label="شماره انباری" cols=3 num=1 mode="numeric" ph="۰" %}
+                    {% include "df/_field.html" with name="storage_area" label="مساحت انباری (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                    {% include "df/_field.html" with name="parking_number" label="شماره پارکینگ" cols=3 num=1 mode="numeric" ph="۰" %}
+                    {% include "df/_field.html" with name="parking_area" label="مساحت پارکینگ (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                </div>
+            </fieldset>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۲: اطلاعات ثبتی عرصه و پلاک ======================= -->
+    <section class="df-card form-card" id="section-plot"
+             :class="{'is-active': isSectionActive('section-plot')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-plot') }">
+        {% include "df/_section_header.html" with id="section-plot" icon="layers" title="بخش ۲: اطلاعات ثبتی عرصه، پلاک و مساحت" %}
+
+        <div class="df-body" id="section-plot-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-strip fa-num">
+                <span>بانک عامل</span>
+                <strong class="df-tag" x-text="form.bank_name || 'بانک مسکن'"></strong>
+                <span x-show="form.bank_branch" x-text="'شعبه: ' + form.bank_branch"></span>
+                <span class="df-strip-end">پروژه: <strong x-text="form.project || '-'"></strong></span>
+            </div>
+            <div class="df-grid">
+                {% include "df/_field.html" with name="registration_section" label="بخش ثبتی" cols=2 ph="بخش ثبتی" %}
+                {% include "df/_field.html" with name="main_plaque" label="پلاک اصلی" cols=2 num=1 mode="numeric" ph="۰" %}
+                {% include "df/_field.html" with name="separated_plaque" label="پلاک مفروز" cols=2 num=1 mode="numeric" ph="۰" %}
+                {% include "df/_field.html" with name="sub_plaque" label="فرعی از" cols=2 num=1 mode="numeric" ph="۰" %}
+                {% include "df/_field.html" with name="plot_number" label="شماره قطعه" cols=2 num=1 mode="numeric" ph="۰" %}
+                {% include "df/_field.html" with name="renovation_code" label="کد نوسازی (شهرداری)" cols=2 num=1 ph="کد نوسازی" %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۳: استعلام فرم «ج» ======================= -->
+    <section class="df-card form-card" id="section-form-j"
+             :class="{'is-active': isSectionActive('section-form-j')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-form-j') }">
+        {% include "df/_section_header.html" with id="section-form-j" icon="file" title="بخش ۳: استعلام رسمی و فرم «ج» متقاضی و همسر" %}
+
+        <div class="df-body" id="section-form-j-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-panel-head df-theme-green">
+                <p class="df-note" style="margin:0; max-width:46rem;">
+                    شماره پرسش‌نامه، وضعیت عدم مالکیت متقاضی و همسر. برگه چاپی استعلام در آلبوم اسناد بارگذاری می‌شود.
+                </p>
+                <button type="button" class="df-btn" @click="go('scans')" title="مشاهده اسناد در آلبوم اسکن‌ها">
+                    <svg class="df-i"><use href="#i-link"/></svg><span>آلبوم اسناد</span>
+                </button>
+            </div>
+
+            <div class="df-grid">
+                {% include "df/_field.html" with name="project_code" sfx="_j" label="کد پروژه" cols=4 num=1 ph="کد پروژه" %}
+
+                <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('form_j_registration_type')}">
+                    <label class="df-label" for="f_form_j_registration_type">نحوه ثبت فرم ج</label>
+                    <select id="f_form_j_registration_type" class="df-input" x-model="form.form_j_registration_type" :disabled="!isFieldEditable('form_j_registration_type')">
+                        <option value="خودکار">ثبت خودکار</option>
+                        <option value="دستی">ثبت دستی</option>
+                    </select>
+                </div>
+
+                {% include "df/_field.html" with name="form_j_questionnaire_number" label="شماره پرسش‌نامه فرم ج" cols=4 num=1 ph="شماره پرسش‌نامه" %}
+
+                <div class="df-field df-col-6" :class="{'is-locked': !isFieldEditable('applicant_form_j_status')}">
+                    <div class="df-label-row">
+                        <label class="df-label" for="f_applicant_form_j_status">وضعیت فرم ج متقاضی</label>
+                        <span class="df-pill" :class="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'df-pill-red' : 'df-pill-green'"
+                              x-text="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'کد قرمز' : 'کد سبز'"></span>
+                    </div>
+                    <select id="f_applicant_form_j_status" class="df-input" x-model="form.applicant_form_j_status" :disabled="!isFieldEditable('applicant_form_j_status')">
+                        <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
+                        <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
+                        <option value="در حال استعلام">در حال استعلام</option>
+                    </select>
+                </div>
+
+                <div class="df-field df-col-6" :class="{'is-locked': !isFieldEditable('spouse_form_j_status')}">
+                    <div class="df-label-row">
+                        <label class="df-label" for="f_spouse_form_j_status">وضعیت فرم ج همسر</label>
+                        <span class="df-pill" :class="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'df-pill-red' : 'df-pill-green'"
+                              x-text="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'کد قرمز' : 'کد سبز'"></span>
+                    </div>
+                    <select id="f_spouse_form_j_status" class="df-input" x-model="form.spouse_form_j_status" :disabled="!isFieldEditable('spouse_form_j_status')">
+                        <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
+                        <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
+                        <option value="در حال استعلام">در حال استعلام</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="df-alert" x-show="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')" x-cloak x-transition>
+                <div class="df-alert-title"><svg class="df-i"><use href="#i-alert"/></svg>هشدار کد قرمز فرم «ج» متقاضی</div>
+                <textarea class="df-input" rows="2" aria-label="توضیحات کد قرمز متقاضی"
+                          x-model="form.applicant_form_j_red_description"
+                          :readonly="!isFieldEditable('applicant_form_j_red_description')"
+                          placeholder="علت و توضیحات سوابق مسکن، پلاک یا زمین قبلی"></textarea>
+            </div>
+
+            <div class="df-alert" x-show="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')" x-cloak x-transition>
+                <div class="df-alert-title"><svg class="df-i"><use href="#i-alert"/></svg>هشدار کد قرمز فرم «ج» همسر</div>
+                <textarea class="df-input" rows="2" aria-label="توضیحات کد قرمز همسر"
+                          x-model="form.spouse_form_j_red_description"
+                          :readonly="!isFieldEditable('spouse_form_j_red_description')"
+                          placeholder="علت و توضیحات سوابق مسکن، پلاک یا زمین قبلی"></textarea>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۴: مبالغ قرارداد و تسهیلات بانکی ======================= -->
+    <section class="df-card form-card" id="section-cost"
+             :class="{'is-active': isSectionActive('section-cost')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-cost'), loanPresets: (window.DOSSIER_CONFIG && window.DOSSIER_CONFIG.loanPresets) || [6500000000, 5500000000] }">
+        {% include "df/_section_header.html" with id="section-cost" icon="coin" title="بخش ۴: مبالغ قرارداد، قیمت تمام‌شده و تسهیلات بانکی" %}
+
+        <div class="df-body" id="section-cost-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                <div class="df-field df-col-6" :class="{'is-locked': !isFieldEditable('bank_loan_amount')}">
+                    <div class="df-label-row df-theme-blue">
+                        <label class="df-label" for="f_bank_loan_amount"><b class="df-req">*</b>وام ساخت بانک مسکن</label>
+                        <div class="df-seg fa-num">
+                            <template x-for="p in loanPresets" :key="p">
+                                <button type="button" class="df-seg-btn" :class="{'is-on': form.bank_loan_amount == p}"
+                                        :disabled="!isFieldEditable('bank_loan_amount')" @click="setBankLoan(p)"
+                                        x-text="(p / 1000000) + ' میلیون'"></button>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="df-money">
+                        <input id="f_bank_loan_amount" type="text" inputmode="numeric" class="df-input fa-num"
+                               :value="form.bank_loan_amount ? formatNumber(form.bank_loan_amount) : ''"
+                               @input="updateFormattedAmount(form, 'bank_loan_amount', $event); recalculateEquity()"
+                               @blur="formatAmountOnBlur(form, 'bank_loan_amount', $event)"
+                               :readonly="!isFieldEditable('bank_loan_amount')" placeholder="۰">
+                        <span class="df-unit">ریال</span>
+                    </div>
+                    <div class="df-words" x-show="form.bank_loan_amount">به حروف: <strong x-text="toWords(form.bank_loan_amount)"></strong></div>
+                </div>
+
+                {% include "df/_money.html" with name="base_cost_without_loan" label="قیمت تمام‌شده بدون وام بانکی" req=1 cols=6 words=1 on="recalculateEquity()" %}
+            </div>
+
+            <div class="df-total fa-num">
+                <div>
+                    <div class="df-total-label">قیمت تمام‌شده بدون وام + وام بانکی</div>
+                    <div style="font-size:.84rem; font-weight:700;">
+                        <span x-text="formatNumber(form.base_cost_without_loan)"></span> +
+                        <span x-text="formatNumber(form.bank_loan_amount)"></span>
+                    </div>
+                </div>
+                <div class="df-total-value">
+                    <span x-text="formatNumber(Number(form.base_cost_without_loan || 0) + Number(form.bank_loan_amount || 0))"></span>
+                    <small>ریال</small>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۵: وام صندوق، نامه پیمانکار، وام دهک ======================= -->
+    <section class="df-card form-card" id="section-loans"
+             :class="{'is-active': isSectionActive('section-loans')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-loans') }">
+        {% include "df/_section_header.html" with id="section-loans" icon="wallet" title="بخش ۵: وام صندوق ملی، نامه پیمانکار و وام دهک" %}
+
+        <div class="df-body" id="section-loans-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                {% include "df/_money.html" with name="fund_loan_amount" label="وام صندوق مسکن" cols=4 on="recalculateEquity()" %}
+                {% include "df/_money.html" with name="contractor_letter_amount" label="مبلغ نامه پیمانکار" cols=4 %}
+                {% include "df/_money.html" with name="decile_loan_amount" label="وام دهک درآمدی" cols=4 on="recalculateEquity(); recalculateChecks()" %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۶: آورده نقدی و پیامک ======================= -->
+    <section class="df-card form-card" id="section-equity"
+             :class="{'is-active': isSectionActive('section-equity')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-equity') }">
+        {% include "df/_section_header.html" with id="section-equity" icon="bell" title="بخش ۶: مبلغ آورده نقدی و پیامک اطلاع‌رسانی" %}
+
+        <div class="df-body" id="section-equity-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                <div class="df-field df-col-6 is-locked">
+                    <label class="df-label" for="f_applicant_equity">آورده نقدی متقاضی (محاسبه خودکار)</label>
+                    <div class="df-money">
+                        <input id="f_applicant_equity" type="text" class="df-input fa-num" :value="formatNumber(form.applicant_equity)" readonly>
+                        <span class="df-unit">ریال</span>
+                    </div>
+                    <div class="df-words" x-show="form.applicant_equity">به حروف: <strong x-text="toWords(form.applicant_equity)"></strong></div>
+                </div>
+
+                {% include "df/_date.html" with label="تاریخ ارسال پیامک (شمسی)" cols=6 model="form.sms_sent_date" keyexpr="'sms_sent_date'" titleexpr="'تاریخ ارسال پیامک تعیین آورده'" ph="۱۴۰۳/۰۸/۱۲" ed="sms_sent_date" %}
+
+                <div class="df-field df-col-12">
+                    <div class="df-row-box">
+                        <div>
+                            <strong x-text="form.is_sms_sent ? 'پیامک ارسال گردید ✓' : 'پیامک هنوز ارسال نشده'"></strong>
+                            <small x-text="form.is_sms_sent ? 'زمان ارسال: ' + form.sms_sent_at : 'ارسال به شماره همراه متقاضی'"></small>
+                        </div>
+                        <button type="button" class="df-btn df-btn-primary" @click="sendEquitySMS()" :disabled="form.is_sms_sent">
+                            <svg class="df-i"><use href="#i-send"/></svg><span>ارسال پیامک تعیین آورده</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="df-field df-col-12">
+                    {% include "df/_confirm_card.html" with name="is_equity_funded" free=1 change="confirmEquityFunding()" title="تأمین و واریز کامل آورده نقدی به حساب مسدودی" ok="تأمین آورده تأیید شد ✓" wait="در انتظار تأمین آورده" %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۷: نامه بانک ======================= -->
+    <section class="df-card form-card" id="section-bank"
+             :class="{'is-active': isSectionActive('section-bank')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-bank') }">
+        {% include "df/_section_header.html" with id="section-bank" icon="cal" title="بخش ۷: نامه بانک و استعلام تسهیلات" %}
+
+        <div class="df-body" id="section-bank-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                {% include "df/_field.html" with name="bank_letter_number" label="شماره نامه معرفی به بانک" cols=6 num=1 ph="شماره نامه" %}
+                {% include "df/_field.html" with name="bank_letter_date" label="تاریخ نامه (شمسی)" cols=6 num=1 mode="numeric" ph="1403/01/01" %}
+
+                <div class="df-field df-col-12">
+                    <div class="df-confirm" :class="{'is-on': form.is_sent_to_bank}">
+                        <label class="df-confirm-main" for="chk_is_sent_to_bank">
+                            <input type="checkbox" id="chk_is_sent_to_bank" x-model="form.is_sent_to_bank" :disabled="!isFieldEditable('bank_letter_number')">
+                            <span>
+                                <strong x-show="form.is_sent_to_bank" x-text="'نامه معرفی متقاضی به ' + (form.bank_name || 'بانک مسکن') + ' صادر و ارسال شد'"></strong>
+                                <strong x-show="!form.is_sent_to_bank" x-text="'در انتظار صدور و ارسال نامه معرفی به ' + (form.bank_name || 'بانک مسکن')"></strong>
+                            </span>
+                        </label>
+                        <template x-if="form.is_sent_to_bank && (form.bank_letter_number || form.bank_sent_letter_number)">
+                            <div class="fa-num" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:.8rem;">
+                                <span>شماره: <strong x-text="form.bank_letter_number || form.bank_sent_letter_number"></strong></span>
+                                <span>تاریخ: <strong x-text="form.bank_letter_date || form.bank_sent_date"></strong></span>
+                                <a class="df-link" target="_blank" rel="noopener" title="مشاهده و چاپ برگه رسمی نامه بانک"
+                                   :href="'{% url 'bank_letter_sender' %}?letter=' + encodeURIComponent(form.bank_letter_number || form.bank_sent_letter_number)">
+                                    <svg class="df-i"><use href="#i-eye"/></svg>مشاهده برگه نامه
+                                </a>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۸: پرونده کارگزاری و مدارک ======================= -->
+    <section class="df-card form-card" id="section-docs-installment"
+             :class="{'is-active': isSectionActive('section-docs-installment')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-docs-installment') }">
+        {% include "df/_section_header.html" with id="section-docs-installment" icon="folder" title="بخش ۸: پرونده کارگزاری، کنترل مدارک و دفترچه اقساط" %}
+
+        <div class="df-body" id="section-docs-installment-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                <!-- ثبت شماره پرسش‌نامه فرم ج در مرحله ۷ (پس از ثبت به بخش ۳ منتقل و اینجا پنهان می‌شود) -->
+                <template x-if="currentStage === 7 && (!form.form_j_questionnaire_number || form.form_j_questionnaire_number.toString().trim() === '')">
+                    <div class="df-field df-col-12 df-panel df-theme-blue" style="margin-bottom:0;">
+                        <label class="df-label" for="f_form_j_questionnaire_number_s7" style="color:#1e40af;"><b class="df-req">*</b>شماره پرسش‌نامه فرم «ج»</label>
+                        <div style="display:flex; gap:8px;">
+                            <input id="f_form_j_questionnaire_number_s7" type="text" class="df-input fa-num" x-model="form.form_j_questionnaire_number" placeholder="شماره پرسش‌نامه">
+                            <button type="button" class="df-btn df-btn-primary" style="height:var(--df-h);" @click="saveDossierDraft(); triggerToast('شماره پرسش‌نامه ثبت و به بخش ۳ منتقل گردید.', 'success');">ثبت و انتقال</button>
+                        </div>
+                        <span class="df-note" style="display:block; margin-top:6px;">پس از ثبت، شماره در بخش ۳ ذخیره می‌شود و از این مرحله مخفی خواهد شد.</span>
+                    </div>
+                </template>
+
+                {% include "df/_field.html" with name="form_j_number" label="شماره رسمی فرم «ج»" req=1 cols=6 num=1 ph="۱۴۰۳/ج/۱۲۳۴" %}
+
+                <div class="df-field df-col-6">
+                    <label class="df-label">اسکن دفترچه اقساط</label>
+                    <div class="df-row-box" style="min-height:var(--df-h); padding:4px 10px;">
+                        <span class="df-note">در آلبوم اسناد</span>
+                        <button type="button" class="df-btn df-btn-xs" @click="go('scans')">
+                            <svg class="df-i"><use href="#i-link"/></svg><span>مدیریت اسناد</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="df-field df-col-12">
+                    <label class="df-label">مدارک فیزیکی پوشه متقاضی</label>
+                    <div class="df-checks">
+                        {% include "df/_doc_check.html" with name="has_installment_booklet" label="دفترچه اقساط" %}
+                        {% include "df/_doc_check.html" with name="has_info_form" label="فرم اطلاعات" %}
+                        {% include "df/_doc_check.html" with name="has_form_j" label="برگه فرم «ج»" %}
+                        {% include "df/_doc_check.html" with name="has_affidavit" label="اقرارنامه محضری" %}
+                        {% include "df/_doc_check.html" with name="has_sana" label="تاییدیه سامانه ثنا" %}
+                        {% include "df/_doc_check.html" with name="has_national_id_doc" label="شناسنامه و کارت ملی" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۹: ارزیابی، اجاره و آماده‌سازی ======================= -->
+    <section class="df-card form-card" id="section-valuation"
+             :class="{'is-active': isSectionActive('section-valuation')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-valuation') }">
+        {% include "df/_section_header.html" with id="section-valuation" icon="chart" title="بخش ۹: ارزیابی اداره کل، تعیین اجاره و آماده‌سازی" %}
+
+        <div class="df-body" id="section-valuation-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                {% include "df/_field.html" with name="total_land_share" label="جمع کل قدرالسهم (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                {% include "df/_field.html" with name="land_lease_year" label="سال اجاره عرصه" cols=3 num=1 mode="numeric" ph="۱۴۰۳" %}
+                {% include "df/_money.html" with name="preparation_cost" label="مبلغ آماده‌سازی" cols=6 %}
+                {% include "df/_money.html" with name="past_years_rent" label="اجاره سنوات تا پایان سال جاری" cols=6 %}
+                {% include "df/_money.html" with name="current_year_rent" label="اجاره سال جاری" cols=6 %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۱۰: چک‌ها (وام دهک، اجاره و آماده‌سازی) ======================= -->
+    <section class="df-card form-card" id="section-checks"
+             :class="{'is-active': isSectionActive('section-checks')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-checks') }">
+        {% include "df/_section_header.html" with id="section-checks" icon="card" title="بخش ۱۰: چک‌های وام دهک، اجاره عرصه و اقساط آماده‌سازی" %}
+
+        <div class="df-body" id="section-checks-body" x-show="sectionOpen" x-cloak x-transition>
+          <template x-if="sectionOpen">
+            <div>
+
+                <!-- ---------- الف) چک‌های وام دهک ---------- -->
+                <div class="df-block df-theme-amber">
+                    <div class="df-subhead">
+                        <span class="df-subhead-title"><svg class="df-i"><use href="#i-card"/></svg>وام دهک: مشخصات و چک‌ها</span>
+                        <span class="df-pill fa-num">تعداد: <span x-text="form.check_entries ? form.check_entries.length : 0"></span> فقره</span>
+                    </div>
+
+                    <div class="df-grid" style="margin-bottom:16px;">
+                        {% include "df/_decile_select.html" with cols=3 suffix="_checks" label="دهک درآمدی" %}
+                        <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('supported_institution')}">
+                            <label class="df-label" for="f_supported_institution">نهاد تحت حمایت</label>
+                            <select id="f_supported_institution" class="df-input" x-model="form.supported_institution" :disabled="!isFieldEditable('supported_institution')">
+                                <option value="هیچکدام">هیچکدام (عادی)</option>
+                                <option value="بهزیستی">سازمان بهزیستی کشور</option>
+                                <option value="کمیته امداد">کمیته امداد امام خمینی (ره)</option>
+                                <option value="بنیاد شهید">بنیاد شهید و امور ایثارگران</option>
+                                <option value="سایر">سایر نهادهای حمایتی</option>
+                            </select>
+                        </div>
+                        <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('decile_loan_bank')}">
+                            <label class="df-label" for="f_decile_loan_bank">بانک عامل تسهیلات</label>
+                            <input id="f_decile_loan_bank" type="text" list="bank-list" class="df-input" x-model="form.decile_loan_bank" :readonly="!isFieldEditable('decile_loan_bank')" placeholder="مثال: بانک مسکن">
+                            <datalist id="bank-list">
+                                <option value="بانک مسکن"></option>
+                                <option value="بانک ملی ایران"></option>
+                                <option value="بانک ملت"></option>
+                                <option value="بانک صادرات"></option>
+                                <option value="بانک تجارت"></option>
+                                <option value="بانک سپه"></option>
+                            </datalist>
+                        </div>
+                        {% include "df/_money.html" with name="check_service_fee" label="کارمزد خدمات چک" cols=3 show="isCheckAdmin" %}
+
+                        {% include "df/_money.html" with name="decile_loan_amount" sfx="_checks" label="مبلغ کل وام دهک" cols=4 on="recalculateChecks()" onblur="recalculateChecks()" %}
+                        {% include "df/_field.html" with name="commitment_number" label="شماره تعهدنامه" cols=4 ltr=1 num=1 ph="۱۲۴۰۵/ت" %}
+                        {% include "df/_date.html" with label="تاریخ تعهدنامه (شمسی)" cols=4 model="form.commitment_date" keyexpr="'commitment_date'" titleexpr="'تاریخ تعهدنامه محضری'" ph="۱۴۰۳/۰۵/۱۵" ed="commitment_date" %}
+                    </div>
+
+                    {% include "df/_check_generator.html" with theme="amber" title="تولید خودکار چک‌های وام دهک" gen="checkGenerator" datemodel="checkGenerator.startDate" action="generateChecksAuto()" ed="decile_loan_amount" min=1 max=12 c1=3 c2=4 c3=5 c4=6 ph="۱۴۰۶/۰۷/۳۰" keyexpr="'checkGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول'" interval=1 %}
+
+                    {% include "df/_check_table.html" with theme="amber" title="سررسید و مبلغ چک‌های صیادی" entries="form.check_entries" ed="decile_loan_amount" add="addCheckEntry" remove="removeCheckEntry" recalc="recalculateChecks" row="چک" keyexpr="'check_' + idx" titleexpr="'سررسید چک ' + (idx + 1)" ph_date="۱۴۰۶/۰۷/۳۰" total="form.total_check_amount" ceiling="form.decile_loan_amount" ceiling_label="سقف وام دهک" %}
+
+                    {% include "df/_check_scans.html" with theme="amber" kind="loan" getter="getLoanCheckScans" input_id="loanCheckScanFileInput" title="اسکن چک‌های وام دهک" %}
+
+                    {% include "df/_confirm_card.html" with name="is_decile_loan_confirmed" title="تایید دریافت و کنترل چک‌های وام دهک" hint="اصالت چک‌های صیادی بر اساس سقف وام دهک تایید شد." %}
+                </div>
+
+                <!-- ---------- ب) اجاره عرصه و آماده‌سازی ---------- -->
+                <div class="df-block df-theme-green" style="margin-top:26px;">
+                    <div class="df-subhead">
+                        <span class="df-subhead-title"><svg class="df-i"><use href="#i-file"/></svg>اجاره عرصه و آماده‌سازی</span>
+                        <span class="df-pill">۲۰٪ نقد + ۸۰٪ اقساط</span>
+                    </div>
+
+                    <!-- اجاره عرصه -->
+                    <div class="df-panel is-plain">
+                        <div class="df-panel-head">
+                            <div class="df-panel-title"><svg class="df-i"><use href="#i-building"/></svg>اجاره عرصه</div>
+                            {% include "df/_appraisal_chip.html" with theme="green" label="اجاره ارزیابی اداره کل (سنوات + جاری):" value="getAppraisalRent()" apply="applyAppraisalRent" ed="tenant_price" btn="اعمال مبلغ" %}
+                        </div>
+                        <div class="df-grid">
+                            {% include "df/_money.html" with name="tenant_price" label="مبلغ پرداختی اجاره عرصه" cols=6 %}
+                            {% include "df/_field.html" with name="tenant_code" label="کد رهگیری فیش اجاره" cols=6 ltr=1 num=1 ph="۱۲/۹۹۸۸۷۷۶۶" %}
+                            <div class="df-field df-col-12">
+                                {% include "df/_confirm_card.html" with name="is_cash_rent_confirmed" title="تایید وصول نقدی اجاره عرصه" hint="واریز نقدی بر اساس ارزیابی رسمی تایید شد." %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- آماده‌سازی -->
+                    <div class="df-panel is-plain">
+                        <div class="df-panel-head">
+                            <div class="df-panel-title"><svg class="df-i"><use href="#i-layers"/></svg>آماده‌سازی واحد</div>
+                        </div>
+                        <div class="df-chips">
+                            {% include "df/_appraisal_chip.html" with theme="blue" label="کل آماده‌سازی ارزیابی:" value="form.preparation_cost || 0" %}
+                            {% include "df/_appraisal_chip.html" with theme="green" label="۲۰٪ نقد:" value="getAppraisalCash()" apply="applyAppraisalCash" ed="cash_preparation_amount" btn="اعمال ۲۰٪ نقد" %}
+                            {% include "df/_appraisal_chip.html" with theme="blue" label="۸۰٪ اقساط:" value="getAppraisalInstallment()" apply="applyAppraisalInstallment" ed="non_cash_preparation_amount" btn="اعمال ۸۰٪ اقساط" %}
+                        </div>
+                        <div class="df-grid">
+                            {% include "df/_money.html" with name="cash_preparation_amount" label="پیش‌پرداخت آماده‌سازی (۲۰٪ نقد)" cols=4 %}
+                            {% include "df/_field.html" with name="prepayment_code" label="کد رهگیری فیش پیش‌پرداخت" cols=4 ltr=1 num=1 ph="۲۲/۱۱۴۴۳۳۵۵" %}
+                            {% include "df/_money.html" with name="non_cash_preparation_amount" label="اقساط آماده‌سازی (۸۰٪)" cols=4 %}
+                            {% include "df/_field.html" with name="rah_letter" label="شماره نامه راه و شهرسازی" cols=6 ltr=1 num=1 ph="۱۱۱/۴۴۵۵۶" %}
+                            {% include "df/_date.html" with label="تاریخ نامه راه و شهرسازی (شمسی)" cols=6 model="form.rah_letter_date" keyexpr="'rah_letter_date'" titleexpr="'تاریخ نامه راه و شهرسازی'" ph="۱۴۰۳/۰۴/۲۰" ed="rah_letter_date" %}
+                        </div>
+                    </div>
+
+                    {% include "df/_check_generator.html" with theme="green" title="تولید خودکار چک‌های اقساط آماده‌سازی" gen="prepCheckGenerator" datemodel="prepCheckGenerator.startDate" action="generatePrepChecksAuto()" ed="non_cash_preparation_amount" min=1 max=10 c1=2 c2=3 c3=4 ph="۱۴۰۴/۰۲/۱۵" keyexpr="'prepCheckGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول آماده‌سازی'" interval_text="شش‌ماهه (+۶ ماه)" %}
+
+                    {% include "df/_check_table.html" with theme="green" title="سررسید و مبلغ چک‌های اقساط آماده‌سازی" entries="form.preparation_check_entries" ed="non_cash_preparation_amount" add="addPrepCheckEntry" remove="removePrepCheckEntry" recalc="recalculatePrepChecks" row="قسط" keyexpr="'prep_check_' + idx" titleexpr="'سررسید چک آماده‌سازی ' + (idx + 1)" ph_date="۱۴۰۴/۰۲/۱۵" total="form.total_preparation_check_amount" ceiling="form.non_cash_preparation_amount" ceiling_label="سقف ۸۰٪ آماده‌سازی" %}
+
+                    {% include "df/_check_scans.html" with theme="green" kind="prep" getter="getPrepCheckScans" input_id="prepCheckScanFileInput" title="اسکن چک‌های اقساط آماده‌سازی" %}
+
+                    {% include "df/_confirm_card.html" with name="is_preparation_checks_confirmed" title="تایید دریافت و کنترل چک‌های اقساط آماده‌سازی" hint="اصالت چک‌های صیادی ۸۰٪ آماده‌سازی تایید شد." %}
+                </div>
+
+            </div>
+          </template>
+        </div>
+    </section>
+
+</div>

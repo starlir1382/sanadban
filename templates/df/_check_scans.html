@@ -1,0 +1,53 @@
+{% comment %}
+Multi-upload scan gallery + combined print for cheque scans.
+Params: theme, kind (loan | prep – passed to the upload/print/delete handlers), getter (method returning the scans),
+        input_id (file input id), title
+`sheets` is computed once per change through x-effect instead of on every render.
+{% endcomment %}<div class="df-scans df-theme-{{ theme }}" x-data="{ sheets: [] }" x-effect="sheets = {{ getter }}()">
+    <div class="df-panel-head">
+        <div class="df-panel-title">
+            <svg class="df-i"><use href="#i-camera"/></svg>
+            <span>{{ title }}</span>
+            <span class="df-pill fa-num" x-text="sheets.length + ' برگ'"></span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="file" multiple accept="image/*,application/pdf" id="{{ input_id }}" @change="handleMultiCheckScanUpload($event, '{{ kind }}')" style="display:none;">
+            <button type="button" class="df-btn df-btn-soft" @click="document.getElementById('{{ input_id }}').click()">
+                <svg class="df-i"><use href="#i-upload"/></svg><span>بارگذاری اسکن</span>
+            </button>
+            <button type="button" class="df-btn df-btn-accent" @click="printCheckScans('{{ kind }}')" title="چاپ متوالی چک‌ها همراه با سربرگ رسمی">
+                <svg class="df-i"><use href="#i-print"/></svg><span>چاپ چک‌ها</span>
+            </button>
+            <button type="button" class="df-btn" @click="tab = 'scans'; scrollToCategory('checks')" title="مشاهده در آلبوم اسناد پرونده">
+                <svg class="df-i"><use href="#i-link"/></svg><span>آلبوم اسناد</span>
+            </button>
+        </div>
+    </div>
+
+    <template x-if="sheets.length > 0">
+        <div class="df-gallery">
+            <template x-for="(scan, idx) in sheets" :key="scan.id">
+                <div class="df-thumb">
+                    <div class="df-thumb-no fa-num" x-text="(idx + 1) + ' / ' + sheets.length"></div>
+                    <button type="button" class="df-thumb-del" title="حذف این برگ" aria-label="حذف این برگ" @click.stop="deleteCheckScan(scan.id, '{{ kind }}')">
+                        <svg class="df-i" style="width:.8em;height:.8em;"><use href="#i-x"/></svg>
+                    </button>
+                    <div class="df-thumb-img" @click="openPreview(scan)">
+                        <img :src="scan.preview_url" :alt="scan.title || 'اسکن چک'">
+                    </div>
+                    <div class="df-thumb-foot fa-num">
+                        <strong :title="scan.title || scan.fileName" x-text="scan.title || scan.fileName"></strong>
+                        <span x-text="scan.uploadDate || scan.uploaded_at || 'امروز'"></span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </template>
+
+    <template x-if="sheets.length === 0">
+        <div class="df-empty">
+            <svg class="df-i"><use href="#i-camera"/></svg>
+            <div>هنوز اسکنی بارگذاری نشده است</div>
+        </div>
+    </template>
+</div>

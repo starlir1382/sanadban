@@ -1,0 +1,11 @@
+{% comment %}
+Confirmation checkbox card bound to form.<name>.
+Params: name, title, hint, ok, wait, change (JS for @change), free (do not lock by isFieldEditable)
+{% endcomment %}<div class="df-confirm" :class="{'is-on': form.{{ name }}}">
+    <label class="df-confirm-main">
+        <input type="checkbox" x-model="form.{{ name }}"{% if change %} @change="{{ change }}"{% endif %}{% if not free %} :disabled="!isFieldEditable('{{ name }}')"{% endif %}>
+        <span><strong>{{ title }}</strong>{% if hint %}<small>{{ hint }}</small>{% endif %}</span>
+    </label>
+    <span class="df-pill fa-num" :class="form.{{ name }} ? 'df-pill-green' : 'df-pill-muted'"
+          x-text="form.{{ name }} ? '{{ ok|default:'تایید شد ✓' }}' : '{{ wait|default:'در انتظار تایید' }}'"></span>
+</div>
