@@ -5,59 +5,199 @@
 
 {% block content %}
 <div class="sb-hub-container" x-data="{
-    activeTab: 'stage_sign',
-    uploading: false,
-    progress: 0,
-    resultMessage: '',
-    resultStatus: '',
-    resultDetails: null,
+    activeTab: 'group_sign', // 'group_sign' | 'commission' | 'swap' | 'update' | 'create'
+    
+    // File tracking per kind
+    files: {
+        group_sign: null,
+        commission: null,
+        swap: null,
+        update: null,
+        create: null
+    },
+    fileNames: {
+        group_sign: '',
+        commission: '',
+        swap: '',
+        update: '',
+        create: ''
+    },
+    fileSizes: {
+        group_sign: '',
+        commission: '',
+        swap: '',
+        update: '',
+        create: ''
+    },
+    results: {
+        group_sign: null,
+        commission: null,
+        swap: null,
+        update: null,
+        create: null
+    },
 
-    async uploadForm(url, formId) {
-        const form = document.getElementById(formId);
-        const fileInput = form.querySelector('input[type=file]');
-        if (!fileInput.files.length) {
+    // Progress Tracker State
+    isProcessing: false,
+    isUploading: false,
+    isServerProcessing: false,
+    uploadProgress: 0,
+    uploadSpeed: '',
+    uploadedSize: '',
+    uploadEta: '',
+
+    formatNumber(n) {
+        if (n === null || n === undefined || isNaN(n)) return '۰';
+        return Number(n).toLocaleString('fa-IR');
+    },
+
+    init() {
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('tab');
+        if (t && ['group_sign', 'commission', 'swap', 'update', 'create'].includes(t)) {
+            this.activeTab = t;
+        }
+    },
+
+    getCSRF() {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input && input.value) return input.value;
+        const match = document.cookie.match(/(?:^|;)\s*csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    },
+
+    handleFileSelect(event, kind) {
+        const file = event.target.files[0];
+        if (!file) return;
+        this.files[kind] = file;
+        this.fileNames[kind] = file.name;
+        this.fileSizes[kind] = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+        this.results[kind] = null;
+    },
+
+    clearFile(kind) {
+        this.files[kind] = null;
+        this.fileNames[kind] = '';
+        this.fileSizes[kind] = '';
+        this.results[kind] = null;
+        const input = document.getElementById('file-input-' + kind);
+        if (input) input.value = '';
+    },
+
+    submitExcel(kind, isPreview = false) {
+        const file = this.files[kind];
+        if (!file) {
             alert('لطفاً ابتدا فایل اکسل مورد نظر را انتخاب نمایید.');
             return;
         }
 
-        const formData = new FormData(form);
-        this.uploading = true;
-        this.progress = 20;
-        this.resultMessage = 'در حال ارسال و اعتبارسنجی فایل اکسل بر روی سرور...';
-        this.resultStatus = 'info';
-        this.resultDetails = null;
+        const urls = {
+            create: '{% url "excel_upload_create" %}',
+            update: '{% url "excel_upload_update" %}',
+            group_sign: '{% url "excel_upload_group_sign" %}',
+            swap: '{% url "excel_upload_swap" %}',
+            commission: '{% url "excel_upload_commission" %}'
+        };
 
-        try {
-            const resp = await fetch(url, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
+        const targetUrl = urls[kind];
+        if (!targetUrl) return;
 
-            this.progress = 80;
-            const data = await resp.json();
-            this.progress = 100;
+        this.isProcessing = true;
+        this.isUploading = true;
+        this.isServerProcessing = false;
+        this.uploadProgress = 0;
+        this.uploadSpeed = 'در حال محاسبه...';
+        this.uploadedSize = '۰ MB';
+        this.uploadEta = 'در حال محاسبه...';
+        this.results[kind] = null;
 
-            if (data.status === 'success') {
-                this.resultStatus = 'success';
-                this.resultMessage = data.message;
-                this.resultDetails = data;
-                form.reset();
-            } else {
-                this.resultStatus = 'error';
-                this.resultMessage = data.message || 'خطا در پردازش فایل اکسل.';
-                this.resultDetails = data;
-            }
-        } catch (err) {
-            this.resultStatus = 'error';
-            this.resultMessage = 'خطای ارتباط با سرور: ' + err.message;
-        } finally {
-            this.uploading = false;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('excel_file', file); // fallback for legacy handlers
+        if (isPreview) {
+            formData.append('preview', 'true');
         }
+
+        const xhr = new XMLHttpRequest();
+        const startTime = Date.now();
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && e.total > 0) {
+                const now = Date.now();
+                const elapsed = (now - startTime) / 1000;
+                const pct = Math.min(100, Math.round((e.loaded / e.total) * 100));
+                this.uploadProgress = pct;
+
+                const loadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
+                const totalMb = (e.total / (1024 * 1024)).toFixed(1);
+                this.uploadedSize = `${loadedMb} MB از ${totalMb} MB`;
+
+                const speedBps = elapsed > 0 ? (e.loaded / elapsed) : 0;
+                if (speedBps > 1024 * 1024) {
+                    this.uploadSpeed = (speedBps / (1024 * 1024)).toFixed(1) + ' MB/s';
+                } else {
+                    this.uploadSpeed = (speedBps / 1024).toFixed(0) + ' KB/s';
+                }
+
+                const remaining = e.total - e.loaded;
+                if (speedBps > 0 && remaining > 0) {
+                    const etaSec = Math.ceil(remaining / speedBps);
+                    this.uploadEta = `حدود ${etaSec} ثانیه باقیمانده`;
+                } else {
+                    this.uploadEta = 'در حال پردازش...';
+                }
+
+                if (pct >= 100) {
+                    this.isUploading = false;
+                    this.isServerProcessing = true;
+                }
+            }
+        };
+
+        xhr.onload = () => {
+            this.isProcessing = false;
+            this.isUploading = false;
+            this.isServerProcessing = false;
+            try {
+                const resp = JSON.parse(xhr.responseText);
+                // Normalize success field for commission view compatibility
+                if (resp.status === 'success' && resp.success === undefined) {
+                    resp.success = true;
+                }
+                this.results[kind] = resp;
+
+                if (resp.success && !resp.preview) {
+                    if (!resp.failed_count || resp.failed_count === 0) {
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2200);
+                    }
+                }
+            } catch (err) {
+                this.results[kind] = {
+                    success: false,
+                    error: 'پاسخ سرور قابل پردازش نیست: ' + xhr.responseText.slice(0, 150)
+                };
+            }
+        };
+
+        xhr.onerror = () => {
+            this.isProcessing = false;
+            this.isUploading = false;
+            this.isServerProcessing = false;
+            this.results[kind] = {
+                success: false,
+                error: 'خطای ارتباط با سرور در ارسال فایل اکسل.'
+            };
+        };
+
+        xhr.open('POST', targetUrl, true);
+        xhr.setRequestHeader('X-CSRFToken', this.getCSRF());
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
     }
 }">
+    {% csrf_token %}
 
     <!-- Page Header -->
     <div class="sb-hub-header">
@@ -73,7 +213,7 @@
             </div>
             <div>
                 <h1 class="sb-hub-title">مرکز جامع مدیریت اکسل و عملیات گروهی</h1>
-                <p class="sb-hub-subtitle">خروجی پیشرفته اکسل با فیلتر مرحله و تاریخ، دانلود قالب‌ها و بارگذاری عملیات گروهی</p>
+                <p class="sb-hub-subtitle">دانلود خروجی‌ها و قالب‌های استاندارد و اجرای امن عملیات گروهی با پشتیبانی تا ۳۵,۰۰۰ پرونده</p>
             </div>
         </div>
 
@@ -90,9 +230,40 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- SECTION 1: DEDICATED EXCEL EXPORT WITH STAGE & DATE FILTERS -->
+    <!-- SECTION 1: DOWNLOADS & TEMPLATES (دانلود خروجی‌ها و دریافت قالب‌های خام) -->
     <!-- ========================================================================= -->
-    <div class="sb-export-card">
+    <div class="sb-section-banner">
+        <div class="sb-section-title-wrap">
+            <div class="sb-sec-num">۱</div>
+            <div>
+                <h2 class="sb-sec-title">دانلود خروجی پرونده‌ها و دریافت قالب‌های خام اکسل</h2>
+                <p class="sb-sec-sub">جهت استخراج اطلاعات یا آماده‌سازی فایل‌ها برای بارگذاری، ابتدا از این بخش خروجی یا قالب مورد نظر را دانلود نمایید.</p>
+            </div>
+        </div>
+    </div>
+
+        <!-- 1.1 Export Filter Card (دانلود خروجی اکسل با انتخاب فیلدها و دسته‌بندی‌ها) -->
+    <div class="sb-export-card" id="export-card" x-data="{
+        categories: ['applicant', 'spouse', 'property', 'financial', 'lease_prep_checks', 'form_j', 'workflow'],
+        allCategories: ['applicant', 'spouse', 'property', 'financial', 'lease_prep_checks', 'form_j', 'workflow'],
+        selectAll() {
+            this.categories = [...this.allCategories];
+        },
+        deselectAll() {
+            this.categories = [];
+        },
+        resetDefault() {
+            this.categories = ['applicant', 'spouse', 'property', 'financial', 'lease_prep_checks', 'form_j', 'workflow'];
+        },
+        toggleCategory(cat) {
+            const idx = this.categories.indexOf(cat);
+            if (idx > -1) {
+                this.categories.splice(idx, 1);
+            } else {
+                this.categories.push(cat);
+            }
+        }
+    }">
         <div class="sb-export-header">
             <div class="sb-export-title-group">
                 <div class="sb-export-icon">
@@ -105,13 +276,20 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="sb-export-title">دانلود و دریافت خروجی اکسل پرونده‌ها (با فیلتر مرحله و تاریخ)</h2>
-                    <p class="sb-export-desc">جهت دریافت خروجی سفارشی، مرحله و بازه زمانی مورد نظر را تعیین کرده و روی دکمه دانلود کلیک فرمایید.</p>
+                    <h3 class="sb-export-title">دانلود خروجی</h3>
+                    <p class="sb-export-desc">انتخاب دسته‌بندی‌ها و فیلدهای مورد نظر جهت استخراج در فایل اکسل استاندارد (.xlsx)</p>
                 </div>
             </div>
+
+            <!-- Direct Full Export Button -->
+            <button type="button" @click="SanadbanDownloader.download('{% url 'excel_export_all' %}', 'MaskanYar_All_Dossiers_Export.xlsx')" class="sb-btn-full-export" title="دانلود کلیه فیلدها و پرونده‌ها در یک فایل">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>دانلود خروجی کامل کل پرونده‌ها</span>
+            </button>
         </div>
 
         <form method="GET" action="{% url 'excel_export_all' %}" class="sb-export-form fa-num">
+            <!-- Filter Options (Stage, Dates, Text Query) -->
             <div class="sb-filter-grid">
                 <!-- 1. Stage Dropdown (1 to 22) -->
                 <div class="sb-filter-group">
@@ -158,69 +336,242 @@
                 </div>
             </div>
 
+            <!-- Mandatory Base Columns Bar (شامل) -->
+            <div class="sb-export-mandatory-bar">
+                <span class="sb-export-mandatory-label">شامل:</span>
+                <span class="sb-tag-mandatory">شماره بایگانی پرونده</span>
+                <span class="sb-export-mandatory-sep">-</span>
+                <span class="sb-export-mandatory-item">کد ملی متقاضی</span>
+                <span class="sb-export-mandatory-sep">-</span>
+                <span class="sb-export-mandatory-item">نام و نام خانوادگی متقاضی</span>
+                <span class="sb-export-mandatory-note">(این اقلام اطلاعاتی پایه به صورت خودکار در تمامی خروجی‌ها درج می‌گردند)</span>
+            </div>
+
+            <!-- Category Section Header & Quick Action Buttons -->
+            <div class="sb-export-toolbar">
+                <div class="sb-export-section-title">
+                    <span>انتخاب فیلدهای موضوعی خروجی اکسل:</span>
+                    <span style="font-size: 0.76rem; color: #64748b; font-weight: normal; margin-inline-start: 6px;">
+                        (در صورت عدم انتخاب، کلیه فیلدها استخراج خواهند شد)
+                    </span>
+                </div>
+                <div class="sb-export-quick-btns">
+                    <button type="button" class="sb-btn-text" @click="selectAll()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>انتخاب همه</span>
+                    </button>
+                    <button type="button" class="sb-btn-text" @click="deselectAll()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span>لغو همه</span>
+                    </button>
+                    <button type="button" class="sb-btn-text" @click="resetDefault()">
+                        <span>پیش‌فرض</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- The 7 Categories Detailed List (matching exact government portal style) -->
+            <div class="sb-export-category-list">
+                <!-- 1. اطلاعات هویتی متقاضی -->
+                <div class="sb-cat-row" :class="{ 'is-active': categories.includes('applicant') }" @click="toggleCategory('applicant')">
+                    <input type="checkbox" name="cat" value="applicant" x-model="categories" @click.stop class="sb-cat-checkbox">
+                    <div class="sb-cat-content">
+                        <div class="sb-cat-title">اطلاعات هویتی متقاضی</div>
+                        <div class="sb-cat-examples">
+                            نام متقاضی - نام خانوادگی متقاضی - نام پدر - تاریخ تولد (شمسی) - شماره شناسنامه - محل صدور شناسنامه - شماره همراه متقاضی - وضعیت تاهل - تاییدیه تاهل - دهک درآمدی (۱ تا ۱۰) - رتبه انتخاب واحد
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. مشخصات هویتی همسر -->
+                <div class="sb-cat-row" :class="{ 'is-active': categories.includes('spouse') }" @click="toggleCategory('spouse')">
+                    <input type="checkbox" name="cat" value="spouse" x-model="categories" @click.stop class="sb-cat-checkbox">
+                    <div class="sb-cat-content">
+                        <div class="sb-cat-title">مشخصات هویتی همسر</div>
+                        <div class="sb-cat-examples">
+                            نام همسر - نام خانوادگی همسر - نام و نام خانوادگی همسر - نام پدر همسر - کد ملی همسر - تاریخ تولد همسر (شمسی) - شماره شناسنامه همسر - محل صدور شناسنامه همسر
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. اطلاعات پروژه و مشخصات ثبتی -->
+                <div class="sb-cat-row" :class="{ 'is-active': categories.includes('property') }" @click="toggleCategory('property')">
+                    <input type="checkbox" name="cat" value="property" x-model="categories" @click.stop class="sb-cat-checkbox">
+                    <div class="sb-cat-content">
+                        <div class="sb-cat-title">اطلاعات پروژه و مشخصات ثبتی</div>
+                        <div class="sb-cat-examples">
+                            نام پروژه مسکونی - کد پروژه - نام سایت و محله - نوع ساخت - شماره و کد بلوک - شماره طبقه - شماره و کد واحد - تعداد خواب - جهت واحد - متراژ مفید واحد (مترمربع) - متراژ مشاعات - جمع کل متراژ واحد - مساحت واحد - مساحت انباری - مساحت پارکینگ - متراژ پارکینگ مسقف - بخش ثبتی - پلاک اصلی - پلاک مفروز و مجزی - پلاک فرعی - شماره قطعه - کد نوسازی شهرداری
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. اطلاعات مالی و تسهیلات بانکی -->
+                <div class="sb-cat-row" :class="{ 'is-active': categories.includes('financial') }" @click="toggleCategory('financial')">
+                    <input type="checkbox" name="cat" value="financial" x-model="categories" @click.stop class="sb-cat-checkbox">
+                    <div class="sb-cat-content">
+                        <div class="sb-cat-title">اطلاعات مالی و تسهیلات بانکی</div>
+                        <div class="sb-cat-examples">
+                            قیمت تمام شده بدون وام (ریال) - مبلغ تسهیلات وام بانکی (ریال) - مبلغ وام صندوق ملی مسکن - مبلغ کسر نامه پیمانکار - مبلغ وام دهک - مبلغ سهم آورده نقدی متقاضی - تایید تامین آورده نقدی - وضعیت ارسال پیامک آورده نقدی - تاریخ ارسال پیامک آورده نقدی (شمسی) - شماره و تاریخ نامه بانک - شماره و تاریخ نامه ارسال به بانک - بانک عامل تسهیلات دهک - نهاد تحت حمایت
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. تسهیلات دهک، چک‌ها و کارمزدها -->
+                <div class="sb-cat-row" :class="{ 'is-active': categories.includes('lease_prep_checks') }" @click="toggleCategory('lease_prep_checks')">
+                    <input type="checkbox" name="cat" value="lease_prep_checks" x-model="categories" @click.stop class="sb-cat-checkbox">
+                    <div class="sb-cat-content">
+                        <div class="sb-cat-title">تسهیلات دهک، چک‌ها و کارمزدها</div>
+                        <div class="sb-cat-examples">
+                            جمع کل قدرالسهم عرصه (مترمربع) - مبلغ اجاره سنوات گذشته و سال جاری عرصه - سال اجاره عرصه - مبلغ پرداختی اجاره عرصه - کد پیگیری فیش اجاره - تایید نقدی اجاره - مبلغ نقدی آماده‌سازی (۲۰٪ نقد) - مبلغ غیرنقدی آماده‌سازی (۸۰٪ اقساط) - فیش پیش‌پرداخت آماده‌سازی - تعداد و مجموع مبالغ چک‌های آماده‌سازی - تایید دریافت چک‌های آماده‌سازی - شماره و تاریخ تعهدنامه محضری - تعداد، مبالغ و مجموع چک‌های وام دهک - تایید چک‌های تسهیلات دهک - شماره و تاریخ نامه راه و شهرسازی - کارمزد خدمات چک (ریال) - کارمزد خدمات آماده‌سازی (ریال)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. وضعیت‌های فرم ج -->
+                <div class="sb-cat-row" :class="{ 'is-active': categories.includes('form_j') }" @click="toggleCategory('form_j')">
+                    <input type="checkbox" name="cat" value="form_j" x-model="categories" @click.stop class="sb-cat-checkbox">
+                    <div class="sb-cat-content">
+                        <div class="sb-cat-title">وضعیت‌های فرم ج</div>
+                        <div class="sb-cat-examples">
+                            نحوه ثبت فرم ج (ثبت خودکار / ثبت دستی) - وضعیت فرم ج متقاضی (سبز / قرمز) - استعلام اداره کل فرم ج متقاضی - توضیحات و علل کد قرمز فرم ج متقاضی - وضعیت فرم ج همسر (سبز / قرمز) - استعلام اداره کل فرم ج همسر - توضیحات و علل کد قرمز فرم ج همسر
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. اطلاعات گردش کار و امضاها -->
+                <div class="sb-cat-row" :class="{ 'is-active': categories.includes('workflow') }" @click="toggleCategory('workflow')">
+                    <input type="checkbox" name="cat" value="workflow" x-model="categories" @click.stop class="sb-cat-checkbox">
+                    <div class="sb-cat-content">
+                        <div class="sb-cat-title">اطلاعات گردش کار و امضاها</div>
+                        <div class="sb-cat-examples">
+                            مرحله جاری پرونده (۱ تا ۲۲) - عنوان مرحله جاری گردش کار - سمت کاربر اقدام‌کننده - وضعیت قفل یا بایگانی قطعی پرونده - تاریخ تشکیل پرونده - تاریخ آخرین ویرایش
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer matching the government portal's Cancel and Download buttons -->
             <div class="sb-export-footer">
                 <div class="sb-export-note">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                    <span>فایل اکسل تولیدی حاوی کلیه اطلاعات هویتی، مسکونی، ثبتی، مالی و وضعیت گردش کار پرونده‌ها می‌باشد.</span>
+                    <span>فایل با فرمت باز استاندارد XLSX تولید و بر اساس تاریخ و شماره بایگانی مرتب می‌گردد.</span>
                 </div>
-                <button type="submit" class="sb-btn-export-main">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="12" y1="18" x2="12" y2="12"></line>
-                        <line x1="9" y1="15" x2="12" y2="18"></line>
-                        <line x1="15" y1="15" x2="12" y2="18"></line>
-                    </svg>
-                    <span>دانلود فایل اکسل پرونده‌ها (.xlsx)</span>
-                </button>
+
+                <div class="sb-export-footer-actions">
+                    <button type="button" @click="resetDefault()" class="sb-btn-export-cancel">
+                        انصراف
+                    </button>
+                    <button type="submit" class="sb-btn-export-download">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="12" y1="18" x2="12" y2="12"></line>
+                            <line x1="9" y1="15" x2="12" y2="18"></line>
+                            <line x1="15" y1="15" x2="12" y2="18"></line>
+                        </svg>
+                        <span>دانلود خروجی (.xlsx)</span>
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 
-    <!-- Live Processing Notification Alert -->
-    <div x-show="resultMessage" x-cloak class="sb-alert-box" :class="resultStatus">
-        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-            <div style="flex-shrink: 0; margin-top: 2px;">
-                <template x-if="resultStatus === 'success'">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                </template>
-                <template x-if="resultStatus === 'error'">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                </template>
-                <template x-if="resultStatus === 'info'">
-                    <div class="sb-spinner"></div>
-                </template>
+    <!-- 1.2 Template Download Cards Grid -->
+    <div class="sb-templates-card">
+        <div class="sb-templates-header">
+            <div class="sb-tpl-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </div>
-            <div style="flex: 1;">
-                <div style="font-weight: 800; font-size: 0.92rem;" x-text="resultMessage"></div>
-                <template x-if="resultDetails && resultDetails.errors && resultDetails.errors.length">
-                    <div style="margin-top: 0.5rem; font-size: 0.8rem; background: rgba(0,0,0,0.04); padding: 0.5rem 0.75rem; border-radius: 8px;">
-                        <div style="font-weight: 700; margin-bottom: 0.25rem;">گزارش موارد با خطا یا بدون تغییر:</div>
-                        <ul style="margin: 0; padding-right: 1.25rem;">
-                            <template x-for="err in resultDetails.errors" :key="err">
-                                <li x-text="err"></li>
-                            </template>
-                        </ul>
-                    </div>
-                </template>
+            <div>
+                <h3 class="sb-templates-title">دریافت قالب‌های خام استاندارد اکسل (مخصوص تکمیل و بارگذاری)</h3>
+                <p class="sb-templates-sub">هر قالب حاوی سرستون‌های دقیق، فرمت RTL و کدهای اعتبارسنجی معتبر است. قبل از بارگذاری، حتماً از قالب رسمی همان بخش استفاده نمایید.</p>
             </div>
-            <button type="button" @click="resultMessage = ''" style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: inherit; opacity: 0.7;">✕</button>
+        </div>
+
+        <div class="sb-tpl-grid">
+            <!-- Tpl 1: Create -->
+            <div class="sb-tpl-box">
+                <div class="sb-tpl-top">
+                    <span class="sb-tpl-badge emerald">ایجاد جدید</span>
+                    <h4 class="sb-tpl-name">قالب ثبت پرونده‌های جدید</h4>
+                    <p class="sb-tpl-desc">شامل ستون کدملی متقاضی (الزامی)، مشخصات هویتی، ملکی و مالی. شماره بایگانی خودکار تولید می‌شود.</p>
+                </div>
+                <a href="{% url 'excel_template_create' %}" class="sb-tpl-dl-btn emerald">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود قالب ثبت جدید (.xlsx)</span>
+                </a>
+            </div>
+
+            <!-- Tpl 2: Update -->
+            <div class="sb-tpl-box">
+                <div class="sb-tpl-top">
+                    <span class="sb-tpl-badge indigo">بروزرسانی جامع</span>
+                    <h4 class="sb-tpl-name">قالب بروزرسانی اطلاعات پرونده‌ها</h4>
+                    <p class="sb-tpl-desc">دارای برگه راهنمای هوشمند. سلول‌های خالی دست‌نخورده باقی می‌مانند و فقط فیلدهای دارای مقدار اصلاح می‌گردند.</p>
+                </div>
+                <a href="{% url 'excel_template_update' %}" class="sb-tpl-dl-btn indigo">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود قالب بروزرسانی (.xlsx)</span>
+                </a>
+            </div>
+
+            <!-- Tpl 3: Group Sign -->
+            <div class="sb-tpl-box">
+                <div class="sb-tpl-top">
+                    <span class="sb-tpl-badge blue">امضای گروهی</span>
+                    <h4 class="sb-tpl-name">قالب امضای دسته‌جمعی مراحل</h4>
+                    <p class="sb-tpl-desc">ستون اول شامل کد ملی متقاضی و ستون‌های بعدی شامل مرحله ۱ تا ۲۲ هستند. با قرار دادن عدد ۱ در ستون هر مرحله برای هر متقاضی، آن مرحله امضا و تایید می‌شود.</p>
+                </div>
+                <a href="{% url 'excel_template_group_sign' %}" class="sb-tpl-dl-btn blue">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود قالب امضای مراحل (.xlsx)</span>
+                </a>
+            </div>
+
+            <!-- Tpl 4: Spouse Swap -->
+            <div class="sb-tpl-box">
+                <div class="sb-tpl-top">
+                    <span class="sb-tpl-badge teal">طرح زوجین</span>
+                    <h4 class="sb-tpl-name">قالب جابجایی متقاضی با همسر</h4>
+                    <p class="sb-tpl-desc">جابجایی امن متقاضی اصلی با همسر بر اساس کدملی متقاضی و همسر با ثبت لاگ ممیزی و ارجاع پرونده به مرحله ۳.</p>
+                </div>
+                <a href="{% url 'excel_template_swap' %}" class="sb-tpl-dl-btn teal">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود قالب جابجایی همسر (.xlsx)</span>
+                </a>
+            </div>
+
+            <!-- Tpl 5: Commission -->
+            <div class="sb-tpl-box">
+                <div class="sb-tpl-top">
+                    <span class="sb-tpl-badge amber">کمیسیون تعدیل</span>
+                    <h4 class="sb-tpl-name">قالب کمیسیون تعدیل قیمت و ثبتی</h4>
+                    <p class="sb-tpl-desc">تعدیل قیمت تمام‌شده یا مشخصات ثبتی با لغو هوشمند امضای مراحل ۲، ۴، ۵، ۸ و ۱۸ جهت بررسی مجدد.</p>
+                </div>
+                <a href="{% url 'excel_download_template' template_type='commission' %}" class="sb-tpl-dl-btn amber">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود قالب کمیسیون (.xlsx)</span>
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- ========================================================================= -->
-    <!-- SECTION 2: BATCH OPERATIONS (UPLOAD WITH DOWNLOAD TEMPLATE BESIDE IT) -->
+    <!-- SECTION 2: BATCH OPERATIONS (UPLOAD & PROCESS) - THE ONLY PLACE TO UPLOAD -->
     <!-- ========================================================================= -->
-    <div class="sb-ops-section-head">
-        <div>
-            <h2 class="sb-ops-title">عملیات گروهی، بارگذاری فایل اکسل و دریافت قالب‌ها</h2>
-            <p class="sb-ops-sub">قالب هر بخش را مستقیماً از کنار دکمه بارگذاری دانلود کرده و پس از تکمیل، ارسال نمایید.</p>
+    <div class="sb-section-banner" style="margin-top: 2.5rem;">
+        <div class="sb-section-title-wrap">
+            <div class="sb-sec-num blue">۲</div>
+            <div>
+                <h2 class="sb-sec-title">عملیات گروهی، بارگذاری فایل اکسل و پردازش اطلاعات</h2>
+                <p class="sb-sec-sub">تب عملیات مورد نظر را انتخاب کرده و فایل اکسل تکمیل‌شده را مستقیماً در کادر زیر بارگذاری نمایید.</p>
+            </div>
         </div>
     </div>
 
     <!-- Navigation Tabs for Operations -->
     <div class="sb-hub-tabs">
-        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'stage_sign' }" @click="activeTab = 'stage_sign'">
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'group_sign' }" @click="activeTab = 'group_sign'">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
             <span>۱. امضای دسته‌جمعی مراحل</span>
         </button>
@@ -230,192 +581,990 @@
             <span>۲. کمیسیون تعدیل و بازنگری</span>
         </button>
 
-        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'swap_spouse' }" @click="activeTab = 'swap_spouse'">
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'swap' }" @click="activeTab = 'swap'">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
             <span>۳. تعویض متقاضی با همسر</span>
         </button>
 
-        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'standard' }" @click="activeTab = 'standard'">
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'update' }" @click="activeTab = 'update'">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>۴. ثبت جدید و بروزرسانی جامع (۳۵ ستونه)</span>
+            <span>۴. بروزرسانی اطلاعات پرونده‌ها</span>
+        </button>
+
+        <button type="button" class="sb-tab-btn" :class="{ 'active': activeTab === 'create' }" @click="activeTab = 'create'">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
+            <span>۵. ایجاد پرونده‌های جدید</span>
         </button>
     </div>
 
     <!-- ========================================================================= -->
-    <!-- TAB 1: MASS STAGE SIGNATURES -->
+    <!-- UPLOAD PANEL BODY (CONTAINER FOR ALL TABS) -->
     <!-- ========================================================================= -->
-    <div x-show="activeTab === 'stage_sign'" x-cloak class="sb-tab-content">
-        <div class="sb-upload-panel">
+    <div class="sb-upload-panel">
+
+        <!-- ==================== TAB 1: GROUP SIGN ==================== -->
+        <div x-show="activeTab === 'group_sign'" x-cloak>
             <div class="sb-panel-info">
                 <div class="sb-panel-icon blue">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                 </div>
                 <div>
                     <div class="sb-panel-badge blue">امضای الکترونیک گروهی</div>
-                    <h2 class="sb-panel-title">امضا و تایید دسته‌جمعی مراحل گردش کار</h2>
+                    <h3 class="sb-panel-title">امضا و تایید دسته‌جمعی مراحل گردش کار</h3>
                     <p class="sb-panel-desc">
-                        فایل اکسل حاوی کد ملی متقاضیان و ستون‌های مراحل را آماده فرمایید. با قرار دادن عدد <b class="fa-num">۱</b> در ستون هر مرحله، آن مرحله برای پرونده به صورت الکترونیک تایید و پرونده به مرحله بعدی هدایت می‌گردد.
+                        فایل اکسل حاوی ستون کد ملی متقاضیان و ستون‌های مرحله ۱ تا ۲۲ را تکمیل نمایید. با قرار دادن عدد <b class="fa-num">۱</b> در ستون هر مرحله برای هر متقاضی، آن مرحله تایید شده و پرونده به مرحله بعد هدایت می‌گردد.
                     </p>
                 </div>
             </div>
 
-            <form id="stage-sign-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_stage_signatures' %}', 'stage-sign-form')">
-                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
-                <div class="sb-dropzone-inner">
-                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    <div style="font-weight: 800; color: #1e3a8a; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل امضاها کلیک کنید یا آن را به این کادر بکشید</div>
-                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">فرمت مجاز: XLSX, XLS (پشتیبانی تا ۳۵,۰۰۰ رکورد در یک فایل)</div>
-                </div>
+            <!-- Rules Box -->
+            <div class="sb-rules-box blue">
+                <strong>قوانین امضای گروهی:</strong> تنها کاربرانی که حق امضای الکترونیک دارند مجاز به این اقدام هستند. امضای مراحل بدون ترتیب یا باطل‌شده رد صلاحیت گردیده و پرونده‌های قفل‌شده تنها با دسترسی مدیر ارشد امضا می‌شوند.
+            </div>
 
-                <!-- Action row: Download Template beside Upload Button -->
-                <div class="sb-action-bar">
-                    <a href="{% url 'excel_download_template' template_type='stage_signatures' %}" class="sb-btn-tpl outline-blue" title="دانلود قالب اکسل امضای دسته‌جمعی مراحل">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span>دانلود قالب اکسل امضا (.xlsx)</span>
-                    </a>
+            <!-- Upload Dropzone -->
+            <div class="sb-dropzone-box" @click="if(!isProcessing) $refs.fileInputGroupSign.click()" :class="{ 'has-file': files.group_sign }">
+                <input type="file" x-ref="fileInputGroupSign" id="file-input-group_sign" accept=".xlsx, .xls" class="sb-hidden-input" @change="handleFileSelect($event, 'group_sign')" :disabled="isProcessing">
 
-                    <button type="submit" class="sb-submit-btn blue" :disabled="uploading">
-                        <span x-show="!uploading">بارگذاری و اعمال امضاها ➔</span>
-                        <span x-show="uploading">در حال پردازش و ثبت امضاها...</span>
-                    </button>
+                <template x-if="!files.group_sign">
+                    <div class="sb-dropzone-inner">
+                        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <div class="sb-dz-title blue">برای انتخاب فایل اکسل امضاها کلیک کنید یا آن را به این کادر بکشید</div>
+                        <div class="sb-dz-sub">فرمت مجاز: XLSX, XLS (پشتیبانی تا ۳۵,۰۰۰ رکورد در یک فایل)</div>
+                    </div>
+                </template>
+
+                <template x-if="files.group_sign">
+                    <div class="sb-dz-file-selected">
+                        <div class="sb-dz-file-info">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <div>
+                                <span class="sb-dz-name" x-text="fileNames.group_sign"></span>
+                                <span class="sb-dz-size" x-text="'(' + fileSizes.group_sign + ')'"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="sb-dz-remove" @click.stop="clearFile('group_sign')" :disabled="isProcessing">✕ تغییر فایل</button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Progress Tracker -->
+            <template x-if="isProcessing && activeTab === 'group_sign'">
+                <div class="sb-progress-wrap">
+                    <div class="sb-progress-header">
+                        <span x-text="isUploading ? 'در حال ارسال فایل اکسل به سرور...' : 'در حال پردازش اتمیک و ثبت امضاها...'"></span>
+                        <span class="fa-num" x-text="uploadProgress + '%'"></span>
+                    </div>
+                    <div class="sb-progress-bar-bg">
+                        <div class="sb-progress-bar-fill" :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    <div class="sb-progress-meta fa-num">
+                        <span x-text="uploadedSize"></span>
+                        <span x-text="uploadSpeed"></span>
+                        <span x-text="uploadEta"></span>
+                    </div>
                 </div>
-            </form>
+            </template>
+
+            <!-- Action Buttons -->
+            <div class="sb-action-bar">
+                <button type="button" @click="submitExcel('group_sign', true)" class="sb-btn outline-blue" :disabled="isProcessing || !files.group_sign">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>پیش‌نمایش و بررسی صحت امضاها</span>
+                </button>
+                <button type="button" @click="submitExcel('group_sign', false)" class="sb-btn primary blue" :disabled="isProcessing || !files.group_sign">
+                    <span>تایید و اعمال نهایی امضاها ➔</span>
+                </button>
+            </div>
+
+            <!-- Results Display Component -->
+            <template x-if="results.group_sign">
+                <div class="sb-results-box" :class="results.group_sign.success ? 'success' : 'error'">
+                    <div class="sb-res-header">
+                        <div class="sb-res-title" x-text="results.group_sign.preview ? 'نتیجه پیش‌نمایش امضای گروهی (بدون تغییر دیتابیس)' : 'گزارش نهایی اعمال امضاهای گروهی'"></div>
+                        <div class="sb-res-actions">
+                            <template x-if="results.group_sign.success_report_url">
+                                <a :href="results.group_sign.success_report_url" class="sb-btn-report-success" download="MaskanYar_Successful_GroupSign.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل امضاهای تاییدشده (موفق)</span>
+                                </a>
+                            </template>
+                            <template x-if="results.group_sign.report_url">
+                                <a :href="results.group_sign.report_url" class="sb-btn-report-error" download="MaskanYar_Errors_GroupSign.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل گزارش خطاها (رد شده‌ها)</span>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Clean & Readable Stat Cards -->
+                    <div class="sb-stat-dashboard">
+                        <div class="sb-stat-card green">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.group_sign.valid_count || 0)"></div>
+                                <div class="sb-stat-label">پرونده‌های تایید و امضاشده</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card gray">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.group_sign.unchanged_count || 0)"></div>
+                                <div class="sb-stat-label">بدون تغییر در مراحل</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card red">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.group_sign.failed_count || 0)"></div>
+                                <div class="sb-stat-label">رد شده / دارای خطا</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Errors Table -->
+                    <template x-if="results.group_sign.errors && results.group_sign.errors.length">
+                        <div class="sb-error-table-wrap">
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>کد ملی</th>
+                                        <th>نام متقاضی</th>
+                                        <th>علت رد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(err, idx) in results.group_sign.errors" :key="idx">
+                                        <tr>
+                                            <td x-text="err.row"></td>
+                                            <td x-text="err.national_id"></td>
+                                            <td x-text="err.name"></td>
+                                            <td class="text-danger" x-text="err.reasons ? err.reasons.join(' | ') : err.reason"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- Preview Updates Table -->
+                    <template x-if="results.group_sign.updates_preview && results.group_sign.updates_preview.length">
+                        <div class="sb-diff-table-wrap" style="margin-top: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.6rem;">پیش‌نمایش تغییرات و امضاهای پرونده‌ها:</h4>
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>شماره بایگانی</th>
+                                        <th>کد ملی</th>
+                                        <th>نام متقاضی</th>
+                                        <th>مرحله مبدأ</th>
+                                        <th>مرحله مقصد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(up, idx) in results.group_sign.updates_preview" :key="idx">
+                                        <tr>
+                                            <td x-text="up.row"></td>
+                                            <td x-text="up.archive_number"></td>
+                                            <td x-text="up.national_id"></td>
+                                            <td x-text="up.name"></td>
+                                            <td x-text="up.from_stage"></td>
+                                            <td class="text-success" style="font-weight: 700;" x-text="up.to_stage"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                </div>
+            </template>
         </div>
-    </div>
 
-    <!-- ========================================================================= -->
-    <!-- TAB 2: COMMISSION ADJUSTMENT -->
-    <!-- ========================================================================= -->
-    <div x-show="activeTab === 'commission'" x-cloak class="sb-tab-content">
-        <div class="sb-upload-panel">
+        <!-- ==================== TAB 2: COMMISSION ==================== -->
+        <div x-show="activeTab === 'commission'" x-cloak>
             <div class="sb-panel-info">
                 <div class="sb-panel-icon amber">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 </div>
                 <div>
                     <div class="sb-panel-badge amber">کمیسیون مسکن</div>
-                    <h2 class="sb-panel-title">کمیسیون تعدیل قیمت تمام‌شده و مشخصات ثبتی</h2>
+                    <h3 class="sb-panel-title">کمیسیون تعدیل قیمت تمام‌شده و مشخصات ثبتی</h3>
                     <p class="sb-panel-desc">
-                        طبق فرآیند مصوب، با بارگذاری این فایل هر پرونده‌ای که قیمت تمام‌شده، پلاک یا متراژ آن تغییر کند، اطلاعات جدید ثبت شده و <b>امضای مراحل ۲، ۴، ۵، ۸ و ۱۸ باطل می‌گردد</b> و پرونده جهت تایید مجدد ممیزی به مرحله ۲ ارجاع خواهد شد.
+                        با بارگذاری این فایل هر پرونده‌ای که قیمت، پلاک یا متراژ آن اصلاح گردد، <b>امضای مراحل ۲، ۴، ۵، ۸ و ۱۸ باطل شده</b> و پرونده جهت تایید مجدد به مرحله ۲ بازمی‌گردد.
                     </p>
                 </div>
             </div>
 
-            <form id="commission-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_commission' %}', 'commission-form')">
-                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
-                <div class="sb-dropzone-inner">
-                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    <div style="font-weight: 800; color: #92400e; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل کمیسیون تعدیل کلیک کنید یا فایل را به اینجا بکشید</div>
-                    <div style="font-size: 0.8rem; color: #78350f; margin-top: 0.25rem;">فایل باید شامل کد ملی متقاضی و مقادیر تعدیل‌شده قیمت تمام‌شده یا مشخصات ثبتی باشد.</div>
-                </div>
+            <!-- Rules Box -->
+            <div class="sb-rules-box amber">
+                <strong>قوانین کمیسیون:</strong> مختص مدیر کل سیستم و رئیس مسکن. فایل شامل کد ملی و مقادیر جدید قیمت یا پلاک می‌باشد. در صورت عدم تغییر مقدار فیلدها، امضاها دست‌نخورده باقی می‌مانند.
+            </div>
 
-                <!-- Action row: Download Template beside Upload Button -->
-                <div class="sb-action-bar">
-                    <a href="{% url 'excel_download_template' template_type='commission' %}" class="sb-btn-tpl outline-amber" title="دانلود قالب اکسل کمیسیون تعدیل">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span>دانلود قالب کمیسیون تعدیل (.xlsx)</span>
-                    </a>
+            <!-- Upload Dropzone -->
+            <div class="sb-dropzone-box" @click="if(!isProcessing) $refs.fileInputCommission.click()" :class="{ 'has-file': files.commission }">
+                <input type="file" x-ref="fileInputCommission" id="file-input-commission" accept=".xlsx, .xls" class="sb-hidden-input" @change="handleFileSelect($event, 'commission')" :disabled="isProcessing">
 
-                    <button type="submit" class="sb-submit-btn amber" :disabled="uploading">
-                        <span x-show="!uploading">اعمال مصوبه کمیسیون و لغو امضاها ➔</span>
-                        <span x-show="uploading">در حال اعمال تعدیلات کمیسیون...</span>
-                    </button>
+                <template x-if="!files.commission">
+                    <div class="sb-dropzone-inner">
+                        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <div class="sb-dz-title amber">برای انتخاب فایل اکسل کمیسیون تعدیل کلیک کنید یا فایل را به اینجا بکشید</div>
+                        <div class="sb-dz-sub">فرمت مجاز: XLSX, XLS (پشتیبانی تا ۳۵,۰۰۰ رکورد)</div>
+                    </div>
+                </template>
+
+                <template x-if="files.commission">
+                    <div class="sb-dz-file-selected">
+                        <div class="sb-dz-file-info">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <div>
+                                <span class="sb-dz-name" x-text="fileNames.commission"></span>
+                                <span class="sb-dz-size" x-text="'(' + fileSizes.commission + ')'"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="sb-dz-remove" @click.stop="clearFile('commission')" :disabled="isProcessing">✕ تغییر فایل</button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Progress Tracker -->
+            <template x-if="isProcessing && activeTab === 'commission'">
+                <div class="sb-progress-wrap">
+                    <div class="sb-progress-header">
+                        <span x-text="isUploading ? 'در حال ارسال فایل اکسل کمیسیون...' : 'در حال اعمال تعدیلات و لغو امضاها...'"></span>
+                        <span class="fa-num" x-text="uploadProgress + '%'"></span>
+                    </div>
+                    <div class="sb-progress-bar-bg">
+                        <div class="sb-progress-bar-fill" :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    <div class="sb-progress-meta fa-num">
+                        <span x-text="uploadedSize"></span>
+                        <span x-text="uploadSpeed"></span>
+                        <span x-text="uploadEta"></span>
+                    </div>
                 </div>
-            </form>
+            </template>
+
+            <!-- Action Buttons -->
+            <div class="sb-action-bar">
+                <button type="button" @click="submitExcel('commission', false)" class="sb-btn primary amber" :disabled="isProcessing || !files.commission">
+                    <span>اعمال مصوبه کمیسیون و لغو امضاها ➔</span>
+                </button>
+            </div>
+
+            <!-- Results Display -->
+            <template x-if="results.commission">
+                <div class="sb-results-box" :class="results.commission.success ? 'success' : 'error'">
+                    <div class="sb-res-header">
+                        <div class="sb-res-title" x-text="results.commission.message || 'نتیجه پردازش کمیسیون تعدیل'"></div>
+                        <div class="sb-res-actions">
+                            <template x-if="results.commission.success_report_url">
+                                <a :href="results.commission.success_report_url" class="sb-btn-report-success" download="MaskanYar_Adjusted_Commission.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل پرونده‌های تعدیل‌شده (موفق)</span>
+                                </a>
+                            </template>
+                            <template x-if="results.commission.report_url">
+                                <a :href="results.commission.report_url" class="sb-btn-report-error" download="MaskanYar_Commission_Errors.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل گزارش خطاها (رد شده‌ها)</span>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="sb-stat-dashboard" x-show="results.commission.adjusted_count !== undefined || results.commission.updated_count !== undefined">
+                        <div class="sb-stat-card amber">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.commission.adjusted_count || results.commission.updated_count || 0)"></div>
+                                <div class="sb-stat-label">پرونده‌های تعدیل و بازنگری شده</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card gray">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.commission.unchanged_count || 0)"></div>
+                                <div class="sb-stat-label">بدون مغایرت و تغییر</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card red">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.commission.failed_count || (results.commission.errors ? results.commission.errors.length : 0))"></div>
+                                <div class="sb-stat-label">رد شده / دارای خطا</div>
+                            </div>
+                        </div>
+                    </div>
+                    <template x-if="results.commission.errors && results.commission.errors.length">
+                        <div class="sb-error-table-wrap">
+                            <ul style="margin: 0; padding-right: 1.25rem;">
+                                <template x-for="(err, idx) in results.commission.errors" :key="idx">
+                                    <li class="text-danger" x-text="err"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
+            </template>
         </div>
-    </div>
 
-    <!-- ========================================================================= -->
-    <!-- TAB 3: SWAP APPLICANT WITH SPOUSE -->
-    <!-- ========================================================================= -->
-    <div x-show="activeTab === 'swap_spouse'" x-cloak class="sb-tab-content">
-        <div class="sb-upload-panel">
+        <!-- ==================== TAB 3: SPOUSE SWAP ==================== -->
+        <div x-show="activeTab === 'swap'" x-cloak>
             <div class="sb-panel-info">
-                <div class="sb-panel-icon emerald">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+                <div class="sb-panel-icon teal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
                 </div>
                 <div>
-                    <div class="sb-panel-badge emerald">طرح زوجین</div>
-                    <h2 class="sb-panel-title">تعویض و انتقال امتیاز متقاضی به همسر</h2>
+                    <div class="sb-panel-badge teal">طرح زوجین</div>
+                    <h3 class="sb-panel-title">تعویض و انتقال مالکیت پرونده به همسر</h3>
                     <p class="sb-panel-desc">
-                        فایل اکسل حاوی کدملی متقاضیان را بارگذاری فرمایید. سیستم مشخصات هویتی و ثبتی متقاضی اصلی را با همسر جایگزین نموده و وضعیت پرونده را جهت <b>استعلام مجدد فرم «ج» به مرحله ۳</b> تغییر می‌دهد.
+                        انتقال متقاضی با همسر به صورت دسته‌جمعی. با این عملیات، متقاضی فعلی به عنوان همسر ثبت و همسر به عنوان متقاضی اصلی قرار گرفته و پرونده جهت ممیزی به مرحله ۳ ارسال می‌گردد.
                     </p>
                 </div>
             </div>
 
-            <form id="swap-spouse-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_swap_spouse' %}', 'swap-spouse-form')">
-                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
-                <div class="sb-dropzone-inner">
-                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    <div style="font-weight: 800; color: #065f46; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل تعویض همسر کلیک کنید یا فایل را به اینجا بکشید</div>
-                    <div style="font-size: 0.8rem; color: #047857; margin-top: 0.25rem;">فایل باید شامل کد ملی متقاضی فعلی باشد.</div>
-                </div>
+            <!-- Rules Box -->
+            <div class="sb-rules-box teal">
+                <strong>قوانین جابجایی همسر:</strong> ستون «کد ملی متقاضی» و «کد ملی همسر» الزامی است. پرونده‌ها باید دارای همسر ثبت‌شده با کد ملی ۱۰ رقمی باشند. امضاهای قبلی ثبت و لاگ امنیتی تعویض صادر می‌شود.
+            </div>
 
-                <!-- Action row: Download Template beside Upload Button -->
-                <div class="sb-action-bar">
-                    <a href="{% url 'excel_download_template' template_type='swap_spouse' %}" class="sb-btn-tpl outline-emerald" title="دانلود قالب اکسل تعویض متقاضی با همسر">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span>دانلود قالب تعویض همسر (.xlsx)</span>
-                    </a>
+            <!-- Upload Dropzone -->
+            <div class="sb-dropzone-box" @click="if(!isProcessing) $refs.fileInputSwap.click()" :class="{ 'has-file': files.swap }">
+                <input type="file" x-ref="fileInputSwap" id="file-input-swap" accept=".xlsx, .xls" class="sb-hidden-input" @change="handleFileSelect($event, 'swap')" :disabled="isProcessing">
 
-                    <button type="submit" class="sb-submit-btn emerald" :disabled="uploading">
-                        <span x-show="!uploading">اجرای عملیات جایگزینی و ارجاع به مرحله ۳ ➔</span>
-                        <span x-show="uploading">در حال جایگزینی مشخصات زوجین...</span>
-                    </button>
+                <template x-if="!files.swap">
+                    <div class="sb-dropzone-inner">
+                        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#99f6e4" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <div class="sb-dz-title teal">برای انتخاب فایل اکسل تعویض همسر کلیک کنید یا فایل را به اینجا بکشید</div>
+                        <div class="sb-dz-sub">فایل باید حداقل شامل کد ملی متقاضی باشد</div>
+                    </div>
+                </template>
+
+                <template x-if="files.swap">
+                    <div class="sb-dz-file-selected">
+                        <div class="sb-dz-file-info">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <div>
+                                <span class="sb-dz-name" x-text="fileNames.swap"></span>
+                                <span class="sb-dz-size" x-text="'(' + fileSizes.swap + ')'"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="sb-dz-remove" @click.stop="clearFile('swap')" :disabled="isProcessing">✕ تغییر فایل</button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Progress Tracker -->
+            <template x-if="isProcessing && activeTab === 'swap'">
+                <div class="sb-progress-wrap">
+                    <div class="sb-progress-header">
+                        <span x-text="isUploading ? 'در حال ارسال فایل اکسل جابجایی همسر...' : 'در حال پردازش جابجایی متقاضی با همسر...'"></span>
+                        <span class="fa-num" x-text="uploadProgress + '%'"></span>
+                    </div>
+                    <div class="sb-progress-bar-bg">
+                        <div class="sb-progress-bar-fill" :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    <div class="sb-progress-meta fa-num">
+                        <span x-text="uploadedSize"></span>
+                        <span x-text="uploadSpeed"></span>
+                        <span x-text="uploadEta"></span>
+                    </div>
                 </div>
-            </form>
+            </template>
+
+            <!-- Action Buttons -->
+            <div class="sb-action-bar">
+                <button type="button" @click="submitExcel('swap', true)" class="sb-btn outline-teal" :disabled="isProcessing || !files.swap">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>پیش‌نمایش جابجایی و بررسی صحت</span>
+                </button>
+                <button type="button" @click="submitExcel('swap', false)" class="sb-btn primary teal" :disabled="isProcessing || !files.swap">
+                    <span>تایید و اعمال نهایی جابجایی با همسر ➔</span>
+                </button>
+            </div>
+
+            <!-- Results Display -->
+            <template x-if="results.swap">
+                <div class="sb-results-box" :class="results.swap.success ? 'success' : 'error'">
+                    <div class="sb-res-header">
+                        <div class="sb-res-title" x-text="results.swap.preview ? 'پیش‌نمایش جابجایی با همسر' : 'نتیجه اعمال نهایی جابجایی'"></div>
+                        <div class="sb-res-actions">
+                            <template x-if="results.swap.success_report_url">
+                                <a :href="results.swap.success_report_url" class="sb-btn-report-success" download="MaskanYar_Successful_SpouseSwap.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل جابجایی‌های تاییدشده (موفق)</span>
+                                </a>
+                            </template>
+                            <template x-if="results.swap.report_url">
+                                <a :href="results.swap.report_url" class="sb-btn-report-error" download="MaskanYar_Errors_SpouseSwap.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل گزارش خطاها (رد شده‌ها)</span>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="sb-stat-dashboard">
+                        <div class="sb-stat-card teal">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.swap.valid_count || results.swap.updated_count || 0)"></div>
+                                <div class="sb-stat-label">پرونده‌های تایید و جابجاشده</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card red">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.swap.failed_count || 0)"></div>
+                                <div class="sb-stat-label">رد شده / دارای خطا</div>
+                            </div>
+                        </div>
+
+                        <template x-if="results.swap.matched_via_spouse_count">
+                            <div class="sb-stat-card amber">
+                                <div class="sb-stat-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                                </div>
+                                <div class="sb-stat-content">
+                                    <div class="sb-stat-val fa-num" x-text="formatNumber(results.swap.matched_via_spouse_count)"></div>
+                                    <div class="sb-stat-label">تطبیق یافته با همسر</div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Errors Table -->
+                    <template x-if="results.swap.errors && results.swap.errors.length">
+                        <div class="sb-error-table-wrap">
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>کد ملی</th>
+                                        <th>نام متقاضی</th>
+                                        <th>علت رد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(err, idx) in results.swap.errors" :key="idx">
+                                        <tr>
+                                            <td x-text="err.row"></td>
+                                            <td x-text="err.national_id"></td>
+                                            <td x-text="err.name"></td>
+                                            <td class="text-danger" x-text="err.reasons ? err.reasons.join(' | ') : err.reason"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- Preview Updates Table -->
+                    <template x-if="results.group_sign.updates_preview && results.group_sign.updates_preview.length">
+                        <div class="sb-diff-table-wrap" style="margin-top: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.6rem;">پیش‌نمایش تغییرات و امضاهای پرونده‌ها:</h4>
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>شماره بایگانی</th>
+                                        <th>کد ملی</th>
+                                        <th>نام متقاضی</th>
+                                        <th>مرحله مبدأ</th>
+                                        <th>مرحله مقصد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(up, idx) in results.group_sign.updates_preview" :key="idx">
+                                        <tr>
+                                            <td x-text="up.row"></td>
+                                            <td x-text="up.archive_number"></td>
+                                            <td x-text="up.national_id"></td>
+                                            <td x-text="up.name"></td>
+                                            <td x-text="up.from_stage"></td>
+                                            <td class="text-success" style="font-weight: 700;" x-text="up.to_stage"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                </div>
+            </template>
         </div>
-    </div>
 
-    <!-- ========================================================================= -->
-    <!-- TAB 4: GENERAL 35-COLUMN DOSSIER REGISTRATION & BATCH UPDATE -->
-    <!-- ========================================================================= -->
-    <div x-show="activeTab === 'standard'" x-cloak class="sb-tab-content">
-        <div class="sb-upload-panel">
+        <!-- ==================== TAB 4: UPDATE ==================== -->
+        <div x-show="activeTab === 'update'" x-cloak>
             <div class="sb-panel-info">
                 <div class="sb-panel-icon indigo">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                 </div>
                 <div>
-                    <div class="sb-panel-badge indigo">اطلاعات جامع سامانه</div>
-                    <h2 class="sb-panel-title">ثبت جدید و بروزرسانی جامع اطلاعات پرونده‌ها (۳۵ سرستون)</h2>
+                    <div class="sb-panel-badge indigo">بروزرسانی داده‌ها</div>
+                    <h3 class="sb-panel-title">بروزرسانی گروهی اطلاعات پرونده‌ها</h3>
                     <p class="sb-panel-desc">
-                        شامل فیلدهای ۳۵ گانه سامانه مسکن‌یار (هویتی، پلاک ثبتی، کد نوسازی، آورده، وام‌ها و تسهیلات). رکوردها بر مبنای کدملی تطبیق و در صورت عدم وجود، پرونده جدید ثبت می‌گردد.
+                        اصلاح مقادیر هویتی، ملکی، ثبتی و تسهیلات پرونده‌های موجود بر مبنای کدملی متقاضی یا همسر. <b>این بخش هرگز پرونده جدیدی ایجاد نمی‌کند.</b>
                     </p>
                 </div>
             </div>
 
-            <form id="standard-update-form" class="sb-dropzone-box" @submit.prevent="uploadForm('{% url 'excel_upload_update' %}', 'standard-update-form')">
-                <input type="file" name="excel_file" accept=".xlsx, .xls" required class="sb-file-input">
-                <div class="sb-dropzone-inner">
-                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    <div style="font-weight: 800; color: #312e81; margin-top: 0.5rem; font-size: 1rem;">برای انتخاب فایل اکسل اطلاعات پرونده‌ها کلیک کنید یا فایل را به اینجا بکشید</div>
-                    <div style="font-size: 0.8rem; color: #4338ca; margin-top: 0.25rem;">فرمت مجاز: XLSX, XLS (پشتیبانی از پردازش سریع دیتابیس ۳۵,۰۰۰ پرونده)</div>
-                </div>
+            <!-- Rules Box -->
+            <div class="sb-rules-box indigo">
+                <strong>قوانین بروزرسانی:</strong> سلول‌های خالی در فایل اکسل نادیده گرفته شده و هرگز داده‌های قبلی را پاک نمی‌کنند. شماره پرونده و کد ملی متقاضی قابل ویرایش نیستند. در تطبیق از طریق همسر، فیلدهای هویتی حفظ شده و فقط اطلاعات مالی/مسکونی بروزرسانی می‌گردد.
+            </div>
 
-                <!-- Action row: Download Template beside Upload Button -->
-                <div class="sb-action-bar">
-                    <a href="{% url 'excel_template_update' %}" class="sb-btn-tpl outline-indigo" title="دانلود قالب اکسل بروزرسانی جامع پرونده‌ها">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        <span>دانلود قالب اکسل ثبت و بروزرسانی (.xlsx)</span>
-                    </a>
+            <!-- Upload Dropzone -->
+            <div class="sb-dropzone-box" @click="if(!isProcessing) $refs.fileInputUpdate.click()" :class="{ 'has-file': files.update }">
+                <input type="file" x-ref="fileInputUpdate" id="file-input-update" accept=".xlsx, .xls" class="sb-hidden-input" @change="handleFileSelect($event, 'update')" :disabled="isProcessing">
 
-                    <button type="submit" class="sb-submit-btn indigo" :disabled="uploading">
-                        <span x-show="!uploading">بارگذاری و پردازش اکسل اطلاعات ➔</span>
-                        <span x-show="uploading">در حال پردازش و بروزرسانی رکوردها...</span>
-                    </button>
+                <template x-if="!files.update">
+                    <div class="sb-dropzone-inner">
+                        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <div class="sb-dz-title indigo">برای انتخاب فایل اکسل بروزرسانی کلیک کنید یا فایل را به اینجا بکشید</div>
+                        <div class="sb-dz-sub">فرمت مجاز: XLSX, XLS (پشتیبانی تا ۳۵,۰۰۰ رکورد در یک فایل)</div>
+                    </div>
+                </template>
+
+                <template x-if="files.update">
+                    <div class="sb-dz-file-selected">
+                        <div class="sb-dz-file-info">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <div>
+                                <span class="sb-dz-name" x-text="fileNames.update"></span>
+                                <span class="sb-dz-size" x-text="'(' + fileSizes.update + ')'"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="sb-dz-remove" @click.stop="clearFile('update')" :disabled="isProcessing">✕ تغییر فایل</button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Progress Tracker -->
+            <template x-if="isProcessing && activeTab === 'update'">
+                <div class="sb-progress-wrap">
+                    <div class="sb-progress-header">
+                        <span x-text="isUploading ? 'در حال ارسال فایل اکسل بروزرسانی...' : 'در حال پردازش و بروزرسانی رکوردها در دیتابیس...'"></span>
+                        <span class="fa-num" x-text="uploadProgress + '%'"></span>
+                    </div>
+                    <div class="sb-progress-bar-bg">
+                        <div class="sb-progress-bar-fill" :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    <div class="sb-progress-meta fa-num">
+                        <span x-text="uploadedSize"></span>
+                        <span x-text="uploadSpeed"></span>
+                        <span x-text="uploadEta"></span>
+                    </div>
                 </div>
-            </form>
+            </template>
+
+            <!-- Action Buttons -->
+            <div class="sb-action-bar">
+                <button type="button" @click="submitExcel('update', true)" class="sb-btn outline-indigo" :disabled="isProcessing || !files.update">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>پیش‌نمایش تغییرات و تفکیک خطاها</span>
+                </button>
+                <button type="button" @click="submitExcel('update', false)" class="sb-btn primary indigo" :disabled="isProcessing || !files.update">
+                    <span>تایید و اعمال نهایی بروزرسانی‌ها ➔</span>
+                </button>
+            </div>
+
+            <!-- Results Display -->
+            <template x-if="results.update">
+                <div class="sb-results-box" :class="results.update.success ? 'success' : 'error'">
+                    <div class="sb-res-header">
+                        <div class="sb-res-title" x-text="results.update.preview ? 'پیش‌نمایش تغییرات فایل بروزرسانی' : 'گزارش اعمال نهایی بروزرسانی‌ها'"></div>
+                        <div class="sb-res-actions">
+                            <template x-if="results.update.success_report_url">
+                                <a :href="results.update.success_report_url" class="sb-btn-report-success" download="MaskanYar_Successful_Updates.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل رکوردهای تایید و بروزرسانی‌شده (موفق)</span>
+                                </a>
+                            </template>
+                            <template x-if="results.update.report_url">
+                                <a :href="results.update.report_url" class="sb-btn-report-error" download="MaskanYar_Errors_Update.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل گزارش خطاها (رد شده‌ها)</span>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="sb-stat-dashboard">
+                        <div class="sb-stat-card indigo">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"></path></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.update.updated_count || results.update.valid_count || 0)"></div>
+                                <div class="sb-stat-label">پرونده‌های تایید / بروزرسانی شده</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card gray">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.update.unchanged_count || 0)"></div>
+                                <div class="sb-stat-label">بدون تغییر در اطلاعات</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card red">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.update.failed_count || 0)"></div>
+                                <div class="sb-stat-label">رد شده / دارای خطا</div>
+                            </div>
+                        </div>
+
+                        <template x-if="results.update.matched_via_spouse_count">
+                            <div class="sb-stat-card amber">
+                                <div class="sb-stat-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                                </div>
+                                <div class="sb-stat-content">
+                                    <div class="sb-stat-val fa-num" x-text="formatNumber(results.update.matched_via_spouse_count)"></div>
+                                    <div class="sb-stat-label">تطبیق یافته از طریق کد ملی همسر</div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Warnings -->
+                    <template x-if="results.update.warnings && results.update.warnings.length">
+                        <div class="sb-alert-warning" style="margin-top: 0.75rem;">
+                            <template x-for="(w, idx) in results.update.warnings" :key="idx">
+                                <div x-text="'⚠️ ' + w"></div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Updates Preview Diff Table -->
+                    <template x-if="results.update.updates_preview && results.update.updates_preview.length">
+                        <div class="sb-diff-section">
+                            <div class="sb-diff-title">پیش‌نمایش رکوردهای دارای تغییر (۵۰ رکورد اول):</div>
+                            <div class="sb-error-table-wrap">
+                                <table class="sb-diff-table fa-num">
+                                    <thead>
+                                        <tr>
+                                            <th>ردیف</th>
+                                            <th>کد ملی</th>
+                                            <th>نام متقاضی</th>
+                                            <th>تغییرات فیلدها</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="(up, idx) in results.update.updates_preview" :key="idx">
+                                            <tr>
+                                                <td x-text="up.row"></td>
+                                                <td>
+                                                    <span x-text="up.national_id"></span>
+                                                    <template x-if="up.matched_via === 'spouse'">
+                                                        <span class="sb-badge-spouse">همسر</span>
+                                                    </template>
+                                                </td>
+                                                <td x-text="up.name"></td>
+                                                <td>
+                                                    <template x-for="(d, dIdx) in up.diff_display" :key="dIdx">
+                                                        <div class="sb-diff-item">
+                                                            <b x-text="d.label + ': '"></b>
+                                                            <span class="diff-old" x-text="d.old || '(خالی)'"></span>
+                                                            <span class="diff-arr">➔</span>
+                                                            <span class="diff-new" x-text="d.new || '(خالی)'"></span>
+                                                        </div>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Errors Table -->
+                    <template x-if="results.update.errors && results.update.errors.length">
+                        <div class="sb-error-table-wrap">
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>کد ملی</th>
+                                        <th>نام</th>
+                                        <th>علت رد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(err, idx) in results.update.errors" :key="idx">
+                                        <tr>
+                                            <td x-text="err.row"></td>
+                                            <td x-text="err.national_id"></td>
+                                            <td x-text="err.name"></td>
+                                            <td class="text-danger" x-text="err.reasons ? err.reasons.join(' | ') : err.reason"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- Preview Updates Table -->
+                    <template x-if="results.group_sign.updates_preview && results.group_sign.updates_preview.length">
+                        <div class="sb-diff-table-wrap" style="margin-top: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.6rem;">پیش‌نمایش تغییرات و امضاهای پرونده‌ها:</h4>
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>شماره بایگانی</th>
+                                        <th>کد ملی</th>
+                                        <th>نام متقاضی</th>
+                                        <th>مرحله مبدأ</th>
+                                        <th>مرحله مقصد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(up, idx) in results.group_sign.updates_preview" :key="idx">
+                                        <tr>
+                                            <td x-text="up.row"></td>
+                                            <td x-text="up.archive_number"></td>
+                                            <td x-text="up.national_id"></td>
+                                            <td x-text="up.name"></td>
+                                            <td x-text="up.from_stage"></td>
+                                            <td class="text-success" style="font-weight: 700;" x-text="up.to_stage"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                </div>
+            </template>
         </div>
+
+        <!-- ==================== TAB 5: CREATE ==================== -->
+        <div x-show="activeTab === 'create'" x-cloak>
+            <div class="sb-panel-info">
+                <div class="sb-panel-icon emerald">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
+                </div>
+                <div>
+                    <div class="sb-panel-badge emerald">ایجاد و ثبت اولیه</div>
+                    <h3 class="sb-panel-title">ثبت دسته‌جمعی پرونده‌های جدید</h3>
+                    <p class="sb-panel-desc">
+                        ایجاد پرونده‌های مسکن جدید در سامانه به صورت تجمیعی با کنترل یکتایی کدملی و جلوگیری از ثبت تعارض زن و شوهر. شماره بایگانی پرونده‌ها به طور خودکار تعیین می‌گردد.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Rules Box -->
+            <div class="sb-rules-box emerald">
+                <strong>قوانین ایجاد پرونده جدید:</strong> ستون «کد ملی متقاضی» الزامی، دقیقاً ۱۰ رقم و یکتا است. در صورت وجود کدملی در سیستم یا تعارض زوجین (ثبت کدملی به عنوان همسر پرونده‌ای دیگر)، رکورد رد خواهد شد.
+            </div>
+
+            <!-- Upload Dropzone -->
+            <div class="sb-dropzone-box" @click="if(!isProcessing) $refs.fileInputCreate.click()" :class="{ 'has-file': files.create }">
+                <input type="file" x-ref="fileInputCreate" id="file-input-create" accept=".xlsx, .xls" class="sb-hidden-input" @change="handleFileSelect($event, 'create')" :disabled="isProcessing">
+
+                <template x-if="!files.create">
+                    <div class="sb-dropzone-inner">
+                        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <div class="sb-dz-title emerald">برای انتخاب فایل اکسل ثبت پرونده‌های جدید کلیک کنید یا فایل را به اینجا بکشید</div>
+                        <div class="sb-dz-sub">فرمت مجاز: XLSX, XLS (پشتیبانی تا ۳۵,۰۰۰ رکورد در یک فایل)</div>
+                    </div>
+                </template>
+
+                <template x-if="files.create">
+                    <div class="sb-dz-file-selected">
+                        <div class="sb-dz-file-info">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <div>
+                                <span class="sb-dz-name" x-text="fileNames.create"></span>
+                                <span class="sb-dz-size" x-text="'(' + fileSizes.create + ')'"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="sb-dz-remove" @click.stop="clearFile('create')" :disabled="isProcessing">✕ تغییر فایل</button>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Progress Tracker -->
+            <template x-if="isProcessing && activeTab === 'create'">
+                <div class="sb-progress-wrap">
+                    <div class="sb-progress-header">
+                        <span x-text="isUploading ? 'در حال ارسال فایل اکسل ایجاد جدید...' : 'در حال اعتبارسنجی و ثبت اتمیک پرونده‌ها در دیتابیس...'"></span>
+                        <span class="fa-num" x-text="uploadProgress + '%'"></span>
+                    </div>
+                    <div class="sb-progress-bar-bg">
+                        <div class="sb-progress-bar-fill" :style="'width: ' + uploadProgress + '%'"></div>
+                    </div>
+                    <div class="sb-progress-meta fa-num">
+                        <span x-text="uploadedSize"></span>
+                        <span x-text="uploadSpeed"></span>
+                        <span x-text="uploadEta"></span>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Action Buttons -->
+            <div class="sb-action-bar">
+                <button type="button" @click="submitExcel('create', true)" class="sb-btn outline-emerald" :disabled="isProcessing || !files.create">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span>پیش‌نمایش و بررسی صحت اطلاعات</span>
+                </button>
+                <button type="button" @click="submitExcel('create', false)" class="sb-btn primary emerald" :disabled="isProcessing || !files.create">
+                    <span>تایید و اعمال نهایی ایجاد پرونده‌ها ➔</span>
+                </button>
+            </div>
+
+            <!-- Results Display -->
+            <template x-if="results.create">
+                <div class="sb-results-box" :class="results.create.success ? 'success' : 'error'">
+                    <div class="sb-res-header">
+                        <div class="sb-res-title" x-text="results.create.preview ? 'پیش‌نمایش پرونده‌های آماده ایجاد' : 'گزارش ایجاد پرونده‌های جدید'"></div>
+                        <div class="sb-res-actions">
+                            <template x-if="results.create.success_report_url">
+                                <a :href="results.create.success_report_url" class="sb-btn-report-success" download="MaskanYar_Successful_Created.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل پرونده‌های ایجادشده (موفق)</span>
+                                </a>
+                            </template>
+                            <template x-if="results.create.report_url">
+                                <a :href="results.create.report_url" class="sb-btn-report-error" download="MaskanYar_Errors_Create.xlsx">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    <span>دانلود اکسل گزارش خطاها (رد شده‌ها)</span>
+                                </a>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="sb-stat-dashboard">
+                        <div class="sb-stat-card emerald">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.create.created_count || results.create.valid_count || 0)"></div>
+                                <div class="sb-stat-label">پرونده‌های معتبر / ایجاد شده</div>
+                            </div>
+                        </div>
+
+                        <div class="sb-stat-card red">
+                            <div class="sb-stat-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                            </div>
+                            <div class="sb-stat-content">
+                                <div class="sb-stat-val fa-num" x-text="formatNumber(results.create.failed_count || 0)"></div>
+                                <div class="sb-stat-label">رد شده / دارای خطا</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Warnings -->
+                    <template x-if="results.create.warnings && results.create.warnings.length">
+                        <div class="sb-alert-warning" style="margin-top: 0.75rem;">
+                            <template x-for="(w, idx) in results.create.warnings" :key="idx">
+                                <div x-text="'⚠️ ' + w"></div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Errors Table -->
+                    <template x-if="results.create.errors && results.create.errors.length">
+                        <div class="sb-error-table-wrap">
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>کد ملی</th>
+                                        <th>نام متقاضی</th>
+                                        <th>علت رد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(err, idx) in results.create.errors" :key="idx">
+                                        <tr>
+                                            <td x-text="err.row"></td>
+                                            <td x-text="err.national_id"></td>
+                                            <td x-text="err.name"></td>
+                                            <td class="text-danger" x-text="err.reasons ? err.reasons.join(' | ') : err.reason"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- Preview Updates Table -->
+                    <template x-if="results.group_sign.updates_preview && results.group_sign.updates_preview.length">
+                        <div class="sb-diff-table-wrap" style="margin-top: 1.25rem;">
+                            <h4 style="font-size: 0.95rem; font-weight: 700; color: #1e3a8a; margin-bottom: 0.6rem;">پیش‌نمایش تغییرات و امضاهای پرونده‌ها:</h4>
+                            <table class="sb-diff-table fa-num">
+                                <thead>
+                                    <tr>
+                                        <th>ردیف</th>
+                                        <th>شماره بایگانی</th>
+                                        <th>کد ملی</th>
+                                        <th>نام متقاضی</th>
+                                        <th>مرحله مبدأ</th>
+                                        <th>مرحله مقصد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(up, idx) in results.group_sign.updates_preview" :key="idx">
+                                        <tr>
+                                            <td x-text="up.row"></td>
+                                            <td x-text="up.archive_number"></td>
+                                            <td x-text="up.national_id"></td>
+                                            <td x-text="up.name"></td>
+                                            <td x-text="up.from_stage"></td>
+                                            <td class="text-success" style="font-weight: 700;" x-text="up.to_stage"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+
     </div>
 
 </div>
 
 <style>
 .sb-hub-container {
-    max-width: 1400px;
-    margin: 1.5rem auto 3.5rem;
-    padding: 0 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    margin: 1rem auto 3.5rem;
+    padding: 0;
     font-family: inherit;
     direction: rtl;
 }
@@ -431,7 +1580,7 @@
     flex-wrap: wrap;
     gap: 1.25rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .sb-hub-header-main {
@@ -484,6 +1633,46 @@
 .sb-badge.blue { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
 .sb-badge.green { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
 
+/* Section Banner Header */
+.sb-section-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+.sb-section-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+.sb-sec-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: #059669;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sb-sec-num.blue {
+    background: #2563eb;
+}
+.sb-sec-title {
+    margin: 0;
+    font-size: 1.18rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+.sb-sec-sub {
+    margin: 2px 0 0;
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
 /* Dedicated Export Card */
 .sb-export-card {
     background: #ffffff;
@@ -491,7 +1680,7 @@
     border: 1.5px solid #bbf7d0;
     padding: 1.5rem 1.75rem;
     box-shadow: 0 4px 16px rgba(5, 150, 105, 0.05);
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     position: relative;
     overflow: hidden;
 }
@@ -508,6 +1697,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
     margin-bottom: 1.25rem;
 }
 .sb-export-title-group {
@@ -528,14 +1719,35 @@
 }
 .sb-export-title {
     margin: 0;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: #065f46;
 }
 .sb-export-desc {
     margin: 3px 0 0;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     color: #475569;
+}
+
+.sb-btn-full-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1.5px solid #a7f3d0;
+    padding: 0.55rem 1.15rem;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sb-btn-full-export:hover {
+    background: #059669;
+    color: #ffffff;
+    border-color: #059669;
 }
 
 .sb-filter-grid {
@@ -596,9 +1808,9 @@
     background: linear-gradient(135deg, #059669, #047857);
     color: #ffffff;
     font-family: inherit;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 800;
-    padding: 0.75rem 1.6rem;
+    padding: 0.65rem 1.4rem;
     border-radius: 10px;
     border: none;
     cursor: pointer;
@@ -609,44 +1821,165 @@
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
 }
-.sb-btn-export-main:active {
-    transform: scale(0.98);
-}
 
-/* Operations Head */
-.sb-ops-section-head {
-    margin-top: 2rem;
-    margin-bottom: 0.75rem;
+/* Template Downloads Section Card */
+.sb-templates-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1.5px solid #e2e8f0;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    margin-bottom: 2rem;
 }
-.sb-ops-title {
+.sb-templates-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+.sb-tpl-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sb-templates-title {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 800;
-    color: #0f172a;
+    color: #1e3a8a;
 }
-.sb-ops-sub {
-    margin: 4px 0 0;
-    font-size: 0.84rem;
+.sb-templates-sub {
+    margin: 3px 0 0;
+    font-size: 0.82rem;
     color: #64748b;
 }
 
-.sb-hub-tabs {
+.sb-tpl-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.85rem;
+    width: 100%;
+}
+@media (max-width: 1280px) {
+    .sb-tpl-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+@media (max-width: 768px) {
+    .sb-tpl-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.sb-tpl-box {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.1rem 0.85rem;
     display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.18s ease;
+    min-width: 0;
+}
+.sb-tpl-box:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.sb-tpl-top {
+    margin-bottom: 1rem;
+}
+.sb-tpl-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-bottom: 0.45rem;
+}
+.sb-tpl-badge.emerald { background: #dcfce7; color: #166534; }
+.sb-tpl-badge.indigo { background: #e0e7ff; color: #3730a3; }
+.sb-tpl-badge.blue { background: #dbeafe; color: #1e40af; }
+.sb-tpl-badge.teal { background: #ccfbf1; color: #115e59; }
+.sb-tpl-badge.amber { background: #fef3c7; color: #92400e; }
+
+.sb-tpl-name {
+    margin: 0 0 0.35rem 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+.sb-tpl-desc {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+.sb-tpl-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sb-tpl-dl-btn.emerald { background: #ecfdf5; color: #047857; border: 1.5px solid #a7f3d0; }
+.sb-tpl-dl-btn.emerald:hover { background: #059669; color: #ffffff; }
+
+.sb-tpl-dl-btn.indigo { background: #eef2ff; color: #4338ca; border: 1.5px solid #c7d2fe; }
+.sb-tpl-dl-btn.indigo:hover { background: #4f46e5; color: #ffffff; }
+
+.sb-tpl-dl-btn.blue { background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; }
+.sb-tpl-dl-btn.blue:hover { background: #2563eb; color: #ffffff; }
+
+.sb-tpl-dl-btn.teal { background: #f0fdfa; color: #0f766e; border: 1.5px solid #99f6e4; }
+.sb-tpl-dl-btn.teal:hover { background: #0d9488; color: #ffffff; }
+
+.sb-tpl-dl-btn.amber { background: #fffbeb; color: #b45309; border: 1.5px solid #fde68a; }
+.sb-tpl-dl-btn.amber:hover { background: #d97706; color: #ffffff; }
+
+/* Section 2: Tabs */
+.sb-hub-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.5rem;
     margin: 1rem 0 1.25rem;
-    overflow-x: auto;
-    padding-bottom: 0.35rem;
+    width: 100%;
     border-bottom: 2px solid #e2e8f0;
+}
+@media (max-width: 1200px) {
+    .sb-hub-tabs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+@media (max-width: 650px) {
+    .sb-hub-tabs {
+        grid-template-columns: 1fr;
+    }
 }
 
 .sb-tab-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.3rem;
+    padding: 0.85rem 0.65rem;
     border-radius: 12px 12px 0 0;
     font-family: inherit;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 800;
     color: #64748b;
     background: #f8fafc;
@@ -655,6 +1988,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .sb-tab-btn:hover {
     color: #1e3a8a;
@@ -681,7 +2019,7 @@
     display: flex;
     gap: 1rem;
     align-items: flex-start;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
 }
 .sb-panel-icon {
     width: 48px;
@@ -694,22 +2032,23 @@
 }
 .sb-panel-icon.blue { background: #eff6ff; border: 1.5px solid #bfdbfe; }
 .sb-panel-icon.amber { background: #fffbeb; border: 1.5px solid #fde68a; }
-.sb-panel-icon.emerald { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+.sb-panel-icon.teal { background: #f0fdfa; border: 1.5px solid #99f6e4; }
 .sb-panel-icon.indigo { background: #eef2ff; border: 1.5px solid #c7d2fe; }
+.sb-panel-icon.emerald { background: #ecfdf5; border: 1.5px solid #a7f3d0; }
 
 .sb-panel-badge {
-    align-self: flex-start;
+    display: inline-block;
     font-size: 0.72rem;
     font-weight: 800;
-    padding: 0.18rem 0.65rem;
+    padding: 2px 8px;
     border-radius: 6px;
-    margin-bottom: 0.35rem;
-    display: inline-block;
+    margin-bottom: 0.25rem;
 }
 .sb-panel-badge.blue { background: #dbeafe; color: #1e40af; }
 .sb-panel-badge.amber { background: #fef3c7; color: #92400e; }
-.sb-panel-badge.emerald { background: #d1fae5; color: #065f46; }
+.sb-panel-badge.teal { background: #ccfbf1; color: #115e59; }
 .sb-panel-badge.indigo { background: #e0e7ff; color: #3730a3; }
+.sb-panel-badge.emerald { background: #dcfce7; color: #166534; }
 
 .sb-panel-title {
     margin: 0;
@@ -718,141 +2057,700 @@
     color: #0f172a;
 }
 .sb-panel-desc {
-    margin: 0.35rem 0 0;
-    font-size: 0.86rem;
+    margin: 4px 0 0;
+    font-size: 0.84rem;
     color: #475569;
+    line-height: 1.55;
+}
+
+.sb-rules-box {
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.82rem;
     line-height: 1.6;
 }
+.sb-rules-box.blue { background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1e40af; }
+.sb-rules-box.amber { background: #fffbeb; border: 1.5px solid #fde68a; color: #92400e; }
+.sb-rules-box.teal { background: #f0fdfa; border: 1.5px solid #99f6e4; color: #115e59; }
+.sb-rules-box.indigo { background: #eef2ff; border: 1.5px solid #c7d2fe; color: #3730a3; }
+.sb-rules-box.emerald { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #166534; }
 
+/* The Single Beautiful Dropzone Box */
 .sb-dropzone-box {
-    position: relative;
     border: 2px dashed #93c5fd;
     border-radius: 14px;
-    background: #f8fafc;
-    padding: 2.25rem 1.5rem 1.5rem;
+    padding: 2.2rem 1.5rem;
     text-align: center;
+    background: #f8fafc;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    margin-bottom: 1.25rem;
+    user-select: none;
 }
 .sb-dropzone-box:hover {
-    background: #f0f9ff;
-    border-color: #3b82f6;
+    border-color: #2563eb;
+    background: #f0f7ff;
+}
+.sb-dropzone-box.has-file {
+    border: 2px solid #10b981;
+    background: #f0fdf4;
+    padding: 1.4rem 1.5rem;
+}
+.sb-hidden-input {
+    display: none;
+}
+.sb-dropzone-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+.sb-dz-title {
+    font-weight: 800;
+    font-size: 1.05rem;
+    margin-top: 0.5rem;
+}
+.sb-dz-title.blue { color: #1e3a8a; }
+.sb-dz-title.amber { color: #92400e; }
+.sb-dz-title.teal { color: #115e59; }
+.sb-dz-title.indigo { color: #312e81; }
+.sb-dz-title.emerald { color: #065f46; }
+
+.sb-dz-sub {
+    font-size: 0.8rem;
+    color: #64748b;
 }
 
-.sb-file-input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
+.sb-dz-file-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.sb-dz-file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.sb-dz-name {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #065f46;
+}
+.sb-dz-size {
+    font-size: 0.8rem;
+    color: #047857;
+    margin-inline-start: 0.4rem;
+}
+.sb-dz-remove {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
     cursor: pointer;
-    z-index: 5;
+    transition: all 0.15s;
+}
+.sb-dz-remove:hover {
+    background: #ef4444;
+    color: #ffffff;
 }
 
-/* Action Bar with Download Template Beside Upload Button */
+/* Progress Wrap */
+.sb-progress-wrap {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+.sb-progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+.sb-progress-bar-bg {
+    height: 10px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+.sb-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+}
+.sb-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.45rem;
+}
+
+/* Action Bar */
 .sb-action-bar {
-    position: relative;
-    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+}
+.sb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.4rem;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1.5px solid transparent;
+}
+.sb-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.sb-btn.outline-blue { background: #ffffff; color: #1d4ed8; border-color: #bfdbfe; }
+.sb-btn.outline-blue:hover:not(:disabled) { background: #eff6ff; }
+.sb-btn.primary.blue { background: #2563eb; color: #ffffff; }
+.sb-btn.primary.blue:hover:not(:disabled) { background: #1d4ed8; }
+
+.sb-btn.primary.amber { background: #d97706; color: #ffffff; }
+.sb-btn.primary.amber:hover:not(:disabled) { background: #b45309; }
+
+.sb-btn.outline-teal { background: #ffffff; color: #0f766e; border-color: #99f6e4; }
+.sb-btn.outline-teal:hover:not(:disabled) { background: #f0fdfa; }
+.sb-btn.primary.teal { background: #0d9488; color: #ffffff; }
+.sb-btn.primary.teal:hover:not(:disabled) { background: #0f766e; }
+
+.sb-btn.outline-indigo { background: #ffffff; color: #4338ca; border-color: #c7d2fe; }
+.sb-btn.outline-indigo:hover:not(:disabled) { background: #eef2ff; }
+.sb-btn.primary.indigo { background: #4f46e5; color: #ffffff; }
+.sb-btn.primary.indigo:hover:not(:disabled) { background: #4338ca; }
+
+.sb-btn.outline-emerald { background: #ffffff; color: #047857; border-color: #a7f3d0; }
+.sb-btn.outline-emerald:hover:not(:disabled) { background: #ecfdf5; }
+.sb-btn.primary.emerald { background: #059669; color: #ffffff; }
+.sb-btn.primary.emerald:hover:not(:disabled) { background: #047857; }
+
+/* Results & Feedback Box */
+.sb-results-box {
+    margin-top: 1.5rem;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    border: 1.5px solid #e2e8f0;
+}
+.sb-results-box.success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+.sb-results-box.error {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+.sb-res-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px dashed #cbd5e1;
+    margin-bottom: 0.85rem;
+}
+.sb-res-title {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #0f172a;
+}
+.sb-btn-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1.5px solid #f87171;
+    padding: 0.4rem 0.95rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.sb-btn-report:hover {
+    background: #dc2626;
+    color: #ffffff;
 }
 
-.sb-btn-tpl {
+.sb-res-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+.sb-btn-report-success {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1.5px solid #a7f3d0;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.15s;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(5, 150, 105, 0.1);
+}
+.sb-btn-report-success:hover {
+    background: #059669;
+    color: #ffffff;
+    border-color: #059669;
+}
+.sb-btn-report-error {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1.5px solid #fca5a5;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.15s;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.1);
+}
+.sb-btn-report-error:hover {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+}
+
+/* Stat Cards Dashboard */
+.sb-stat-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1.25rem 0 1.5rem;
+    width: 100%;
+}
+.sb-stat-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    min-width: 0;
+    transition: all 0.2s ease;
+}
+.sb-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.sb-stat-card.green, .sb-stat-card.emerald {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+.sb-stat-card.green .sb-stat-icon, .sb-stat-card.emerald .sb-stat-icon {
+    background: #dcfce7;
+    color: #15803d;
+}
+.sb-stat-card.green .sb-stat-val, .sb-stat-card.emerald .sb-stat-val {
+    color: #166534;
+}
+
+.sb-stat-card.indigo {
+    background: #eef2ff;
+    border-color: #a5b4fc;
+}
+.sb-stat-card.indigo .sb-stat-icon {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+.sb-stat-card.indigo .sb-stat-val {
+    color: #312e81;
+}
+
+.sb-stat-card.teal {
+    background: #f0fdfa;
+    border-color: #99f6e4;
+}
+.sb-stat-card.teal .sb-stat-icon {
+    background: #ccfbf1;
+    color: #0f766e;
+}
+.sb-stat-card.teal .sb-stat-val {
+    color: #134e4a;
+}
+
+.sb-stat-card.amber {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+.sb-stat-card.amber .sb-stat-icon {
+    background: #fef3c7;
+    color: #b45309;
+}
+.sb-stat-card.amber .sb-stat-val {
+    color: #78350f;
+}
+
+.sb-stat-card.gray {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+.sb-stat-card.gray .sb-stat-icon {
+    background: #f1f5f9;
+    color: #64748b;
+}
+.sb-stat-card.gray .sb-stat-val {
+    color: #334155;
+}
+
+.sb-stat-card.red {
+    background: #fef2f2;
+    border-color: #fca5a5;
+}
+.sb-stat-card.red .sb-stat-icon {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.sb-stat-card.red .sb-stat-val {
+    color: #991b1b;
+}
+
+.sb-stat-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sb-stat-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.sb-stat-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+}
+.sb-stat-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-top: 4px;
+    white-space: nowrap;
+}
+
+/* Fallback chips */
+.sb-stat-chips {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+}
+.sb-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.sb-chip.green { background: #dcfce7; color: #166534; }
+.sb-chip.emerald { background: #d1fae5; color: #065f46; }
+.sb-chip.indigo { background: #e0e7ff; color: #3730a3; }
+.sb-chip.blue { background: #dbeafe; color: #1e40af; }
+.sb-chip.teal { background: #ccfbf1; color: #115e59; }
+.sb-chip.amber { background: #fef3c7; color: #92400e; }
+.sb-chip.gray { background: #f1f5f9; color: #475569; }
+.sb-chip.red { background: #fee2e2; color: #991b1b; }
+
+.sb-alert-warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+    color: #92400e;
+}
+
+/* Diff and Errors Table */
+.sb-diff-section {
+    margin-top: 1rem;
+}
+.sb-diff-title {
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: #334155;
+    margin-bottom: 0.45rem;
+}
+.sb-error-table-wrap {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+}
+.sb-diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+.sb-diff-table th {
+    background: #f8fafc;
+    color: #475569;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: right;
+    position: sticky;
+    top: 0;
+}
+.sb-diff-table td {
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+.sb-diff-item {
+    font-size: 0.78rem;
+    margin-bottom: 2px;
+}
+.diff-old {
+    color: #991b1b;
+    text-decoration: line-through;
+    margin-inline-end: 4px;
+}
+.diff-arr {
+    color: #64748b;
+    margin-inline-end: 4px;
+}
+.diff-new {
+    color: #166534;
+    font-weight: 700;
+}
+.sb-badge-spouse {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    font-size: 0.7rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-inline-start: 4px;
+}
+.text-danger {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+/* Enhanced Export Panel Styles (Matching Government Portal) */
+.sb-export-mandatory-bar {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    margin-top: 1.15rem;
+    margin-bottom: 0.85rem;
+}
+.sb-export-mandatory-label {
+    font-weight: 800;
+    color: #0f172a;
+    margin-inline-end: 0.25rem;
+}
+.sb-tag-mandatory {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+    padding: 0.15rem 0.55rem;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.78rem;
+}
+.sb-export-mandatory-sep {
+    color: #94a3b8;
+    font-weight: bold;
+}
+.sb-export-mandatory-item {
+    color: #334155;
+    font-weight: 600;
+}
+.sb-export-mandatory-note {
+    font-size: 0.74rem;
+    color: #64748b;
+    margin-inline-start: auto;
+}
+
+.sb-export-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    padding-inline: 0.25rem;
+}
+.sb-export-section-title {
+    font-weight: 800;
+    color: #0f2744;
+    font-size: 0.88rem;
+}
+.sb-export-quick-btns {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.sb-btn-text {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: all 0.15s ease;
+}
+.sb-btn-text:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.sb-export-category-list {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+.sb-cat-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.85rem 1.15rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background 0.12s ease;
+    user-select: none;
+}
+.sb-cat-row:last-child {
+    border-bottom: none;
+}
+.sb-cat-row:hover {
+    background: #f8fafc;
+}
+.sb-cat-row.is-active {
+    background: #fafdfb;
+}
+.sb-cat-checkbox {
+    accent-color: #059669;
+    width: 18px;
+    height: 18px;
+    margin-top: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.sb-cat-content {
+    flex: 1;
+}
+.sb-cat-title {
+    font-weight: 800;
+    color: #0f172a;
+    font-size: 0.90rem;
+    margin-bottom: 0.2rem;
+}
+.sb-cat-examples {
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.65;
+    font-weight: 500;
+}
+
+.sb-export-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+.sb-export-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.sb-btn-export-cancel {
+    background: #ffffff;
+    color: #475569;
+    border: 1.5px solid #cbd5e1;
+    padding: 0.6rem 1.4rem;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sb-btn-export-cancel:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+.sb-btn-export-download {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.65rem 1.25rem;
+    background: #059669;
+    color: #ffffff;
+    border: none;
+    padding: 0.6rem 1.6rem;
     border-radius: 10px;
+    font-family: inherit;
     font-size: 0.88rem;
     font-weight: 800;
-    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
     transition: all 0.15s ease;
-    cursor: pointer;
 }
-.sb-btn-tpl.outline-blue {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border: 1.5px solid #bfdbfe;
-}
-.sb-btn-tpl.outline-blue:hover {
-    background: #dbeafe;
-    border-color: #3b82f6;
+.sb-btn-export-download:hover {
+    background: #047857;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
-.sb-btn-tpl.outline-amber {
-    background: #fffbeb;
-    color: #b45309;
-    border: 1.5px solid #fde68a;
-}
-.sb-btn-tpl.outline-amber:hover {
-    background: #fef3c7;
-    border-color: #f59e0b;
-}
-
-.sb-btn-tpl.outline-emerald {
-    background: #f0fdf4;
-    color: #047857;
-    border: 1.5px solid #bbf7d0;
-}
-.sb-btn-tpl.outline-emerald:hover {
-    background: #dcfce7;
-    border-color: #10b981;
-}
-
-.sb-btn-tpl.outline-indigo {
-    background: #eef2ff;
-    color: #4338ca;
-    border: 1.5px solid #c7d2fe;
-}
-.sb-btn-tpl.outline-indigo:hover {
-    background: #e0e7ff;
-    border-color: #6366f1;
-}
-
-.sb-submit-btn {
-    padding: 0.75rem 1.8rem;
-    border-radius: 10px;
-    font-size: 0.92rem;
-    font-weight: 800;
-    font-family: inherit;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.sb-submit-btn.blue { background: #2563eb; color: #ffffff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
-.sb-submit-btn.blue:hover { background: #1d4ed8; }
-.sb-submit-btn.amber { background: #d97706; color: #ffffff; box-shadow: 0 2px 8px rgba(217,119,6,0.25); }
-.sb-submit-btn.amber:hover { background: #b45309; }
-.sb-submit-btn.emerald { background: #059669; color: #ffffff; box-shadow: 0 2px 8px rgba(5,150,105,0.25); }
-.sb-submit-btn.emerald:hover { background: #047857; }
-.sb-submit-btn.indigo { background: #4f46e5; color: #ffffff; box-shadow: 0 2px 8px rgba(79,70,229,0.25); }
-.sb-submit-btn.indigo:hover { background: #4338ca; }
-.sb-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.sb-alert-box {
-    margin: 1.25rem 0;
-    padding: 1rem 1.25rem;
-    border-radius: 12px;
-    border: 1.5px solid transparent;
-}
-.sb-alert-box.success { background: #f0fdf4; border-color: #86efac; color: #166534; }
-.sb-alert-box.error { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
-.sb-alert-box.info { background: #f0f9ff; border-color: #7dd3fc; color: #0369a1; }
-
-.sb-spinner {
-    width: 20px;
-    height: 20px;
-    border: 2.5px solid #bae6fd;
-    border-top-color: #0284c7;
-    border-radius: 50%;
-    animation: sb-spin 0.8s linear infinite;
-}
-@keyframes sb-spin { to { transform: rotate(360deg); } }
 </style>
 {% endblock %}

@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = [
@@ -73,7 +74,9 @@ path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
     path("dossiers/export-dashboard/", views.excel_export_dashboard_view, name="excel_export_dashboard"),
 
     # Enterprise Excel Hub & Mass Operations
-    path("excel-hub/", views.excel_hub_view, name="excel_hub"),
+    path("excel/", views.excel_hub_view, name="excel_hub"),
+    path("excel-hub/", RedirectView.as_view(url="/excel/", permanent=True)),
+    path("excel/hub-template/<str:template_type>/", views.download_excel_template_view),
     path("excel-hub/template/<str:template_type>/", views.download_excel_template_view, name="excel_download_template"),
     path("excel-hub/upload/stage-signatures/", views.process_stage_signatures_excel_view, name="excel_upload_stage_signatures"),
     path("excel-hub/upload/commission/", views.process_commission_excel_view, name="excel_upload_commission"),

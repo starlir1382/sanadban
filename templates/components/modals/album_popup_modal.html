@@ -1,0 +1,241 @@
+<!-- Digital Album Floating Popup Modal & Minimized Dock -->
+<div class="no-print">
+    <!-- 1. Minimized Dock Widget (Bottom-Left Corner) -->
+    <div
+        class="album-minimized-dock"
+        x-show="showAlbumPopup && isAlbumMinimized"
+        x-cloak
+        style="display: none;"
+        @click="isAlbumMinimized = false"
+        title="برای بازگردانی آلبوم تصاویر کلیک کنید"
+    >
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <span style="font-weight: 800; font-size: 0.82rem; color: #ffffff;">آلبوم تصاویر</span>
+            <span class="fa-num" style="background: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 800;" x-text="attachments.length + ' تصویر'"></span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-inline-start: 6px;">
+            <button type="button" @click.stop="isAlbumMinimized = false" class="album-dock-btn" title="بزرگ‌کردن">🗖 بازگردانی</button>
+            <button type="button" @click.stop="showAlbumPopup = false; isAlbumMinimized = false" class="album-dock-btn close" title="بستن">✕</button>
+        </div>
+    </div>
+
+    <!-- 2. Main Album Popup Window Modal -->
+    <div
+        class="album-popup-overlay"
+        x-show="showAlbumPopup && !isAlbumMinimized"
+        x-cloak
+        style="display: none;"
+        @click.self="isAlbumMinimized = true"
+        @keydown.escape.window="if (showAlbumPopup && !isAlbumMinimized) isAlbumMinimized = true"
+    >
+        <div
+            class="album-popup-window"
+            :class="{ 'is-maximized': isAlbumMaximized }"
+            @click.stop
+        >
+            <!-- Single Merged Window Title & Actions Bar -->
+            <div class="album-popup-header">
+                <!-- Right side: Icon, Title & Photo Counter -->
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(56, 189, 248, 0.2); border: 1.5px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </div>
+                    <div style="font-size: 0.95rem; font-weight: 800; color: #ffffff;">آلبوم تصاویر مدارک پرونده</div>
+                    <span class="fa-num" style="background: #0284c7; color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 12px;" x-text="attachments.length + ' تصویر'"></span>
+                </div>
+
+                <!-- Left side: Upload Button & Locked Badge + Window Controls -->
+                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                    <!-- Upload Document Button -->
+                    <button x-show="!isLocked" type="button" class="btn btn-primary" style="padding: 0.42rem 1rem; font-size: 0.82rem; font-weight: 800; background: #2563eb; border: 1px solid #60a5fa; box-shadow: 0 4px 14px rgba(37,99,235,0.4); cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" @click="openUploadScanModal()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>+ افزودن تصویر / مدرک</span>
+                    </button>
+
+                    <div x-show="isLocked" style="display: flex; align-items: center; gap: 0.45rem; background: rgba(255, 255, 255, 0.12); padding: 0.4rem 0.85rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.22); font-size: 0.76rem; color: #cbd5e1;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <span>🔒 بایگانی و قفل (فقط مشاهده)</span>
+                    </div>
+
+                    <!-- Vertical Divider -->
+                    <div style="width: 1px; height: 24px; background: rgba(255, 255, 255, 0.2);"></div>
+
+                    <!-- Window Actions: Minimize, Maximize, Close -->
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <!-- Minimize Button -->
+                        <button type="button" @click="isAlbumMinimized = true" class="album-win-btn" title="کوچک‌کردن پنجره (کمینه‌سازی به گوشه صفحه)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                        <!-- Maximize / Restore Button -->
+                        <button type="button" @click="isAlbumMaximized = !isAlbumMaximized" class="album-win-btn" :title="isAlbumMaximized ? 'اندازه استاندارد' : 'تمام‌صفحه'">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                            </svg>
+                        </button>
+                        <!-- Close Button -->
+                        <button type="button" @click="showAlbumPopup = false; isAlbumMinimized = false" class="album-win-btn close" title="بستن پنجره آلبوم">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Window Scrollable Body: Full Document Gallery -->
+            <div class="album-popup-content">
+                {% include 'components/attachments_card.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+  /* Minimized Bottom-Left Dock */
+  .album-minimized-dock {
+    position: fixed;
+    left: 18px;
+    bottom: 18px;
+    z-index: 90001;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 9999px;
+    padding: 0.5rem 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    border: 1.5px solid #38bdf8;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    direction: rtl;
+    user-select: none;
+  }
+  .album-minimized-dock:hover {
+    background: #1e293b;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+  }
+  .album-dock-btn {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .album-dock-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .album-dock-btn.close {
+    background: rgba(239, 68, 68, 0.85);
+    border-color: #ef4444;
+    padding: 3px 7px;
+  }
+  .album-dock-btn.close:hover {
+    background: #dc2626;
+  }
+
+  /* Album Popup Modal Overlay */
+  .album-popup-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 90000;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5vh 2vw;
+    direction: rtl;
+  }
+  .album-popup-window {
+    width: 90vw;
+    height: 88vh;
+    max-width: 96vw;
+    max-height: 94vh;
+    min-width: 320px;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1.5px solid #cbd5e1;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .album-popup-window.is-maximized {
+    width: 98vw;
+    height: 96vh;
+    border-radius: 8px;
+  }
+  @media (max-width: 768px) {
+    .album-popup-overlay {
+      padding: 0.5rem;
+    }
+    .album-popup-window {
+      width: 96vw;
+      height: 92vh;
+      border-radius: 12px;
+    }
+    .album-popup-header {
+      padding: 0.65rem 0.85rem;
+      gap: 0.5rem;
+    }
+  }
+  .album-popup-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .album-win-btn {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border-radius: 7px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 0.88rem;
+  }
+  .album-win-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .album-win-btn.close {
+    background: #dc2626;
+    border-color: #ef4444;
+    font-weight: 800;
+  }
+  .album-win-btn.close:hover {
+    background: #b91c1c;
+  }
+  .album-popup-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #f8fafc;
+  }
+</style>

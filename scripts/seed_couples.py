@@ -57,7 +57,7 @@ for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=1)
             'spouse_id_number': spouse_id_number,
             'spouse_birth_place': spouse_birth_place,
             'spouse_form_j_status': 'سبز (استعلام شده)',
-            'marital_status': 'متاهل (واجد شرایط طرح زوجین)',
+            'marital_status': 'متاهل ',
             'is_married_confirmed': True,
             'decile': decile_val,
             'site': site_obj,
@@ -102,7 +102,7 @@ for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=1)
     dossier.spouse_id_number = spouse_id_number
     dossier.spouse_birth_place = spouse_birth_place
     dossier.spouse_form_j_status = 'سبز (استعلام شده)'
-    dossier.marital_status = 'متاهل (واجد شرایط طرح زوجین)'
+    dossier.marital_status = 'متاهل '
     dossier.is_married_confirmed = True
     dossier.decile = decile_val
     dossier.site = site_name

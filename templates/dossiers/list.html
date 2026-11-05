@@ -501,31 +501,59 @@
   .dl-project { font-weight: 700; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; line-height: 1.35; }
 
   /* Stage cell */
-  .dl-stage { display: flex; flex-direction: column; gap: 0.4rem; min-width: 200px; }
+  .dl-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.12rem;
+    text-align: center;
+  }
   .dl-stage-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    max-width: 100%;
-    padding: 0.28rem 0.65rem;
-    border-radius: 9px;
-    font-size: 0.76rem;
+    gap: 0.32rem;
+    padding: 0.22rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
     font-weight: 700;
     border: 1px solid transparent;
+    line-height: 1.4;
+    white-space: nowrap;
   }
-  .dl-stage-pill .no { font-weight: 800; padding-left: 0.45rem; margin-left: 0.1rem; border-left: 1px solid currentColor; opacity: 0.9; flex-shrink: 0; }
-  .dl-stage-pill .tt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .dl-stage-pill.brokerage { background: var(--c-primary-soft); color: #4338ca; border-color: var(--c-primary-line); }
-  .dl-stage-pill.directorate { background: var(--c-green-soft); color: #047857; border-color: #a7f3d0; }
-  .dl-stage-pill.done { background: #dcfce7; color: #166534; border-color: #86efac; }
-  .dl-stage-meta { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap; }
-  .dl-date { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--c-muted); font-weight: 600; white-space: nowrap; }
-  .dl-date strong { color: #334155; }
-  .dl-status { display: inline-flex; align-items: center; gap: 3px; font-size: 0.68rem; font-weight: 800; padding: 1px 7px; border-radius: 6px; white-space: nowrap; border: 1px solid transparent; }
-  .dl-status.red { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .dl-stage-pill .lbl { font-weight: 600; opacity: 0.85; }
+  .dl-stage-pill .no  { font-weight: 800; }
+  .dl-stage-pill.brokerage  { background: var(--c-primary-soft); color: #4338ca; border-color: var(--c-primary-line); }
+  .dl-stage-pill.directorate { background: var(--c-green-soft);  color: #047857; border-color: #a7f3d0; }
+  .dl-stage-pill.done       { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .dl-stage-title {
+    font-size: 0.67rem;
+    font-weight: 500;
+    color: var(--c-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 190px;
+    line-height: 1.25;
+    text-align: center;
+    display: block;
+  }
+  .dl-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    font-size: 0.72rem;
+    color: var(--c-muted);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .dl-date svg { color: var(--c-soft); flex-shrink: 0; }
+  .dl-stage-meta { display: flex; align-items: center; justify-content: center; gap: 0.35rem; flex-wrap: wrap; }
+  .dl-status { display: inline-flex; align-items: center; gap: 3px; font-size: 0.67rem; font-weight: 800; padding: 1px 6px; border-radius: 6px; white-space: nowrap; border: 1px solid transparent; }
+  .dl-status.red    { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
   .dl-status.orange { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
-  .dl-status.green { background: #dcfce7; color: #15803d; border-color: #86efac; }
-  .dl-status.ret { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; cursor: help; }
+  .dl-status.green  { background: #dcfce7; color: #15803d; border-color: #86efac; }
+  .dl-status.ret    { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; cursor: help; }
 
   .dl-role { font-size: 0.8rem; font-weight: 700; line-height: 1.4; color: #1e293b; white-space: normal; word-break: normal; overflow-wrap: break-word; }
   .dl-unit { display: inline-block; margin-top: 4px; font-size: 0.66rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid transparent; }
@@ -564,9 +592,6 @@
     border: 1px solid var(--c-line-strong);
     text-decoration: none;
     flex-shrink: 0;
-    transition: all 0.15s ease;
-  }
-  .dl-icon-btn:hover { background: #f8fafc; color: #0f172a; border-color: #94a3b8; }
     transition: all 0.15s ease;
   }
   .dl-icon-btn:hover { background: var(--c-primary-soft); color: var(--c-primary); border-color: var(--c-primary-line); }
@@ -989,6 +1014,55 @@
     border-bottom: none;
   }
   @media (prefers-reduced-motion: reduce) { .dl, .dl * { transition: none !important; animation: none !important; } }
+
+  /* ---------- Table spacing ---------- */
+  .dl-table { table-layout: fixed; min-width: 1120px; }
+  .dl-table thead th { padding: 0.9rem 1rem; }
+  .dl-table tbody td { padding: 1.05rem 1rem; }
+
+  /* Checkbox column (rightmost in RTL) */
+  .dl-table thead th:first-child,
+  .dl-table tbody td:first-child { padding-inline: 0.5rem; }
+  .dl-table input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #4f46e5;
+    cursor: pointer;
+  }
+
+  /* Allow applicant and project content to use the full column */
+  .dl-name,
+  .dl-subline { max-width: 100%; }
+  .dl-name { margin-bottom: 4px; }
+
+  .dl-project {
+    max-width: 100%;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.6;
+    margin-bottom: 4px;
+  }
+
+  /* Stage cell */
+  .dl-stage { gap: 0.4rem; padding-inline: 0.5rem; }
+  .dl-stage-title {
+    max-width: 100%;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+  }
+  .dl-date { margin-top: 0.1rem; }
+
+  /* Actions */
+  .dl-actions { gap: 0.6rem; }
+  .dl-open { padding: 0.5rem 1rem; }
+  .dl-icon-btn { width: 36px; height: 36px; }
 </style>
 
 <div class="dl" x-data="{
@@ -1073,11 +1147,10 @@
   <div class="dl-header">
     <div>
       <div class="dl-chips">
-        <span class="dl-chip">کارپوشه تخصصی اقدام</span>
         <span class="dl-chip fa-num">مراحل مجاز شما: {{ user_profile.allowed_stages }}</span>
       </div>
-      <h2 class="dl-title">پرونده‌های در انتظار اقدام شما (<span class="fa-num">{{ dossiers_count }}</span> پرونده)</h2>
-      <p class="dl-sub">پرونده‌هایی که هم‌اکنون در مرحله تخصصی شما قرار دارند و منتظر بررسی و امضای الکترونیکی شما هستند.</p>
+      <h2 class="dl-title">پرونده‌های در کارتابل (<span class="fa-num">{{ dossiers_count }}</span> پرونده)</h2>
+      <p class="dl-sub">مهندسان مشاور زمین ترسیم خاورمیانه</p>
     </div>
     <div class="dl-header-actions">
       <a href="{% url 'dossier_list' %}" class="dl-hbtn">تازه‌سازی</a>
@@ -1088,22 +1161,37 @@
   <!-- ===================== TAB 1: DOSSIERS LIST ===================== -->
   <div x-show="!isFullAdmin || activeTab === 'dossiers'">
 
-  {% if is_full_admin or request.user.profile.is_housing_chief %}
-    {% include 'components/admin_excel_manager.html' %}
-  {% endif %}
-
   {% if is_full_admin %}
   <!-- ===================== STAGE TRACK (ADMIN) ===================== -->
-  <div class="dl-card dl-track">
-    <div class="dl-track-head">
-      <div class="dl-track-title">
+  <div class="dl-card dl-track" x-data="{ stagesOpen: false }">
+    <div class="dl-track-head"
+         @click="stagesOpen = !stagesOpen"
+         :style="stagesOpen ? '' : 'margin-bottom: 0;'"
+         style="cursor: pointer; user-select: none; transition: all 0.2s ease;"
+         title="کلیک برای باز یا بسته کردن مراحل گردش کار">
+      <div class="dl-track-title" style="display: flex; align-items: center; gap: 0.6rem;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-        گردش کار ۲۲ مرحله‌ای و موقعیت توقف پرونده‌ها
+        <span>گردش کار</span>
+        <span class="dl-track-badge" style="font-size: 0.74rem; font-weight: 700; color: #4338ca; background: #e0e7ff; border: 1px solid #c7d2fe; padding: 2px 10px; border-radius: 999px;"
+              x-text="stagesOpen ? 'بستن مراحل ▴' : 'مشاهده مراحل ▾'"></span>
+        {% if stage_filter %}
+        <span style="font-size: 0.74rem; font-weight: 700; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 999px;">
+          فیلتر: مرحله {{ stage_filter }}
+        </span>
+        {% endif %}
       </div>
-      <div class="dl-track-hint">روی هر مرحله کلیک کنید تا پرونده‌های آن فیلتر شود</div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div class="dl-track-hint" style="color: #64748b; font-size: 0.78rem;" x-text="stagesOpen ? 'روی هر مرحله کلیک کنید تا پرونده‌های آن فیلتر شود' : 'جهت مشاهده و فیلتر مراحل کلیک کنید'"></div>
+        <button type="button" class="btn btn-ghost" style="padding: 0.2rem 0.45rem; border-radius: 6px; color: #6366f1;" aria-label="تغییر وضعیت نمایش">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               style="transition: transform 0.25s;" :style="stagesOpen ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <div class="dl-stages fa-num">
+    <div class="dl-stages fa-num" x-show="stagesOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2">
       <a href="{% url 'dossier_list' %}?{% if query %}q={{ query|urlencode }}&{% endif %}{% if current_sort %}sort={{ current_sort }}{% endif %}" class="dl-scard all {% if stage_filter == '' %}active{% endif %}">
         <div class="top">
           <span class="no">∗</span>
@@ -1144,26 +1232,11 @@
             oninput="filterDossierTable(this.value)"
             autocomplete="off"
             class="fa-num"
-            {% if is_full_admin %}placeholder="جستجوی آنی: شماره بایگانی، کدملی متقاضی یا همسر، نام، پروژه، مرحله..."{% else %}placeholder="جستجوی سریع: نام متقاضی، کد ملی، شماره بایگانی..."{% endif %}
+            {% if is_full_admin %}placeholder="جستجو"{% else %}placeholder="جستجوی"{% endif %}
           />
           <button type="button" id="clear-search-btn" class="clear" onclick="clearSearchInput()" title="پاکسازی جستجو" {% if not query %}style="display: none;"{% endif %}>✕</button>
         </div>
 
-        {% if is_full_admin %}
-        <div class="dl-select">
-          <label for="sort-select">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" style="vertical-align: middle"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
-            مرتب‌سازی:
-          </label>
-          <select id="sort-select" name="sort" onchange="document.getElementById('dossier-search-form').submit()">
-            <option value="stage_asc" {% if current_sort == 'stage_asc' %}selected{% endif %}>مرحله (۱ به ۲۲)</option>
-            <option value="stage_desc" {% if current_sort == 'stage_desc' %}selected{% endif %}>مرحله (۲۲ به ۱)</option>
-            <option value="archive_asc" {% if current_sort == 'archive_asc' %}selected{% endif %}>شماره پرونده (صعودی)</option>
-            <option value="archive_desc" {% if current_sort == 'archive_desc' %}selected{% endif %}>شماره پرونده (نزولی)</option>
-            <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>نام متقاضی (الفبایی)</option>
-          </select>
-        </div>
-        {% endif %}
 
         <button type="submit" class="dl-btn primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -1180,7 +1253,8 @@
         {% endif %}
       </div>
 
-      <!-- ROW 2: Cartable Actions, Bulk Exports & Search Hints -->
+      <!-- ROW 2: Cartable Actions, Bulk Exports & Search Hints (commented out to minimize complexity) -->
+      {% comment %}
       <div class="dl-toolbar-actions-row">
         <div class="dl-actions-group">
           <span class="dl-actions-label">
@@ -1207,7 +1281,7 @@
           </a>
           {% endif %}
 
-          <button type="button" @click="if (isFullAdmin) { window.dispatchEvent(new CustomEvent('open-excel-modal', {detail: {tab: 'group_sign'}})); } else { showExcelModal = true; }" class="dl-btn indigo" title="امضای سریع گروهی مراحل با بارگذاری فایل اکسل">
+          <button type="button" @click="if (isFullAdmin) { window.location.href = '{% url 'excel_hub' %}?modal=1&tab=group_sign'; } else { showExcelModal = true; }" class="dl-btn indigo" title="امضای سریع گروهی مراحل با بارگذاری فایل اکسل">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             <span>امضای گروهی با اکسل</span>
           </button>
@@ -1228,6 +1302,7 @@
           <span class="tag">پروژه و سایت</span>
         </div>
       </div>
+      {% endcomment %}
     </form>
   </div>
 
@@ -1246,18 +1321,24 @@
 
     <div class="dl-scroll">
       <table class="dl-table">
+        <colgroup>
+          <col style="width: 56px;">    <!-- checkbox -->
+          <col style="width: 120px;">   <!-- archive number -->
+          <col style="width: 22%;">     <!-- applicant -->
+          <col style="width: 26%;">     <!-- project and site -->
+          <col style="width: 24%;">     <!-- stage and date -->
+          <col style="width: 200px;">   <!-- actions -->
+        </colgroup>
         <thead>
           <tr>
-            <th class="t-center dl-th-chk" style="width: 38px; min-width: 38px; padding: 0.75rem 0.35rem;">
-              <input type="checkbox" id="selectAllDossiers" title="انتخاب همه پرونده‌های این صفحه" style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;" onchange="toggleSelectAllDossiers(this)">
+            <th class="t-center">
+              <input type="checkbox" id="selectAllDossiers" title="انتخاب همه پرونده‌های این صفحه" onchange="toggleSelectAllDossiers(this)">
             </th>
-            <th class="t-center" style="width: 75px; min-width: 70px;">شماره بایگانی</th>
-            <th style="min-width: 130px;">متقاضی</th>
-            <th style="min-width: 140px;">پروژه و سایت</th>
-            <th style="min-width: 170px;">مرحله جاری و تاریخ ورود</th>
-            <th style="min-width: 135px;">مسئول اقدام</th>
-            <th class="t-center" style="width: 85px; min-width: 80px;">آورده متقاضی</th>
-            <th class="t-center" style="width: 130px; min-width: 125px;">عملیات</th>
+            <th class="t-center">شماره بایگانی</th>
+            <th>متقاضی</th>
+            <th>پروژه و سایت</th>
+            <th class="t-center">مرحله و تاریخ ورود</th>
+            <th class="t-center">عملیات</th>
           </tr>
         </thead>
         <tbody id="dossier-table-body">
@@ -1265,19 +1346,18 @@
           <tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}">
 
             <!-- Checkbox for Batch Signing -->
-            <td class="t-center dl-td-chk" style="width: 38px; min-width: 38px; padding: 0.6rem 0.35rem;">
-              <input type="checkbox" 
-                     class="dossier-chk" 
-                     value="{{ d.archive_number }}" 
+            <td class="t-center dl-td-chk">
+              <input type="checkbox"
+                     class="dossier-chk"
+                     value="{{ d.archive_number }}"
                      data-stage="{{ d.current_stage }}"
                      {% if d.is_locked %}disabled title="پرونده نهایی و بایگانی شده است"{% endif %}
-                     onchange="updateSelectedDossiers()"
-                     style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;">
+                     onchange="updateSelectedDossiers()">
             </td>
 
             <!-- 1. Archive number -->
             <td class="t-center fa-num">
-              <span class="dl-id">#{{ d.archive_number }}</span>
+              <span class="dl-id">{{ d.archive_number }}</span>
             </td>
 
             <!-- 2. Applicant + spouse + national id (max 2 lines) -->
@@ -1300,20 +1380,23 @@
               </div>
             </td>
 
-            <!-- 4. Stage + date + status (max 2 lines) -->
-            <td>
+            <!-- 4. Stage + date + status -->
+            <td class="t-center">
               <div class="dl-stage">
-                <div class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
+                <span class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
+                  <span class="lbl">مرحله</span>
                   <span class="no fa-num">{{ d.current_stage }}</span>
-                  <span class="tt">{{ d.current_stage_title }}</span>
-                </div>
+                </span>
 
+                <span class="dl-stage-title" title="{{ d.current_stage_title }}">{{ d.current_stage_title }}</span>
+
+                <span class="dl-date fa-num" title="تاریخ ورود به مرحله {{ d.current_stage }}: {{ d.stage_entry_date_jalali|default:'ثبت‌نشده' }}">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <span>{{ d.stage_entry_date_jalali|default:'-' }}</span>
+                </span>
+
+                {% if d.status == 'REJECTED_RED' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked %}
                 <div class="dl-stage-meta">
-                  <span class="dl-date fa-num" title="تاریخ ورود پرونده به این مرحله">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                    ورود: <strong>{{ d.stage_entry_date_jalali }}</strong>
-                  </span>
-
                   {% if d.status == 'REJECTED_RED' %}
                     <span class="dl-status red" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">⛔ رد صلاحیت</span>
                   {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
@@ -1324,18 +1407,11 @@
                     <span class="dl-status ret" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">↩ برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
                   {% endif %}
                 </div>
+                {% endif %}
               </div>
             </td>
 
-            <!-- 5. Responsible (Role title only, no unit badge in home menu) -->
-            <td>
-              <div class="dl-role" title="{{ d.current_role }}">{{ d.current_role }}</div>
-            </td>
 
-            <!-- 6. Equity -->
-            <td class="t-center fa-num">
-              <span class="dl-equity">{{ d.formatted_equity }}<small>ریال</small></span>
-            </td>
 
             <!-- 7. Actions -->
             <td class="t-center">
@@ -1353,7 +1429,7 @@
 
           {% empty %}
           <tr id="server-empty-row">
-            <td colspan="8">
+            <td colspan="6">
               <div class="dl-empty">
                 {% if is_full_admin %}
                   <div class="dl-empty-ic">
@@ -1377,7 +1453,7 @@
 
           <!-- Client-side instant filter: no results -->
           <tr id="client-empty-row" style="display: none;">
-            <td colspan="8">
+            <td colspan="6">
               <div class="dl-empty">
                 <div class="dl-empty-ic">
                   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -1695,7 +1771,7 @@
               <tr>
                 <td style="font-weight: 800;">
                   <a href="{% url 'dossier_detail' pk=log.dossier.archive_number %}" style="color: #4f46e5; text-decoration: none;">
-                    #{{ log.dossier.archive_number }}
+                    {{ log.dossier.archive_number }}
                   </a>
                 </td>
                 <td style="font-weight: 700; color: #0f172a;">{{ log.dossier.full_name }}</td>

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='preselectedunit',
             name='marital_status',
-            field=models.CharField(blank=True, default='متاهل (واجد شرایط طرح زوجین)', max_length=50, verbose_name='وضعیت تاهل'),
+            field=models.CharField(blank=True, default='متاهل ', max_length=50, verbose_name='وضعیت تاهل'),
         ),
         migrations.AddField(
             model_name='preselectedunit',

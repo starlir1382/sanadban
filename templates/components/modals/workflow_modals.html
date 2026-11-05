@@ -1,7 +1,7 @@
 <!-- Workflow Action Modals: Electronic Signature & Backward Routing -->
 
 <!-- 1. Electronic Signature Modal -->
-<div class="modal-overlay" x-show="showSignatureModal" x-cloak @click.self="showSignatureModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+<div class="modal-overlay" x-show="showSignatureModal" x-cloak @click.self="showSignatureModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
     <div class="modal-dialog" @click.stop style="max-width: 680px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); animation: modal-appear 0.2s ease-out;">
         <div class="modal-header" style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%); color: #ffffff; padding: 1.15rem 1.5rem;">
             <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; color: #ffffff; font-weight: 800; font-size: 1.05rem;">
@@ -107,7 +107,7 @@
 </div>
 
 <!-- 2. Backward Routing / Rejection Modal -->
-<div class="modal-overlay" x-show="showReturnModal" x-cloak @click.self="showReturnModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+<div class="modal-overlay" x-show="showReturnModal" x-cloak @click.self="showReturnModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
     <div class="modal-dialog" @click.stop style="max-width: 680px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); animation: modal-appear 0.2s ease-out;">
         <div class="modal-header">
             <div class="modal-title" style="color: #92400e;">
@@ -159,8 +159,27 @@
 
 
 <!-- 3. Upload & Hardware Scanner Modal (Expanded, Clean, Arranged List) -->
-<div class="modal-overlay" x-show="showUploadModal" x-cloak @click.self="showUploadModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1.25rem;">
-    <div class="modal-dialog" @click.stop style="max-width: 1060px; width: 94vw; height: 88vh; max-height: 860px; display: flex; flex-direction: column; background: #ffffff; border-radius: 18px; overflow: hidden; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5); animation: modal-appear 0.2s ease-out;">
+<style>
+  @media (max-width: 768px) {
+    .upload-modal-overlay {
+      padding: 0.5rem !important;
+    }
+    .upload-modal-dialog {
+      width: 96vw !important;
+      height: 92vh !important;
+      border-radius: 12px !important;
+    }
+    .upload-modal-dialog .modal-header {
+      padding: 0.75rem 1rem !important;
+    }
+    .upload-modal-dialog .modal-body {
+      padding: 0.75rem 1rem !important;
+      gap: 0.65rem !important;
+    }
+  }
+</style>
+<div class="modal-overlay upload-modal-overlay" x-show="showUploadModal" x-cloak @click.self="showUploadModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 1.5vh 2vw;">
+    <div class="modal-dialog upload-modal-dialog" @click.stop style="width: 90vw; height: 88vh; max-width: 96vw; max-height: 94vh; min-width: 320px; display: flex; flex-direction: column; background: #ffffff; border-radius: 18px; overflow: hidden; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5); animation: modal-appear 0.2s ease-out;">
         
         <!-- Modal Header -->
         <div class="modal-header" style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; padding: 1.15rem 1.75rem; border-bottom: none; display: flex; align-items: center; justify-content: space-between;">
@@ -227,23 +246,7 @@
 
                     <!-- Action Buttons -->
                     <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
-                        <!-- Category Dropdown (Clean & Integrated) -->
-                        <div style="display: flex; align-items: center; gap: 0.45rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.35rem 0.65rem;">
-                            <label style="font-weight: 700; font-size: 0.78rem; color: #475569; white-space: nowrap;">دسته‌بندی:</label>
-                            <select class="input-control" x-model="uploadForm.doc_type" 
-                                    style="height: 32px; font-size: 0.8rem; border: none; background: transparent; cursor: pointer; color: #1e293b; font-weight: 700; outline: none;">
-                                <option value="OTHER">سایر مستندات و ضمائم (عمومی)</option>
-                                <option value="NATIONAL_ID">کارت ملی و شناسنامه متقاضی</option>
-                                <option value="SPOUSE_ID">مدارک هویتی همسر</option>
-                                <option value="FORM_J">تصویر و استعلام رسمی فرم «ج» اداره کل</option>
-                                <option value="UNIT_SELECTION">برگه انتخاب واحد</option>
-                                <option value="BANK_BOOKLET">دفترچه اقساط بانک مسکن</option>
-                                <option value="BANK_LETTER">نامه استعلام بانک</option>
-                                <option value="TITLE_DEED">سند مالکیت تک‌برگ عرصه و اعیان</option>
-                                <option value="LOAN_CHECK">چک صیادی تسهیلات دهک</option>
-                                <option value="PREP_CHECK">چک آماده‌سازی</option>
-                            </select>
-                        </div>
+
 
                         <!-- Button A: File Picker -->
                         <button type="button" class="btn btn-primary" style="padding: 0.55rem 1.25rem; font-size: 0.84rem; font-weight: 700; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25); display: inline-flex; align-items: center; gap: 0.45rem;" @click="$refs.scanFileInput.click()">
@@ -283,7 +286,7 @@
                             تعداد <strong x-text="uploadForm.filesList ? uploadForm.filesList.length : 0"></strong> برگه سند آماده بارگذاری
                         </span>
                         <span style="font-size: 0.76rem; color: #166534; font-weight: 600; margin-right: 6px;">
-                            (جهت تنظیم و تغییر ترتیب برگه‌ها، از دکمه‌های ▲ ▼ استفاده کنید یا سطرها را با ماوس بکشید و رها نمایید)
+                            (پیش‌نمایش تصاویر اسناد آماده بارگذاری)
                         </span>
                     </div>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -299,81 +302,48 @@
                 <!-- Scrollable Arranged Items List -->
                 <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-inline-end: 6px; min-height: 0;">
                     
-                    <!-- When files are present -->
+                    <!-- When files are present: Picture Preview Grid -->
                     <template x-if="uploadForm.filesList && uploadForm.filesList.length > 0">
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 0.85rem; padding: 0.35rem;">
                             <template x-for="(item, idx) in uploadForm.filesList" :key="'upload-item-' + idx + '-' + item.fileName">
-                                <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 0.6rem 0.85rem; gap: 0.85rem; transition: all 0.15s ease; cursor: grab;"
-                                     :style="dragOverIdx === idx ? 'border-color: #2563eb; background: #eff6ff; transform: scale(1.01); box-shadow: 0 4px 12px rgba(37,99,235,0.15);' : ''"
-                                     draggable="true"
-                                     @dragstart="draggedIdx = idx; $event.dataTransfer.effectAllowed = 'move'"
-                                     @dragover.prevent="dragOverIdx = idx"
-                                     @dragleave="if (dragOverIdx === idx) dragOverIdx = null"
-                                     @drop.prevent="reorderFiles(draggedIdx, idx); draggedIdx = null; dragOverIdx = null">
+                                <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(15,23,42,0.06); transition: all 0.2s ease; position: relative;">
                                     
-                                    <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1;">
-                                        
-                                        <!-- Drag Handle Grip -->
-                                        <div style="color: #94a3b8; font-size: 1.15rem; cursor: grab; user-select: none; padding: 0 4px;" title="جهت جابجایی بکشید و رها کنید (Drag & Drop)">
-                                            ⋮⋮
-                                        </div>
-
-                                        <!-- Sheet Order Badge -->
-                                        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 60px; height: 26px; border-radius: 999px; background: #e0e7ff; color: #3730a3; font-weight: 900; font-size: 0.78rem; flex-shrink: 0; padding: 0 8px;" class="fa-num">
-                                            برگه <span x-text="idx + 1"></span>
-                                        </span>
-                                        
-                                        <!-- Thumbnail Image Preview -->
-                                        <div style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: #f8fafc; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
-                                            <template x-if="item.previewUrl && item.previewUrl.startsWith('data:image')">
-                                                <img :src="item.previewUrl" style="width: 100%; height: 100%; object-fit: cover;">
-                                            </template>
-                                            <template x-if="!item.previewUrl || !item.previewUrl.startsWith('data:image')">
-                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                                            </template>
-                                        </div>
-
-                                        <!-- File Name and Size Info -->
-                                        <div style="min-width: 0; line-height: 1.4; flex: 1;">
-                                            <div style="font-size: 0.86rem; font-weight: 800; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" x-text="item.fileName"></div>
-                                            <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.74rem; color: #64748b;" class="fa-num">
-                                                <span x-text="item.sizeStr"></span>
-                                                <template x-if="item.isScanner">
-                                                    <span style="background: #e0f2fe; color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 700;">دستگاه اسکنر سخت‌افزاری</span>
-                                                </template>
-                                            </div>
-                                        </div>
+                                    <!-- Sheet Order Badge (Top-Right) -->
+                                    <div style="position: absolute; top: 8px; right: 8px; z-index: 2; background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(4px); color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,0.25);" class="fa-num">
+                                        برگه <span x-text="idx + 1"></span>
                                     </div>
 
-                                    <!-- Re-Ordering (Arrangement) Controls -->
-                                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
-                                        <!-- Move Up Button -->
-                                        <button type="button" 
-                                                @click.stop="moveUploadFileUp(idx)" 
-                                                :disabled="idx === 0"
-                                                title="انتقال به بالا (برگه قبل)"
-                                                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 6px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #334155; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: all 0.15s;"
-                                                :style="idx === 0 ? 'opacity: 0.3; cursor: not-allowed;' : ''">
-                                            ▲
-                                        </button>
+                                    <!-- Delete Button (Top-Left) -->
+                                    <button type="button" 
+                                            @click.stop="removeUploadFile(idx)" 
+                                            title="حذف این برگه از لیست"
+                                            style="position: absolute; top: 8px; left: 8px; z-index: 2; width: 26px; height: 26px; border-radius: 50%; background: rgba(220, 38, 38, 0.9); color: #ffffff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.82rem; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.25); transition: transform 0.15s, background 0.15s;">
+                                        ✕
+                                    </button>
 
-                                        <!-- Move Down Button -->
-                                        <button type="button" 
-                                                @click.stop="moveUploadFileDown(idx)" 
-                                                :disabled="idx === uploadForm.filesList.length - 1"
-                                                title="انتقال به پایین (برگه بعد)"
-                                                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 6px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #334155; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: all 0.15s;"
-                                                :style="idx === uploadForm.filesList.length - 1 ? 'opacity: 0.3; cursor: not-allowed;' : ''">
-                                            ▼
-                                        </button>
+                                    <!-- Picture Preview -->
+                                    <div style="height: 175px; background: #0f172a; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                                        <template x-if="item.previewUrl">
+                                            <img :src="item.previewUrl" style="width: 100%; height: 100%; object-fit: contain;" :alt="item.fileName">
+                                        </template>
+                                        <template x-if="!item.previewUrl">
+                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; color: #94a3b8;">
+                                                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                                <span style="font-size: 0.74rem; font-weight: 700; color: #cbd5e1;">سند غیرتصویری</span>
+                                            </div>
+                                        </template>
+                                    </div>
 
-                                        <!-- Delete Button -->
-                                        <button type="button" 
-                                                @click.stop="removeUploadFile(idx)" 
-                                                title="حذف این برگه از لیست" 
-                                                style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 6px; border: 1.5px solid #fecaca; background: #fff5f5; color: #dc2626; font-size: 1.15rem; line-height: 1; cursor: pointer; margin-right: 4px; transition: all 0.15s;">
-                                            ✕
-                                        </button>
+                                    <!-- Card Footer with Info & Quick Nudge -->
+                                    <div style="padding: 0.55rem 0.7rem; background: #ffffff; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 4px;">
+                                        <div style="font-size: 0.78rem; font-weight: 800; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: ltr; text-align: right;" :title="item.fileName" x-text="item.fileName"></div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #64748b;" class="fa-num">
+                                            <span x-text="item.sizeStr"></span>
+                                            <div style="display: flex; gap: 4px;">
+                                                <button type="button" @click.stop="moveUploadFileUp(idx)" :disabled="idx === 0" style="padding: 2px 6px; font-size: 0.68rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; cursor: pointer;" :style="idx === 0 ? 'opacity: 0.25; cursor: not-allowed;' : ''" title="جابجایی به برگه قبل">◄</button>
+                                                <button type="button" @click.stop="moveUploadFileDown(idx)" :disabled="idx === uploadForm.filesList.length - 1" style="padding: 2px 6px; font-size: 0.68rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; cursor: pointer;" :style="idx === uploadForm.filesList.length - 1 ? 'opacity: 0.25; cursor: not-allowed;' : ''" title="جابجایی به برگه بعد">►</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
@@ -428,7 +398,7 @@
     </div>
 </div>
 <!-- 4. Official Red Form J Disqualification & Archival Modal -->
-<div class="modal-overlay" x-show="showRedRejectionModal" x-cloak @click.self="showRedRejectionModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+<div class="modal-overlay" x-show="showRedRejectionModal" x-cloak @click.self="showRedRejectionModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
     <div class="modal-dialog" @click.stop style="max-width: 650px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); animation: modal-appear 0.2s ease-out;">
         <div class="modal-header" style="background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%); border-bottom: 1.5px solid #fecaca;">
             <div class="modal-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
@@ -480,7 +450,7 @@
 </div>
 
 <!-- 5. Return Red Form J Dossier for Correction Modal -->
-<div class="modal-overlay" x-show="showRedReturnModal" x-cloak @click.self="showRedReturnModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+<div class="modal-overlay" x-show="showRedReturnModal" x-cloak @click.self="showRedReturnModal = false" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 1rem;">
     <div class="modal-dialog" @click.stop style="max-width: 650px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); animation: modal-appear 0.2s ease-out;">
         <div class="modal-header" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-bottom: 1.5px solid #fde68a;">
             <div class="modal-title" style="color: #92400e; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">

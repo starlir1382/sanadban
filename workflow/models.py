@@ -144,7 +144,7 @@ class PreSelectedUnit(models.Model):
 
     spouse_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج همسر")
 
-    marital_status = models.CharField(max_length=50, default="متاهل (واجد شرایط طرح زوجین)", blank=True, verbose_name="وضعیت تاهل")
+    marital_status = models.CharField(max_length=50, default="متاهل ", blank=True, verbose_name="وضعیت تاهل")
 
     is_married_confirmed = models.BooleanField(default=True, verbose_name="احراز زوجیت و تایید تاهل")
 
@@ -382,7 +382,7 @@ class HousingDossier(models.Model):
 
     spouse_form_j_red_description = models.TextField(blank=True, verbose_name="علت و توضیحات کد قرمز فرم ج همسر")
 
-    marital_status = models.CharField(max_length=50, default="متاهل (واجد شرایط طرح زوجین)", blank=True, verbose_name="وضعیت تاهل")
+    marital_status = models.CharField(max_length=50, default="متاهل ", blank=True, verbose_name="وضعیت تاهل")
 
     is_married_confirmed = models.BooleanField(default=True, verbose_name="احراز زوجیت و تایید تاهل")
 
@@ -744,6 +744,15 @@ class HousingDossier(models.Model):
     def current_unit(self):
 
         return self.STAGE_ROLES.get(self.current_stage, ("-", "-", "-"))[0]
+
+    @property
+    def current_unit_display(self):
+        u = self.current_unit
+        if u == "brokerage":
+            return "کارگزاری ره آزرم"
+        elif u == "directorate":
+            return "اداره کل راه و شهرسازی"
+        return u or "-"
 
     @property
 

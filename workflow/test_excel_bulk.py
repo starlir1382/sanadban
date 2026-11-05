@@ -441,3 +441,202 @@ class ExcelBulkOperationsTestCase(TestCase):
         self.assertEqual(res["swapped_count"], 0)
         self.assertEqual(res["failed_count"], 1)
         self.assertIn("100013", res["errors"][0]["reasons"][0])
+
+    def test_update_zero_regulation_and_persian_labels(self):
+        """Case 12: Zero regulation matches IDs regardless of leading zero, and all diff labels are Persian."""
+        d = HousingDossier.objects.create(
+            national_id="0381929507", # DB has leading zero
+            first_name="علیرضا",
+            last_name="موسوی",
+            spouse_national_id="0451582330",
+            spouse_first_name="فاطمه",
+            archive_number=100014,
+            project_code="OLD_CODE"
+        )
+
+        # Excel has 9 digits without leading zero: 381929507
+        headers = ["کد ملی متقاضی", "کد پروژه", "قیمت پایه بدون وام"]
+        rows = [
+            ["381929507", "NEW_PROJ_99", "5500000000"]
+        ]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=True)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["valid_count"], 1)
+        self.assertEqual(len(res["updates_preview"]), 1)
+
+        diffs = res["updates_preview"][0]["diff_display"]
+        self.assertTrue(len(diffs) >= 2)
+        for diff in diffs:
+            # Must NOT be raw English
+            self.assertNotIn("project_code", diff["label"])
+            self.assertNotIn("base_cost_without_loan", diff["label"])
+            # Must be Persian
+            self.assertTrue(any("؀" <= c <= "ۿ" for c in diff["label"]))
+
+    def test_selective_category_export(self):
+        """Case 13: Export with selected_categories exports only chosen column groups."""
+        from workflow.excel_utils import generate_dossiers_export
+        import openpyxl
+
+        resp = generate_dossiers_export(selected_categories=["financial"])
+        self.assertEqual(resp.status_code, 200)
+
+        buf = io.BytesIO(resp.content)
+        wb = openpyxl.load_workbook(buf, data_only=True)
+        ws = wb.worksheets[0]
+        headers = [c for c in next(ws.iter_rows(values_only=True)) if c]
+
+        # Financial export should contain financial columns and basic identifiers
+        self.assertIn("شماره بایگانی پرونده", headers)
+        self.assertIn("کد ملی متقاضی", headers)
+        self.assertIn("مبلغ تسهیلات وام بانکی (ریال)", headers)
+        # Should NOT contain non-selected categories like spouse details or land area
+        self.assertNotIn("نام پدر همسر", headers)
+        self.assertNotIn("شماره شناسنامه همسر", headers)
+
+    def test_red_form_j_blocks_advancement(self):
+        """Case 14: Stage 3 cannot be signed or advanced if Form J status is red."""
+        from workflow.views import execute_dossier_sign
+
+        d = HousingDossier.objects.create(
+            national_id="0123987654",
+            current_stage=3,
+            applicant_form_j_status="قرمز (دارای سابقه مسکن / فاقد شرایط)",
+            archive_number=100015
+        )
+
+        ok, msg = execute_dossier_sign(d, user=self.admin_user, target_stage=3)
+        self.assertFalse(ok)
+        self.assertIn("قرمز", msg)
+
+        # Stage should remain 3
+        d.refresh_from_db()
+        self.assertEqual(d.current_stage, 3)
+
+    def test_print_summary_wipes_subsequent_stage_signatures(self):
+        """Case 15: If dossier is at stage 3, signatures for stages >= 3 are not in print summary."""
+        from workflow.views import get_dossier_signatures_summary, DossierSignature
+
+        d = HousingDossier.objects.create(
+            national_id="0321654987",
+            current_stage=3,
+            archive_number=100016
+        )
+
+        # Add signatures for stage 1 (brokerage) and stage 10 (national_housing)
+        DossierSignature.objects.create(
+            dossier=d,
+            slot_key="brokerage",
+            signer_name="کارشناس کارگزاری",
+            signed_date="1405/08/01 - 10:00"
+        )
+        DossierSignature.objects.create(
+            dossier=d,
+            slot_key="national_housing",
+            signer_name="رئیس مسکن",
+            signed_date="1405/08/05 - 12:00"
+        )
+
+        sigs, signed_count = get_dossier_signatures_summary(d)
+        # brokerage is from stage 1 < 3, so it should stay
+        self.assertIn("brokerage", sigs)
+        # national_housing is from stage 10 >= 3, so it MUST be wiped!
+        self.assertNotIn("national_housing", sigs)
+
+    def test_22_row_stage_signature_template_and_processing(self):
+        """Case 16: Verify group signing template with national_id in col 1 and stages 1..22 in headers."""
+        from workflow.excel_utils import generate_group_sign_template, process_excel_group_sign
+
+        # 1. Verify template headers: Col 1 = کد ملی متقاضی, Col 2..23 = مرحله 1..مرحله 22, Col 24 = توضیحات
+        buf = generate_group_sign_template()
+        wb = openpyxl.load_workbook(buf, data_only=True)
+        ws = wb.worksheets[0]
+        headers = [c.value for c in ws[1]]
+        self.assertEqual(headers[0], "کد ملی متقاضی")
+        self.assertEqual(headers[1], "مرحله 1")
+        self.assertEqual(headers[22], "مرحله 22")
+        self.assertEqual(headers[23], "توضیحات امضا (اختیاری)")
+
+        # 2. Setup dossiers
+        dA = HousingDossier.objects.create(
+            national_id="0381000001",
+            first_name="علی",
+            last_name="احمدی",
+            current_stage=1,
+            status="IN_PROGRESS",
+            archive_number=100017
+        )
+        dB = HousingDossier.objects.create(
+            national_id="0381000002",
+            first_name="رضا",
+            last_name="کریمی",
+            current_stage=2,
+            status="IN_PROGRESS",
+            archive_number=100018
+        )
+        dC_red = HousingDossier.objects.create(
+            national_id="0381000003",
+            first_name="محمد",
+            last_name="قرمزی",
+            current_stage=3,
+            applicant_form_j_status="قرمز (دارای سابقه مسکن / فاقد شرایط)",
+            status="IN_PROGRESS",
+            archive_number=100019
+        )
+        dD_green = HousingDossier.objects.create(
+            national_id="0381000004",
+            first_name="حسن",
+            last_name="سبزی",
+            current_stage=3,
+            applicant_form_j_status="سبز (استعلام شده و فاقد سابقه ملکی)",
+            status="IN_PROGRESS",
+            archive_number=100020
+        )
+
+        # 3. Build upload file:
+        # Row 2: dA (0381000001) -> mark stage 1 (col 2) and stage 2 (col 3) with 1
+        # Row 3: dC_red (0381000003) -> mark stage 3 (col 4) with 1
+        # Row 4: dD_green (0381000004) -> mark stage 3 (col 4) with 1
+        ws.cell(row=2, column=1, value="0381000001")
+        ws.cell(row=2, column=2, value=1) # مرحله 1
+        ws.cell(row=2, column=3, value=1) # مرحله 2
+
+        ws.cell(row=3, column=1, value="0381000003")
+        ws.cell(row=3, column=4, value=1) # مرحله 3 (Red Form J)
+
+        ws.cell(row=4, column=1, value="0381000004")
+        ws.cell(row=4, column=4, value=1) # مرحله 3 (Green Form J)
+
+        upload_buf = io.BytesIO()
+        wb.save(upload_buf)
+        upload_buf.seek(0)
+
+        # 4. Preview test
+        res_preview = process_excel_group_sign(upload_buf, user=self.admin_user, preview=True)
+        self.assertTrue(res_preview["success"])
+        self.assertTrue(res_preview["preview"])
+        self.assertEqual(res_preview["valid_count"], 2) # dA and dD_green
+        self.assertEqual(res_preview["failed_count"], 1) # dC_red blocked by Red Form J
+
+        # 5. Confirm test
+        upload_buf.seek(0)
+        res_confirm = process_excel_group_sign(upload_buf, user=self.admin_user, preview=False)
+        self.assertTrue(res_confirm["success"])
+        self.assertFalse(res_confirm["preview"])
+        self.assertEqual(res_confirm["valid_count"], 2)
+        self.assertEqual(res_confirm["failed_count"], 1)
+
+        # Verify dossier stage advancements
+        dA.refresh_from_db()
+        self.assertEqual(dA.current_stage, 3) # Advanced 1 -> 2 -> 3!
+
+        dB.refresh_from_db()
+        self.assertEqual(dB.current_stage, 2) # Not in file, stayed 2
+
+        dC_red.refresh_from_db()
+        self.assertEqual(dC_red.current_stage, 3) # Red Form J blocked at stage 3
+
+        dD_green.refresh_from_db()
+        self.assertEqual(dD_green.current_stage, 4) # Green Form J advanced 3 -> 4

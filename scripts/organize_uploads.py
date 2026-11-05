@@ -23,7 +23,7 @@ DOC_TEMPLATES = {
     "BANK_BOOKLET": ("دفترچه اقساط تسهیلات ساخت مسکن", "#b45309", "بانک مسکن - شعبه مرکزی تخصیص تسهیلات"),
     "TITLE_DEED": ("سند مالکیت تک‌برگ کاداستری عرصه", "#0f766e", "سازمان ثبت اسناد و املاک کشور - ثبت منطقه"),
     "LOAN_CHECK": ("چک صیادی ضمانت تسهیلات دهک", "#dc2626", "سامانه صیاد - چک تضمین تسهیلات مسکن"),
-    "OTHER": ("پیوست و ضمائم اداری پرونده", "#475569", "سامانه جامع سندبان - نهضت ملی مسکن"),
+    "OTHER": ("پیوست و ضمائم اداری پرونده", "#475569", "سامانه جامع مسکن یار - نهضت ملی مسکن"),
 }
 
 def generate_document_svg(doc_type, title, full_name, nat_id, arch_no, file_name):
@@ -50,7 +50,7 @@ def generate_document_svg(doc_type, title, full_name, nat_id, arch_no, file_name
   
   <text x="400" y="85" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="bold">جمهوری اسلامی ایران</text>
   <text x="400" y="112" text-anchor="middle" fill="#e2e8f0" font-size="14">{header_org}</text>
-  <text x="400" y="136" text-anchor="middle" fill="#f8fafc" font-size="12">سامانه ملی سندبان — آرشیو رسمی دیجیتال اسناد</text>
+  <text x="400" y="136" text-anchor="middle" fill="#f8fafc" font-size="12">سامانه ملی مسکن یار — آرشیو رسمی دیجیتال اسناد</text>
 
   <!-- Title Badge -->
   <rect x="180" y="180" width="440" height="44" rx="8" fill="#f8fafc" stroke="{color}" stroke-width="1.5"/>
@@ -123,7 +123,7 @@ def generate_document_svg(doc_type, title, full_name, nat_id, arch_no, file_name
 
   <text x="700" y="945" text-anchor="end" fill="#0f172a" font-size="11" font-weight="bold">هش امنیت اصالت مدرک (SHA-256):</text>
   <text x="700" y="968" text-anchor="end" fill="#64748b" font-size="10.5" font-family="monospace">SHA256: 9f83c12a76f24d8b9e1a3c5e7b9a2c</text>
-  <text x="700" y="990" text-anchor="end" fill="#059669" font-size="10" font-weight="bold">✓ تایید و تطبیق داده‌شده با پایگاه داده اسناد رسمی سندبان</text>
+  <text x="700" y="990" text-anchor="end" fill="#059669" font-size="10" font-weight="bold">✓ تایید و تطبیق داده‌شده با پایگاه داده اسناد رسمی مسکن یار</text>
   <text x="700" y="1015" text-anchor="end" fill="#94a3b8" font-size="9">محل نگهداری فایل: uploads/{nat_id}/{file_name}</text>
 </svg>
 """

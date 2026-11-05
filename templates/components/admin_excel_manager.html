@@ -4,6 +4,17 @@
     activeTab: 'create', // 'create' | 'update' | 'group_sign' | 'swap'
     isProcessing: false,
 
+    init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('modal') === '1' || urlParams.get('open') === '1') {
+            this.showExcelModal = true;
+        }
+        if (urlParams.get('tab') && ['create', 'update', 'group_sign', 'swap'].includes(urlParams.get('tab'))) {
+            this.activeTab = urlParams.get('tab');
+            this.showExcelModal = true;
+        }
+    },
+
     // File objects and names per kind
     files: {
         create: null,

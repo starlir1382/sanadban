@@ -2147,6 +2147,14 @@ def execute_dossier_sign(dossier, user, notes="تایید و امضای الکت
     if profile and not profile.can_sign:
         return False, "حق امضای الکترونیکی برای حساب کاربری شما فعال نیست."
 
+    is_red_j = (
+        ("قرمز" in (dossier.applicant_form_j_status or "")) or
+        ("قرمز" in (dossier.spouse_form_j_status or "")) or
+        dossier.status == "REJECTED_RED"
+    )
+    if is_red_j and current_idx == 3:
+        return False, "وضعیت استعلام فرم «ج» پرونده قرمز (دارای سابقه مسکن / عدم احراز صلاحیت) است و امکان تایید و ارسال به مراحل بعدی وجود ندارد."
+
     current_role = dossier.STAGE_ROLES.get(current_idx, ("-", "-", "-"))[1]
     current_title = dossier.STAGE_ROLES.get(current_idx, ("-", "-", f"مرحله {current_idx}"))[2]
 
@@ -2251,13 +2259,16 @@ def electronic_sign_action(request, pk):
         redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.archive_number})
     else:
         redirect_url = reverse("dossier_list")
-        if dossier.is_locked:
-            messages.success(request, f"پرونده #{dossier.archive_number} تایید و به بایگانی نهایی منتقل گردید.")
-        else:
-            messages.success(
-                request,
-                f"پرونده #{dossier.archive_number} با موفقیت به مرحله {dossier.current_stage} ({dossier.current_stage_title}) ارسال گردید.",
-            )
+        try:
+            if dossier.is_locked:
+                messages.success(request, f"پرونده #{dossier.archive_number} تایید و به بایگانی نهایی منتقل گردید.")
+            else:
+                messages.success(
+                    request,
+                    f"پرونده #{dossier.archive_number} با موفقیت به مرحله {dossier.current_stage} ({dossier.current_stage_title}) ارسال گردید.",
+                )
+        except Exception:
+            pass
 
     if request.headers.get("HX-Request"):
         return redirect(redirect_url)
@@ -2859,6 +2870,13 @@ def get_dossier_signatures_summary(dossier):
     signed_stages_set = dossier.get_signed_stages_set()
     if "form_j" in sigs and 10 not in signed_stages_set and 11 not in signed_stages_set:
         sigs.pop("form_j", None)
+
+    # Filter out signatures from stages >= dossier.current_stage unless dossier is completed/locked
+    # If dossier is returned to e.g. stage 3, all signatures for stages >= 3 are wiped from print summary
+    if not dossier.is_locked and dossier.current_stage < 22:
+        for slot_key, slot_stages in list(SLOT_TO_STAGES.items()):
+            if slot_stages and min(slot_stages) >= dossier.current_stage:
+                sigs.pop(slot_key, None)
 
     signed_count = sum(1 for k in ARCHIVAL_SLOTS if k in sigs and sigs[k].signed_date)
 
@@ -6042,7 +6060,8 @@ def excel_export_all_view(request):
 
 
 
-    return generate_dossiers_export(qs)
+    categories = request.GET.getlist("cat")
+    return generate_dossiers_export(qs, selected_categories=categories)
 
 
 

@@ -1,18 +1,21 @@
 /**
  * Sanadban (DeedFlow) - Dark Mode Theme Engine
- * High-Contrast Accessible Enterprise Dark Theme
+ * Complete High-Contrast Accessible Enterprise Dark Theme
+ * Covers every template, modal, table, card, input, and component
  */
 
 /* ==========================================================================
    1. Dark Theme Color Tokens & Root Overrides
    ========================================================================== */
-html[data-theme="dark"] {
+html[data-theme="dark"],
+body[data-theme="dark"] {
   /* Surfaces & Backgrounds */
   --color-bg-app: #080c14;
   --color-surface-card: #0f172a;
   --color-surface-subtle: #141f36;
   --color-surface-hover: #1c2b48;
   --color-border: #1e293b;
+  --color-border-subtle: #172033;
   --color-border-focus: #38bdf8;
   --color-accent: #38bdf8;
   --color-accent-hover: #0ea5e9;
@@ -33,30 +36,21 @@ html[data-theme="dark"] {
   --color-primary-900: #0c4a6e;
   --color-primary-950: #081a2e;
 
-  /* Success Colors */
+  /* Functional Status Colors */
   --color-success-50: rgba(16, 185, 129, 0.15);
   --color-success-100: rgba(16, 185, 129, 0.25);
   --color-success-600: #10b981;
   --color-success-700: #059669;
 
-  /* Warning Colors */
   --color-warning-50: rgba(245, 158, 11, 0.15);
   --color-warning-100: rgba(245, 158, 11, 0.25);
   --color-warning-500: #fbbf24;
   --color-warning-700: #f59e0b;
 
-  /* Danger Colors */
   --color-danger-50: rgba(239, 68, 68, 0.15);
   --color-danger-100: rgba(239, 68, 68, 0.25);
   --color-danger-600: #f87171;
   --color-danger-700: #ef4444;
-
-  /* Elevation Shadows */
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.7), 0 6px 10px -4px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 24px 36px -6px rgba(0, 0, 0, 0.8), 0 10px 14px -6px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.25);
 
   /* List & Table tokens (--c-*) */
   --c-bg: #080c14;
@@ -78,43 +72,60 @@ html[data-theme="dark"] {
   --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6);
 }
 
-/* Smooth Transition between themes */
-html {
-  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+/* Base Body & App Container */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background-color: #080c14 !important;
+  color: #f1f5f9 !important;
 }
-body, main, nav, header, card, input, select, textarea, button, .dl-card, .form-card {
-  transition: background-color 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+
+html[data-theme="dark"] .main-wrapper,
+html[data-theme="dark"] main {
+  background-color: #080c14 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Smooth Transition */
+html {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom Dark Scrollbars */
+html[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #080c14;
+}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
 }
 
 /* ==========================================================================
-   2. Dark Theme Global Elements
+   2. Navbar, Header & Navigation
    ========================================================================== */
-html[data-theme="dark"] body {
-  background-color: var(--color-bg-app);
-  color: var(--color-text-main);
-}
-
-html[data-theme="dark"] .main-wrapper {
-  background-color: var(--color-bg-app);
-}
-
-/* Navbar in Dark Mode */
 html[data-theme="dark"] .sb-header {
   --sb-bg-1: #060a12;
   --sb-bg-2: #0a1120;
-  --sb-line: rgba(56, 189, 248, 0.18);
+  --sb-line: rgba(56, 189, 248, 0.2);
   box-shadow: 0 6px 28px rgba(0, 0, 0, 0.7);
 }
 
-html[data-theme="dark"] .sb-nav {
-  background: rgba(15, 23, 42, 0.6);
-  border-color: rgba(56, 189, 248, 0.2);
+html[data-theme="dark"] .sb-dropdown::before {
+  background: #0f172a !important;
+  border-top-color: #24344d !important;
+  border-left-color: #24344d !important;
 }
 
 html[data-theme="dark"] .sb-dropdown {
   background: #0f172a !important;
   border-color: #24344d !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8) !important;
 }
 
 html[data-theme="dark"] .sb-menu-item {
@@ -124,72 +135,424 @@ html[data-theme="dark"] .sb-menu-item:hover {
   background: #1e293b !important;
   color: #ffffff !important;
 }
+html[data-theme="dark"] .sb-menu-label {
+  color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .sb-clock-pill {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(56, 189, 248, 0.25) !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .sb-mobile-panel {
+  background: #0a1120 !important;
+  border-bottom-color: #24344d !important;
+}
 
 /* ==========================================================================
-   3. Cards, Containers & Sections
+   3. Dossier List Page (list.html)
    ========================================================================== */
 html[data-theme="dark"] .dl-card,
-html[data-theme="dark"] .form-card,
-html[data-theme="dark"] .dt-hero,
-html[data-theme="dark"] .dt-nav-bar,
-html[data-theme="dark"] .attachments-card,
-html[data-theme="dark"] .admin-kpi-card,
-html[data-theme="dark"] .eh-card,
-html[data-theme="dark"] .user-profile-card,
-html[data-theme="dark"] .login-card {
+html[data-theme="dark"] .dl-table-card,
+html[data-theme="dark"] .dl-track {
   background: #0f172a !important;
   border-color: #1e293b !important;
   color: #f1f5f9 !important;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
 }
 
-html[data-theme="dark"] .dt-hero h2,
-html[data-theme="dark"] .section-title,
-html[data-theme="dark"] .dl-table-title,
-html[data-theme="dark"] .welcome-title,
-html[data-theme="dark"] h1,
-html[data-theme="dark"] h2,
-html[data-theme="dark"] h3,
-html[data-theme="dark"] h4 {
+html[data-theme="dark"] .dl-title,
+html[data-theme="dark"] .dl-track-title {
   color: #f8fafc !important;
 }
 
+html[data-theme="dark"] .dl-sub,
+html[data-theme="dark"] .dl-track-hint {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .dl-chip {
+  background: #172033 !important;
+  color: #94a3b8 !important;
+  border: 1px solid #24344d !important;
+}
+
+html[data-theme="dark"] .dl-hbtn {
+  background: #141f33 !important;
+  border-color: #24344d !important;
+  color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .dl-hbtn:hover {
+  background: #1e2d4a !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+
+/* 22 Stages Workflow Cards in list.html */
+html[data-theme="dark"] .dl-scard {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .dl-scard:hover {
+  background: #162238 !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.15) !important;
+}
+html[data-theme="dark"] .dl-scard .no {
+  background: #172033 !important;
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-scard .cnt {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .dl-scard .rl {
+  color: #94a3b8 !important;
+}
+
+/* Has dossiers stage cards */
+html[data-theme="dark"] .dl-scard.has {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  color: #fef3c7 !important;
+}
+html[data-theme="dark"] .dl-scard.has .no {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #fbbf24 !important;
+}
+html[data-theme="dark"] .dl-scard.has .cnt {
+  background: #d97706 !important;
+  color: #ffffff !important;
+}
+
+/* "All dossiers" card */
+html[data-theme="dark"] .dl-scard.all {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  color: #e0f2fe !important;
+}
+html[data-theme="dark"] .dl-scard.all .no {
+  background: rgba(56, 189, 248, 0.22) !important;
+  color: #38bdf8 !important;
+}
+html[data-theme="dark"] .dl-scard.all .cnt {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* Active stage card */
+html[data-theme="dark"] .dl-scard.active {
+  background: #0284c7 !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45) !important;
+}
+html[data-theme="dark"] .dl-scard.active .no {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+html[data-theme="dark"] .dl-scard.active .cnt {
+  background: #ffffff !important;
+  color: #0369a1 !important;
+}
+html[data-theme="dark"] .dl-scard.active .rl {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Search & Toolbar */
+html[data-theme="dark"] .dl-search input {
+  background: #0b111d !important;
+  color: #f1f5f9 !important;
+  border-color: #24344d !important;
+}
+html[data-theme="dark"] .dl-search input:focus {
+  background: #0f172a !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2) !important;
+}
+html[data-theme="dark"] .dl-search .clear {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .dl-select {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-select select {
+  color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .dl-hints .tag {
+  background: #172033 !important;
+  color: #94a3b8 !important;
+  border: 1px solid #24344d !important;
+}
+
+html[data-theme="dark"] .dl-badge-count {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+}
+html[data-theme="dark"] .dl-badge-filter {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+/* Table */
+html[data-theme="dark"] .dl-table-head {
+  border-bottom-color: #1e293b !important;
+}
+html[data-theme="dark"] .dl-table thead th {
+  background: #131d2e !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+html[data-theme="dark"] .dl-table tbody td {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+  border-bottom: 1px solid #172033 !important;
+}
+html[data-theme="dark"] .dl-table tbody tr.dossier-row:hover {
+  background: #162238 !important;
+}
+html[data-theme="dark"] .dl-id {
+  background: rgba(56, 189, 248, 0.14) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+html[data-theme="dark"] .dl-name {
+  color: #f8fafc !important;
+}
+html[data-theme="dark"] .dl-subline {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-project {
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .dl-stage-pill.brokerage {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+html[data-theme="dark"] .dl-stage-pill.directorate {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+html[data-theme="dark"] .dl-stage-pill.done {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+html[data-theme="dark"] .dl-stage-title {
+  color: #64748b !important;
+}
+
+html[data-theme="dark"] .dl-date {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-date svg {
+  color: #64748b !important;
+}
+
+html[data-theme="dark"] .dl-open {
+  background: #141f33 !important;
+  color: #38bdf8 !important;
+  border-color: #24344d !important;
+}
+html[data-theme="dark"] .dl-open:hover {
+  background: #1a2842 !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+html[data-theme="dark"] .dl-icon-btn {
+  background: #141f33 !important;
+  color: #94a3b8 !important;
+  border-color: #24344d !important;
+}
+html[data-theme="dark"] .dl-icon-btn:hover {
+  background: #1a2842 !important;
+  color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+}
+html[data-theme="dark"] .dl-btn.ghost {
+  background: #141f33 !important;
+  color: #e2e8f0 !important;
+  border-color: #24344d !important;
+}
+html[data-theme="dark"] .dl-empty {
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-empty h3 {
+  color: #f8fafc !important;
+}
+html[data-theme="dark"] .dl-empty-ic {
+  background: #172033 !important;
+  border: 1px solid #24344d !important;
+  color: #38bdf8 !important;
+}
+
+/* ==========================================================================
+   4. Dossier Detail Page (detail.html)
+   ========================================================================== */
+html[data-theme="dark"] .dt-hero {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+}
+html[data-theme="dark"] .dt-hero h2 {
+  color: #f8fafc !important;
+}
 html[data-theme="dark"] .dt-meta span {
   background: #172033 !important;
   color: #94a3b8 !important;
-  border: 1px solid #24344d;
+  border: 1px solid #24344d !important;
 }
-
 html[data-theme="dark"] .dt-meta span b {
   color: #f1f5f9 !important;
 }
-
-html[data-theme="dark"] .form-section-header {
-  background: #131c2e !important;
-  border-bottom: 1px solid #1e293b !important;
+html[data-theme="dark"] .dt-id {
+  background: rgba(56, 189, 248, 0.14) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
 }
 
-html[data-theme="dark"] .form-section-header:hover {
-  background: #17243c !important;
+html[data-theme="dark"] .dt-tabs {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border-color: #24344d !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6) !important;
 }
-
-html[data-theme="dark"] .form-section-body {
-  background: #0f172a !important;
+html[data-theme="dark"] .dt-tab {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dt-tab:hover {
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.1) !important;
+}
+html[data-theme="dark"] .dt-tab.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+}
+html[data-theme="dark"] .dt-count {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
 }
 
 html[data-theme="dark"] .dt-simple-card {
   background: rgba(37, 99, 235, 0.12) !important;
   border-color: rgba(59, 130, 246, 0.35) !important;
-  border-inline-start-color: #3b82f6 !important;
   color: #bfdbfe !important;
 }
 html[data-theme="dark"] .dt-simple-card strong {
   color: #93c5fd !important;
 }
 
+/* Sticky Action Bar in detail view */
+html[data-theme="dark"] .sticky-action-bar {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border: 1px solid #24344d !important;
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.6) !important;
+}
+html[data-theme="dark"] .sticky-action-bar .btn-outline {
+  background: #141f33 !important;
+  border-color: #28374f !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .sticky-action-bar .btn-outline:hover {
+  background: #1a2842 !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .dt-menu {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8) !important;
+}
+html[data-theme="dark"] .dt-menu button {
+  color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .dt-menu button:hover {
+  background: #172338 !important;
+  color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .guidance-modal-card {
+  background: #0f172a !important;
+  border: 1px solid #24344d !important;
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .guidance-modal-card table th {
+  background: #131d2e !important;
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .guidance-modal-card table td {
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
 /* ==========================================================================
-   4. Form Controls, Inputs & Selects
+   5. Form Cards, Sections & Controls (form_sections.html)
    ========================================================================== */
+html[data-theme="dark"] .form-sections-wrapper .form-card,
+html[data-theme="dark"] .form-card {
+  background: #0f172a !important;
+  border: 1px solid #1e293b !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+html[data-theme="dark"] .form-sections-wrapper .form-card:hover {
+  border-color: #2d3b55 !important;
+}
+html[data-theme="dark"] .form-sections-wrapper .form-card.section-active-highlight {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25), 0 6px 18px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="dark"] .form-sections-wrapper .form-section-header,
+html[data-theme="dark"] .form-section-header {
+  background: #131c2e !important;
+  border-bottom: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+}
+html[data-theme="dark"] .form-sections-wrapper .form-section-header:hover,
+html[data-theme="dark"] .form-section-header:hover {
+  background: #17243c !important;
+}
+html[data-theme="dark"] .form-sections-wrapper .form-section-header .section-title,
+html[data-theme="dark"] .section-title {
+  color: #f8fafc !important;
+}
+html[data-theme="dark"] .form-sections-wrapper .form-section-header .section-title-icon,
+html[data-theme="dark"] .section-title-icon {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+}
+html[data-theme="dark"] .form-sections-wrapper .btn-section-toggle {
+  background: #141f33 !important;
+  border-color: #28374f !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .form-sections-wrapper .btn-section-toggle:hover {
+  background: #1a2842 !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .form-section-body {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+/* Input Fields & Controls */
 html[data-theme="dark"] input[type="text"],
 html[data-theme="dark"] input[type="number"],
 html[data-theme="dark"] input[type="date"],
@@ -224,7 +587,7 @@ html[data-theme="dark"] select option {
   color: #f1f5f9 !important;
 }
 
-/* Locked & Read-only Fields */
+/* Readonly & Disabled Fields */
 html[data-theme="dark"] input[readonly],
 html[data-theme="dark"] select[disabled],
 html[data-theme="dark"] textarea[readonly],
@@ -232,7 +595,7 @@ html[data-theme="dark"] .field-locked .input-control {
   background: #0b111d !important;
   color: #94a3b8 !important;
   border-color: #1a2538 !important;
-  opacity: 0.9;
+  opacity: 0.9 !important;
 }
 
 html[data-theme="dark"] .field-label {
@@ -245,295 +608,239 @@ html[data-theme="dark"] .helper-badge {
   border: 1px solid #24344d !important;
 }
 
-html[data-theme="dark"] .helper-badge.text-emerald-700 {
-  background: rgba(16, 185, 129, 0.15) !important;
-  color: #34d399 !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
+/* Form Section Specialized Panels */
+html[data-theme="dark"] #form-j-dedicated-card {
+  background: linear-gradient(135deg, #0b172a 0%, #062b1b 100%) !important;
+  border-color: #059669 !important;
 }
 
-html[data-theme="dark"] .helper-badge.text-blue-700 {
-  background: rgba(56, 189, 248, 0.15) !important;
-  color: #38bdf8 !important;
-  border-color: rgba(56, 189, 248, 0.3) !important;
+html[data-theme="dark"] .check-generator-box {
+  background: #18140a !important;
+  border-color: #78350f !important;
+  color: #fde68a !important;
 }
 
-/* Checklist items in Section 8 */
 html[data-theme="dark"] .fs-checklist-grid label {
   background: #131c2e !important;
   border-color: #24344d !important;
   color: #cbd5e1 !important;
 }
-
-/* ==========================================================================
-   5. Tables & Grids (Dashboard & Admin)
-   ========================================================================== */
-html[data-theme="dark"] .dl-scroll,
-html[data-theme="dark"] .dl-table-card {
-  background: #0f172a !important;
+html[data-theme="dark"] .fs-checklist-grid label:hover {
+  background: #1a2842 !important;
+  border-color: #38bdf8 !important;
 }
 
-html[data-theme="dark"] .dl-table thead th,
+/* Project search dropdown list */
+html[data-theme="dark"] .project-autocomplete-dropdown,
+html[data-theme="dark"] div[x-show="projectSearchOpen"] {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7) !important;
+}
+html[data-theme="dark"] div[x-show="projectSearchOpen"] > div {
+  border-bottom-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] div[x-show="projectSearchOpen"] > div:hover {
+  background: #17243c !important;
+}
+
+/* ==========================================================================
+   6. Modals (Signature, Return, Upload, Red Form J, Guidance, Auth)
+   ========================================================================== */
+html[data-theme="dark"] .modal-overlay,
+html[data-theme="dark"] .upload-modal-overlay,
+html[data-theme="dark"] .guidance-modal-overlay {
+  background: rgba(4, 7, 13, 0.82) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+html[data-theme="dark"] .modal-dialog,
+html[data-theme="dark"] .upload-modal-dialog,
+html[data-theme="dark"] .guidance-modal-card,
+html[data-theme="dark"] #loginAuthModal > div {
+  background: #0f172a !important;
+  border: 1.5px solid #24344d !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85) !important;
+}
+
+html[data-theme="dark"] .modal-body {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .modal-footer {
+  background: #0b111d !important;
+  border-top: 1px solid #1e293b !important;
+}
+
+/* Signature modal specific boxes */
+html[data-theme="dark"] .sig-summary-card,
+html[data-theme="dark"] .modal-dialog div[style*="background: #ffffff"],
+html[data-theme="dark"] .modal-dialog div[style*="background:#ffffff"] {
+  background: #131d2e !important;
+  border-color: #24344d !important;
+  color: #f1f5f9 !important;
+}
+
+/* Upload Modal Picture Grid in Dark Mode */
+html[data-theme="dark"] .upload-modal-dialog div[style*="border: 2px dashed"],
+html[data-theme="dark"] .upload-modal-dialog div[style*="border: 2px dashed #93c5fd"],
+html[data-theme="dark"] .upload-modal-dialog div[style*="background: #f8fafc"] {
+  background: #131d2e !important;
+  border-color: #24344d !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .upload-modal-dialog button[style*="background: #ffffff"] {
+  background: #17243c !important;
+  border-color: #24344d !important;
+  color: #38bdf8 !important;
+}
+
+/* Preview Cards inside upload modal */
+html[data-theme="dark"] .upload-modal-dialog div[style*="border: 1.5px solid #cbd5e1"] {
+  background: #131d2e !important;
+  border-color: #24344d !important;
+}
+html[data-theme="dark"] .upload-modal-dialog div[style*="border-top: 1px solid #f1f5f9"] {
+  background: #0f172a !important;
+  border-top-color: #1e293b !important;
+}
+html[data-theme="dark"] .upload-modal-dialog div[style*="color: #1e293b"] {
+  color: #f1f5f9 !important;
+}
+
+/* ==========================================================================
+   7. Photo Album Popup & Document Gallery (album_popup_modal & attachments_card)
+   ========================================================================== */
+html[data-theme="dark"] .album-popup-overlay {
+  background: rgba(4, 7, 13, 0.8) !important;
+}
+
+html[data-theme="dark"] .album-popup-window {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85) !important;
+}
+
+html[data-theme="dark"] .album-popup-content {
+  background: #0b111d !important;
+}
+
+html[data-theme="dark"] .album-minimized-dock {
+  background: #0f172a !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="dark"] .attachments-card,
+html[data-theme="dark"] #attachments-card {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .attachments-card div[style*="background: #ffffff"],
+html[data-theme="dark"] .attachments-card div[style*="background:#ffffff"] {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .attachments-album-grid > div,
+html[data-theme="dark"] div[style*="border: 1.5px solid #cbd5e1"] {
+  background: #131d2e !important;
+  border-color: #24344d !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .attachments-album-grid > div > div:last-child {
+  background: #0f172a !important;
+  border-top-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .attachments-card div[style*="color: #1e293b"] {
+  color: #f1f5f9 !important;
+}
+
+/* ==========================================================================
+   8. Admin Pages (Excel Hub, Bank Letters, Users Management, Audit Logs)
+   ========================================================================== */
+html[data-theme="dark"] .eh-card,
+html[data-theme="dark"] .admin-card,
+html[data-theme="dark"] .admin-kpi-card,
+html[data-theme="dark"] .user-profile-card,
+html[data-theme="dark"] .login-card {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="dark"] .admin-table,
+html[data-theme="dark"] .excel-hub-table,
+html[data-theme="dark"] .users-table {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
 html[data-theme="dark"] .admin-table thead th,
-html[data-theme="dark"] table thead th {
+html[data-theme="dark"] .excel-hub-table thead th,
+html[data-theme="dark"] .users-table thead th {
   background: #131d2e !important;
   color: #94a3b8 !important;
   border-bottom: 1px solid #1e293b !important;
 }
 
-html[data-theme="dark"] .dl-table tbody td,
 html[data-theme="dark"] .admin-table tbody td,
-html[data-theme="dark"] table tbody td {
-  background: transparent !important;
-  color: #f1f5f9 !important;
+html[data-theme="dark"] .excel-hub-table tbody td,
+html[data-theme="dark"] .users-table tbody td {
   border-bottom: 1px solid #172033 !important;
+  color: #f1f5f9 !important;
 }
 
-html[data-theme="dark"] .dl-table tbody tr.dossier-row:hover,
-html[data-theme="dark"] .admin-table tbody tr:hover {
+html[data-theme="dark"] .admin-table tbody tr:hover,
+html[data-theme="dark"] .users-table tbody tr:hover {
   background: #162238 !important;
 }
 
-html[data-theme="dark"] .dl-id {
-  background: rgba(56, 189, 248, 0.14) !important;
-  color: #38bdf8 !important;
-  border-color: rgba(56, 189, 248, 0.35) !important;
-}
-
-html[data-theme="dark"] .dl-avatar {
-  background: linear-gradient(135deg, #1e293b, #334155) !important;
-  color: #38bdf8 !important;
-  border: 1px solid #38bdf8;
-}
-
-html[data-theme="dark"] .dl-name {
-  color: #f8fafc !important;
-}
-html[data-theme="dark"] .dl-subline {
-  color: #94a3b8 !important;
-}
-html[data-theme="dark"] .dl-project {
-  color: #e2e8f0 !important;
-}
-html[data-theme="dark"] .dl-site {
-  color: #94a3b8 !important;
-}
-
-html[data-theme="dark"] .dl-hints .tag {
-  background: #172033 !important;
-  color: #94a3b8 !important;
-  border: 1px solid #24344d;
-}
-
-/* ==========================================================================
-   6. Stepper, Tabs & Stage Pills
-   ========================================================================== */
-html[data-theme="dark"] .dt-tabs {
-  background: rgba(15, 23, 42, 0.94) !important;
+html[data-theme="dark"] .eh-dropzone {
+  background: #0b111d !important;
   border-color: #24344d !important;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6) !important;
-}
-
-html[data-theme="dark"] .dt-tab {
   color: #94a3b8 !important;
 }
-
-html[data-theme="dark"] .dt-tab:hover {
-  color: #38bdf8 !important;
-  background: rgba(56, 189, 248, 0.1) !important;
-}
-
-html[data-theme="dark"] .dt-tab.active {
-  background: #0284c7 !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
-}
-
-html[data-theme="dark"] .dl-pill {
-  background: #141f33 !important;
-  color: #cbd5e1 !important;
-  border-color: #24344d !important;
-}
-
-html[data-theme="dark"] .dl-pill:hover {
-  background: rgba(56, 189, 248, 0.15) !important;
-  color: #38bdf8 !important;
+html[data-theme="dark"] .eh-dropzone:hover {
+  background: #131d2e !important;
   border-color: #38bdf8 !important;
 }
 
-html[data-theme="dark"] .dl-pill.active {
-  background: #0284c7 !important;
-  color: #ffffff !important;
-  border-color: #0284c7 !important;
+html[data-theme="dark"] .profile-hero-inner {
+  background: linear-gradient(135deg, #060a12 0%, #0c1a30 100%) !important;
+  border: 1px solid #1e293b !important;
 }
 
-html[data-theme="dark"] .dl-pill-count {
-  background: #1e293b !important;
-  color: #94a3b8 !important;
-}
-
-html[data-theme="dark"] .dl-tab-item {
-  color: #94a3b8 !important;
-}
-html[data-theme="dark"] .dl-tab-item:hover {
-  color: #38bdf8 !important;
-  background: rgba(56, 189, 248, 0.12) !important;
-}
-html[data-theme="dark"] .dl-tab-item.active {
-  background: #0284c7 !important;
-  color: #ffffff !important;
-}
-
-/* Stepper Track */
-html[data-theme="dark"] .pipeline-stepper {
-  background: #0f172a !important;
-  border-color: #1e293b !important;
-}
-
-html[data-theme="dark"] .step-line {
-  background: #1e293b !important;
-}
-
-html[data-theme="dark"] .step-circle {
-  background: #141f33 !important;
-  border-color: #24344d !important;
-  color: #94a3b8 !important;
-}
-
-html[data-theme="dark"] .step-circle.active {
-  background: #0284c7 !important;
-  border-color: #38bdf8 !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.5) !important;
-}
-
-html[data-theme="dark"] .step-circle.completed {
-  background: #059669 !important;
-  border-color: #10b981 !important;
-  color: #ffffff !important;
-}
-
-/* ==========================================================================
-   7. Buttons, Dropdowns & Modals
-   ========================================================================== */
-html[data-theme="dark"] .btn-outline,
-html[data-theme="dark"] .dl-btn.ghost,
-html[data-theme="dark"] .dl-open {
+/* Buttons in Dark Mode */
+html[data-theme="dark"] .btn-outline {
   background: #141f33 !important;
   border-color: #28374f !important;
   color: #e2e8f0 !important;
 }
-
-html[data-theme="dark"] .btn-outline:hover,
-html[data-theme="dark"] .dl-btn.ghost:hover,
-html[data-theme="dark"] .dl-open:hover {
+html[data-theme="dark"] .btn-outline:hover {
   background: #1a2842 !important;
   border-color: #38bdf8 !important;
   color: #38bdf8 !important;
 }
-
 html[data-theme="dark"] .btn-ghost {
   color: #cbd5e1 !important;
 }
-
-html[data-theme="dark"] .dl-counter {
-  background: rgba(56, 189, 248, 0.14) !important;
-  color: #7dd3fc !important;
-  border-color: rgba(56, 189, 248, 0.3) !important;
-}
-
-html[data-theme="dark"] .dt-menu {
-  background: #0f172a !important;
-  border-color: #24344d !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
-}
-
-html[data-theme="dark"] .dt-menu a,
-html[data-theme="dark"] .dt-menu button {
-  color: #cbd5e1 !important;
-}
-
-html[data-theme="dark"] .dt-menu a:hover,
-html[data-theme="dark"] .dt-menu button:hover {
-  background: #172338 !important;
-  color: #38bdf8 !important;
-}
-
-html[data-theme="dark"] .dt-footer {
-  background: #0f172a !important;
-  border-color: #1e293b !important;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6) !important;
-}
-
-html[data-theme="dark"] .modal-overlay,
-html[data-theme="dark"] .scan-viewer-modal {
-  background: rgba(8, 12, 20, 0.88) !important;
-}
-
-html[data-theme="dark"] .modal-card,
-html[data-theme="dark"] .modal-box {
-  background: #0f172a !important;
-  border-color: #24344d !important;
-  color: #f1f5f9 !important;
-}
-
-/* Pagination in Dark Mode */
-html[data-theme="dark"] .dl-pager {
-  border-top-color: #1e293b !important;
-}
-
-html[data-theme="dark"] .dl-pg {
+html[data-theme="dark"] .btn-ghost:hover {
   background: #141f33 !important;
-  color: #cbd5e1 !important;
-  border-color: #24344d !important;
-}
-
-html[data-theme="dark"] .dl-pg:hover {
-  background: #1a2842 !important;
   color: #38bdf8 !important;
-  border-color: #38bdf8 !important;
-}
-
-html[data-theme="dark"] .dl-pg.current {
-  background: #0284c7 !important;
-  color: #ffffff !important;
-  border-color: #0284c7 !important;
 }
 
 /* ==========================================================================
-   8. Unified Scan Album & Document Cards
-   ========================================================================== */
-html[data-theme="dark"] .attachments-sub-header {
-  background: #0b111d !important;
-  border-color: #1e293b !important;
-}
-
-html[data-theme="dark"] .attachments-album-grid > div {
-  background: #0f172a !important;
-  border-color: #1e293b !important;
-}
-
-html[data-theme="dark"] .attachments-album-grid > div > div:last-child {
-  background: #0f172a !important;
-  border-color: #1e293b !important;
-}
-
-html[data-theme="dark"] .attachments-album-grid > div > div:last-child div {
-  color: #f1f5f9 !important;
-}
-
-html[data-theme="dark"] .attachments-album-grid > div:hover {
-  border-color: #38bdf8 !important;
-  box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.6) !important;
-}
-
-html[data-theme="dark"] .lock-pill {
-  background: rgba(16, 185, 129, 0.14) !important;
-  color: #34d399 !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
-}
-
-/* ==========================================================================
-   9. Theme Switcher Toggle Pill Styling
+   9. Theme Switcher Controls & Visual Feedback
    ========================================================================== */
 .sb-theme-toggle-btn {
   display: inline-flex;
@@ -595,7 +902,7 @@ html:not([data-theme="dark"]) .sb-theme-moon {
   color: #38bdf8;
 }
 
-/* Mobile & Menu Theme Switch item */
+/* Menu Theme Switch */
 .sb-menu-theme-toggle {
   display: flex;
   align-items: center;
@@ -647,7 +954,7 @@ html[data-theme="dark"] .sb-theme-switch-thumb {
   transform: translateX(-18px);
 }
 
-/* Desktop Navbar theme toggle button: icon-only circular */
+/* Desktop Navbar theme toggle button */
 .sb-actions .sb-theme-toggle-btn {
   width: 38px;
   height: 38px;
@@ -660,14 +967,19 @@ html[data-theme="dark"] .sb-theme-switch-thumb {
   justify-content: center !important;
 }
 
-
-/* Theme toggle text labels */
-.sb-theme-text-dark, .sb-theme-text-light {
-  font-size: 0.82rem;
-  font-weight: 700;
-  margin-inline-start: 0.35rem;
+/* Sticky Scan Tab in Dark Mode */
+[data-theme="dark"] .sticky-scan-tab {
+  background: #2563eb !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
 }
-html[data-theme="dark"] .sb-theme-text-light { display: none !important; }
-html[data-theme="dark"] .sb-theme-text-dark { display: inline !important; }
-html:not([data-theme="dark"]) .sb-theme-text-dark { display: none !important; }
-html:not([data-theme="dark"]) .sb-theme-text-light { display: inline !important; }
+[data-theme="dark"] .sticky-scan-tab:hover {
+  background: #1d4ed8 !important;
+}
+[data-theme="dark"] .sticky-scan-tab.is-open {
+  background: #dc2626 !important;
+  border-color: #f87171 !important;
+}
+[data-theme="dark"] .sticky-scan-tab.is-open:hover {
+  background: #b91c1c !important;
+}

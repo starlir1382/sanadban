@@ -134,34 +134,14 @@ def download_excel_template_view(request, template_type):
         return HttpResponseForbidden("دسترسی غیرمجاز: دانلود این قالب صرفاً در اختیار مدیران سیستم است.")
 
     if template_type == "stage_signatures":
-        ws.title = "امضای دسته‌جمعی مراحل"
-        filename_prefix = "Template_Stage_Signatures"
-
-        # Determine target stages according to user permissions
-        if is_admin:
-            target_stages = list(range(1, MAX_STAGE + 1))
-        else:
-            target_stages = profile.get_allowed_stages_list() if profile else []
-            if not target_stages:
-                return HttpResponseForbidden("هیچ مرحله مجازی در پروفایل شما برای دانلود قالب امضا تعریف نشده است.")
-
-        # Headers: National ID, optional name, and allowed stage columns
-        headers = ["کد ملی متقاضی", "نام متقاضی (اختیاری)"]
-        for stg in target_stages:
-            stg_title = STAGE_ROLES.get(stg, ("", "", f"مرحله {stg}"))[2]
-            headers.append(f"مرحله {stg}: {stg_title}")
-
-        ws.append(headers)
-
-        # Style header row (empty template with only headers as requested)
-        for col_idx in range(1, len(headers) + 1):
-            cell = ws.cell(row=1, column=col_idx)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_align
-            cell.border = thin_border
-            ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = 30 if col_idx > 2 else 22
-        ws.row_dimensions[1].height = 35
+        from .excel_utils import generate_group_sign_template
+        buf = generate_group_sign_template()
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = 'attachment; filename="MaskanYar_Template_Stage_Signatures.xlsx"'
+        return response
 
     elif template_type == "commission":
         ws.title = "کمیسیون تعدیل و بازنگری"
@@ -538,6 +518,8 @@ def process_commission_excel_view(request):
     adjusted_count = 0
     unchanged_count = 0
     errors = []
+    error_items = []
+    adjusted_rows_list = []
 
     for row_idx, row in enumerate(row_iter, start=2):
         if not row or len(row) <= nid_col_idx or not row[nid_col_idx]:
@@ -548,11 +530,15 @@ def process_commission_excel_view(request):
 
         dossier = HousingDossier.objects.select_for_update().filter(national_id=nid).first()
         if not dossier:
-            errors.append(f"ردیف {row_idx}: کدملی {nid} در سیستم یافت نشد.")
+            msg = f"کدملی {nid} در سیستم یافت نشد."
+            errors.append(f"ردیف {row_idx}: {msg}")
+            error_items.append({"row": row_idx, "national_id": nid, "name": "", "reasons": [msg], "original_cells": list(row)})
             continue
 
         if dossier.is_locked:
-            errors.append(f"ردیف {row_idx}: پرونده #{dossier.archive_number} قفل دائم/بایگانی قطعی شده است و قابل تغییر نمی‌باشد.")
+            msg = f"پرونده #{dossier.archive_number} قفل دائم/بایگانی قطعی شده است و قابل تغییر نمی‌باشد."
+            errors.append(f"ردیف {row_idx}: {msg}")
+            error_items.append({"row": row_idx, "national_id": nid, "name": dossier.applicant_full_name, "reasons": [msg], "original_cells": list(row)})
             continue
 
         changes = []
@@ -658,15 +644,40 @@ def process_commission_excel_view(request):
                 notes=f"تعدیل قیمت و مشخصات در کمیسیون ({change_summary}). امضای مراحل ۲، ۴، ۵، ۸، ۱۸ لغو گردید و پرونده جهت ممیزی مجدد ارجاع شد."
             )
             adjusted_count += 1
+            adjusted_rows_list.append({
+                "row": row_idx,
+                "archive_number": dossier.archive_number,
+                "national_id": dossier.national_id,
+                "name": dossier.applicant_full_name,
+                "status": "تعدیل شد",
+                "diff_summary": f"تعدیل کمیسیون: {change_summary} (لغو امضای مراحل ۲، ۴، ۵، ۸، ۱۸)",
+                "original_cells": list(row),
+            })
         else:
             unchanged_count += 1
+
+    report_url = None
+    if error_items:
+        from .excel_utils import generate_failure_report
+        r_uuid = generate_failure_report(request.user.id, list(header_row), error_items)
+        report_url = f"/excel/report/{r_uuid}/"
+
+    success_report_url = None
+    if adjusted_rows_list:
+        from .excel_utils import generate_success_report
+        s_uuid = generate_success_report(request.user.id, list(header_row), adjusted_rows_list, title="پرونده‌های تعدیل‌شده")
+        success_report_url = f"/excel/report/{s_uuid}/"
 
     return JsonResponse({
         "status": "success",
         "message": f"عملیات کمیسیون با موفقیت اجرا شد: {adjusted_count} پرونده تعدیل و امضاهای مربوطه لغو گردید، {unchanged_count} پرونده بدون مغایرت بود.",
         "adjusted_count": adjusted_count,
+        "updated_count": adjusted_count,
         "unchanged_count": unchanged_count,
-        "errors": errors[:20]
+        "failed_count": len(error_items),
+        "errors": errors[:20],
+        "report_url": report_url,
+        "success_report_url": success_report_url,
     })
 
 

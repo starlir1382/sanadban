@@ -25,7 +25,7 @@ from openpyxl.utils import get_column_letter
 
 from django.conf import settings
 from django.db import transaction, IntegrityError, models
-from django.db.models import Case, When, Value
+from django.db.models import Case, When, Value, Q
 from django.http import HttpResponse, Http404, FileResponse
 from django.utils import timezone
 
@@ -194,6 +194,8 @@ HEADER_ALIASES: Dict[str, str] = {
     "کد ملی همسر": "spouse_national_id",
     "کدملی همسر": "spouse_national_id",
     "قیمت پایه": "base_cost_without_loan",
+    "قیمت پایه بدون وام": "base_cost_without_loan",
+    "قیمت تمام شده بدون وام": "base_cost_without_loan",
     "آورده نقدی": "applicant_equity",
     "سهم آورده": "applicant_equity",
     "وام صندوق": "fund_loan_amount",
@@ -206,6 +208,8 @@ HEADER_ALIASES: Dict[str, str] = {
     "پروژه": "project",
     "نام پروژه": "project",
     "پروژه مسکونی": "project",
+    "کد پروژه": "project_code",
+    "کد پروژه مسکونی": "project_code",
     "ثبت دستی": "form_j_registration_type",
     "ثبت خودکار": "form_j_registration_type",
     "نوع ثبت فرم ج": "form_j_registration_type",
@@ -259,6 +263,152 @@ def clean_national_id(val: Any) -> Optional[str]:
         if len(s) == 10:
             return s
     return None
+
+def get_national_id_variants(val: Any) -> List[str]:
+    """
+    Returns candidate representations of a national ID handling leading zeros:
+    e.g. for '381929507' -> ['0381929507', '381929507']
+    Allows seamless matching across Excel and DB regardless of dropped leading zeros.
+    """
+    if val is None:
+        return []
+    s = clean_digits(val)
+    if not s:
+        return []
+    if "." in s:
+        try:
+            s = str(int(float(s)))
+        except ValueError:
+            pass
+    digits = re.sub(r"\D", "", s)
+    if not digits:
+        return []
+    variants = []
+    if len(digits) <= 10:
+        variants.append(digits.zfill(10))
+    variants.append(digits)
+    stripped = digits.lstrip("0")
+    if stripped:
+        variants.append(stripped)
+    seen = set()
+    result = []
+    for v in variants:
+        if v not in seen:
+            seen.add(v)
+            result.append(v)
+    return result
+
+# Comprehensive Persian labels dictionary for every field in HousingDossier
+PERSIAN_FIELD_LABELS: Dict[str, str] = {
+    f.name: str(getattr(f, "verbose_name", f.name))
+    for f in HousingDossier._meta.get_fields()
+    if hasattr(f, "verbose_name") and getattr(f, "verbose_name", None)
+}
+PERSIAN_FIELD_LABELS.update({
+    "national_id": "کد ملی متقاضی",
+    "archive_number": "شماره بایگانی",
+    "first_name": "نام متقاضی",
+    "last_name": "نام خانوادگی متقاضی",
+    "full_name": "نام و نام خانوادگی متقاضی",
+    "father_name": "نام پدر متقاضی",
+    "birth_date": "تاریخ تولد متقاضی",
+    "applicant_id_number": "شماره شناسنامه متقاضی",
+    "applicant_birth_place": "محل صدور شناسنامه متقاضی",
+    "applicant_phone": "شماره همراه متقاضی",
+    "project_code": "کد پروژه",
+    "bank_name": "نام بانک متقاضی",
+    "bank_branch": "شعبه بانک متقاضی",
+    "form_j_questionnaire_number": "شماره پرسش نامه فرم ج",
+    "applicant_form_j_status": "وضعیت فرم ج متقاضی",
+    "applicant_form_j_directorate_status": "استعلام اداره کل متقاضی",
+    "applicant_form_j_red_description": "علت کد قرمز فرم ج متقاضی",
+    "form_j_registration_type": "نحوه ثبت فرم ج",
+    "spouse_first_name": "نام همسر",
+    "spouse_last_name": "نام خانوادگی همسر",
+    "spouse_full_name": "نام و نام خانوادگی همسر",
+    "spouse_father_name": "نام پدر همسر",
+    "spouse_national_id": "کد ملی همسر",
+    "spouse_birth_date": "تاریخ تولد همسر",
+    "spouse_id_number": "شماره شناسنامه همسر",
+    "spouse_birth_place": "محل تولد / صدور همسر",
+    "spouse_form_j_status": "وضعیت فرم ج همسر",
+    "spouse_form_j_directorate_status": "استعلام اداره کل همسر",
+    "spouse_form_j_red_description": "علت کد قرمز فرم ج همسر",
+    "marital_status": "وضعیت تاهل",
+    "is_married_confirmed": "احراز زوجیت",
+    "decile": "دهک درآمدی",
+    "selection_rank": "رتبه انتخاب واحد",
+    "site": "نام سایت / منطقه",
+    "site_name": "نام سایت / منطقه",
+    "project": "نام پروژه مسکونی",
+    "project_name": "نام پروژه مسکونی",
+    "construction_type": "نوع ساخت",
+    "block_name": "نام بلوک",
+    "block_code": "کد بلوک",
+    "floor_number": "شماره طبقه",
+    "unit_number": "شماره واحد",
+    "unit_code": "کد واحد",
+    "bedroom_count": "تعداد خواب",
+    "unit_direction": "جهت واحد",
+    "net_unit_area": "متراژ مفید واحد (مترمربع)",
+    "common_area": "متراژ مشاعات (مترمربع)",
+    "total_area": "جمع کل متراژ واحد (مترمربع)",
+    "unit_area": "مساحت واحد (مترمربع)",
+    "storage_number": "شماره انباری",
+    "storage_area": "مساحت انباری (مترمربع)",
+    "parking_number": "شماره پارکینگ",
+    "parking_area": "مساحت پارکینگ (مترمربع)",
+    "covered_parking_area": "متراژ پارکینگ مسقف (مترمربع)",
+    "base_cost_without_loan": "قیمت پایه بدون وام (ریال)",
+    "bank_loan_amount": "مبلغ وام بانکی مسکن (ریال)",
+    "fund_loan_amount": "مبلغ وام صندوق (ریال)",
+    "contractor_letter_amount": "مبلغ نامه پیمانکار (ریال)",
+    "decile_loan_amount": "مبلغ وام دهک (ریال)",
+    "applicant_equity": "آورده نقدی متقاضی (ریال)",
+    "total_paid_amount": "کل مبالغ پرداختی (ریال)",
+    "remaining_balance": "مانده بدهی (ریال)",
+    "final_total_price": "قیمت تمام شده نهایی (ریال)",
+    "is_equity_funded": "تایید تامین آورده نقدی",
+    "is_sms_sent": "ارسال پیامک آورده نقدی",
+    "sms_tracking_code": "کد رهگیری پیامک",
+    "sms_sent_date": "تاریخ ارسال پیامک",
+    "bank_letter_number": "شماره نامه بانک",
+    "bank_letter_date": "تاریخ نامه بانک",
+    "is_added_to_bank_shipment_list": "اضافه به لیست ارسالی به بانک",
+    "is_sent_to_bank": "ارسال شده به بانک",
+    "bank_sent_date": "تاریخ ارسال به بانک",
+    "bank_sent_letter_number": "شماره نامه ارسال به بانک",
+    "decile_loan_bank": "بانک عامل تسهیلات دهک",
+    "supported_institution": "نهاد تحت حمایت",
+    "total_land_share": "جمع کل قدرالسهم (مترمربع)",
+    "past_years_rent": "مبلغ اجاره سنوات گذشته (ریال)",
+    "current_year_rent": "مبلغ اجاره سال جاری (ریال)",
+    "land_lease_year": "سال اجاره عرصه",
+    "tenant_price": "مبلغ پرداختی اجاره عرصه (ریال)",
+    "tenant_code": "کد پیگیری فیش اجاره",
+    "is_cash_rent_confirmed": "تایید نقدی اجاره",
+    "cash_preparation_amount": "مبلغ نقدی آماده‌سازی (ریال)",
+    "non_cash_preparation_amount": "مبلغ اقساط آماده‌سازی (ریال)",
+    "prepayment_code": "کد پیگیری پیش‌پرداخت آماده‌سازی",
+    "preparation_check_count": "تعداد چک‌های آماده‌سازی",
+    "total_preparation_check_amount": "مجموع چک‌های آماده‌سازی (ریال)",
+    "is_preparation_checks_confirmed": "تایید چک‌های آماده‌سازی",
+    "commitment_number": "شماره تعهدنامه",
+    "commitment_date": "تاریخ تعهدنامه",
+    "check_count": "تعداد چک‌های دهک",
+    "check_amount": "مبلغ هر چک دهک (ریال)",
+    "last_check_amount": "مبلغ چک آخر دهک (ریال)",
+    "total_check_amount": "مجموع مبلغ چک‌های دهک (ریال)",
+    "is_decile_loan_confirmed": "تایید چک‌های دهک",
+    "rah_letter": "شماره نامه راه و شهرسازی",
+    "rah_letter_date": "تاریخ نامه راه و شهرسازی",
+    "check_service_fee": "کارمزد خدمات چک (ریال)",
+    "preparation_service_fee": "کارمزد خدمات آماده‌سازی (ریال)",
+    "contract_registration_number": "شماره ثبت قرارداد",
+    "contract_registration_date": "تاریخ ثبت قرارداد",
+    "handover_letter_number": "شماره صورتجلسه تحویل",
+    "handover_letter_date": "تاریخ صورتجلسه تحویل",
+})
 
 def clean_phone(val: Any) -> str:
     s = clean_digits(val)
@@ -411,6 +561,47 @@ def generate_failure_report(user_id: int, original_headers: List[str], error_row
     wb.save(filepath)
     return report_uuid
 
+def generate_success_report(user_id: int, original_headers: List[str], success_rows: List[Dict[str, Any]], title: str = "پرونده‌های تایید و بروزرسانی‌شده") -> str:
+    """
+    Generates a write_only RTL success workbook for accepted / updated dossiers.
+    Returns the report UUID.
+    """
+    cleanup_old_reports()
+    report_uuid = str(uuid.uuid4())
+    r_dir = get_reports_dir()
+    filepath = os.path.join(r_dir, f"{report_uuid}_{user_id}.xlsx")
+
+    wb = openpyxl.Workbook(write_only=True)
+    ws = wb.create_sheet(title=title[:30])
+    ws.views.sheetView[0].rightToLeft = True
+
+    base_headers = ["ردیف اکسل", "شماره بایگانی", "کد ملی", "نام متقاضی", "وضعیت", "توضیحات و تغییرات اعمال‌شده"]
+    if original_headers:
+        full_headers = base_headers + [str(h or "") for h in original_headers]
+    else:
+        full_headers = base_headers
+    ws.append(full_headers)
+
+    for item in success_rows:
+        if isinstance(item, (list, tuple)):
+            ws.append(list(item))
+            continue
+        orig_cells = item.get("original_cells", [])
+        row_vals = [
+            item.get("row", ""),
+            item.get("archive_number", ""),
+            item.get("national_id", ""),
+            item.get("name", ""),
+            item.get("status", "موفق"),
+            item.get("diff_summary", "") or item.get("notes", ""),
+        ]
+        if orig_cells:
+            row_vals.extend([str(c if c is not None else "") for c in orig_cells])
+        ws.append(row_vals)
+
+    wb.save(filepath)
+    return report_uuid
+
 def get_report_file_path(report_id: str, user_id: int) -> Optional[str]:
     r_dir = get_reports_dir()
     expected_filename = f"{report_id}_{user_id}.xlsx"
@@ -480,14 +671,61 @@ def generate_update_template() -> io.BytesIO:
     return buf
 
 def generate_group_sign_template() -> io.BytesIO:
+    """
+    Generates a workflow group signing Excel template where:
+    - Column 1: کد ملی متقاضی (National ID)
+    - Columns 2 to 23: مرحله 1 تا مرحله 22 (Workflow Stages 1 to 22)
+    - Column 24: توضیحات امضا (اختیاری) (Optional Notes)
+    The user enters national IDs in Column 1, and places '1' under whichever stage(s) need to be signed.
+    """
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "امضای گروهی مراحل"
+    ws.title = "امضای دسته‌جمعی مراحل"
     ws.views.sheetView[0].rightToLeft = True
+    ws.freeze_panes = "B2"
 
-    headers = ["کد ملی متقاضی", "مرحله (۱ تا ۲۱)", "توضیحات امضا"]
+    headers = ["کد ملی متقاضی"] + [f"مرحله {i}" for i in range(1, 23)] + ["توضیحات امضا (اختیاری)"]
     ws.append(headers)
-    _style_headers(ws, len(headers))
+
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_font = Font(name="B Nazanin", size=10, bold=True, color="FFFFFF")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_align
+        cell.border = thin_border
+    ws.row_dimensions[1].height = 28
+
+    ws.column_dimensions["A"].width = 18
+    for col_idx in range(2, 24):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 11
+    ws.column_dimensions[get_column_letter(24)].width = 25
+
+    ws2 = wb.create_sheet(title="راهنمای امضای گروهی")
+    ws2.views.sheetView[0].rightToLeft = True
+    guide_lines = [
+        "راهنمای تکمیل قالب امضای دسته‌جمعی مراحل گردش کار",
+        "۱. در ستون اول («کد ملی متقاضی»)، کد ملی متقاضی یا همسر را وارد نمایید.",
+        "۲. در سرستون‌های مراحل ۱ تا ۲۲، زیر هر مرحله‌ای که مایل به امضا و تایید آن هستید عدد ۱ را درج کنید.",
+        "۳. امکان امضای هم‌زمان چند مرحله متوالی برای یک پرونده با قرار دادن عدد ۱ در هر یک از مراحل مربوطه وجود دارد.",
+        "۴. مراحل انتخابی به ترتیب بررسی شده و پس از ثبت امضای الکترونیک، پرونده به مرحله بعد هدایت می‌شود.",
+        "۵. در صورتی که وضعیت استعلام فرم «ج» پرونده قرمز باشد، سیستم از تایید مرحله ۳ ممانعت خواهد کرد.",
+        "۶. ستون توضیحات اختیاری بوده و یادداشت ثبت‌شده در لاگ ممیزی و تاریخچه پرونده درج می‌شود."
+    ]
+    for line in guide_lines:
+        ws2.append([line])
+    _style_headers(ws2, 1, fill=_GUIDE_FILL)
+    ws2.column_dimensions["A"].width = 85
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -877,6 +1115,12 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
     if nid_col is None:
         return {"success": False, "error": "ستون کلیدی «کد ملی متقاضی» در فایل اکسل یافت نشد."}
 
+    spouse_nid_col = None
+    for c_idx, spec in col_map.items():
+        if spec[1] == "spouse_national_id":
+            spouse_nid_col = c_idx
+            break
+
     parsed_rows: List[Dict[str, Any]] = []
     all_nids: Set[str] = set()
     errors: List[Dict[str, Any]] = []
@@ -889,10 +1133,14 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
 
         raw_nid = row_cells[nid_col] if nid_col < len(row_cells) else None
         cleaned_nid = clean_national_id(raw_nid)
+        app_variants = get_national_id_variants(raw_nid)
+
+        raw_snid = row_cells[spouse_nid_col] if (spouse_nid_col is not None and spouse_nid_col < len(row_cells)) else None
+        spouse_variants = get_national_id_variants(raw_snid) if raw_snid else []
 
         row_errors: List[str] = []
-        if not cleaned_nid:
-            row_errors.append("کد ملی نامعتبر یا خالی است (باید دقیقاً ۱۰ رقم باشد).")
+        if not app_variants:
+            row_errors.append("کد ملی متقاضی نامعتبر یا خالی است.")
 
         parsed_data: Dict[str, Any] = {}
         parsed_labels: Dict[str, str] = {}
@@ -909,7 +1157,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                         commission_warned = True
                     continue
 
-            # National ID and archive number are NEVER updated
+            # National ID and archive number are NEVER updated directly
             if field_name in ("national_id", "archive_number"):
                 continue
 
@@ -929,31 +1177,37 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                 parsed_data[field_name] = c_val
                 parsed_labels[field_name] = header_title
 
-        if cleaned_nid:
-            all_nids.add(cleaned_nid)
+        if not spouse_variants and parsed_data.get("spouse_national_id"):
+            spouse_variants = get_national_id_variants(parsed_data["spouse_national_id"])
+
+        for v in app_variants:
+            all_nids.add(v)
+        for v in spouse_variants:
+            all_nids.add(v)
 
         parsed_rows.append({
             "row": row_num,
-            "national_id": cleaned_nid or str(raw_nid or ""),
+            "national_id": cleaned_nid or (app_variants[0] if app_variants else str(raw_nid or "")),
+            "app_variants": app_variants,
+            "spouse_variants": spouse_variants,
             "data": parsed_data,
             "labels": parsed_labels,
             "original_cells": list(row_cells),
             "reasons": row_errors,
         })
 
-    # Query DB in chunks for matching order:
-    # 1. HousingDossier.national_id == id
-    # 2. HousingDossier.spouse_national_id == id
+    # Preload DB dossiers in chunks matching any variant in national_id or spouse_national_id
     app_matches: Dict[str, HousingDossier] = {}
     spouse_matches: Dict[str, List[HousingDossier]] = {}
 
     all_nids_list = list(all_nids)
     for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
         chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
-        for d in HousingDossier.objects.filter(national_id__in=chunk):
-            app_matches[d.national_id] = d
-        for d in HousingDossier.objects.filter(spouse_national_id__in=chunk).exclude(spouse_national_id=""):
-            spouse_matches.setdefault(d.spouse_national_id, []).append(d)
+        for d in HousingDossier.objects.filter(Q(national_id__in=chunk) | Q(spouse_national_id__in=chunk)):
+            for v in get_national_id_variants(d.national_id):
+                app_matches[v] = d
+            for v in get_national_id_variants(d.spouse_national_id):
+                spouse_matches.setdefault(v, []).append(d)
 
     seen_dossier_ids: Set[int] = set()
     updates_preview: List[Dict[str, Any]] = []
@@ -961,6 +1215,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
     field_changes_by_dossier: Dict[int, List[Dict[str, Any]]] = {}
     modified_fields_set: Set[str] = set()
     spouse_matched_rows: List[Dict[str, Any]] = []
+    valid_updated_records: List[Dict[str, Any]] = []
 
     valid_count = 0
     unchanged_count = 0
@@ -972,29 +1227,56 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             errors.append(item)
             continue
 
-        d_as_app = app_matches.get(nid)
-        d_as_spouses = spouse_matches.get(nid, [])
+        dossier = None
+        matched_via = None
 
-        # Ambiguity check
-        if d_as_app and d_as_spouses:
-            item["reasons"].append("کد ملی هم به عنوان متقاضی و هم به عنوان همسر در پرونده‌های مختلف تطبیق دارد (ابهام در شناسایی پرونده).")
-            errors.append(item)
-            continue
-        elif not d_as_app and len(d_as_spouses) > 1:
-            item["reasons"].append("کد ملی به عنوان همسر در چندین پرونده مختلف ثبت شده است (ابهام در شناسایی پرونده).")
-            errors.append(item)
-            continue
-        elif not d_as_app and not d_as_spouses:
-            item["reasons"].append("کد ملی نه به عنوان متقاضی و نه به عنوان همسر در سامانه یافت نشد.")
+        # 1. Search applicant national ID in DB applicant field
+        for v in item["app_variants"]:
+            if v in app_matches:
+                dossier = app_matches[v]
+                matched_via = "applicant"
+                break
+
+        # 2. If not found, search applicant national ID in DB spouse field
+        if not dossier:
+            for v in item["app_variants"]:
+                if v in spouse_matches:
+                    s_list = spouse_matches[v]
+                    if len(s_list) > 1:
+                        item["reasons"].append("کد ملی متقاضی به عنوان همسر در چندین پرونده مختلف ثبت شده است (ابهام در شناسایی پرونده).")
+                        break
+                    dossier = s_list[0]
+                    matched_via = "spouse"
+                    break
+
+        # 3. If not found, take spouse national ID from row and search in DB applicant field
+        if not dossier and not item["reasons"] and item["spouse_variants"]:
+            for v in item["spouse_variants"]:
+                if v in app_matches:
+                    dossier = app_matches[v]
+                    matched_via = "spouse_as_applicant"
+                    break
+
+        # 4. If not found, search spouse national ID from row in DB spouse field
+        if not dossier and not item["reasons"] and item["spouse_variants"]:
+            for v in item["spouse_variants"]:
+                if v in spouse_matches:
+                    s_list = spouse_matches[v]
+                    if len(s_list) > 1:
+                        item["reasons"].append("کد ملی همسر در چندین پرونده مختلف ثبت شده است (ابهام در شناسایی پرونده).")
+                        break
+                    dossier = s_list[0]
+                    matched_via = "spouse"
+                    break
+
+        if not dossier and not item["reasons"]:
+            item["reasons"].append("کد ملی متقاضی و همسر در سامانه یافت نشد.")
             errors.append(item)
             continue
 
-        if d_as_app:
-            dossier = d_as_app
-            matched_via = "applicant"
-        else:
-            dossier = d_as_spouses[0]
-            matched_via = "spouse"
+        if item["reasons"]:
+            errors.append(item)
+            continue
 
         # Check locked dossiers
         if dossier.is_locked and not is_admin:
@@ -1015,8 +1297,8 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
 
         # Calculate diffs
         data_to_apply = dict(item["data"])
-        if matched_via == "spouse":
-            # Strip identity fields
+        if matched_via in ("spouse", "spouse_as_applicant"):
+            # Protect applicant identity fields
             for id_field in IDENTITY_FIELDS:
                 data_to_apply.pop(id_field, None)
 
@@ -1024,7 +1306,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         for f_name, new_val in data_to_apply.items():
             old_val = getattr(dossier, f_name, None)
             if old_val != new_val:
-                label = item["labels"].get(f_name, f_name)
+                label = item["labels"].get(f_name) or PERSIAN_FIELD_LABELS.get(f_name, f_name)
                 diffs.append({
                     "field": f_name,
                     "label": label,
@@ -1051,16 +1333,42 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             "matched_via": matched_via,
             "diff_display": diffs,
         }
-        if matched_via == "spouse":
+        if matched_via in ("spouse", "spouse_as_applicant"):
             spouse_matched_rows.append(preview_entry)
 
         if len(updates_preview) < 50:
             updates_preview.append(preview_entry)
 
+        valid_updated_records.append({
+            "item": item,
+            "dossier": dossier,
+            "diffs": diffs,
+        })
+
     report_url = None
     if errors or spouse_matched_rows:
         r_uuid = generate_failure_report(user.id, raw_headers, errors, spouse_matched_rows)
         report_url = f"/excel/report/{r_uuid}/"
+
+    success_report_url = None
+    if valid_updated_records:
+        success_rows = []
+        for rec in valid_updated_records:
+            d = rec["dossier"]
+            it = rec["item"]
+            dfs = rec["diffs"]
+            diff_text = " ، ".join([f"{df['label']}: {df['old']} -> {df['new']}" for df in dfs]) if dfs else "بدون تغییر داده"
+            success_rows.append({
+                "row": it.get("row", ""),
+                "archive_number": d.archive_number,
+                "national_id": d.national_id,
+                "name": d.full_name,
+                "status": "بروزرسانی شد" if dfs else "بدون تغییر",
+                "diff_summary": diff_text,
+                "original_cells": it.get("original_cells", []),
+            })
+        s_uuid = generate_success_report(user.id, raw_headers, success_rows, title="پرونده‌های بروزرسانی‌شده")
+        success_report_url = f"/excel/report/{s_uuid}/"
 
     if preview:
         return {
@@ -1075,6 +1383,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             "matched_via_spouse_count": len(spouse_matched_rows),
             "warnings": warnings,
             "report_url": report_url,
+            "success_report_url": success_report_url,
             "errors": errors[:100],
             "updates_preview": updates_preview,
         }
@@ -1150,20 +1459,20 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         "matched_via_spouse_count": len(spouse_matched_rows),
         "warnings": warnings,
         "report_url": report_url,
+        "success_report_url": success_report_url,
         "errors": errors[:100],
         "updates_preview": updates_preview,
     }
 
-# -------------------------------------------------------------------------
-# Feature 5: Process Excel Group Sign (امضای گروهی)
-# -------------------------------------------------------------------------
 def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is_preview: Optional[bool] = None, **kwargs) -> Dict[str, Any]:
     if is_preview is not None:
         preview = is_preview
     from .views import execute_dossier_sign
+    from .stages import STAGE_ROLES, MAX_STAGE
 
     profile = getattr(user, "profile", None)
-    if profile and not profile.can_sign and not user.is_superuser:
+    is_admin = user.is_superuser or bool(profile and (profile.is_housing_chief or profile.allowed_stages == 'all'))
+    if not is_admin and (not profile or not profile.can_sign):
         return {"success": False, "error": "حق امضای الکترونیکی برای حساب کاربری شما فعال نیست."}
 
     try:
@@ -1172,56 +1481,393 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
         return {"success": False, "error": f"فایل اکسل نامعتبر است: {str(e)}"}
 
     ws = wb.worksheets[0]
-    row_iter = ws.iter_rows(values_only=True)
+    all_rows = list(ws.iter_rows(values_only=True))
 
-    try:
-        header_row = next(row_iter)
-    except StopIteration:
+    if not all_rows:
         return {"success": False, "error": "فایل اکسل خالی است."}
 
-    raw_headers = list(header_row or [])
-    nid_col: Optional[int] = None
-    stage_col: Optional[int] = None
-    notes_col: Optional[int] = None
+    header_row = list(all_rows[0] or [])
+    data_rows = all_rows[1:]
 
-    for idx, h in enumerate(raw_headers):
-        norm = normalize_header(h)
-        if norm in ("کد ملی متقاضی", "کدملی متقاضی", "کد ملی", "کدملی"):
+    # Detect header columns
+    nid_col: Optional[int] = None
+    notes_col: Optional[int] = None
+    stage_cols: Dict[int, int] = {}  # col_idx -> stage_number (1..22)
+    legacy_single_stg_col: Optional[int] = None
+
+    for idx, h in enumerate(header_row):
+        if h is None:
+            continue
+        h_str = str(h).strip()
+        norm = normalize_header(h_str)
+
+        if norm in ("کد ملی متقاضی", "کدملی متقاضی", "کد ملی", "کدملی", "national_id", "national id"):
             nid_col = idx
-        elif "مرحله" in norm:
-            stage_col = idx
-        elif "توضیح" in norm or "یادداشت" in norm:
+            continue
+
+        if any(k in norm for k in ("توضیح", "یادداشت", "notes", "شرح")):
             notes_col = idx
+            continue
+
+        h_digits = clean_digits(h_str)
+        m_stg = re.search(r"مرحله\s*(\d+)", h_digits)
+        if m_stg:
+            s_num = int(m_stg.group(1))
+            if 1 <= s_num <= MAX_STAGE:
+                stage_cols[idx] = s_num
+                continue
+
+        if h_digits.isdigit():
+            s_num = int(h_digits)
+            if 1 <= s_num <= MAX_STAGE:
+                stage_cols[idx] = s_num
+                continue
+
+        if norm in ("شماره مرحله", "مرحله", "مرحله گردش کار"):
+            legacy_single_stg_col = idx
+
+    if nid_col is None and header_row:
+        if 0 not in stage_cols and 0 != notes_col:
+            nid_col = 0
 
     if nid_col is None:
-        return {"success": False, "error": "ستون «کد ملی متقاضی» در فایل امضای گروهی یافت نشد."}
+        return {"success": False, "error": "ستون «کد ملی متقاضی» در فایل اکسل یافت نشد."}
+
+    # -------------------------------------------------------------------------
+    # Format A: Matrix Format (National ID in Col 1, Stage 1..22 in Headers)
+    # -------------------------------------------------------------------------
+    if stage_cols:
+        parsed_rows: List[Dict[str, Any]] = []
+        all_nids: Set[str] = set()
+        errors: List[Dict[str, Any]] = []
+
+        for row_num, row_cells in enumerate(data_rows, start=2):
+            if not any(c is not None and str(c).strip() for c in row_cells):
+                continue
+
+            raw_nid = row_cells[nid_col] if nid_col < len(row_cells) else None
+            cleaned_nid = clean_national_id(raw_nid)
+            app_variants = get_national_id_variants(raw_nid)
+
+            row_errors: List[str] = []
+            if not app_variants:
+                row_errors.append("کد ملی متقاضی نامعتبر یا خالی است.")
+            else:
+                all_nids.update(app_variants)
+
+            marked_stages: List[int] = []
+            for c_idx, s_num in stage_cols.items():
+                if c_idx < len(row_cells):
+                    val = row_cells[c_idx]
+                    if val is not None:
+                        s_val = clean_digits(val).strip().lower()
+                        if s_val in ("1", "1.0", "true", "تایید", "امضا", "yes", "بله", "✓", "+") or val in (1, 1.0, True):
+                            marked_stages.append(s_num)
+
+            if not row_errors and not marked_stages:
+                row_errors.append("هیچ مرحله‌ای با درج عدد ۱ برای امضا مشخص نشده است.")
+
+            row_notes = ""
+            if notes_col is not None and notes_col < len(row_cells) and row_cells[notes_col] is not None:
+                row_notes = str(row_cells[notes_col]).strip()
+
+            parsed_rows.append({
+                "row": row_num,
+                "raw_nid": raw_nid,
+                "cleaned_nid": cleaned_nid or str(raw_nid or ""),
+                "app_variants": app_variants,
+                "marked_stages": sorted(list(set(marked_stages))),
+                "notes": row_notes,
+                "original_cells": list(row_cells),
+                "reasons": row_errors,
+            })
+
+        app_matches: Dict[str, HousingDossier] = {}
+        spouse_matches: Dict[str, List[HousingDossier]] = {}
+
+        all_nids_list = list(all_nids)
+        for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
+            chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
+            for d in HousingDossier.objects.filter(Q(national_id__in=chunk) | Q(spouse_national_id__in=chunk)):
+                for v in get_national_id_variants(d.national_id):
+                    app_matches[v] = d
+                for v in get_national_id_variants(d.spouse_national_id):
+                    spouse_matches.setdefault(v, []).append(d)
+
+        seen_dossier_ids: Set[int] = set()
+        valid_count = 0
+        failed_count = 0
+        signed_dossiers_info: List[Dict[str, Any]] = []
+        updates_preview: List[Dict[str, Any]] = []
+
+        for item in parsed_rows:
+            if item["reasons"]:
+                failed_count += 1
+                errors.append({
+                    "row": item["row"],
+                    "national_id": item["cleaned_nid"],
+                    "name": "-",
+                    "archive_number": "-",
+                    "reasons": item["reasons"],
+                    "original_cells": item["original_cells"]
+                })
+                continue
+
+            dossier: Optional[HousingDossier] = None
+            for v in item["app_variants"]:
+                if v in app_matches:
+                    dossier = app_matches[v]
+                    break
+            if not dossier:
+                for v in item["app_variants"]:
+                    if v in spouse_matches:
+                        s_list = spouse_matches[v]
+                        if len(s_list) > 1:
+                            break
+                        dossier = s_list[0]
+                        break
+
+            if not dossier:
+                failed_count += 1
+                errors.append({
+                    "row": item["row"],
+                    "national_id": item["cleaned_nid"],
+                    "name": "-",
+                    "archive_number": "-",
+                    "reasons": ["پرونده‌ای با این کد ملی در سامانه یافت نشد."],
+                    "original_cells": item["original_cells"]
+                })
+                continue
+
+            item["name"] = dossier.full_name
+            item["archive_number"] = dossier.archive_number
+
+            if dossier.id in seen_dossier_ids:
+                failed_count += 1
+                errors.append({
+                    "row": item["row"],
+                    "national_id": dossier.national_id,
+                    "name": dossier.full_name,
+                    "archive_number": dossier.archive_number,
+                    "reasons": [f"پرونده {dossier.archive_number} بیش از یک بار در این فایل تکرار شده است."],
+                    "original_cells": item["original_cells"]
+                })
+                continue
+            seen_dossier_ids.add(dossier.id)
+
+            if dossier.is_locked:
+                failed_count += 1
+                errors.append({
+                    "row": item["row"],
+                    "national_id": dossier.national_id,
+                    "name": dossier.full_name,
+                    "archive_number": dossier.archive_number,
+                    "reasons": [f"پرونده {dossier.archive_number} مختومه و قفل است."],
+                    "original_cells": item["original_cells"]
+                })
+                continue
+
+            if dossier.status == "COMPLETED":
+                failed_count += 1
+                errors.append({
+                    "row": item["row"],
+                    "national_id": dossier.national_id,
+                    "name": dossier.full_name,
+                    "archive_number": dossier.archive_number,
+                    "reasons": [f"پرونده {dossier.archive_number} قبلاً خاتمه یافته است."],
+                    "original_cells": item["original_cells"]
+                })
+                continue
+
+            stg_errors: List[str] = []
+            for stg in item["marked_stages"]:
+                can_sign_stage = is_admin or bool(profile and profile.can_action_stage(stg))
+                if not can_sign_stage:
+                    stg_title = STAGE_ROLES.get(stg, ("", "", f"مرحله {stg}"))[2]
+                    stg_errors.append(f"کاربر جاری دسترسی لازم برای امضای مرحله {stg} ({stg_title}) را ندارد.")
+
+                if stg == 3:
+                    is_red_j = (
+                        ("قرمز" in (dossier.applicant_form_j_status or "")) or
+                        ("قرمز" in (dossier.spouse_form_j_status or "")) or
+                        dossier.status == "REJECTED_RED"
+                    )
+                    if is_red_j:
+                        stg_errors.append("وضعیت استعلام فرم «ج» پرونده قرمز (دارای سابقه مسکن / عدم احراز صلاحیت) است و امکان تایید و امضای مرحله ۳ وجود ندارد.")
+
+            if stg_errors:
+                failed_count += 1
+                errors.append({
+                    "row": item["row"],
+                    "national_id": dossier.national_id,
+                    "name": dossier.full_name,
+                    "archive_number": dossier.archive_number,
+                    "reasons": stg_errors,
+                    "original_cells": item["original_cells"]
+                })
+                continue
+
+            orig_stage = dossier.current_stage
+            orig_stage_title = STAGE_ROLES.get(orig_stage, ("", "", f"مرحله {orig_stage}"))[2]
+
+            if preview:
+                sim_stage = orig_stage
+                signed_labels = []
+                for stg in item["marked_stages"]:
+                    signed_labels.append(f"مرحله {stg}")
+                    sim_stage = dossier.find_next_actionable_stage(stg)
+
+                target_stage_title = STAGE_ROLES.get(sim_stage, ("", "", f"مرحله {sim_stage}"))[2] if sim_stage <= MAX_STAGE else "بایگانی نهایی (مختومه)"
+                valid_count += 1
+                signed_dossiers_info.append({
+                    "row": item["row"],
+                    "archive_number": dossier.archive_number,
+                    "national_id": dossier.national_id,
+                    "name": dossier.full_name,
+                    "from_stage": f"مرحله {orig_stage}: {orig_stage_title}",
+                    "to_stage": target_stage_title,
+                    "stages_signed": "، ".join(signed_labels)
+                })
+                if len(updates_preview) < 50:
+                    updates_preview.append({
+                        "row": item["row"],
+                        "archive_number": dossier.archive_number,
+                        "national_id": dossier.national_id,
+                        "name": dossier.full_name,
+                        "from_stage": f"مرحله {orig_stage}",
+                        "to_stage": target_stage_title,
+                        "diff_display": [{
+                            "field": "current_stage",
+                            "label": f"امضای {len(signed_labels)} مرحله ({', '.join(signed_labels)})",
+                            "old": f"مرحله {orig_stage}: {orig_stage_title}",
+                            "new": target_stage_title
+                        }]
+                    })
+            else:
+                sid = transaction.savepoint()
+                row_failed = False
+                row_exec_errors = []
+                signed_labels = []
+
+                for stg in item["marked_stages"]:
+                    note_text = item["notes"] or f"امضای گروهی مرحله {stg} از طریق اکسل"
+                    ok, res_stage = execute_dossier_sign(
+                        dossier=dossier,
+                        user=user,
+                        notes=note_text,
+                        action="SIGN_EXCEL",
+                        target_stage=stg
+                    )
+                    if ok:
+                        signed_labels.append(f"مرحله {stg}")
+                    else:
+                        row_failed = True
+                        row_exec_errors.append(str(res_stage))
+                        break
+
+                if row_failed:
+                    transaction.savepoint_rollback(sid)
+                    failed_count += 1
+                    errors.append({
+                        "row": item["row"],
+                        "national_id": dossier.national_id,
+                        "name": dossier.full_name,
+                        "archive_number": dossier.archive_number,
+                        "reasons": row_exec_errors,
+                        "original_cells": item["original_cells"]
+                    })
+                else:
+                    transaction.savepoint_commit(sid)
+                    valid_count += 1
+                    dossier.refresh_from_db()
+                    end_stage = dossier.current_stage
+                    end_stage_title = STAGE_ROLES.get(end_stage, ("", "", f"مرحله {end_stage}"))[2] if not dossier.is_locked else "بایگانی نهایی (مختومه)"
+
+                    signed_dossiers_info.append({
+                        "row": item["row"],
+                        "archive_number": dossier.archive_number,
+                        "national_id": dossier.national_id,
+                        "name": dossier.full_name,
+                        "from_stage": f"مرحله {orig_stage}: {orig_stage_title}",
+                        "to_stage": end_stage_title,
+                        "stages_signed": "، ".join(signed_labels)
+                    })
+                    if len(updates_preview) < 50:
+                        updates_preview.append({
+                            "row": item["row"],
+                            "archive_number": dossier.archive_number,
+                            "national_id": dossier.national_id,
+                            "name": dossier.full_name,
+                            "from_stage": f"مرحله {orig_stage}",
+                            "to_stage": end_stage_title,
+                            "diff_display": [{
+                                "field": "current_stage",
+                                "label": f"امضای {len(signed_labels)} مرحله ({', '.join(signed_labels)})",
+                                "old": f"مرحله {orig_stage}: {orig_stage_title}",
+                                "new": end_stage_title
+                            }]
+                        })
+
+        report_url = None
+        if errors:
+            r_uuid = generate_failure_report(user.id, ["ردیف", "شماره بایگانی", "کد ملی", "نام متقاضی", "علت رد"], errors)
+            report_url = f"/excel/report/{r_uuid}/"
+
+        success_report_url = None
+        if valid_count > 0 and not preview:
+            success_rows = [
+                {
+                    "row": item["row"],
+                    "archive_number": item["archive_number"],
+                    "national_id": item["national_id"],
+                    "name": item["name"],
+                    "status": "تایید و امضا شد",
+                    "notes": f"مراحل امضا شده: {item.get('stages_signed', '')} | انتقال از {item.get('from_stage', '')} به {item.get('to_stage', '')}",
+                    "original_cells": []
+                }
+                for item in signed_dossiers_info
+            ]
+            s_uuid = generate_success_report(user.id, ["مراحل امضاشده", "مرحله مقصد"], success_rows, title="امضاهای تاییدشده")
+            success_report_url = f"/excel/report/{s_uuid}/"
+
+        return {
+            "success": True,
+            "error": None,
+            "preview": preview,
+            "created_count": 0,
+            "updated_count": valid_count,
+            "signed_count": valid_count,
+            "valid_count": valid_count,
+            "unchanged_count": 0,
+            "failed_count": failed_count,
+            "matched_via_spouse_count": 0,
+            "warnings": [],
+            "report_url": report_url,
+            "success_report_url": success_report_url,
+            "errors": errors[:100],
+            "updates_preview": updates_preview,
+        }
+
+    # -------------------------------------------------------------------------
+    # Format B: Legacy Single Stage Column Fallback (کد ملی متقاضی، مرحله، توضیحات)
+    # -------------------------------------------------------------------------
+    if legacy_single_stg_col is None:
+        return {"success": False, "error": "ستون‌های مرحله (مرحله ۱ تا ۲۲) در سربرگ اکسل یافت نشد."}
 
     parsed_rows: List[Dict[str, Any]] = []
     all_nids: Set[str] = set()
     errors: List[Dict[str, Any]] = []
 
-    row_num = 1
-    for row_cells in row_iter:
-        row_num += 1
+    for row_num, row_cells in enumerate(data_rows, start=2):
         if not any(c is not None and str(c).strip() for c in row_cells):
             continue
-
-        if row_num > GROUP_SIGN_MAX_ROWS + 1:
-            errors.append({
-                "row": row_num,
-                "national_id": "",
-                "name": "",
-                "reasons": [f"تعداد ردیف‌های فایل بیش از حد مجاز ({GROUP_SIGN_MAX_ROWS} ردیف) است."],
-                "original_cells": list(row_cells),
-            })
-            break
 
         raw_nid = row_cells[nid_col] if nid_col < len(row_cells) else None
         cleaned_nid = clean_national_id(raw_nid)
 
         req_stage = None
-        if stage_col is not None and stage_col < len(row_cells) and row_cells[stage_col] is not None:
-            s_val = clean_digits(row_cells[stage_col])
+        if legacy_single_stg_col is not None and legacy_single_stg_col < len(row_cells) and row_cells[legacy_single_stg_col] is not None:
+            s_val = clean_digits(row_cells[legacy_single_stg_col])
             m_stg = re.search(r"\d+", s_val)
             if m_stg:
                 req_stage = int(m_stg.group(0))
@@ -1245,9 +1891,8 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
             "reasons": row_errors,
         })
 
-    # Preload matching dossiers
-    app_matches: Dict[str, HousingDossier] = {}
-    spouse_matches: Dict[str, List[HousingDossier]] = {}
+    app_matches = {}
+    spouse_matches = {}
 
     all_nids_list = list(all_nids)
     for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
@@ -1257,9 +1902,9 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
         for d in HousingDossier.objects.filter(spouse_national_id__in=chunk).exclude(spouse_national_id=""):
             spouse_matches.setdefault(d.spouse_national_id, []).append(d)
 
-    seen_dossier_ids: Set[int] = set()
-    updates_preview: List[Dict[str, Any]] = []
-    valid_sign_tasks: List[Tuple[HousingDossier, int, str, Dict[str, Any]]] = []
+    seen_dossier_ids = set()
+    updates_preview = []
+    valid_sign_tasks = []
 
     for item in parsed_rows:
         nid = item["national_id"]
@@ -1294,7 +1939,6 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
 
         target_stage = item["req_stage"] if item["req_stage"] is not None else dossier.current_stage
 
-        # Permissions & stage validation
         if dossier.is_locked:
             item["reasons"].append(f"پرونده {dossier.archive_number} مختومه و قفل است.")
             errors.append(item)
@@ -1334,13 +1978,13 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                     "field": "current_stage",
                     "label": "انتقال مرحله",
                     "old": f"مرحله {target_stage}",
-                    "new": f"مرحله {next_stage}" if next_stage <= 22 else "بایگانی نهایی (مختومه)",
+                    "new": f"مرحله {next_stage}" if next_stage <= MAX_STAGE else "بایگانی نهایی (مختومه)",
                 }]
             })
 
     report_url = None
     if errors:
-        r_uuid = generate_failure_report(user.id, raw_headers, errors)
+        r_uuid = generate_failure_report(user.id, header_row, errors)
         report_url = f"/excel/report/{r_uuid}/"
 
     if preview:
@@ -1357,34 +2001,58 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
             "matched_via_spouse_count": 0,
             "warnings": [],
             "report_url": report_url,
+            "success_report_url": None,
             "errors": errors[:100],
             "updates_preview": updates_preview,
         }
 
-    # Confirm mode: Execute row-by-row in savepoints
     signed_count = 0
-    for d, stg, note_text, item in valid_sign_tasks:
-        try:
-            with transaction.atomic():
-                ok, res_stage = execute_dossier_sign(
-                    dossier=d,
-                    user=user,
-                    notes=note_text or "امضای گروهی از طریق فایل اکسل",
-                    action="SIGN_EXCEL",
-                    target_stage=stg
-                )
-                if ok:
-                    signed_count += 1
-                else:
-                    item["reasons"].append(str(res_stage))
-                    errors.append(item)
-        except Exception as sign_err:
-            item["reasons"].append(f"خطای سیستمی در ثبت امضا: {str(sign_err)}")
+    signed_dossiers_info = []
+
+    for dossier, target_stage, note, item in valid_sign_tasks:
+        orig_stage = dossier.current_stage
+        orig_stage_title = STAGE_ROLES.get(orig_stage, ("", "", f"مرحله {orig_stage}"))[2]
+        note_text = note or f"امضای گروهی مرحله {target_stage} از طریق اکسل"
+
+        ok, res_stage = execute_dossier_sign(
+            dossier=dossier,
+            user=user,
+            notes=note_text,
+            action="SIGN_EXCEL",
+            target_stage=target_stage
+        )
+        if ok:
+            signed_count += 1
+            dossier.refresh_from_db()
+            end_stage = dossier.current_stage
+            end_stage_title = STAGE_ROLES.get(end_stage, ("", "", f"مرحله {end_stage}"))[2] if not dossier.is_locked else "بایگانی نهایی (مختومه)"
+            signed_dossiers_info.append({
+                "archive_number": dossier.archive_number,
+                "national_id": dossier.national_id,
+                "name": dossier.full_name,
+                "from_stage": f"مرحله {orig_stage}: {orig_stage_title}",
+                "to_stage": end_stage_title
+            })
+        else:
+            item["reasons"].append(str(res_stage))
             errors.append(item)
 
-    if errors and not report_url:
-        r_uuid = generate_failure_report(user.id, raw_headers, errors)
-        report_url = f"/excel/report/{r_uuid}/"
+    success_report_url = None
+    if signed_count > 0:
+        success_rows = [
+            {
+                "row": item.get("from_stage", ""),
+                "archive_number": item["archive_number"],
+                "national_id": item["national_id"],
+                "name": item["name"],
+                "status": "تایید و امضا شد",
+                "notes": f"انتقال از {item.get('from_stage', '')} به {item.get('to_stage', '')}",
+                "original_cells": []
+            }
+            for item in signed_dossiers_info
+        ]
+        s_uuid = generate_success_report(user.id, ["مرحله مبدأ", "مرحله مقصد"], success_rows, title="امضاهای تاییدشده")
+        success_report_url = f"/excel/report/{s_uuid}/"
 
     return {
         "success": True,
@@ -1399,13 +2067,12 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
         "matched_via_spouse_count": 0,
         "warnings": [],
         "report_url": report_url,
+        "success_report_url": success_report_url,
         "errors": errors[:100],
         "updates_preview": updates_preview,
     }
 
-# -------------------------------------------------------------------------
-# Feature 6: Process Excel Spouse Swap (جابجایی با همسر)
-# -------------------------------------------------------------------------
+
 SWAP_FIELD_PAIRS = [
     ("national_id", "spouse_national_id"),
     ("first_name", "spouse_first_name"),
@@ -1696,9 +2363,8 @@ EXPORT_COLUMNS = [
     # (Header Title, Field Name / Lambda, Type)
     ("شماره بایگانی پرونده", "archive_number", "int"),
     ("کد ملی متقاضی", "national_id", "str"),
-    ("مرحله جاری پرونده (۱ تا ۲۱)", "current_stage", "int"),
+    ("مرحله جاری پرونده (۱ تا ۲۲)", "current_stage", "int"),
     ("عنوان مرحله جاری", lambda d: d.current_stage_title, "str"),
-    ("واحد سازمانی مرحله جاری", lambda d: d.current_unit, "str"),
     ("سمت اقدام‌کننده مرحله جاری", lambda d: d.current_role, "str"),
     ("وضعیت گردش کار پرونده", lambda d: d.get_status_display(), "str"),
     ("قفل نهایی پرونده", lambda d: "بله" if d.is_locked else "خیر", "str"),
@@ -1819,16 +2485,96 @@ EXPORT_COLUMNS = [
     ("کارمزد خدمات آماده‌سازی (ریال)", "preparation_service_fee", "price"),
 ]
 
-def generate_dossiers_export(queryset=None, cache_key: str | None = None) -> HttpResponse:
+EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
+    "applicant": ("اطلاعات هویتی متقاضی", {
+        "first_name", "last_name", "full_name", "father_name", "birth_date",
+        "applicant_id_number", "applicant_birth_place", "applicant_phone",
+        "marital_status", "is_married_confirmed", "decile", "selection_rank"
+    }),
+    "spouse": ("مشخصات هویتی همسر", {
+        "spouse_first_name", "spouse_last_name", "spouse_full_name", "spouse_father_name",
+        "spouse_national_id", "spouse_birth_date", "spouse_id_number", "spouse_birth_place"
+    }),
+    "property": ("اطلاعات پروژه و مشخصات ثبتی", {
+        "project", "site", "construction_type", "block_name", "block_code",
+        "floor_number", "unit_number", "unit_code", "bedroom_count", "unit_direction",
+        "net_unit_area", "common_area", "total_area", "unit_area", "storage_number",
+        "storage_area", "parking_number", "parking_area", "covered_parking_area",
+        "registration_section", "main_plaque", "separated_plaque", "sub_plaque",
+        "plot_number", "renovation_code"
+    }),
+    "financial": ("اطلاعات مالی و تسهیلات بانکی", {
+        "base_cost_without_loan", "bank_loan_amount", "fund_loan_amount",
+        "contractor_letter_amount", "decile_loan_amount", "applicant_equity",
+        "is_equity_funded", "is_sms_sent", "sms_sent_date", "bank_letter_number",
+        "bank_letter_date", "is_added_to_bank_shipment_list", "is_sent_to_bank",
+        "bank_sent_date", "bank_sent_letter_number", "decile_loan_bank", "supported_institution"
+    }),
+    "lease_prep_checks": ("تسهیلات دهک، چک‌ها و کارمزدها", {
+        "total_land_share", "past_years_rent", "current_year_rent", "land_lease_year",
+        "tenant_price", "tenant_code", "is_cash_rent_confirmed", "cash_preparation_amount",
+        "non_cash_preparation_amount", "prepayment_code", "preparation_check_count",
+        "total_preparation_check_amount", "is_preparation_checks_confirmed",
+        "commitment_number", "commitment_date", "check_count", "check_amount",
+        "last_check_amount", "total_check_amount", "is_decile_loan_confirmed",
+        "rah_letter", "rah_letter_date", "check_service_fee", "preparation_service_fee"
+    }),
+    "form_j": ("وضعیت‌های فرم ج", {
+        "applicant_form_j_status", "applicant_form_j_directorate_status",
+        "applicant_form_j_red_description", "spouse_form_j_status",
+        "spouse_form_j_directorate_status", "spouse_form_j_red_description",
+        "form_j_registration_type"
+    }),
+    "workflow": ("اطلاعات گردش کار و امضاها", {
+        "current_stage", "current_stage_title", "current_role",
+        "status", "is_locked", "created_at", "updated_at"
+    }),
+}
+
+def generate_dossiers_export(queryset=None, cache_key: str | None = None, selected_categories: Optional[List[str]] = None) -> HttpResponse:
     """
     Generate and stream a comprehensive, professional Excel workbook containing
-    all records, codes, plaque numbers, financial values, and tracking metadata.
-    Optimized with write_only streaming and server-side debounce caching to prevent 502 crashes.
+    records, codes, plaque numbers, financial values, and tracking metadata.
+    Supports selective category exports (e.g. applicant, financial, property, etc.).
+    Optimized with write_only streaming and server-side debounce caching.
     """
     if queryset is None:
         queryset = HousingDossier.objects.all().order_by("-archive_number")
         if not cache_key:
             cache_key = "all"
+
+    # Filter columns by selected categories if provided
+    active_columns = EXPORT_COLUMNS
+    if selected_categories and "all" not in selected_categories:
+        allowed_fields: Set[str] = set()
+        for cat in selected_categories:
+            if cat in EXPORT_CATEGORY_MAP:
+                allowed_fields.update(EXPORT_CATEGORY_MAP[cat][1])
+
+        # Essential identification columns always preserved
+        allowed_fields.update({"archive_number", "national_id", "full_name"})
+
+        filtered = []
+        for col in EXPORT_COLUMNS:
+            col_title, accessor, col_type = col
+            field_name = accessor if isinstance(accessor, str) else None
+            if field_name and field_name in allowed_fields:
+                filtered.append(col)
+            elif not field_name:
+                # Lambda column category matching
+                if "workflow" in selected_categories and col_title in ("عنوان مرحله جاری", "سمت اقدام‌کننده مرحله جاری", "وضعیت گردش کار پرونده", "قفل نهایی پرونده", "تاریخ تشکیل پرونده", "تاریخ آخرین بروزرسانی"):
+                    filtered.append(col)
+                elif "applicant" in selected_categories and col_title == "تاییدیه تاهل":
+                    filtered.append(col)
+                elif "financial" in selected_categories and col_title in ("تایید تامین آورده نقدی", "ارسال پیامک آورده نقدی", "اضافه به لیست ارسالی‌ها به بانک", "ارسال شده به بانک"):
+                    filtered.append(col)
+                elif "lease_prep_checks" in selected_categories and col_title in ("تایید نقدی اجاره", "تایید دریافت چک‌های آماده‌سازی", "تایید چک‌های تسهیلات دهک"):
+                    filtered.append(col)
+        if filtered:
+            active_columns = filtered
+
+    if selected_categories:
+        cache_key = f"{cache_key or 'export'}_{'_'.join(sorted(selected_categories))}"
 
     now_ts = time.time()
     if cache_key:
@@ -1872,12 +2618,12 @@ def generate_dossiers_export(queryset=None, cache_key: str | None = None) -> Htt
         ws = wb.create_sheet(title="پرونده‌های مسکن مسکن‌یار")
         ws.views.sheetView[0].rightToLeft = True
 
-        headers = [col[0] for col in EXPORT_COLUMNS]
+        headers = [col[0] for col in active_columns]
         ws.append(headers)
 
         for dossier in queryset.iterator(chunk_size=2000):
             row = []
-            for col_title, accessor, col_type in EXPORT_COLUMNS:
+            for col_title, accessor, col_type in active_columns:
                 if callable(accessor):
                     val = accessor(dossier)
                 else:

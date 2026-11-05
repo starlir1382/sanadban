@@ -14,7 +14,7 @@
         <div class="df-body" id="section-applicant-body" x-show="sectionOpen" x-cloak x-transition>
 
             <fieldset class="df-set">
-                <legend class="df-legend"><svg class="df-i"><use href="#i-user"/></svg>متقاضی (سرپرست خانوار)</legend>
+                <legend class="df-legend"><svg class="df-i"><use href="#i-user"/></svg>متقاضی</legend>
                 <div class="df-grid">
                     {% include "df/_field.html" with name="national_id" label="کد ملی" req=1 cols=3 num=1 mode="numeric" maxlen=10 ph="0012345678" invalid="form.national_id && form.national_id.length !== 10" %}
                     {% include "df/_name_field.html" with name="first_name" a="first_name" b="last_name" full="full_name" label="نام" req=1 cols=3 ph="نام متقاضی" %}
@@ -42,7 +42,7 @@
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('marital_status')}">
                         <label class="df-label" for="f_marital_status">وضعیت تاهل</label>
                         <select id="f_marital_status" class="df-input" x-model="form.marital_status" :disabled="!isFieldEditable('marital_status')">
-                            <option value="متاهل (واجد شرایط طرح زوجین)">متاهل (واجد شرایط طرح زوجین)</option>
+                            <option value="متاهل ">متاهل </option>
                             <option value="متاهل سرپرست خانوار">متاهل سرپرست خانوار</option>
                         </select>
                     </div>
@@ -267,7 +267,7 @@
                             <template x-for="p in loanPresets" :key="p">
                                 <button type="button" class="df-seg-btn" :class="{'is-on': form.bank_loan_amount == p}"
                                         :disabled="!isFieldEditable('bank_loan_amount')" @click="setBankLoan(p)"
-                                        x-text="(p / 1000000) + ' میلیون'"></button>
+                                        x-text="(p / 10000000)+ ' میلیون'"></button>
                             </template>
                         </div>
                     </div>

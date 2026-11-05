@@ -146,7 +146,7 @@
             <!-- Sub-group: مشخصات فردی و هویتی متقاضی -->
             <div style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <span>مشخصات فردی و تماسی متقاضی (سرپرست خانوار)</span>
+                <span>مشخصات فردی و تماسی متقاضی</span>
             </div>
             <div class="fields-grid" style="margin-bottom: 1.25rem;">
                 <!-- 1. national_id with compact query button -->
@@ -302,7 +302,7 @@
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('marital_status')}">
                     <label class="field-label"><span>وضعیت تاهل متقاضی</span></label>
                     <select class="input-control" x-model="form.marital_status" :disabled="!isFieldEditable('marital_status')">
-                        <option value="متاهل (واجد شرایط طرح زوجین)">متاهل (واجد شرایط طرح زوجین)</option>
+                        <option value="متاهل ">متاهل </option>
                         <option value="متاهل سرپرست خانوار">متاهل سرپرست خانوار</option>
                     </select>
                 </div>
@@ -618,184 +618,110 @@
                     </div>
                 </div>
 
-                <!-- 2-Column Layout: Status Selectors on Right, Document Preview Thumbnail on Left -->
-                <div class="fs-status-doc-grid">
-                    <!-- Right Sub-Column: Form J Statuses & Fields -->
-                    <div>
-                        <div class="fields-grid fs-mini-grid">
-                            <!-- project_code -->
-                            <div class="field-group" :class="{'field-locked': !isFieldEditable('project_code')}">
-                                <label class="field-label" style="font-size: 0.82rem;">
-                                    <span>کد پروژه</span>
-                                    <span class="helper-badge text-blue-700">پروژه تخصیص‌یافته</span>
-                                </label>
-                                <input type="text" 
-                                       class="input-control fa-num" 
-                                       x-model="form.project_code" 
-                                       :readonly="!isFieldEditable('project_code')" 
-                                       placeholder="کد پروژه" 
-                                       style="font-size: 0.85rem; font-weight: 700;">
-                            </div>
-
-                            <!-- form_j_registration_type -->
-                            <div class="field-group" :class="{'field-locked': !isFieldEditable('form_j_registration_type')}">
-                                <label class="field-label" style="font-size: 0.82rem;">
-                                    <span>نحوه ثبت فرم ج (ثبت دستی / خودکار)</span>
-                                    <span class="helper-badge text-emerald-700">نوع ثبت</span>
-                                </label>
-                                <select class="input-control" x-model="form.form_j_registration_type" :disabled="!isFieldEditable('form_j_registration_type')" style="font-size: 0.84rem; font-weight: 700;">
-                                    <option value="خودکار">ثبت خودکار</option>
-                                    <option value="دستی">ثبت دستی</option>
-                                </select>
-                            </div>
-
-                            <!-- form_j_questionnaire_number -->
-                            <div class="field-group" style="grid-column: 1 / -1;" :class="{'field-locked': !isFieldEditable('form_j_questionnaire_number')}">
-                                <label class="field-label" style="font-size: 0.82rem;">
-                                    <span>شماره پرسش نامه فرم ج</span>
-                                    <span class="helper-badge text-blue-700">پرسش‌نامه</span>
-                                </label>
-                                <input type="text" 
-                                       class="input-control fa-num" 
-                                       x-model="form.form_j_questionnaire_number" 
-                                       :readonly="!isFieldEditable('form_j_questionnaire_number')" 
-                                       placeholder="شماره پرسش نامه فرم ج را وارد نمایید" 
-                                       style="font-size: 0.85rem; font-weight: 700;">
-                            </div>
-
-                            <!-- applicant_form_j_status -->
-                            <div class="field-group" :class="{'field-locked': !isFieldEditable('applicant_form_j_status')}">
-                                <label class="field-label" style="font-size: 0.82rem;">
-                                    <span>وضعیت فرم ج متقاضی</span>
-                                    <span class="helper-badge" :style="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">
-                                        <span x-text="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'کد قرمز' : 'کد سبز'"></span>
-                                    </span>
-                                </label>
-                                <select class="input-control" x-model="form.applicant_form_j_status" :disabled="!isFieldEditable('applicant_form_j_status')" style="font-size: 0.84rem;">
-                                    <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
-                                    <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
-                                    <option value="در حال استعلام">در حال استعلام</option>
-                                </select>
-                            </div>
-
-                            <!-- applicant_form_j_directorate_status -->
-                            <div class="field-group" :class="{'field-locked': !isFieldEditable('applicant_form_j_directorate_status')}">
-                                <label class="field-label" style="font-size: 0.82rem;">
-                                    <span>استعلام سامانه اداره کل (متقاضی)</span>
-                                    <span class="helper-badge text-blue-700">سامانه جامع</span>
-                                </label>
-                                <select class="input-control" x-model="form.applicant_form_j_directorate_status" :disabled="!isFieldEditable('applicant_form_j_directorate_status')" style="font-size: 0.84rem;">
-                                    <option value="تایید نهایی اداره کل">تایید نهایی اداره کل</option>
-                                    <option value="در حال بررسی">در حال بررسی</option>
-                                    <option value="عدم تایید اداره کل">عدم تایید اداره کل</option>
-                                </select>
-                            </div>
+                <!-- Clean 5-Field Form J Grid (No Directorate inquiries, No scan upload here) -->
+                <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 12px; padding: 1.25rem;">
+                    <div class="fields-grid" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem;">
+                        <!-- 1. project_code -->
+                        <div class="field-group" :class="{'field-locked': !isFieldEditable('project_code')}">
+                            <label class="field-label" style="font-size: 0.82rem;">
+                                <span>کد پروژه</span>
+                                <span class="helper-badge text-blue-700">پروژه تخصیص‌یافته</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-control fa-num" 
+                                   x-model="form.project_code" 
+                                   :readonly="!isFieldEditable('project_code')" 
+                                   placeholder="کد پروژه" 
+                                   style="font-size: 0.88rem; font-weight: 700;">
                         </div>
 
-                        <!-- Dynamic Red Code Alert Box for Applicant -->
-                        <div x-show="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')"
-                             x-cloak
-                             style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-bottom: 0.75rem;"
-                             x-transition>
-                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                <strong style="color: #991b1b; font-size: 0.84rem;">هشدار کد قرمز فرم «ج» متقاضی (سوابق زمین / مسکن دولتی)</strong>
-                            </div>
-                            <textarea class="input-control" rows="2" 
-                                      x-model="form.applicant_form_j_red_description"
-                                      :readonly="!isFieldEditable('applicant_form_j_red_description')"
-                                      style="font-size: 0.82rem; background: #ffffff;"
-                                      placeholder="علت و توضیحات استعلام سوابق مسکن متقاضی، پلاک ثبتی یا زمین واگذاری قبلی"></textarea>
+                        <!-- 2. form_j_registration_type -->
+                        <div class="field-group" :class="{'field-locked': !isFieldEditable('form_j_registration_type')}">
+                            <label class="field-label" style="font-size: 0.82rem;">
+                                <span>نحوه ثبت فرم ج (ثبت دستی / خودکار)</span>
+                                <span class="helper-badge text-emerald-700">نوع ثبت</span>
+                            </label>
+                            <select class="input-control" x-model="form.form_j_registration_type" :disabled="!isFieldEditable('form_j_registration_type')" style="font-size: 0.86rem; font-weight: 700;">
+                                <option value="خودکار">ثبت خودکار</option>
+                                <option value="دستی">ثبت دستی</option>
+                            </select>
                         </div>
 
-                        <!-- Spouse Form J Section -->
-                        <div class="fields-grid fs-mini-grid" style="border-top: 1px dashed #bbf7d0; padding-top: 0.75rem;">
-                            <!-- spouse_form_j_status -->
-                            <div class="field-group" :class="{'field-locked': !isFieldEditable('spouse_form_j_status')}">
-                                <label class="field-label" style="font-size: 0.82rem;">
-                                    <span>وضعیت فرم ج همسر</span>
-                                    <span class="helper-badge" :style="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">
-                                        <span x-text="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'کد قرمز' : 'کد سبز'"></span>
-                                    </span>
-                                </label>
-                                <select class="input-control" x-model="form.spouse_form_j_status" :disabled="!isFieldEditable('spouse_form_j_status')" style="font-size: 0.84rem;">
-                                    <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
-                                    <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
-                                    <option value="در حال استعلام">در حال استعلام</option>
-                                </select>
-                            </div>
-
-                            <!-- spouse_form_j_directorate_status -->
-                            <div class="field-group" :class="{'field-locked': !isFieldEditable('spouse_form_j_directorate_status')}">
-                                <label class="field-label" style="font-size: 0.82rem;">
-                                    <span>استعلام سامانه اداره کل (همسر)</span>
-                                    <span class="helper-badge text-blue-700">سامانه جامع</span>
-                                </label>
-                                <select class="input-control" x-model="form.spouse_form_j_directorate_status" :disabled="!isFieldEditable('spouse_form_j_directorate_status')" style="font-size: 0.84rem;">
-                                    <option value="تایید نهایی اداره کل">تایید نهایی اداره کل</option>
-                                    <option value="در حال بررسی">در حال بررسی</option>
-                                    <option value="عدم تایید اداره کل">عدم تایید اداره کل</option>
-                                </select>
-                            </div>
+                        <!-- 3. form_j_questionnaire_number -->
+                        <div class="field-group" :class="{'field-locked': !isFieldEditable('form_j_questionnaire_number')}">
+                            <label class="field-label" style="font-size: 0.82rem;">
+                                <span>شماره پرسش نامه فرم ج</span>
+                                <span class="helper-badge text-blue-700">پرسش‌نامه</span>
+                            </label>
+                            <input type="text" 
+                                   class="input-control fa-num" 
+                                   x-model="form.form_j_questionnaire_number" 
+                                   :readonly="!isFieldEditable('form_j_questionnaire_number')" 
+                                   placeholder="شماره پرسش نامه فرم ج را وارد نمایید" 
+                                   style="font-size: 0.88rem; font-weight: 700;">
                         </div>
 
-                        <!-- Dynamic Red Code Alert Box for Spouse -->
-                        <div x-show="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')"
-                             x-cloak
-                             style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-bottom: 0.5rem;"
-                             x-transition>
-                            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                <strong style="color: #991b1b; font-size: 0.84rem;">هشدار کد قرمز فرم «ج» همسر (سوابق زمین / مسکن دولتی)</strong>
-                            </div>
-                            <textarea class="input-control" rows="2" 
-                                      x-model="form.spouse_form_j_red_description"
-                                      :readonly="!isFieldEditable('spouse_form_j_red_description')"
-                                      style="font-size: 0.82rem; background: #ffffff;"
-                                      placeholder="علت و توضیحات استعلام سوابق مسکن همسر، پلاک ثبتی یا زمین واگذاری قبلی"></textarea>
+                        <!-- 4. applicant_form_j_status -->
+                        <div class="field-group" style="grid-column: span 1;" :class="{'field-locked': !isFieldEditable('applicant_form_j_status')}">
+                            <label class="field-label" style="font-size: 0.82rem;">
+                                <span>وضعیت فرم ج متقاضی</span>
+                                <span class="helper-badge" :style="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">
+                                    <span x-text="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز') ? 'کد قرمز' : 'کد سبز'"></span>
+                                </span>
+                            </label>
+                            <select class="input-control" x-model="form.applicant_form_j_status" :disabled="!isFieldEditable('applicant_form_j_status')" style="font-size: 0.86rem; font-weight: 600;">
+                                <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
+                                <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
+                                <option value="در حال استعلام">در حال استعلام</option>
+                            </select>
+                        </div>
+
+                        <!-- 5. spouse_form_j_status -->
+                        <div class="field-group" style="grid-column: span 2;" :class="{'field-locked': !isFieldEditable('spouse_form_j_status')}">
+                            <label class="field-label" style="font-size: 0.82rem;">
+                                <span>وضعیت فرم ج همسر</span>
+                                <span class="helper-badge" :style="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'background:#fee2e2;color:#991b1b;' : 'background:#dcfce7;color:#166534;'">
+                                    <span x-text="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز') ? 'کد قرمز' : 'کد سبز'"></span>
+                                </span>
+                            </label>
+                            <select class="input-control" x-model="form.spouse_form_j_status" :disabled="!isFieldEditable('spouse_form_j_status')" style="font-size: 0.86rem; font-weight: 600;">
+                                <option value="سبز (استعلام شده)">سبز (استعلام شده و فاقد سابقه ملکی)</option>
+                                <option value="قرمز (دارای سابقه مسکن / فاقد شرایط)">قرمز (دارای سابقه مسکن / فاقد شرایط)</option>
+                                <option value="در حال استعلام">در حال استعلام</option>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Left Sub-Column: Document Thumbnail Preview Card (if uploaded) -->
-                    <div x-show="hasFormJ()" style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 0.85rem; display: flex; flex-direction: column; justify-content: center; min-height: 120px;">
-                        <template x-if="hasFormJ()">
-                            <div style="display: flex; gap: 0.75rem; align-items: center;">
-                                <div style="width: 70px; height: 95px; border-radius: 6px; border: 1px solid #cbd5e1; overflow: hidden; background: #f8fafc; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08); position: relative;"
-                                     @click="openScanViewer(getFormJAttachment())"
-                                     title="کلیک جهت مشاهده در ابعاد بزرگ">
-                                    <template x-if="isPdfFile(getFormJAttachment())">
-                                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #fee2e2; color: #dc2626;">
-                                            <span style="font-weight: 900; font-size: 0.74rem;">PDF</span>
-                                        </div>
-                                    </template>
-                                    <template x-if="!isPdfFile(getFormJAttachment())">
-                                        <img :src="getFormJAttachment().preview_url" 
-                                             alt="فرم ج" 
-                                             style="width: 100%; height: 100%; object-fit: cover;">
-                                    </template>
-                                    <div style="position: absolute; bottom: 0; inset-inline: 0; background: rgba(15,23,42,0.65); color: #fff; font-size: 0.65rem; text-align: center; padding: 1px 0;">
-                                        بزرگنمایی
-                                    </div>
-                                </div>
-                                <div style="flex: 1; font-size: 0.78rem; line-height: 1.6; color: #334155;">
-                                    <div style="font-weight: 800; color: #0f2744; font-size: 0.82rem; margin-bottom: 2px;" x-text="getFormJAttachment().title || 'تصویر استعلام فرم ج'"></div>
-                                    <div style="color: #64748b; font-size: 0.72rem;">
-                                        <span>تاریخ بارگذاری: </span>
-                                        <span class="fa-num" x-text="getFormJAttachment().uploadDate"></span>
-                                    </div>
-                                    <div style="color: #64748b; font-size: 0.72rem;">
-                                        <span>کارشناس: </span>
-                                        <span x-text="getFormJAttachment().uploader"></span>
-                                    </div>
-                                    <button type="button" 
-                                            @click="openScanViewer(getFormJAttachment())"
-                                            style="margin-top: 5px; padding: 0.25rem 0.6rem; font-size: 0.74rem; font-weight: 700; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem;">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                        <span>مشاهده تصویر فرم ج</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </template>
+                    <!-- Dynamic Red Code Alert Box for Applicant -->
+                    <div x-show="form.applicant_form_j_status && form.applicant_form_j_status.includes('قرمز')"
+                         x-cloak
+                         style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 10px 14px; margin-top: 1rem;"
+                         x-transition>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <strong style="color: #991b1b; font-size: 0.86rem;">هشدار کد قرمز فرم «ج» متقاضی (سوابق زمین / مسکن دولتی)</strong>
+                        </div>
+                        <textarea class="input-control" rows="2" 
+                                  x-model="form.applicant_form_j_red_description"
+                                  :readonly="!isFieldEditable('applicant_form_j_red_description')"
+                                  style="font-size: 0.84rem; background: #ffffff;"
+                                  placeholder="علت و توضیحات استعلام سوابق مسکن متقاضی، پلاک ثبتی یا زمین واگذاری قبلی"></textarea>
+                    </div>
+
+                    <!-- Dynamic Red Code Alert Box for Spouse -->
+                    <div x-show="form.spouse_form_j_status && form.spouse_form_j_status.includes('قرمز')"
+                         x-cloak
+                         style="display: none; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; padding: 10px 14px; margin-top: 0.75rem;"
+                         x-transition>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <strong style="color: #991b1b; font-size: 0.86rem;">هشدار کد قرمز فرم «ج» همسر (سوابق زمین / مسکن دولتی)</strong>
+                        </div>
+                        <textarea class="input-control" rows="2" 
+                                  x-model="form.spouse_form_j_red_description"
+                                  :readonly="!isFieldEditable('spouse_form_j_red_description')"
+                                  style="font-size: 0.84rem; background: #ffffff;"
+                                  placeholder="علت و توضیحات استعلام سوابق مسکن همسر، پلاک ثبتی یا زمین واگذاری قبلی"></textarea>
                     </div>
                 </div>
             </div>

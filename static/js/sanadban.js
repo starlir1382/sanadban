@@ -1,4 +1,4 @@
-﻿// Which form section belongs to which workflow stage(s)
+// Which form section belongs to which workflow stage(s)
 const SECTION_STAGE_MAP = {
   "section-applicant": [1, 8],
   "section-form-j": [3, 11],
@@ -644,9 +644,7 @@ document.addEventListener("alpine:init", () => {
     todayDate: "",
 
     // Active Tab Navigation
-    tab: ["form", "map", "history", "scans"].includes(location.hash.slice(1))
-      ? location.hash.slice(1)
-      : "form",
+    tab: "form",
     moreOpen: false,
     simpleMode:
       document.documentElement.getAttribute("data-ui-mode") === "simple",
@@ -712,13 +710,13 @@ document.addEventListener("alpine:init", () => {
     },
 
     go(t) {
-      if (!["form", "map", "history", "scans"].includes(t)) return;
+      if (t === "scans") {
+        this.toggleAlbumPopup();
+        return;
+      }
       this.tab = t;
       if (location.hash !== "#" + t) {
         history.replaceState(null, "", "#" + t);
-      }
-      if (t === "history") {
-        this.showAuditDetails = true;
       }
       const tabsEl = document.querySelector(".dt-tabs");
       if (tabsEl) {
@@ -729,6 +727,31 @@ document.addEventListener("alpine:init", () => {
     },
 
     // Modals
+    showAlbumPopup: false,
+    isAlbumMinimized: false,
+    isAlbumMaximized: false,
+    openAlbumPopup() {
+      this.showAlbumPopup = true;
+      this.isAlbumMinimized = false;
+    },
+    closeAlbumPopup() {
+      this.showAlbumPopup = false;
+      this.isAlbumMinimized = false;
+    },
+    toggleAlbumPopup() {
+      if (this.showAlbumPopup && !this.isAlbumMinimized) {
+        this.showAlbumPopup = false;
+      } else {
+        this.showAlbumPopup = true;
+        this.isAlbumMinimized = false;
+      }
+    },
+    toggleMinimizeAlbumPopup() {
+      this.isAlbumMinimized = !this.isAlbumMinimized;
+    },
+    toggleMaximizeAlbumPopup() {
+      this.isAlbumMaximized = !this.isAlbumMaximized;
+    },
     showSignatureModal: false,
     showReturnModal: false,
     showScanViewerModal: false,
@@ -803,7 +826,7 @@ document.addEventListener("alpine:init", () => {
       spouse_form_j_status: "سبز (استعلام شده)",
       spouse_form_j_directorate_status: "تایید نهایی اداره کل",
       spouse_form_j_red_description: "",
-      marital_status: "متاهل (واجد شرایط طرح زوجین)",
+      marital_status: "متاهل ",
       is_married_confirmed: true,
       decile: 1,
       site: "",
@@ -974,8 +997,8 @@ document.addEventListener("alpine:init", () => {
     },
 
     init() {
-      // 1. Sync active tab from URL hash (#map, #history, #scans, #form)
-      const validTabs = ["form", "map", "history", "scans"];
+      // 1. Sync active tab from URL hash (#form)
+      const validTabs = ["form"];
       const currentHash = location.hash.slice(1);
       if (validTabs.includes(currentHash)) {
         this.tab = currentHash;
@@ -2195,6 +2218,19 @@ document.addEventListener("alpine:init", () => {
       if (!files.length) return;
 
       files.forEach((f) => {
+        const isImg =
+          (f.type && f.type.startsWith("image/")) ||
+          /\.(jpe?g|jfif|png|webp|gif|bmp|svg)$/i.test(f.name);
+
+        let syncPreview = "";
+        if (isImg) {
+          try {
+            syncPreview = URL.createObjectURL(f);
+          } catch (e) {
+            syncPreview = "";
+          }
+        }
+
         const itemObj = {
           file: f,
           fileName: f.name,
@@ -2202,12 +2238,12 @@ document.addEventListener("alpine:init", () => {
             f.size > 1048576
               ? (f.size / 1048576).toFixed(1) + " مگابایت"
               : Math.round(f.size / 1024) + " کیلوبایت",
-          previewUrl: "",
+          previewUrl: syncPreview,
           isScanner: false,
         };
         this.uploadForm.filesList.push(itemObj);
 
-        if (f.type.startsWith("image/")) {
+        if (isImg && !itemObj.previewUrl) {
           const reader = new FileReader();
           reader.onload = (e) => {
             itemObj.previewUrl = e.target.result;
@@ -3710,6 +3746,9 @@ window.SanadbanTheme = {
   set(theme) {
     if (theme !== "dark" && theme !== "light") theme = "light";
     document.documentElement.setAttribute("data-theme", theme);
+    if (document.body) {
+      document.body.setAttribute("data-theme", theme);
+    }
     try {
       localStorage.setItem(this.storageKey, theme);
     } catch (e) {}

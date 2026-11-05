@@ -14,7 +14,7 @@
 
   <!-- 1. Archive number -->
   <td class="t-center fa-num" style="width: 75px; min-width: 70px;">
-    <span class="dl-id">#{{ d.archive_number }}</span>
+    <span class="dl-id">{{ d.archive_number }}</span>
   </td>
 
   <!-- 2. Applicant + national id (Clean 2 lines max, no spouse on home page) -->
@@ -37,36 +37,38 @@
     </div>
   </td>
 
-  <!-- 4. Current Stage + Entry Date (max 2 lines) -->
-  <td>
+  <!-- 4. Stage + Date + Status -->
+  <td class="t-center">
     <div class="dl-stage">
-      <div class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
+      <span class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
+        <span class="lbl">مرحله</span>
         <span class="no fa-num">{{ d.current_stage }}</span>
-        <span class="tt">{{ d.current_stage_title }}</span>
-      </div>
+      </span>
+
+      <span class="dl-stage-title" title="{{ d.current_stage_title }}">{{ d.current_stage_title }}</span>
+
+      <span class="dl-date fa-num" title="تاریخ ورود به مرحله {{ d.current_stage }}: {{ d.stage_entry_date_jalali|default:'ثبت‌نشده' }}">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        <span>{{ d.stage_entry_date_jalali|default:'-' }}</span>
+      </span>
+
+      {% if d.status == 'REJECTED_RED' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked %}
       <div class="dl-stage-meta">
-        <span class="dl-date fa-num" title="تاریخ ورود پرونده به این مرحله">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          ورود: <strong>{{ d.stage_entry_date_jalali|default:'امروز' }}</strong>
-        </span>
+        {% if d.status == 'REJECTED_RED' %}
+          <span class="dl-status red" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">⛔ رد صلاحیت</span>
+        {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
+          <span class="dl-status orange" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">⚠ فرم «ج» قرمز</span>
+        {% elif d.current_stage == 22 or d.is_locked %}
+          <span class="dl-status green" title="نهایی و بایگانی قطعی (مختومه)">✓ مختومه</span>
+        {% elif d.status == 'RETURNED' %}
+          <span class="dl-status ret" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">↩ برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
+        {% endif %}
       </div>
+      {% endif %}
     </div>
   </td>
 
-  <!-- 5. Current role / Actor (Role title only, clean single line) -->
-  <td>
-    <div class="dl-role" title="{{ d.current_role }}">{{ d.current_role }}</div>
-  </td>
 
-  <!-- 6. Equity -->
-  <td class="t-center fa-num" style="width: 90px; min-width: 85px;">
-    {% if d.applicant_equity > 0 %}
-    <span class="dl-equity">{{ d.applicant_equity|default:0 }}</span>
-    <span class="dl-curr">ریال</span>
-    {% else %}
-    <span class="dl-dash">-</span>
-    {% endif %}
-  </td>
 
   <!-- 7. Action -->
   <td class="t-center" style="width: 135px; min-width: 130px;">
@@ -83,7 +85,7 @@
 </tr>
 {% empty %}
 <tr>
-  <td colspan="8">
+  <td colspan="6">
     <div class="dl-empty" style="padding: 2.5rem 1rem; text-align: center; color: var(--color-text-muted, #64748b);">
       <div class="dl-empty-ic" style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-app, #f8fafc); border: 1px solid var(--color-border, #e2e8f0); color: var(--color-text-subtle, #94a3b8); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>

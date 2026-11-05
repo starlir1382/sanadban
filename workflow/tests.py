@@ -336,8 +336,8 @@ class WorkflowExecutionTestCase(TestCase):
         resp_print = folder_label_print_view(req_print, pk=dossier.archive_number)
         self.assertEqual(resp_print.status_code, 200)
         self.assertIn(str(dossier.archive_number), resp_print.content.decode("utf-8"))
-        self.assertIn("دهک درآمدی", resp_print.content.decode("utf-8"))
-        self.assertIn("نهاد تحت حمایت", resp_print.content.decode("utf-8"))
+        self.assertIn("نام و نام خانوادگی متقاضی", resp_print.content.decode("utf-8"))
+        self.assertIn("پلاک اصلی و فرعی", resp_print.content.decode("utf-8"))
 
 
 
