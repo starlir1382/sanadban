@@ -1177,14 +1177,6 @@
               🖨 چاپ مشخصات ملک و قدرالسهم (مرحله ۱۵ - A4 افقی)
             </a>
             <a
-              href="{% url 'notary_letter_print' pk=dossier.archive_number %}"
-              target="_blank"
-              x-show="currentStage >= 19"
-              x-cloak
-            >
-              🖨 چاپ معرفی‌نامه محضر
-            </a>
-            <a
               :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'"
               target="_blank"
               x-show="isRejected"
@@ -1237,14 +1229,77 @@
           ></span>
         </button>
 
-        <!-- Red Form J Alert (No advancing / sending forward) -->
-        <div
-          x-show="isRedJ"
+        <!-- Red Form J: Expert Escalate Action & Admin Archival Buttons -->
+        <template x-if="isRejected">
+          <div style="display: inline-flex; align-items: center; gap: 8px; padding: 0.5rem 1rem; border-radius: 8px; background: #fee2e2; border: 1.5px solid #ef4444; color: #991b1b; font-size: 0.84rem; font-weight: 800;">
+            <span>⛔ رد صلاحیت شده و بایگانی قطعی (خارج از آمار فعال)</span>
+          </div>
+        </template>
+
+        <template x-if="!isRejected && isRedJ && status === 'REJECT_RED_PENDING'">
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 0.55rem 1rem; border-radius: 8px; background: #fff1f2; border: 1.5px solid #f43f5e; color: #be123c; font-size: 0.84rem; font-weight: 800;">
+            ⏳ ارجاع شده به مدیر سامانه (در انتظار بررسی و ابلاغ رد صلاحیت)
+          </span>
+        </template>
+
+        <!-- Button for Stage 3 / Expert (e.g. Vahid Alemi) to Escalate Red Form J to Admin -->
+        <button
+          type="button"
+          class="btn btn-danger"
+          x-show="userCanAction && !isLocked && !isRejected && isRedJ && status !== 'REJECT_RED_PENDING'"
           x-cloak
-          style="display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1rem; border-radius: 8px; background: #fee2e2; border: 1.5px solid #f87171; color: #991b1b; font-size: 0.82rem; font-weight: 800;"
+          style="display: none; background: #dc2626; color: #fff; font-weight: 800; border: none; padding: 0.55rem 1.25rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(220,38,38,0.25);"
+          @click="openSignatureModal()"
+          title="ارجاع پرونده به کارتابل مدیر سامانه جهت تعیین تکلیف فرم «ج» قرمز"
         >
-          <span>⛔ وضعیت فرم «ج» قرمز است؛ پرونده متوقف شده و امکان ارسال به ادمین/مرحله بعد وجود ندارد.</span>
-        </div>
+          <span>⛔ ارجاع به مدیر سامانه (فرم «ج» قرمز)</span>
+        </button>
+
+        <!-- Direct Action for Admin / Chief to Archive & Disqualify Red Dossier -->
+        <button
+          type="button"
+          class="btn btn-danger"
+          x-show="(isChief || isSuperuser || isStaff) && !isRejected && !isDeleted && isRedJ"
+          x-cloak
+          style="display: none; background: #991b1b; color: #fff; font-weight: 800; border: none; padding: 0.55rem 1.25rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(153,27,27,0.3);"
+          @click="openRedRejectionModal()"
+          title="صدور ابلاغیه رسمی رد صلاحیت و حذف از آمار پرونده‌های فعال"
+        >
+          <span>⛔ صدور ابلاغیه رد صلاحیت و بایگانی (خروج از آمار فعال)</span>
+        </button>
+
+        <!-- General Delete & Archive Button for Admin -->
+        <button
+          type="button"
+          class="btn btn-outline"
+          x-show="(isChief || isSuperuser || isStaff) && !isDeleted && !isRejected"
+          x-cloak
+          style="display: none; border-color: #cbd5e1; color: #475569; font-weight: 700; padding: 0.55rem 1rem; border-radius: 8px;"
+          @click="openDeleteModal()"
+          title="حذف پرونده و انتقال به بایگانی راکد (کسر از آمار فعال)"
+        >
+          <span>🗑 حذف و بایگانی راکد</span>
+        </button>
+
+        <!-- If Dossier is Deleted: Badge and Restore Button -->
+        <template x-if="isDeleted">
+          <div style="display: inline-flex; align-items: center; gap: 8px;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; padding: 0.5rem 1rem; border-radius: 8px; background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #475569; font-size: 0.84rem; font-weight: 800;">
+              <span>🗑 این پرونده به بایگانی راکد منتقل شده و از آمار فعال کسر گردیده است</span>
+            </div>
+            <button
+              type="button"
+              class="btn btn-warning"
+              x-show="isChief || isSuperuser || isStaff"
+              x-cloak
+              style="padding: 0.5rem 1rem; font-weight: 800;"
+              @click="restoreDeletedDossier()"
+              title="بازیابی این پرونده به چرخه فعال"
+            >
+              <span>↩ بازیابی پرونده به چرخه فعال</span>
+            </button>
+          </div>
+        </template>
 
         <button
           type="button"

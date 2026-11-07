@@ -188,6 +188,9 @@
     --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04);
     color: var(--c-text);
     padding-bottom: 1.5rem;
+    font-feature-settings: "ss01" 1;
+    -webkit-font-feature-settings: "ss01" 1;
+    font-variant-numeric: tabular-nums;
   }
   .dl * { box-sizing: border-box; }
 
@@ -912,6 +915,9 @@
     color: var(--c-text);
     line-height: 1.2;
     margin-bottom: 0.25rem;
+    font-feature-settings: "ss01" 1;
+    -webkit-font-feature-settings: "ss01" 1;
+    font-variant-numeric: tabular-nums;
   }
   .admin-kpi-sub {
     font-size: 0.73rem;
@@ -1195,17 +1201,62 @@
       <a href="{% url 'dossier_list' %}?{% if query %}q={{ query|urlencode }}&{% endif %}{% if current_sort %}sort={{ current_sort }}{% endif %}" class="dl-scard all {% if stage_filter == '' %}active{% endif %}">
         <div class="top">
           <span class="no">∗</span>
-          {% if total_all_dossiers %}<span class="cnt">{{ total_all_dossiers }}</span>{% endif %}
+          {% if total_all_dossiers %}<span class="cnt fa-num">{{ total_all_dossiers }}</span>{% endif %}
         </div>
         <div class="tt">همه پرونده‌ها</div>
         <div class="rl">همه مراحل</div>
       </a>
 
+      <!-- 1. Specific Queue for Admin: Redirected Form J Reds -->
+      <a href="{% url 'dossier_list' %}?status=pending_red{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+         class="dl-scard {% if status_filter == 'pending_red' %}active{% elif red_pending_cnt > 0 %}has{% endif %}" 
+         style="border-color: #f87171; background: #fff1f2;" 
+         title="کارتابل اختصاصی پرونده‌های قرمز فرم «ج» ارجاع شده به مدیر سامانه">
+        <div class="top">
+          <span class="no" style="color: #be123c;">🚨</span>
+          {% if red_pending_cnt > 0 %}<span class="cnt fa-num" style="background: #e11d48; color: #ffffff; font-weight: 800;">{{ red_pending_cnt }}</span>{% endif %}
+        </div>
+        <div class="tt" style="color: #be123c; font-weight: 800;">ارجاعی به ادمین (فرم ج)</div>
+        <div class="rl" style="color: #e11d48; font-weight: 700;">
+          {% if red_pending_cnt > 0 %}{{ red_pending_cnt }} پرونده منتظر اقدام{% else %}کارتابل خالی است{% endif %}
+        </div>
+      </a>
+
+      <!-- 2. Specific Archive for Admin: Deleted & Disqualified Dossiers (Form J or other reasons) -->
+      <a href="{% url 'dossier_list' %}?status=deleted_all{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+         class="dl-scard {% if status_filter == 'deleted_all' %}active{% elif deleted_total_cnt > 0 %}has{% endif %}" 
+         style="border-color: #cbd5e1; background: #f8fafc;" 
+         title="بایگانی کلیه پرونده‌های حذف شده یا رد صلاحیت شده (فرم ج و سایر علل)">
+        <div class="top">
+          <span class="no" style="color: #475569;">🗑</span>
+          {% if deleted_total_cnt > 0 %}<span class="cnt fa-num" style="background: #64748b; color: #ffffff;">{{ deleted_total_cnt }}</span>{% endif %}
+        </div>
+        <div class="tt" style="color: #334155;">بایگانی حذفی و رد صلاحیت</div>
+        <div class="rl" style="color: #64748b;">
+          {{ deleted_cnt }} حذفی · {{ red_form_j_cnt }} فرم ج
+        </div>
+      </a>
+
+      <!-- 3. All Form J Reds Filter -->
+      <a href="{% url 'dossier_list' %}?status=red_form_j{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+         class="dl-scard {% if status_filter == 'red_form_j' %}active{% elif red_form_j_cnt > 0 %}has{% endif %}" 
+         style="border-color: #fca5a5; background: #fff5f5;" 
+         title="کلیه پرونده‌های دارای استعلام قرمز فرم «ج»">
+        <div class="top">
+          <span class="no" style="color: #dc2626;">⛔</span>
+          {% if red_form_j_cnt > 0 %}<span class="cnt fa-num" style="background: #dc2626; color: #ffffff;">{{ red_form_j_cnt }}</span>{% endif %}
+        </div>
+        <div class="tt" style="color: #b91c1c;">همه فرم‌های «ج» قرمز</div>
+        <div class="rl" style="color: #991b1b;">
+          دارای سوابق ملکی
+        </div>
+      </a>
+
       {% for stg in stages_meta %}
       <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="dl-scard {% if stage_filter == stg.id|stringformat:'i' %}active{% elif stg.count > 0 %}has{% endif %}" title="مرحله {{ stg.id }}: {{ stg.title }} — {{ stg.role }}">
         <div class="top">
-          <span class="no">{{ stg.id }}</span>
-          {% if stg.count > 0 %}<span class="cnt">{{ stg.count }}</span>{% endif %}
+          <span class="no fa-num">{{ stg.id }}</span>
+          {% if stg.count > 0 %}<span class="cnt fa-num">{{ stg.count }}</span>{% endif %}
         </div>
         <div class="tt">{{ stg.title }}</div>
         <div class="rl">{{ stg.role }}</div>
@@ -1219,6 +1270,7 @@
   <div class="dl-card dl-toolbar">
     <form method="GET" action="{% url 'dossier_list' %}" id="dossier-search-form" class="dl-form">
       {% if stage_filter %}<input type="hidden" name="stage" value="{{ stage_filter }}" />{% endif %}
+      {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}" />{% endif %}
 
       <!-- ROW 1: Search, Filter, Sort & Count -->
       <div class="dl-toolbar-search-row">
@@ -1522,7 +1574,51 @@
   {% if is_full_admin %}
   <div x-show="activeTab === 'admin'" x-cloak>
 
-    <!-- اکسل از طریق منوی ناوبری قابل دسترسی است -->
+    <!-- 1. Dedicated Real-Time Queue for Redirected Form J Reds -->
+    {% if pending_red_dossiers %}
+    <div style="background: #fff1f2; border: 2px solid #fda4af; border-radius: 14px; padding: 1.25rem 1.35rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(225, 29, 72, 0.1);">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.9rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem; font-weight: 800; font-size: 1.02rem; color: #9f1239;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <span>کارتابل پرونده‌های ارجاعی فرم «ج» قرمز (نیازمند بررسی و ابلاغ رد صلاحیت ادمین)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 0.78rem; font-weight: 800; background: #e11d48; color: #fff; padding: 4px 12px; border-radius: 999px;" class="fa-num">{{ red_pending_cnt }} پرونده منتظر اقدام</span>
+          <a href="{% url 'dossier_list' %}?status=pending_red" class="dl-btn" style="padding: 0.35rem 0.8rem; font-size: 0.75rem; background: #ffffff; color: #be123c; border: 1px solid #fecdd3; border-radius: 6px; font-weight: 700;">مشاهده همه ↗</a>
+        </div>
+      </div>
+      <div style="overflow-x: auto; background: #ffffff; border-radius: 10px; border: 1px solid #fecdd3;">
+        <table class="admin-table fa-num" style="margin: 0; width: 100%;">
+          <thead>
+            <tr>
+              <th style="width: 85px; text-align: center;">شماره بایگانی</th>
+              <th>نام و نام خانوادگی</th>
+              <th>کد ملی</th>
+              <th>پروژه مسکونی</th>
+              <th>شرح و علت کد قرمز استعلام</th>
+              <th style="width: 140px; text-align: center;">اقدام مدیر</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pd in pending_red_dossiers %}
+            <tr>
+              <td style="text-align: center; font-weight: 800; color: #9f1239;">{{ pd.archive_number }}</td>
+              <td style="font-weight: 700; color: #0f172a;">{{ pd.full_name }}</td>
+              <td>{{ pd.national_id }}</td>
+              <td>{{ pd.project|default:'-' }}</td>
+              <td style="color: #b91c1c; font-size: 0.78rem;">{{ pd.applicant_form_j_red_description|default:'دارای سوابق ملکی / فاقد شرایط واگذاری مسکن' }}</td>
+              <td style="text-align: center;">
+                <a href="{% url 'dossier_detail' pk=pd.archive_number %}" class="dl-btn" style="background: #e11d48; color: #ffffff; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.76rem; font-weight: 800; text-decoration: none; display: inline-block;">
+                  بررسی و ابلاغ ↗
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
 
     <!-- 2. کارت‌های شاخص‌های کلیدی عملکرد (KPI Cards) -->
     <div class="admin-kpi-grid fa-num">
@@ -1544,14 +1640,20 @@
         <div class="admin-kpi-sub">در حال اقدام در مراحل ۲۲‌گانه</div>
       </div>
 
-      <div class="admin-kpi-card red">
+      <a href="{% url 'dossier_list' %}?status=red_form_j" class="admin-kpi-card red" style="text-decoration: none; cursor: pointer; display: block;" title="مشاهده کلیه پرونده‌های دارای استعلام قرمز فرم «ج»">
         <div class="admin-kpi-header">
-          <span class="admin-kpi-title">هشدار فرم «ج» قرمز</span>
+          <span class="admin-kpi-title">هشدار فرم «ج» قرمز (مشاهده ↗)</span>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
         </div>
         <div class="admin-kpi-val" style="color: #dc2626;">{{ admin_stats.red_form_j }}</div>
-        <div class="admin-kpi-sub">دارای سابقه ملکی / فاقد شرایط واگذاری</div>
-      </div>
+        <div class="admin-kpi-sub">
+          {% if admin_stats.red_pending_cnt %}
+            <strong style="color: #b91c1c;">{{ admin_stats.red_pending_cnt }} ارجاع جدید به کارتابل ادمین</strong>
+          {% else %}
+            دارای سابقه ملکی / فاقد شرایط واگذاری
+          {% endif %}
+        </div>
+      </a>
 
       <div class="admin-kpi-card purple">
         <div class="admin-kpi-header">
@@ -1561,6 +1663,18 @@
         <div class="admin-kpi-val" style="color: #9333ea;">{{ admin_stats.completed }}</div>
         <div class="admin-kpi-sub">تکمیل امضاها و قفل نهایی (مرحله ۲۲)</div>
       </div>
+
+      <!-- Deleted & Disqualified Archive KPI Card -->
+      <a href="{% url 'dossier_list' %}?status=deleted_all" class="admin-kpi-card" style="border-color: #cbd5e1; background: #f8fafc; text-decoration: none; cursor: pointer; display: block;" title="مشاهده کلیه پرونده‌های حذف شده یا رد صلاحیت شده">
+        <div class="admin-kpi-header">
+          <span class="admin-kpi-title" style="color: #475569;">بایگانی حذفی و راکد (مشاهده ↗)</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </div>
+        <div class="admin-kpi-val" style="color: #475569;">{{ admin_stats.deleted_total_cnt|default:0 }}</div>
+        <div class="admin-kpi-sub" style="color: #64748b;">
+          {{ admin_stats.deleted_cnt|default:0 }} حذف شده · {{ admin_stats.red_form_j|default:0 }} رد صلاحیت فرم ج
+        </div>
+      </a>
     </div>
 
     <!-- 3. وضعیت فازهای ۴‌گانه کلان -->

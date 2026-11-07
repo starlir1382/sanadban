@@ -30,6 +30,18 @@ from workflow.stages import (
 
 _SIGNED_AT_RE = re.compile(r"^\s*(\d{4}/\d{1,2}/\d{1,2})(?:\s*[-–]?\s*(\d{1,2}:\d{2}))?")
 
+_FA_AR_DIGITS_TRANS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+def normalize_national_id(val: Any) -> str:
+    """Normalizes any national ID field to strictly 10 digits with leading zero if valid digit string."""
+    if not val:
+        return ""
+    s = str(val).translate(_FA_AR_DIGITS_TRANS).strip()
+    digits = re.sub(r"\D", "", s)
+    if digits and len(digits) <= 10:
+        return digits.zfill(10)
+    return str(val).strip()
+
 class Site(models.Model):
 
     name = models.CharField(max_length=100, unique=True, verbose_name="نام سایت")
@@ -186,9 +198,7 @@ class PreSelectedUnit(models.Model):
 
     parking_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره پارکینگ")
 
-    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت پارکینگ")
-
-    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("11.25"), verbose_name="متراژ پارکینگ مسقف (مترمربع)")
+    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت پارکینگ (مترمربع)")
 
     base_cost_without_loan = models.BigIntegerField(default=4500000000, verbose_name="قیمت پایه بدون وام بانکی (ریال)")
 
@@ -213,6 +223,10 @@ class PreSelectedUnit(models.Model):
         verbose_name_plural = "بانک اطلاعات انتخاب واحد (پیش‌ثبت‌نام)"
 
     def save(self, *args, **kwargs):
+        if self.national_id:
+            self.national_id = normalize_national_id(self.national_id)
+        if self.spouse_national_id:
+            self.spouse_national_id = normalize_national_id(self.spouse_national_id)
 
         if self.first_name or self.last_name:
 
@@ -294,7 +308,11 @@ class HousingDossier(models.Model):
 
         ("COMPLETED", "نهایی و بایگانی قطعی"),
 
+        ("REJECT_RED_PENDING", "ارجاع به مدیر سامانه (کد قرمز فرم «ج»)"),
+
         ("REJECTED_RED", "رد صلاحیت - کد قرمز فرم «ج» (عدم واگذاری واحد)"),
+
+        ("DELETED", "حذف و بایگانی راکد"),
 
     ]
 
@@ -317,6 +335,11 @@ class HousingDossier(models.Model):
     rejection_reason = models.TextField(blank=True, verbose_name="علت و شرح رد صلاحیت")
 
     rejected_by = models.CharField(max_length=150, blank=True, verbose_name="رد صلاحیت کننده")
+
+    # General Deletion & Archival Fields
+    deletion_reason = models.TextField(blank=True, default="", verbose_name="علت حذف و بایگانی راکد")
+    deleted_by = models.CharField(max_length=150, blank=True, default="", verbose_name="حذف‌کننده پرونده")
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="تاریخ و زمان حذف")
 
     # Stage 1: Applicant, Spouse & Unit
 
@@ -428,9 +451,7 @@ class HousingDossier(models.Model):
 
     parking_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="شماره پارکینگ")
 
-    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت پارکینگ")
-
-    covered_parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("11.25"), verbose_name="متراژ پارکینگ مسقف (مترمربع)")
+    parking_area = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"), verbose_name="مساحت پارکینگ (مترمربع)")
 
     # Stage 2 & 18: Plot & Registry Fields
 
@@ -516,9 +537,13 @@ class HousingDossier(models.Model):
 
     is_installment_booklet_confirmed = models.BooleanField(default=False, verbose_name="تأیید صحت دفترچه قسط بانک مسکن")
 
-    # Stage 11: تأیید سند عرصه
+    # Stage 13: تأیید و مشخصات سند مالکیت عرصه (کارشناس املاک)
 
     is_land_deed_confirmed = models.BooleanField(default=False, verbose_name="تأیید سند مالکیت عرصه")
+
+    deed_number = models.CharField(max_length=60, blank=True, default="", verbose_name="شماره سند عرصه")
+
+    deed_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ سند عرصه (شمسی)")
 
     # Stage 19: Valuation Fields
 
@@ -579,6 +604,13 @@ class HousingDossier(models.Model):
     rah_letter = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره نامه راه و شهرسازی")
 
     rah_letter_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ نامه راه و شهرسازی (شمسی)")
+
+    # Stage 20: صدور و ثبت مشخصات نامه محضر و دفتر اسناد رسمی
+    notary_office_number = models.CharField(max_length=60, blank=True, default="", verbose_name="شماره دفترخانه اسناد رسمی")
+
+    notary_letter_number = models.CharField(max_length=60, blank=True, default="", verbose_name="شماره نامه معرفی به محضر")
+
+    notary_letter_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ نامه معرفی به محضر (شمسی)")
 
     is_cash_rent_confirmed = models.BooleanField(default=False, verbose_name="تایید مبلغ نقدی اجاره")
 
@@ -675,6 +707,12 @@ class HousingDossier(models.Model):
     def recompute_derived_fields(self, skip: set[str] = ()):
         skip_set = set(skip)
 
+        # 0. Normalize national IDs to 10 digits with leading zeros
+        if 'national_id' not in skip_set and self.national_id:
+            self.national_id = normalize_national_id(self.national_id)
+        if 'spouse_national_id' not in skip_set and self.spouse_national_id:
+            self.spouse_national_id = normalize_national_id(self.spouse_national_id)
+
         # 1. Auto-fill bank_name, project_code, bank_branch from ProjectBankMapping if empty
         if self.project:
             if not any(k in skip_set for k in ('bank_name', 'project_code', 'bank_branch')):
@@ -729,7 +767,20 @@ class HousingDossier(models.Model):
             elif not self.check_service_fee:
                 self.check_service_fee = 2000000
 
+        # 6. Auto-calculate Section 9 Land Valuation & Rates from LandRate table
+        if self.renovation_code or self.plot_number or (self.project and "قطعه" in self.project):
+            try:
+                from .land_rates import apply_land_calculation
+                apply_land_calculation(self, skip=skip_set)
+            except Exception:
+                pass
+
     def save(self, *args, **kwargs):
+        if self.national_id:
+            self.national_id = normalize_national_id(self.national_id)
+        if self.spouse_national_id:
+            self.spouse_national_id = normalize_national_id(self.spouse_national_id)
+
         self.recompute_derived_fields()
 
         # Auto-increment archive_number starting strictly from 100001
@@ -776,13 +827,25 @@ class HousingDossier(models.Model):
 
     def is_red_form_j(self):
 
-        return "قرمز" in (self.applicant_form_j_status or "")
+        return ("قرمز" in (self.applicant_form_j_status or "")) or ("قرمز" in (self.spouse_form_j_status or "")) or (self.status in ["REJECTED_RED", "REJECT_RED_PENDING"])
 
     @property
 
     def is_rejected(self):
 
         return self.status == "REJECTED_RED"
+
+    @property
+
+    def is_deleted(self):
+
+        return self.status == "DELETED"
+
+    @property
+
+    def is_archived_or_deleted(self):
+
+        return self.status in ["REJECTED_RED", "DELETED"]
 
     @property
 
@@ -1014,6 +1077,8 @@ class DossierAttachment(models.Model):
         ("LOAN_CHECK", "چک‌های تسهیلات دهک"),
 
         ("COMMITMENT_LETTER", "تعهدنامه محضری / ثبتی"),
+
+        ("NOTARY_LETTER", "اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)"),
 
         ("OTHER", "سایر مستندات و ضمائم"),
 
@@ -1337,6 +1402,11 @@ class UserProfile(models.Model):
 
         verbose_name_plural = "کاربران و کارشناسان سامانه"
 
+    def save(self, *args, **kwargs):
+        if self.national_id:
+            self.national_id = normalize_national_id(self.national_id)
+        super().save(*args, **kwargs)
+
     def get_allowed_stages_list(self):
 
         """
@@ -1544,4 +1614,31 @@ class ProjectBankMapping(models.Model):
     def __str__(self):
 
         return f"{self.project_name} -> {self.get_bank_code_display()}"
+
+
+class LandRate(models.Model):
+    """
+    Share coefficients and per-m2 land lease/preparation rates per کد نوسازی (from base Excel).
+    Used to auto-populate Section 9 (ارزیابی اداره کل، تعیین اجاره و آماده‌سازی).
+    """
+    renovation_code = models.CharField(max_length=40, unique=True, verbose_name="کد نوسازی")
+    project_name = models.CharField(max_length=200, blank=True, verbose_name="نام پروژه")
+    plot_number = models.CharField(max_length=20, blank=True, verbose_name="قطعه")
+    block_name = models.CharField(max_length=50, blank=True, verbose_name="نام بلوک")
+    share_land = models.DecimalField(max_digits=14, decimal_places=9, verbose_name="قدرالسهم از عرصه")
+    share_common = models.DecimalField(max_digits=14, decimal_places=9, verbose_name="قدرالسهم از مشاع")
+    rent_current_per_m2 = models.DecimalField(max_digits=18, decimal_places=4, verbose_name="اجاره یک متر سال جاری (ریال)")
+    rent_to_date_per_m2 = models.DecimalField(max_digits=18, decimal_places=4, verbose_name="اجاره یک متر تا پایان سال جاری (ریال)")
+    prep_per_m2 = models.DecimalField(max_digits=18, decimal_places=4, verbose_name="هزینه آماده‌سازی یک متر (ریال)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+
+    class Meta:
+        verbose_name = "نرخ عرصه و آماده‌سازی"
+        verbose_name_plural = "نرخ‌های عرصه و آماده‌سازی"
+        ordering = ["project_name", "block_name", "renovation_code"]
+
+    def __str__(self):
+        return f"{self.renovation_code} ({self.project_name} - {self.block_name})"
+
 

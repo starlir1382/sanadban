@@ -144,7 +144,6 @@
                     {% include "df/_field.html" with name="net_unit_area" label="متراژ مفید (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
                     {% include "df/_field.html" with name="common_area" label="متراژ مشاعات (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
                     {% include "df/_field.html" with name="total_area" label="جمع کل متراژ (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
-                    {% include "df/_field.html" with name="covered_parking_area" label="پارکینگ مسقف (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
                     {% include "df/_field.html" with name="storage_number" label="شماره انباری" cols=3 num=1 mode="numeric" ph="۰" %}
                     {% include "df/_field.html" with name="storage_area" label="مساحت انباری (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
                     {% include "df/_field.html" with name="parking_number" label="شماره پارکینگ" cols=3 num=1 mode="numeric" ph="۰" %}
@@ -166,6 +165,29 @@
                 <strong class="df-tag" x-text="form.bank_name || 'بانک مسکن'"></strong>
                 <span x-show="form.bank_branch" x-text="'شعبه: ' + form.bank_branch"></span>
                 <span class="df-strip-end">پروژه: <strong x-text="form.project || '-'"></strong></span>
+                <div style="margin-right: auto; display: inline-flex; align-items: center; gap: 6px;">
+                    <button type="button" class="df-btn df-btn-sm" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 5px; height: 28px;"
+                            @click="openUploadScanModal('TITLE_DEED', 'اسکن سند مالکیت عرصه')"
+                            :disabled="!isFieldEditable('registration_section') && !(Array.isArray(userAllowedStages) && userAllowedStages.includes(13)) && !isChief && !isSuperuser"
+                            title="بارگذاری اسکن سند مالکیت عرصه در آلبوم مدارک">
+                        <svg class="df-i" style="width: 13px; height: 13px;"><use href="#i-upload"/></svg>
+                        <span x-text="hasDeedAttachment() ? 'اسکن سند عرصه ✓' : 'بارگذاری اسکن سند عرصه'"></span>
+                    </button>
+                    <template x-if="hasDeedAttachment()">
+                        <div style="display: inline-flex; align-items: center; gap: 4px;">
+                            <button type="button" class="df-btn df-btn-sm df-btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.74rem; height: 28px;"
+                                    @click="openScanModal(getDeedAttachment())" title="مشاهده اسکن سند">
+                                <svg class="df-i" style="width: 12px; height: 12px;"><use href="#i-eye"/></svg>
+                                <span>مشاهده</span>
+                            </button>
+                            <button type="button" class="df-btn df-btn-sm df-btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.74rem; height: 28px;"
+                                    @click="printScan(getDeedAttachment())" title="چاپ برگه اسکن سند">
+                                <svg class="df-i" style="width: 12px; height: 12px;"><use href="#i-print"/></svg>
+                                <span>چاپ</span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
             </div>
             <div class="df-grid">
                 {% include "df/_field.html" with name="registration_section" label="بخش ثبتی" cols=2 ph="بخش ثبتی" %}
@@ -333,19 +355,7 @@
                     <div class="df-words" x-show="form.applicant_equity">به حروف: <strong x-text="toWords(form.applicant_equity)"></strong></div>
                 </div>
 
-                {% include "df/_date.html" with label="تاریخ ارسال پیامک (شمسی)" cols=6 model="form.sms_sent_date" keyexpr="'sms_sent_date'" titleexpr="'تاریخ ارسال پیامک تعیین آورده'" ph="۱۴۰۳/۰۸/۱۲" ed="sms_sent_date" %}
-
-                <div class="df-field df-col-12">
-                    <div class="df-row-box">
-                        <div>
-                            <strong x-text="form.is_sms_sent ? 'پیامک ارسال گردید ✓' : 'پیامک هنوز ارسال نشده'"></strong>
-                            <small x-text="form.is_sms_sent ? 'زمان ارسال: ' + form.sms_sent_at : 'ارسال به شماره همراه متقاضی'"></small>
-                        </div>
-                        <button type="button" class="df-btn df-btn-primary" @click="sendEquitySMS()" :disabled="form.is_sms_sent">
-                            <svg class="df-i"><use href="#i-send"/></svg><span>ارسال پیامک تعیین آورده</span>
-                        </button>
-                    </div>
-                </div>
+                {% include "df/_date.html" with label="تاریخ ارسال پیامک به متقاضی (شمسی)" cols=6 model="form.sms_sent_date" keyexpr="'sms_sent_date'" titleexpr="'تاریخ ارسال پیامک تعیین آورده'" ph="۱۴۰۳/۰۸/۱۲" ed="sms_sent_date" %}
 
                 <div class="df-field df-col-12">
                     {% include "df/_confirm_card.html" with name="is_equity_funded" free=1 change="confirmEquityFunding()" title="تأمین و واریز کامل آورده نقدی به حساب مسدودی" ok="تأمین آورده تأیید شد ✓" wait="در انتظار تأمین آورده" %}
@@ -444,9 +454,22 @@
         {% include "df/_section_header.html" with id="section-valuation" icon="chart" title="بخش ۹: ارزیابی اداره کل، تعیین اجاره و آماده‌سازی" %}
 
         <div class="df-body" id="section-valuation-body" x-show="sectionOpen" x-cloak x-transition>
+            <div style="margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 0.82rem; color: #1e40af;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong>)</span>
+                </div>
+                <button type="button" 
+                        class="btn btn-outline" 
+                        style="padding: 3px 10px; font-size: 0.78rem; font-weight: 800; background: #fff; border-color: #93c5fd; color: #1d4ed8; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                        @click="recalculateLandRates()"
+                        title="استعلام و محاسبه مجدد ارقام بر اساس کد نوسازی و متراژ">
+                    <span>⚡ محاسبه مجدد ارقام</span>
+                </button>
+            </div>
             <div class="df-grid">
                 {% include "df/_field.html" with name="total_land_share" label="جمع کل قدرالسهم (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
-                {% include "df/_field.html" with name="land_lease_year" label="سال اجاره عرصه" cols=3 num=1 mode="numeric" ph="۱۴۰۳" %}
+                {% include "df/_field.html" with name="land_lease_year" label="سال اجاره عرصه" cols=3 num=1 mode="numeric" ph="۱۴۰۵" %}
                 {% include "df/_money.html" with name="preparation_cost" label="مبلغ آماده‌سازی" cols=6 %}
                 {% include "df/_money.html" with name="past_years_rent" label="اجاره سنوات تا پایان سال جاری" cols=6 %}
                 {% include "df/_money.html" with name="current_year_rent" label="اجاره سال جاری" cols=6 %}
@@ -563,6 +586,71 @@
 
             </div>
           </template>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۱۱: صدور معرفی‌نامه محضر و دفتر اسناد رسمی (مرحله ۲۰) ======================= -->
+    <section class="df-card form-card" id="section-notary"
+             :class="{'is-active': isSectionActive('section-notary')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-notary') }">
+        {% include "df/_section_header.html" with id="section-notary" icon="file" title="بخش ۱۱: صدور معرفی‌نامه محضر و مشخصات دفتر اسناد رسمی (مرحله ۲۰)" %}
+
+        <div class="df-body" id="section-notary-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                {% include "df/_field.html" with name="notary_office_number" label="شماره دفترخانه اسناد رسمی" cols=3 ltr=1 num=1 ph="مثال: ۱۲" ed="notary_office_number" %}
+
+                {% include "df/_field.html" with name="notary_letter_number" label="شماره نامه معرفی به محضر" cols=3 ltr=1 num=1 ph="مثال: ۱۴۰۳/ص/۵۵۲۱" ed="notary_letter_number" %}
+
+                {% include "df/_date.html" with label="تاریخ نامه محضر (شمسی)" cols=3 model="form.notary_letter_date" keyexpr="'notary_letter_date'" titleexpr="'تاریخ نامه محضر'" ph="۱۴۰۳/۰۸/۲۰" ed="notary_letter_date" %}
+
+                <!-- دکمه بارگذاری / اسکن نامه محضر در آلبوم اسناد -->
+                <div class="df-field df-col-3">
+                    <label class="df-label">اسکن نامه محضر</label>
+                    <button type="button" class="df-btn df-btn-primary" style="height: var(--df-h); width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                            @click="openUploadScanModal('NOTARY_LETTER', 'اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)')"
+                            :disabled="!isFieldEditable('notary_office_number') && !isChief && !isSuperuser">
+                        <svg class="df-i"><use href="#i-upload"/></svg>
+                        <span>بارگذاری / اسکن در آلبوم مدارک</span>
+                    </button>
+                </div>
+
+                <!-- وضعیت یا پیش‌نمایش و چاپ اسکن نامه محضر -->
+                <div class="df-field df-col-12" style="margin-top: -4px;">
+                    <template x-if="hasNotaryAttachment()">
+                        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #16a34a; font-size: 1.1rem; font-weight: bold;">✓</span>
+                                <div>
+                                    <strong style="color: #166534; font-size: 0.82rem;" x-text="getNotaryAttachment().title"></strong>
+                                    <span style="color: #15803d; font-size: 0.75rem; margin-right: 6px;">(موجود در آلبوم مدارک)</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button type="button" class="df-btn df-btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.76rem;"
+                                        @click="printScan(getNotaryAttachment())">
+                                    <svg class="df-i"><use href="#i-print"/></svg>
+                                    <span>چاپ برگه اسکن‌شده نامه محضر</span>
+                                </button>
+                                <button type="button" class="df-btn df-btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.76rem;"
+                                        @click="openScanModal(getNotaryAttachment())">
+                                    <svg class="df-i"><use href="#i-eye"/></svg>
+                                    <span>مشاهده در نمایشگر اسناد</span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!hasNotaryAttachment()">
+                        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between; color: #64748b; font-size: 0.8rem;">
+                            <span>⚠️ هنوز اسکن معرفی‌نامه محضر در آلبوم مدارک بارگذاری نشده است.</span>
+                            <button type="button" class="df-btn" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border: 1px solid #cbd5e1;"
+                                    @click="openUploadScanModal('NOTARY_LETTER', 'اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)')"
+                                    :disabled="!isFieldEditable('notary_office_number') && !isChief && !isSuperuser">
+                                <span>افزودن اسکن</span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
     </section>
 

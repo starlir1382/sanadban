@@ -38,24 +38,28 @@
   </td>
 
   <!-- 4. Stage + Date + Status -->
-  <td class="t-center">
+  <td class="t-center fa-num">
     <div class="dl-stage">
       <span class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
         <span class="lbl">مرحله</span>
         <span class="no fa-num">{{ d.current_stage }}</span>
       </span>
 
-      <span class="dl-stage-title" title="{{ d.current_stage_title }}">{{ d.current_stage_title }}</span>
+      <span class="dl-stage-title fa-num" title="{{ d.current_stage_title }}">{{ d.current_stage_title }}</span>
 
       <span class="dl-date fa-num" title="تاریخ ورود به مرحله {{ d.current_stage }}: {{ d.stage_entry_date_jalali|default:'ثبت‌نشده' }}">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
         <span>{{ d.stage_entry_date_jalali|default:'-' }}</span>
       </span>
 
-      {% if d.status == 'REJECTED_RED' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked %}
+      {% if d.status == 'REJECTED_RED' or d.status == 'DELETED' or d.status == 'REJECT_RED_PENDING' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked %}
       <div class="dl-stage-meta">
-        {% if d.status == 'REJECTED_RED' %}
-          <span class="dl-status red" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">⛔ رد صلاحیت</span>
+        {% if d.status == 'DELETED' %}
+          <span class="dl-status gray" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700;" title="حذف و بایگانی راکد{% if d.deletion_reason %}: {{ d.deletion_reason }}{% endif %}">🗑 حذف و راکد</span>
+        {% elif d.status == 'REJECTED_RED' %}
+          <span class="dl-status red" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">⛔ رد صلاحیت فرم ج</span>
+        {% elif d.status == 'REJECT_RED_PENDING' %}
+          <span class="dl-status red" style="background: #fff1f2; color: #be123c; border: 1.5px solid #f43f5e; font-weight: 800;" title="ارجاع شده توسط کارشناس به مدیر سامانه جهت تعیین تکلیف و صدور ابلاغیه رد صلاحیت">🚨 ارجاع به ادمین (فرم ج)</span>
         {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
           <span class="dl-status orange" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">⚠ فرم «ج» قرمز</span>
         {% elif d.current_stage == 22 or d.is_locked %}

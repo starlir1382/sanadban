@@ -61,7 +61,7 @@ _export_cache: Dict[str, Tuple[str, float, int]] = {}
 # -------------------------------------------------------------------------
 TEMPLATE_FIELD_SPECS = [
     # Required Primary Key Identifier
-    ("کد ملی متقاضی", "national_id", "str"),
+    ("کد ملی متقاضی", "national_id", "national_id"),
 
     # Personal & Demographic Information
     ("نام متقاضی", "first_name", "str"),
@@ -81,7 +81,7 @@ TEMPLATE_FIELD_SPECS = [
     ("نام خانوادگی همسر", "spouse_last_name", "str"),
     ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
     ("نام پدر همسر", "spouse_father_name", "str"),
-    ("کد ملی همسر", "spouse_national_id", "str"),
+    ("کد ملی همسر", "spouse_national_id", "national_id"),
     ("تاریخ تولد همسر (شمسی)", "spouse_birth_date", "str"),
     ("شماره شناسنامه همسر", "spouse_id_number", "str"),
     ("محل صدور همسر", "spouse_birth_place", "str"),
@@ -99,11 +99,12 @@ TEMPLATE_FIELD_SPECS = [
 
     # Registration & Plaque Specifications
     ("بخش ثبتی", "registration_section", "str"),
-    ("پلاک ثبتی اصلی", "main_plaque", "str"),
-    ("پلاک ثبتی مفروز و مجزی", "separated_plaque", "str"),
-    ("پلاک ثبتی فرعی", "sub_plaque", "str"),
-    ("شماره قطعه", "plot_number", "str"),
-    ("کد نوسازی شهرداری", "municipality_code", "str"),
+    ("پلاک اصلی", "main_plaque", "int"),
+    ("پلاک مفروز", "separated_plaque", "int"),
+    ("پلاک فرعی", "sub_plaque", "int"),
+    ("فرعی / مفروز ومجزا / اصلی", "composite_plaques", "composite_plaques"),
+    ("شماره قطعه", "plot_number", "int"),
+    ("کد نوسازی", "renovation_code", "str"),
     ("مساحت مفید واحد (مترمربع)", "unit_area", "decimal"),
     ("مساحت تراس / بالکن (مترمربع)", "balcony_area", "decimal"),
     ("مساحت انباری (مترمربع)", "storage_area", "decimal"),
@@ -125,12 +126,13 @@ TEMPLATE_FIELD_SPECS = [
     ("نحوه ثبت فرم ج", "form_j_registration_type", "str"),
 
     # Financials & Loans
+    ("مبلغ کل قرارداد (ریال)", "total_price", "price"),
     ("قیمت پایه بدون وام (ریال)", "base_cost_without_loan", "price"),
+    ("مبلغ وام بانکی (ریال)", "bank_loan_amount", "price"),
     ("سهم آورده نقدی متقاضی (ریال)", "applicant_equity", "price"),
     ("مبلغ وام صندوق ملی مسکن (ریال)", "fund_loan_amount", "price"),
     ("مبلغ کسر نامه پیمانکار (ریال)", "contractor_letter_amount", "price"),
     ("مبلغ وام دهک‌های درآمدی (ریال)", "decile_loan_amount", "price"),
-    ("مبلغ وام بانکی (ریال)", "bank_loan_amount", "price"),
 
     # Bank Shipment & Intro Letter
     ("تاییدیه دفترچه اقساط", "is_installment_booklet_confirmed", "bool"),
@@ -173,9 +175,12 @@ TEMPLATE_FIELD_SPECS = [
     ("تسویه اجاره انجام شد", "is_rent_settled", "bool"),
     ("تاییدیه نقد و چک‌های آماده‌سازی و اجاره", "is_preparation_checks_confirmed", "bool"),
 
-    # Directorate Final Letters
-    ("شماره نامه معرفی به محضر اداره کل", "rah_letter", "str"),
-    ("تاریخ نامه معرفی به محضر اداره کل (شمسی)", "rah_letter_date", "str"),
+    # Directorate Final Letters / Road & Housing & Notary
+    ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
+    ("تاریخ نامه راه و شهرسازی (شمسی)", "rah_letter_date", "str"),
+    ("شماره دفترخانه اسناد رسمی", "notary_office_number", "str"),
+    ("شماره نامه معرفی به محضر", "notary_letter_number", "str"),
+    ("تاریخ نامه معرفی به محضر (شمسی)", "notary_letter_date", "str"),
 ]
 
 # Aliases dictionary to tolerate historical file headers
@@ -184,6 +189,18 @@ HEADER_ALIASES: Dict[str, str] = {
     "کدملی": "national_id",
     "کد ملی متقاضی": "national_id",
     "کدملی متقاضی": "national_id",
+    "شماره ملی": "national_id",
+    "شماره ملی متقاضی": "national_id",
+    "شماره‌ملی": "national_id",
+    "شماره‌ملی متقاضی": "national_id",
+    "شناسه ملی": "national_id",
+    "شناسه ملی متقاضی": "national_id",
+    "شناسه‌ملی": "national_id",
+    "شناسه‌ملی متقاضی": "national_id",
+    "کد/شناسه ملی": "national_id",
+    "کد / شناسه ملی": "national_id",
+    "کد / شناسه ملی متقاضی": "national_id",
+    "کدملی/شناسه ملی": "national_id",
     "نام": "first_name",
     "نام خانوادگی": "last_name",
     "نام و نام خانوادگی": "full_name",
@@ -193,15 +210,64 @@ HEADER_ALIASES: Dict[str, str] = {
     "موبایل": "applicant_phone",
     "کد ملی همسر": "spouse_national_id",
     "کدملی همسر": "spouse_national_id",
+    "شماره ملی همسر": "spouse_national_id",
+    "شماره‌ملی همسر": "spouse_national_id",
+    "شناسه ملی همسر": "spouse_national_id",
+    "شناسه‌ملی همسر": "spouse_national_id",
     "قیمت پایه": "base_cost_without_loan",
     "قیمت پایه بدون وام": "base_cost_without_loan",
     "قیمت تمام شده بدون وام": "base_cost_without_loan",
+    "قیمت تمام‌شده بدون وام": "base_cost_without_loan",
+    "قیمت تمام شده بدون وام بانکی": "base_cost_without_loan",
+    "قیمت تمام‌شده بدون وام بانکی": "base_cost_without_loan",
+    "قیمت بدون وام": "base_cost_without_loan",
+    "مبلغ بدون وام": "base_cost_without_loan",
+    "مبلغ کل": "total_price",
+    "قیمت کل": "total_price",
+    "مبلغ کل (ریال)": "total_price",
+    "قیمت کل (ریال)": "total_price",
+    "مبلغ کل قرارداد": "total_price",
+    "قیمت کل قرارداد": "total_price",
+    "مبلغ کل قرارداد (ریال)": "total_price",
+    "قیمت کل قرارداد (ریال)": "total_price",
+    "مبلغ نهایی": "total_price",
+    "قیمت نهایی": "total_price",
+    "مبلغ نهایی (ریال)": "total_price",
+    "قیمت نهایی (ریال)": "total_price",
+    "قیمت تمام شده کل": "total_price",
+    "قیمت تمام‌شده کل": "total_price",
+    "قیمت تمام شده کل (ریال)": "total_price",
+    "قیمت تمام‌شده کل (ریال)": "total_price",
+    "قیمت کل تمام شده": "total_price",
+    "قیمت کل تمام‌شده": "total_price",
+    "قیمت تمام شده با وام": "total_price",
+    "قیمت تمام‌شده با وام": "total_price",
+    "مبلغ با وام": "total_price",
+    "مبلغ تمام شده با وام": "total_price",
+    "مبلغ تمام‌شده با وام": "total_price",
+    "جمع کل قرارداد": "total_price",
+    "جمع کل قرارداد (ریال)": "total_price",
+    "قیمت تمام شده بدون وام + وام بانکی": "total_price",
+    "قیمت تمام‌شده بدون وام + وام بانکی": "total_price",
+    "total_price": "total_price",
+    "total_cost": "total_price",
+    "total_amount": "total_price",
     "آورده نقدی": "applicant_equity",
     "سهم آورده": "applicant_equity",
     "وام صندوق": "fund_loan_amount",
     "کسر نامه پیمانکار": "contractor_letter_amount",
     "وام دهک": "decile_loan_amount",
     "وام بانکی": "bank_loan_amount",
+    "وام ساخت بانک مسکن": "bank_loan_amount",
+    "وام ساخت مسکن": "bank_loan_amount",
+    "وام بانک مسکن": "bank_loan_amount",
+    "وام ساخت": "bank_loan_amount",
+    "مبلغ وام ساخت": "bank_loan_amount",
+    "تسهیلات بانکی": "bank_loan_amount",
+    "مبلغ تسهیلات بانکی": "bank_loan_amount",
+    "مبلغ تسهیلات وام بانکی": "bank_loan_amount",
+    "مبلغ تسهیلات وام بانکی (ریال)": "bank_loan_amount",
+    "تسهیلات بانک مسکن": "bank_loan_amount",
     "کارمزد چک": "check_service_fee",
     "کارمزد آماده سازی": "preparation_service_fee",
     "کارمزد آماده‌سازی": "preparation_service_fee",
@@ -216,6 +282,88 @@ HEADER_ALIASES: Dict[str, str] = {
     "نحوه ثبت فرم ج": "form_j_registration_type",
     "تاریخ ارسال پیامک": "sms_sent_date",
     "تاریخ ارسال پیامک آورده نقدی": "sms_sent_date",
+    "کد نوسازی": "renovation_code",
+    "کد نوسازی شهرداری": "renovation_code",
+    "کدنوسازی": "renovation_code",
+    "کدنوسازی شهرداری": "renovation_code",
+    "renovation_code": "renovation_code",
+    "municipality_code": "renovation_code",
+
+    # Registry Plaques & Units
+    "پلاک اصلی": "main_plaque",
+    "پلاک ثبتی اصلی": "main_plaque",
+    "اصلی": "main_plaque",
+    "پلاک مفروز": "separated_plaque",
+    "پلاک ثبتی مفروز": "separated_plaque",
+    "پلاک ثبتی مفروز و مجزی": "separated_plaque",
+    "پلاک ثبتی مفروز ومجزی": "separated_plaque",
+    "پلاک ثبتی مفروز و مجزا": "separated_plaque",
+    "پلاک ثبتی مفروز ومجزا": "separated_plaque",
+    "مفروز": "separated_plaque",
+    "مفروز و مجزا": "separated_plaque",
+    "مفروز ومجزا": "separated_plaque",
+    "پلاک فرعی": "sub_plaque",
+    "پلاک ثبتی فرعی": "sub_plaque",
+    "فرعی": "sub_plaque",
+    "فرعی از": "sub_plaque",
+    "فرعی از (پلاک فرعی)": "sub_plaque",
+    "فرعی / مفروز ومجزا / اصلی": "composite_plaques",
+    "مفروزی و مجزا": "separated_plaque",
+    "مفروز و مجزی": "separated_plaque",
+    "مفروزی ومجزا": "separated_plaque",
+    "مفروز ومجزی": "separated_plaque",
+    "سهم آورده متقاضی": "applicant_equity",
+    "سهم آورده متقاضی با کسر وام (ریال)": "applicant_equity",
+    "شماره نامه معرفی (کارگزاری به راه و شهرسازی)": "rah_letter",
+    "تاریخ نامه معرفی (کارگزاری به راه و شهرسازی)": "rah_letter_date",
+
+    "فرعی / مفروز و مجزا / اصلی": "composite_plaques",
+    "فرعی / مفروز ومجزّا / اصلی": "composite_plaques",
+    "فرعی/مفروز ومجزا/اصلی": "composite_plaques",
+    "فرعی/مفروز و مجزا/اصلی": "composite_plaques",
+    "اصلی / مفروز / فرعی": "composite_plaques",
+    "اصلی/مفروز/فرعی": "composite_plaques",
+    "فرعی / مفروز / اصلی": "composite_plaques",
+    "فرعی/مفروز/اصلی": "composite_plaques",
+    "پلاک کارگاهی": "plot_number",
+    "شماره قطعه": "plot_number",
+    "قطعه": "plot_number",
+    "مساحت تقریبی زمین": "total_land_area",
+    "مساحت زمین": "total_land_area",
+    "عرصه": "total_land_area",
+    "زیر بنا": "unit_area",
+    "زیربنا": "unit_area",
+    "مساحت مفید": "unit_area",
+    "متراژ مفید": "unit_area",
+    "مساحت واحد": "unit_area",
+    "متراژ واحد": "unit_area",
+    "سهم آورده متقاضی": "applicant_equity",
+    "سهم آورده متقاضی (ریال)": "applicant_equity",
+
+    # Road & Housing Letters & Notary Aliases
+    "شماره نامه راه و شهرسازی": "rah_letter",
+    "شماره نامه راه وشهرسازی": "rah_letter",
+    "شماره نامه اداره کل": "rah_letter",
+    "شماره نامه راه": "rah_letter",
+    "شماره نامه راه شهرسازی": "rah_letter",
+    "شماره نامه معرفی به محضر اداره کل": "rah_letter",
+    "نامه راه و شهرسازی": "rah_letter",
+    "نامه راه": "rah_letter",
+    "تاریخ نامه راه و شهرسازی": "rah_letter_date",
+    "تاریخ نامه راه وشهرسازی": "rah_letter_date",
+    "تاریخ نامه راه و شهرسازی (شمسی)": "rah_letter_date",
+    "تاریخ نامه راه": "rah_letter_date",
+    "تاریخ نامه اداره کل": "rah_letter_date",
+    "تاریخ نامه معرفی به محضر اداره کل": "rah_letter_date",
+    "تاریخ نامه معرفی به محضر اداره کل (شمسی)": "rah_letter_date",
+    "شماره دفترخانه": "notary_office_number",
+    "شماره دفترخانه اسناد رسمی": "notary_office_number",
+    "دفترخانه": "notary_office_number",
+    "شماره نامه معرفی به محضر": "notary_letter_number",
+    "شماره نامه محضر": "notary_letter_number",
+    "تاریخ نامه معرفی به محضر": "notary_letter_date",
+    "تاریخ نامه معرفی به محضر (شمسی)": "notary_letter_date",
+    "تاریخ نامه محضر": "notary_letter_date",
 }
 
 # -------------------------------------------------------------------------
@@ -249,47 +397,69 @@ def normalize_header(header: Any) -> str:
 
 def clean_national_id(val: Any) -> Optional[str]:
     """Cleans national ID to strictly 10 digits with leading zeros."""
+    if val is None:
+        return None
     s = clean_digits(val)
     if not s:
         return None
-    # If Excel parsed 0012345678 as float 12345678.0
-    if "." in s:
+    # Handle scientific notation like 3.86747E+08
+    if "e" in s.lower():
+        try:
+            s = f"{float(s):.0f}"
+        except (ValueError, OverflowError):
+            pass
+    elif "." in s:
         try:
             s = str(int(float(s)))
-        except ValueError:
-            return None
-    if s.isdigit():
-        s = s.zfill(10)
-        if len(s) == 10:
-            return s
-    return None
+        except (ValueError, OverflowError):
+            pass
+    digits = re.sub(r"\D", "", s)
+    if not digits:
+        return None
+    # Real Iranian national IDs have between 8 and 10 digits.
+    # If Excel or a user added extra leading zero(s) (e.g. '00382370651' - 11 chars),
+    # stripping leading zeros leaves 8 to 10 digits, which is the real national ID:
+    unpadded = digits.lstrip("0")
+    if unpadded and 8 <= len(unpadded) <= 10:
+        return unpadded.zfill(10)
+    if len(digits) > 10 or len(digits) < 8 or digits == "0":
+        return None
+    return digits.zfill(10)
 
 def get_national_id_variants(val: Any) -> List[str]:
     """
     Returns candidate representations of a national ID handling leading zeros:
     e.g. for '381929507' -> ['0381929507', '381929507']
-    Allows seamless matching across Excel and DB regardless of dropped leading zeros.
+    Allows seamless matching across Excel and DB regardless of dropped or extra leading zeros.
     """
     if val is None:
         return []
     s = clean_digits(val)
     if not s:
         return []
-    if "." in s:
+    if "e" in s.lower():
+        try:
+            s = f"{float(s):.0f}"
+        except (ValueError, OverflowError):
+            pass
+    elif "." in s:
         try:
             s = str(int(float(s)))
-        except ValueError:
+        except (ValueError, OverflowError):
             pass
     digits = re.sub(r"\D", "", s)
-    if not digits:
+    if not digits or len(digits) < 8 or digits == "0":
         return []
     variants = []
+    unpadded = digits.lstrip("0")
+    if unpadded and 8 <= len(unpadded) <= 10:
+        variants.append(unpadded.zfill(10))
+        variants.append(unpadded)
     if len(digits) <= 10:
         variants.append(digits.zfill(10))
     variants.append(digits)
-    stripped = digits.lstrip("0")
-    if stripped:
-        variants.append(stripped)
+    if unpadded:
+        variants.append(unpadded)
     seen = set()
     result = []
     for v in variants:
@@ -358,7 +528,7 @@ PERSIAN_FIELD_LABELS.update({
     "storage_area": "مساحت انباری (مترمربع)",
     "parking_number": "شماره پارکینگ",
     "parking_area": "مساحت پارکینگ (مترمربع)",
-    "covered_parking_area": "متراژ پارکینگ مسقف (مترمربع)",
+    "total_price": "مبلغ کل قرارداد (ریال)",
     "base_cost_without_loan": "قیمت پایه بدون وام (ریال)",
     "bank_loan_amount": "مبلغ وام بانکی مسکن (ریال)",
     "fund_loan_amount": "مبلغ وام صندوق (ریال)",
@@ -467,7 +637,15 @@ def clean_field_value(field_name: str, field_type: str, val: Any) -> Tuple[Optio
     if isinstance(val, str) and not val.strip():
         return None, None
 
-    if field_type == "price":
+    if field_type == "national_id" or field_name in ("national_id", "spouse_national_id") or "national_id" in field_name:
+        is_zero_or_blank = not val or clean_digits(val).strip("0") == ""
+        if is_zero_or_blank:
+            return None, None
+        c_nid = clean_national_id(val)
+        if not c_nid:
+            return None, "کد ملی باید ۸ تا ۱۰ رقم عددی باشد."
+        return c_nid, None
+    elif field_type == "price":
         p = parse_price(val)
         return p, None
     elif field_type == "int":
@@ -486,6 +664,42 @@ def clean_field_value(field_name: str, field_type: str, val: Any) -> Tuple[Optio
         if max_len and len(s) > max_len:
             return None, f"طول متن ({len(s)}) بیشتر از حد مجاز فیلد ({max_len} کاراکتر) است."
         return s, None
+
+def parse_composite_plaques(val: Any) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[str]]:
+    """
+    Parses composite registry plaque string into (main_plaque, separated_plaque, sub_plaque, error_message).
+    Supports both:
+      - 'فرعی / مفروز ومجزا / اصلی' (e.g. '33011/32946/291')
+      - 'اصلی / مفروز / فرعی' (e.g. '291/32946/33011')
+    """
+    if val is None or (isinstance(val, str) and not val.strip()):
+        return None, None, None, None
+
+    s = clean_digits(val)
+    raw_parts = re.split(r"[/\\–—\-]", s)
+    parts: List[int] = []
+    for p in raw_parts:
+        digits = re.sub(r"\D", "", p.strip())
+        if digits:
+            try:
+                parts.append(int(digits))
+            except (ValueError, TypeError):
+                pass
+
+    if not parts:
+        return None, None, None, None
+
+    if len(parts) == 3:
+        # Strictly: main_plaque / separated_plaque / sub_plaque
+        return parts[0], parts[1], parts[2], None
+    elif len(parts) == 2:
+        # Strictly: main_plaque / sub_plaque
+        return parts[0], None, parts[1], None
+    elif len(parts) == 1:
+        # Strictly: main_plaque
+        return parts[0], None, None, None
+    else:
+        return None, None, None, f"فرمت پلاک نامعتبر است ({val})"
 
 # -------------------------------------------------------------------------
 # Failure & Spouse Match Report Generation (write_only openpyxl)
@@ -662,6 +876,8 @@ def generate_update_template() -> io.BytesIO:
     ws2.append(["۳. سلول‌های خالی دست‌نخورده باقی می‌مانند و هیچ داده‌ای پاک نمی‌شود."])
     ws2.append(["۴. این بخش فقط پرونده‌های موجود را بروزرسانی می‌کند و هرگز پرونده جدید نمی‌سازد."])
     ws2.append(["۵. در تطبیق از طریق همسر، مشخصات هویتی متقاضی دست‌نخورده باقی می‌ماند."])
+    ws2.append(["۶. در صورت درج ستون «مبلغ کل قرارداد»، سیستم به صورت خودکار مبلغ وام بانکی (پیش‌فرض ۶۵۰ میلیون ریال یا مقدار درج‌شده در فایل) را از آن کسر کرده و «قیمت تمام‌شده بدون وام بانکی» را محاسبه و ثبت می‌نماید."])
+    ws2.append(["۷. برای مشخصات پلاک‌های ثبتی می‌توانید از ۳ ستون مجزای «پلاک اصلی»، «پلاک مفروز» و «پلاک فرعی» استفاده نمایید یا مشخصات را در ستون ترکیبی «فرعی / مفروز ومجزا / اصلی» درج فرمایید."])
     _style_headers(ws2, 1, fill=_GUIDE_FILL)
     ws2.column_dimensions["A"].width = 75
 
@@ -752,40 +968,73 @@ def generate_spouse_swap_template() -> io.BytesIO:
 # -------------------------------------------------------------------------
 def _build_header_map(raw_headers: List[Any]) -> Tuple[Dict[int, Tuple[str, str, str]], Optional[int]]:
     """
-    Matches raw sheet headers to TEMPLATE_FIELD_SPECS and aliases.
-    Ensures EXACT matching for national_id ("کد ملی متقاضی" or alias "کد ملی"), never substring.
-    Returns (col_idx_to_spec, national_id_col_idx).
+    Builds column mapping using pre-known template indexes as well as header title & alias matching.
+    Ensures 'ردیف' and row sequence columns are never mapped to national_id or other fields.
+    Returns (col_map, national_id_col_idx).
     """
     col_map: Dict[int, Tuple[str, str, str]] = {}
     nid_col: Optional[int] = None
-
     spec_by_header = {normalize_header(spec[0]): spec for spec in TEMPLATE_FIELD_SPECS}
 
+    # Step 1: Match by exact titles and aliases
     for idx, raw in enumerate(raw_headers):
         if not raw:
             continue
         norm = normalize_header(raw)
 
-        # Check exact national_id matches
-        if norm in ("کد ملی متقاضی", "کدملی متقاضی", "کد ملی", "کدملی"):
-            col_map[idx] = ("کد ملی متقاضی", "national_id", "str")
+        # Explicitly skip row numbering headers
+        if norm in ("ردیف", "ردیف ", "شماره ردیف", "ردیف پرونده", "row", "id", "شماره"):
+            continue
+
+        # Check national_id aliases
+        if norm in ("کد ملی متقاضی", "کدملی متقاضی", "کد ملی", "کدملی", "شماره ملی", "شماره ملی متقاضی", "شماره‌ملی", "شماره‌ملی متقاضی", "شناسه ملی", "شناسه ملی متقاضی", "شناسه‌ملی", "شناسه‌ملی متقاضی", "کد/شناسه ملی", "کد / شناسه ملی", "کد / شناسه ملی متقاضی", "کدملی/شناسه ملی"):
+            col_map[idx] = ("کد ملی متقاضی", "national_id", "national_id")
             if nid_col is None:
                 nid_col = idx
             continue
 
+        # Check composite plaque header (e.g. اصلی / مفروز / فرعی or فرعی / مفروز ومجزا / اصلی)
+        if (("اصلی" in norm and "فرعی" in norm) or ("مفروز" in norm and ("اصلی" in norm or "فرعی" in norm)) or "/" in norm):
+            if any(p in norm for p in ["اصلی", "فرعی", "مفروز", "مفروزی", "مجزی", "مجزا"]):
+                col_map[idx] = ("فرعی / مفروز ومجزا / اصلی", "composite_plaques", "composite_plaques")
+                continue
+
         # Check exact spec title
         if norm in spec_by_header:
             col_map[idx] = spec_by_header[norm]
+            if spec_by_header[norm][1] == "national_id" and nid_col is None:
+                nid_col = idx
             continue
 
         # Check aliases
         if norm in HEADER_ALIASES:
             field_name = HEADER_ALIASES[norm]
-            # find matching spec
             for spec in TEMPLATE_FIELD_SPECS:
                 if spec[1] == field_name:
                     col_map[idx] = spec
+                    if field_name == "national_id" and nid_col is None:
+                        nid_col = idx
                     break
+            continue
+
+    # Step 2: Template Index Fallback
+    # If the sheet is formatted as our standard template (e.g. index 0 is national_id or col 0 title is کد ملی متقاضی),
+    # fill any missing unmapped columns according to TEMPLATE_FIELD_SPECS
+    is_template_layout = (nid_col == 0 or (0 in col_map and col_map[0][1] == "national_id"))
+    if is_template_layout:
+        for idx in range(min(len(TEMPLATE_FIELD_SPECS), len(raw_headers))):
+            if idx not in col_map:
+                raw_val = raw_headers[idx]
+                norm = normalize_header(raw_val) if raw_val else ""
+                if norm not in ("ردیف", "شماره ردیف", "row", "id", "شماره"):
+                    col_map[idx] = TEMPLATE_FIELD_SPECS[idx]
+
+    # If nid_col is still None, scan col_map for national_id
+    if nid_col is None:
+        for idx, spec in col_map.items():
+            if spec[1] == "national_id":
+                nid_col = idx
+                break
 
     return col_map, nid_col
 
@@ -809,12 +1058,21 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
     except Exception as e:
         return {"success": False, "error": f"فایل اکسل معتبر نیست یا خراب است: {str(e)}"}
 
-    ws = wb.worksheets[0]
-    row_iter = ws.iter_rows(values_only=True)
+    # Target data worksheet (skip guide sheet if present)
+    target_ws = wb.worksheets[0]
+    if len(wb.worksheets) > 1 and "راهنما" in (target_ws.title or ""):
+        target_ws = wb.worksheets[1]
 
-    try:
-        header_row = next(row_iter)
-    except StopIteration:
+    row_iter = target_ws.iter_rows(values_only=True)
+    header_row = None
+    header_row_num = 0
+    for r in row_iter:
+        header_row_num += 1
+        if r and any(c is not None and str(c).strip() for c in r):
+            header_row = r
+            break
+
+    if not header_row:
         return {"success": False, "error": "فایل اکسل خالی است."}
 
     raw_headers = list(header_row or [])
@@ -835,7 +1093,7 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
     seen_file_nids: Dict[str, int] = {}
     seen_file_snids: Dict[str, int] = {}
 
-    row_num = 1
+    row_num = header_row_num
     for row_cells in row_iter:
         row_num += 1
         if not any(c is not None and str(c).strip() for c in row_cells):
@@ -852,7 +1110,9 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
         parsed_data: Dict[str, Any] = {}
         for c_idx, val in enumerate(row_cells):
             if c_idx not in col_map or val is None:
-                continue
+                 continue
+            if isinstance(val, str) and val.strip().upper() in ("#N/A", "#VALUE!", "#REF!", "#NAME?", "#DIV/0!", "#NUM!", "#NULL!"):
+                    continue
             header_title, field_name, field_type = col_map[c_idx]
 
             # Commission permission check
@@ -863,13 +1123,35 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
                         commission_warned = True
                     continue
 
+            # Special handlers
+            if field_name == "composite_plaques":
+                p_main, p_sep, p_sub, err = parse_composite_plaques(val)
+                if err:
+                    row_errors.append(f"ستون «{header_title}»: {err}")
+                else:
+                    if p_main is not None and "main_plaque" not in parsed_data:
+                        parsed_data["main_plaque"] = p_main
+                        parsed_labels["main_plaque"] = "پلاک اصلی"
+                    if p_sep is not None and "separated_plaque" not in parsed_data:
+                        parsed_data["separated_plaque"] = p_sep
+                        parsed_labels["separated_plaque"] = "پلاک مفروز"
+                    if p_sub is not None and "sub_plaque" not in parsed_data:
+                        parsed_data["sub_plaque"] = p_sub
+                        parsed_labels["sub_plaque"] = "پلاک فرعی"
+                continue
+
             # Special cleaners
             if field_name == "national_id":
                 c_val = cleaned_nid
                 err = None
             elif field_name == "spouse_national_id":
-                c_val = clean_national_id(val)
-                err = None if (c_val or not str(val).strip()) else "کد ملی همسر باید ۱۰ رقم باشد."
+                is_zero_or_blank = not val or clean_digits(val).strip("0") == ""
+                if is_zero_or_blank:
+                    c_val = None
+                    err = None
+                else:
+                    c_val = clean_national_id(val)
+                    err = None if c_val else "کد ملی همسر باید ۸ تا ۱۰ رقم باشد."
             elif field_name == "applicant_phone":
                 c_val = clean_phone(val)
                 err = None
@@ -880,6 +1162,24 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
                 row_errors.append(f"ستون «{header_title}»: {err}")
             elif c_val is not None:
                 parsed_data[field_name] = c_val
+
+        # Total price auto-calculation for CREATE:
+        # total_price = base_cost_without_loan + bank_loan_amount
+        # base_cost_without_loan = total_price - bank_loan_amount
+        if "total_price" in parsed_data:
+            tot_price = parsed_data.pop("total_price")
+            if tot_price and tot_price > 0:
+                loan_val = parsed_data.get("bank_loan_amount")
+                if not loan_val or loan_val <= 0:
+                    loan_val = 6500000000
+                    parsed_data["bank_loan_amount"] = loan_val
+
+                if tot_price < loan_val:
+                    row_errors.append(
+                        f"مبلغ کل قرارداد ({tot_price:,} ریال) نمی‌تواند کمتر از مبلغ وام بانکی ({loan_val:,} ریال) باشد."
+                    )
+                else:
+                    parsed_data["base_cost_without_loan"] = tot_price - loan_val
 
         if cleaned_nid:
             # Duplicate inside file check
@@ -1084,6 +1384,21 @@ IDENTITY_FIELDS = {
     "spouse_id_number", "spouse_birth_place",
 }
 
+SWAP_FIELD_PAIRS = [
+    ("national_id", "spouse_national_id"),
+    ("first_name", "spouse_first_name"),
+    ("last_name", "spouse_last_name"),
+    ("full_name", "spouse_full_name"),
+    ("father_name", "spouse_father_name"),
+    ("birth_date", "spouse_birth_date"),
+    ("applicant_id_number", "spouse_id_number"),
+    ("applicant_birth_place", "spouse_birth_place"),
+    ("applicant_form_j_status", "spouse_form_j_status"),
+    ("applicant_form_j_directorate_status", "spouse_form_j_directorate_status"),
+    ("applicant_form_j_red_description", "spouse_form_j_red_description"),
+]
+
+
 def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_preview: Optional[bool] = None, **kwargs) -> Dict[str, Any]:
     if is_preview is not None:
         preview = is_preview
@@ -1101,115 +1416,199 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
     except Exception as e:
         return {"success": False, "error": f"فایل اکسل معتبر نیست یا خراب است: {str(e)}"}
 
-    ws = wb.worksheets[0]
-    row_iter = ws.iter_rows(values_only=True)
+    # Multi-sheet support: filter out guidance sheets
+    sheets_to_process = []
+    for ws in wb.worksheets:
+        ws_title = ws.title or ""
+        if "راهنما" in ws_title or "guide" in ws_title.lower():
+            continue
+        sheets_to_process.append(ws)
 
-    try:
-        header_row = next(row_iter)
-    except StopIteration:
-        return {"success": False, "error": "فایل اکسل خالی است."}
-
-    raw_headers = list(header_row or [])
-    col_map, nid_col = _build_header_map(raw_headers)
-
-    if nid_col is None:
-        return {"success": False, "error": "ستون کلیدی «کد ملی متقاضی» در فایل اکسل یافت نشد."}
-
-    spouse_nid_col = None
-    for c_idx, spec in col_map.items():
-        if spec[1] == "spouse_national_id":
-            spouse_nid_col = c_idx
-            break
+    if not sheets_to_process:
+        sheets_to_process = [wb.worksheets[0]]
 
     parsed_rows: List[Dict[str, Any]] = []
     all_nids: Set[str] = set()
     errors: List[Dict[str, Any]] = []
+    raw_headers_master: List[Any] = []
+    global_row_counter = 0
 
-    row_num = 1
-    for row_cells in row_iter:
-        row_num += 1
-        if not any(c is not None and str(c).strip() for c in row_cells):
+    for ws in sheets_to_process:
+        all_sheet_rows = list(ws.iter_rows(values_only=True))
+        if not all_sheet_rows:
             continue
 
-        raw_nid = row_cells[nid_col] if nid_col < len(row_cells) else None
-        cleaned_nid = clean_national_id(raw_nid)
-        app_variants = get_national_id_variants(raw_nid)
-
-        raw_snid = row_cells[spouse_nid_col] if (spouse_nid_col is not None and spouse_nid_col < len(row_cells)) else None
-        spouse_variants = get_national_id_variants(raw_snid) if raw_snid else []
-
-        row_errors: List[str] = []
-        if not app_variants:
-            row_errors.append("کد ملی متقاضی نامعتبر یا خالی است.")
-
-        parsed_data: Dict[str, Any] = {}
-        parsed_labels: Dict[str, str] = {}
-        for c_idx, val in enumerate(row_cells):
-            if c_idx not in col_map or val is None:
+        # Header scan: look in first 10 rows for national_id column
+        header_row = None
+        header_row_num = 0
+        for r_idx, r in enumerate(all_sheet_rows[:10]):
+            if not r:
                 continue
-            header_title, field_name, field_type = col_map[c_idx]
+            r_str = " ".join(str(c) for c in r if c is not None)
+            if any(t in r_str for t in ["کدملی", "کد ملی", "شماره ملی", "شناسه ملی", "کد ملی متقاضی", "کد ملی همسر"]):
+                header_row = r
+                header_row_num = r_idx + 1
+                break
 
-            # Commission permission check
-            if field_name in ("check_service_fee", "preparation_service_fee"):
-                if not is_check_admin:
-                    if not commission_warned:
-                        warnings.append("ستون‌های کارمزد برای شما مجاز نیست و نادیده گرفته شد.")
-                        commission_warned = True
+        if not header_row:
+            # Fallback to first non-empty row
+            for r_idx, r in enumerate(all_sheet_rows[:10]):
+                if r and any(c is not None and str(c).strip() for c in r):
+                    header_row = r
+                    header_row_num = r_idx + 1
+                    break
+
+        if not header_row:
+            continue
+
+        raw_headers = list(header_row or [])
+        if not raw_headers_master:
+            raw_headers_master = raw_headers
+
+        col_map, nid_col = _build_header_map(raw_headers)
+
+        spouse_nid_col = None
+        for c_idx, spec in col_map.items():
+            if spec[1] == "spouse_national_id":
+                spouse_nid_col = c_idx
+                break
+
+        if nid_col is None and spouse_nid_col is None:
+            continue
+
+        sheet_row_num = header_row_num
+        for row_cells in all_sheet_rows[header_row_num:]:
+            sheet_row_num += 1
+            global_row_counter += 1
+            if not any(c is not None and str(c).strip() for c in row_cells):
+                continue
+
+            raw_nid = row_cells[nid_col] if (nid_col is not None and nid_col < len(row_cells)) else None
+            cleaned_nid = clean_national_id(raw_nid)
+            app_variants = get_national_id_variants(raw_nid)
+
+            raw_snid = row_cells[spouse_nid_col] if (spouse_nid_col is not None and spouse_nid_col < len(row_cells)) else None
+            is_spouse_zero_or_empty = not raw_snid or clean_digits(raw_snid).strip("0") == ""
+            if is_spouse_zero_or_empty:
+                cleaned_snid = None
+                spouse_variants = []
+            else:
+                cleaned_snid = clean_national_id(raw_snid)
+                spouse_variants = get_national_id_variants(raw_snid) if raw_snid else []
+
+            row_errors: List[str] = []
+            if not app_variants and not spouse_variants:
+                row_errors.append("کد ملی متقاضی یا همسر نامعتبر یا خالی است.")
+
+            parsed_data: Dict[str, Any] = {}
+            parsed_labels: Dict[str, str] = {}
+            for c_idx, val in enumerate(row_cells):
+                if c_idx not in col_map or val is None:
+                    continue
+                if isinstance(val, str) and val.strip().upper() in ("#N/A", "#VALUE!", "#REF!", "#NAME?", "#DIV/0!", "#NUM!", "#NULL!"):
+                    continue
+                header_title, field_name, field_type = col_map[c_idx]
+
+                # Commission permission check
+                if field_name in ("check_service_fee", "preparation_service_fee"):
+                    if not is_check_admin:
+                        if not commission_warned:
+                            warnings.append("ستون‌های کارمزد برای شما مجاز نیست و نادیده گرفته شد.")
+                            commission_warned = True
+                        continue
+
+                # National ID and archive number are NEVER updated directly
+                if field_name in ("national_id", "archive_number"):
                     continue
 
-            # National ID and archive number are NEVER updated directly
-            if field_name in ("national_id", "archive_number"):
-                continue
+                # Special handlers
+                if field_name == "composite_plaques":
+                    p_main, p_sep, p_sub, err = parse_composite_plaques(val)
+                    if err:
+                        row_errors.append(f"ستون «{header_title}»: {err}")
+                    else:
+                        if p_main is not None and "main_plaque" not in parsed_data:
+                            parsed_data["main_plaque"] = p_main
+                            parsed_labels["main_plaque"] = "پلاک اصلی"
+                        if p_sep is not None and "separated_plaque" not in parsed_data:
+                            parsed_data["separated_plaque"] = p_sep
+                            parsed_labels["separated_plaque"] = "پلاک مفروز"
+                        if p_sub is not None and "sub_plaque" not in parsed_data:
+                            parsed_data["sub_plaque"] = p_sub
+                            parsed_labels["sub_plaque"] = "پلاک فرعی"
+                    continue
 
-            # Special cleaners
-            if field_name == "spouse_national_id":
-                c_val = clean_national_id(val)
-                err = None if (c_val or not str(val).strip()) else "کد ملی همسر باید ۱۰ رقم باشد."
-            elif field_name == "applicant_phone":
-                c_val = clean_phone(val)
-                err = None
-            else:
-                c_val, err = clean_field_value(field_name, field_type, val)
+                # Special cleaners
+                if field_name == "spouse_national_id":
+                    is_zero_or_blank = not val or clean_digits(val).strip("0") == ""
+                    if is_zero_or_blank:
+                        c_val = None
+                        err = None
+                    else:
+                        c_val = clean_national_id(val)
+                        err = None if c_val else "کد ملی همسر باید ۸ تا ۱۰ رقم باشد."
+                elif field_name == "applicant_phone":
+                    c_val = clean_phone(val)
+                    err = None
+                else:
+                    c_val, err = clean_field_value(field_name, field_type, val)
 
-            if err:
-                row_errors.append(f"ستون «{header_title}»: {err}")
-            elif c_val is not None:
-                parsed_data[field_name] = c_val
-                parsed_labels[field_name] = header_title
+                if err:
+                    row_errors.append(f"ستون «{header_title}»: {err}")
+                elif c_val is not None:
+                    parsed_data[field_name] = c_val
+                    parsed_labels[field_name] = header_title
 
-        if not spouse_variants and parsed_data.get("spouse_national_id"):
-            spouse_variants = get_national_id_variants(parsed_data["spouse_national_id"])
+            if not spouse_variants and parsed_data.get("spouse_national_id"):
+                spouse_variants = get_national_id_variants(parsed_data["spouse_national_id"])
 
-        for v in app_variants:
-            all_nids.add(v)
-        for v in spouse_variants:
-            all_nids.add(v)
+            for v in app_variants:
+                all_nids.add(v)
+            for v in spouse_variants:
+                all_nids.add(v)
 
-        parsed_rows.append({
-            "row": row_num,
-            "national_id": cleaned_nid or (app_variants[0] if app_variants else str(raw_nid or "")),
-            "app_variants": app_variants,
-            "spouse_variants": spouse_variants,
-            "data": parsed_data,
-            "labels": parsed_labels,
-            "original_cells": list(row_cells),
-            "reasons": row_errors,
-        })
+            display_nid = cleaned_nid or cleaned_snid or (app_variants[0] if app_variants else (spouse_variants[0] if spouse_variants else str(raw_nid or raw_snid or "")))
+
+            parsed_rows.append({
+                "row": sheet_row_num,
+                "global_row": global_row_counter,
+                "national_id": display_nid,
+                "cleaned_nid": cleaned_nid,
+                "cleaned_snid": cleaned_snid,
+                "raw_nid": raw_nid,
+                "raw_snid": raw_snid,
+                "app_variants": app_variants,
+                "spouse_variants": spouse_variants,
+                "data": parsed_data,
+                "labels": parsed_labels,
+                "original_cells": list(row_cells),
+                "reasons": row_errors,
+            })
+
+    if not parsed_rows:
+        return {"success": False, "error": "ستون کلیدی «کد ملی متقاضی» یا «کد ملی همسر» در فایل اکسل یافت نشد یا هیچ ردیف داده‌ای وجود ندارد."}
+
+    raw_headers = raw_headers_master
 
     # Preload DB dossiers in chunks matching any variant in national_id or spouse_national_id
     app_matches: Dict[str, HousingDossier] = {}
     spouse_matches: Dict[str, List[HousingDossier]] = {}
+    loaded_pks: Set[int] = set()
 
     all_nids_list = list(all_nids)
     for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
         chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
         for d in HousingDossier.objects.filter(Q(national_id__in=chunk) | Q(spouse_national_id__in=chunk)):
+            if d.pk in loaded_pks:
+                continue
+            loaded_pks.add(d.pk)
             for v in get_national_id_variants(d.national_id):
                 app_matches[v] = d
-            for v in get_national_id_variants(d.spouse_national_id):
-                spouse_matches.setdefault(v, []).append(d)
+            if d.spouse_national_id and clean_digits(d.spouse_national_id).strip("0") != "":
+                for v in get_national_id_variants(d.spouse_national_id):
+                    spouse_matches.setdefault(v, []).append(d)
 
-    seen_dossier_ids: Set[int] = set()
+    seen_dossiers_info: Dict[int, Dict[str, Any]] = {}
     updates_preview: List[Dict[str, Any]] = []
     dossiers_to_update: List[HousingDossier] = []
     field_changes_by_dossier: Dict[int, List[Dict[str, Any]]] = {}
@@ -1226,6 +1625,37 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         if item["reasons"]:
             errors.append(item)
             continue
+
+        # Pre-check: Cross-couple contradiction if both applicant and spouse NID provided in row
+        d_app = None
+        for v in item["app_variants"]:
+            if v in app_matches:
+                d_app = app_matches[v]
+                break
+
+        d_spo = None
+        for v in item["spouse_variants"]:
+            if v in app_matches:
+                d_spo = app_matches[v]
+                break
+            elif v in spouse_matches and len(spouse_matches[v]) == 1:
+                d_spo = spouse_matches[v][0]
+                break
+
+        if d_app and d_spo and d_app.id != d_spo.id:
+            item["reasons"].append("کد ملی متقاضی و همسر متعلق به دو پرونده متفاوت است (تناقض در اطلاعات).")
+            errors.append(item)
+            continue
+
+        # Safeguard: Typo in applicant national ID (no silent fallback to spouse)
+        has_applicant_col_val = bool(item["raw_nid"] and clean_digits(item["raw_nid"]).strip("0") != "")
+        if has_applicant_col_val and not d_app:
+            # Check if applicant NID matched in spouse field
+            matched_app_in_spouse = any(v in spouse_matches for v in item["app_variants"])
+            if not matched_app_in_spouse:
+                item["reasons"].append("کد ملی متقاضی در سامانه یافت نشد.")
+                errors.append(item)
+                continue
 
         dossier = None
         matched_via = None
@@ -1269,6 +1699,16 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                     matched_via = "spouse"
                     break
 
+        # Check cross-dossier ambiguity where NID is applicant in dossier A and spouse in dossier B
+        if dossier and not item["reasons"]:
+            primary_v = item["app_variants"][0] if item["app_variants"] else (item["spouse_variants"][0] if item["spouse_variants"] else None)
+            if primary_v and primary_v in app_matches and primary_v in spouse_matches:
+                # If they belong to two different dossiers, reject as ambiguous
+                if any(s.id != app_matches[primary_v].id for s in spouse_matches[primary_v]):
+                    item["reasons"].append("کد ملی همزمان در یک پرونده به عنوان متقاضی و در پرونده‌ای دیگر به عنوان همسر ثبت شده است (ابهام در شناسایی).")
+                    errors.append(item)
+                    continue
+
         if not dossier and not item["reasons"]:
             item["reasons"].append("کد ملی متقاضی و همسر در سامانه یافت نشد.")
             errors.append(item)
@@ -1284,21 +1724,84 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             errors.append(item)
             continue
 
-        # Two rows resolving to same dossier
-        if dossier.id in seen_dossier_ids:
-            item["reasons"].append("پرونده قبلاً در همین فایل بروزرسانی شده است.")
-            errors.append(item)
-            continue
-        seen_dossier_ids.add(dossier.id)
+        # Duplicate row handling & Applicant priority over spouse
+        if dossier.id in seen_dossiers_info:
+            prev_info = seen_dossiers_info[dossier.id]
+            if prev_info["matched_via"] in ("spouse", "spouse_as_applicant") and matched_via == "applicant":
+                # Current applicant row takes priority over previous spouse row!
+                prev_record = prev_info["record"]
+                # Convert previous record to error
+                errors.append({
+                    "row": prev_info["row"],
+                    "national_id": prev_info["national_id"],
+                    "reasons": ["پرونده قبلاً در همین فایل بروزرسانی شده است (تکرار پرونده یا زوجین)."]
+                })
+                warnings.append(f"ردیف {item['row']} به دلیل اولویت متقاضی اصلی جایگزین ردیف همسر قبلی شد.")
+                # Rollback previous diffs from valid lists
+                if prev_record in valid_updated_records:
+                    valid_updated_records.remove(prev_record)
+                if prev_info.get("preview_entry") in updates_preview:
+                    updates_preview.remove(prev_info["preview_entry"])
+                if prev_info.get("preview_entry") in spouse_matched_rows:
+                    spouse_matched_rows.remove(prev_info["preview_entry"])
+                if prev_info.get("had_diffs"):
+                    updated_count -= 1
+                    if dossier in dossiers_to_update:
+                        dossiers_to_update.remove(dossier)
+                else:
+                    unchanged_count -= 1
+                valid_count -= 1
+            else:
+                item["reasons"].append("پرونده قبلاً در همین فایل بروزرسانی شده است (تکرار پرونده یا زوجین).")
+                errors.append(item)
+                continue
 
         valid_count += 1
         item["name"] = dossier.full_name
         item["archive_number"] = dossier.archive_number
 
-        # Calculate diffs
-        data_to_apply = dict(item["data"])
+        raw_data = dict(item["data"])
+
+        # Auto-compute base_cost_without_loan if total_price is present
+        if "total_price" in raw_data:
+            tot_price = raw_data.pop("total_price")
+            if tot_price and tot_price > 0:
+                loan_val = raw_data.get("bank_loan_amount") or dossier.bank_loan_amount or 6500000000
+                if "bank_loan_amount" not in raw_data and not dossier.bank_loan_amount:
+                    raw_data["bank_loan_amount"] = loan_val
+                if tot_price >= loan_val:
+                    raw_data["base_cost_without_loan"] = tot_price - loan_val
+
+        # Check collision when updating spouse_national_id
+        if "spouse_national_id" in raw_data:
+            new_snid = raw_data["spouse_national_id"]
+            if new_snid and new_snid == dossier.national_id:
+                # User copied applicant NID into spouse column: keep spouse untouched
+                raw_data.pop("spouse_national_id", None)
+                warnings.append(f"کد ملی همسر با کد ملی متقاضی در ردیف {item['row']} یکسان درج شده است و نادیده گرفته شد.")
+            elif new_snid and HousingDossier.objects.filter(national_id=new_snid).exclude(id=dossier.id).exists():
+                item["reasons"].append(f"کد ملی همسر {new_snid} قبلاً به عنوان متقاضی در پرونده دیگری ثبت شده است.")
+                errors.append(item)
+                valid_count -= 1
+                continue
+
+        # Protect identity fields & handle Form J orientation if matched via spouse
+        data_to_apply = raw_data
         if matched_via in ("spouse", "spouse_as_applicant"):
-            # Protect applicant identity fields
+            if "applicant_form_j_status" in data_to_apply:
+                data_to_apply["spouse_form_j_status"] = data_to_apply.pop("applicant_form_j_status")
+                item["labels"]["spouse_form_j_status"] = "وضعیت فرم ج همسر"
+            if "applicant_form_j_directorate_status" in data_to_apply:
+                data_to_apply["spouse_form_j_directorate_status"] = data_to_apply.pop("applicant_form_j_directorate_status")
+                item["labels"]["spouse_form_j_directorate_status"] = "استعلام اداره کل همسر"
+            if "applicant_form_j_red_description" in data_to_apply:
+                data_to_apply["spouse_form_j_red_description"] = data_to_apply.pop("applicant_form_j_red_description")
+                item["labels"]["spouse_form_j_red_description"] = "علت کد قرمز فرم ج همسر"
+
+            if "applicant_phone" in data_to_apply:
+                data_to_apply.pop("applicant_phone")
+                warnings.append(f"شماره تماس متقاضی در ردیف {item['row']} به دلیل تطبیق از طریق همسر نادیده گرفته شد.")
+
             for id_field in IDENTITY_FIELDS:
                 data_to_apply.pop(id_field, None)
 
@@ -1316,6 +1819,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                 setattr(dossier, f_name, new_val)
                 modified_fields_set.add(f_name)
 
+        had_diffs = bool(diffs)
         if not diffs:
             unchanged_count += 1
         else:
@@ -1339,14 +1843,24 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         if len(updates_preview) < 50:
             updates_preview.append(preview_entry)
 
-        valid_updated_records.append({
+        record_entry = {
             "item": item,
             "dossier": dossier,
             "diffs": diffs,
-        })
+        }
+        valid_updated_records.append(record_entry)
+
+        seen_dossiers_info[dossier.id] = {
+            "matched_via": matched_via,
+            "row": item["row"],
+            "national_id": nid,
+            "record": record_entry,
+            "preview_entry": preview_entry,
+            "had_diffs": had_diffs
+        }
 
     report_url = None
-    if errors or spouse_matched_rows:
+    if errors:
         r_uuid = generate_failure_report(user.id, raw_headers, errors, spouse_matched_rows)
         report_url = f"/excel/report/{r_uuid}/"
 
@@ -1395,15 +1909,24 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             d.updated_at = now_dt
 
         # Ensure derived fields are saved
-        all_update_fields = list(modified_fields_set.union({
+        candidate_fields = modified_fields_set.union({
             "updated_at", "applicant_equity", "check_service_fee",
             "full_name", "first_name", "last_name",
             "spouse_full_name", "spouse_first_name", "spouse_last_name",
-            "bank_name", "project_code", "bank_branch"
-        }))
+            "bank_name", "project_code", "bank_branch",
+            "total_land_share", "current_year_rent", "past_years_rent",
+            "preparation_cost", "land_lease_year",
+            "main_plaque", "separated_plaque", "sub_plaque", "plot_number",
+            "unit_area"
+        })
+        model_fields = {f.name for f in HousingDossier._meta.get_fields() if hasattr(f, "column")}
+        all_update_fields = list(candidate_fields.intersection(model_fields))
 
-        for i in range(0, len(dossiers_to_update), CHUNK_WRITE_SIZE):
-            chunk = dossiers_to_update[i : i + CHUNK_WRITE_SIZE]
+        # Safe batch size to prevent SQLite 'too many SQL variables' (max 32766 variables)
+        SAFE_BATCH_SIZE = max(10, min(100, 25000 // (2 * max(1, len(all_update_fields)) + 1)))
+
+        for i in range(0, len(dossiers_to_update), SAFE_BATCH_SIZE):
+            chunk = dossiers_to_update[i : i + SAFE_BATCH_SIZE]
             with transaction.atomic():
                 HousingDossier.objects.bulk_update(chunk, fields=all_update_fields)
 
@@ -1442,10 +1965,10 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                     stage=d.current_stage
                 ))
 
-        for i in range(0, len(sig_logs), CHUNK_WRITE_SIZE):
-            WorkflowSignatureLog.objects.bulk_create(sig_logs[i : i + CHUNK_WRITE_SIZE])
-        for i in range(0, len(change_logs), CHUNK_WRITE_SIZE):
-            DossierFieldChangeLog.objects.bulk_create(change_logs[i : i + CHUNK_WRITE_SIZE])
+        for i in range(0, len(sig_logs), 200):
+            WorkflowSignatureLog.objects.bulk_create(sig_logs[i : i + 200])
+        for i in range(0, len(change_logs), 200):
+            DossierFieldChangeLog.objects.bulk_create(change_logs[i : i + 200])
 
     return {
         "success": True,
@@ -1584,11 +2107,15 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
 
         app_matches: Dict[str, HousingDossier] = {}
         spouse_matches: Dict[str, List[HousingDossier]] = {}
+        loaded_pks: Set[int] = set()
 
         all_nids_list = list(all_nids)
         for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
             chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
             for d in HousingDossier.objects.filter(Q(national_id__in=chunk) | Q(spouse_national_id__in=chunk)):
+                if d.pk in loaded_pks:
+                    continue
+                loaded_pks.add(d.pk)
                 for v in get_national_id_variants(d.national_id):
                     app_matches[v] = d
                 for v in get_national_id_variants(d.spouse_national_id):
@@ -1649,7 +2176,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                     "national_id": dossier.national_id,
                     "name": dossier.full_name,
                     "archive_number": dossier.archive_number,
-                    "reasons": [f"پرونده {dossier.archive_number} بیش از یک بار در این فایل تکرار شده است."],
+                    "reasons": ["پرونده بیش از یک بار در این فایل تکرار شده است."],
                     "original_cells": item["original_cells"]
                 })
                 continue
@@ -1662,7 +2189,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                     "national_id": dossier.national_id,
                     "name": dossier.full_name,
                     "archive_number": dossier.archive_number,
-                    "reasons": [f"پرونده {dossier.archive_number} مختومه و قفل است."],
+                    "reasons": ["پرونده مختومه و قفل است."],
                     "original_cells": item["original_cells"]
                 })
                 continue
@@ -1674,7 +2201,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                     "national_id": dossier.national_id,
                     "name": dossier.full_name,
                     "archive_number": dossier.archive_number,
-                    "reasons": [f"پرونده {dossier.archive_number} قبلاً خاتمه یافته است."],
+                    "reasons": ["پرونده قبلاً خاتمه یافته است."],
                     "original_cells": item["original_cells"]
                 })
                 continue
@@ -1940,7 +2467,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
         target_stage = item["req_stage"] if item["req_stage"] is not None else dossier.current_stage
 
         if dossier.is_locked:
-            item["reasons"].append(f"پرونده {dossier.archive_number} مختومه و قفل است.")
+            item["reasons"].append("پرونده مختومه و قفل است.")
             errors.append(item)
             continue
 
@@ -2073,19 +2600,6 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
     }
 
 
-SWAP_FIELD_PAIRS = [
-    ("national_id", "spouse_national_id"),
-    ("first_name", "spouse_first_name"),
-    ("last_name", "spouse_last_name"),
-    ("full_name", "spouse_full_name"),
-    ("father_name", "spouse_father_name"),
-    ("birth_date", "spouse_birth_date"),
-    ("applicant_id_number", "spouse_id_number"),
-    ("applicant_birth_place", "spouse_birth_place"),
-    ("applicant_form_j_status", "spouse_form_j_status"),
-    ("applicant_form_j_directorate_status", "spouse_form_j_directorate_status"),
-    ("applicant_form_j_red_description", "spouse_form_j_red_description"),
-]
 
 def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, is_preview: Optional[bool] = None, **kwargs) -> Dict[str, Any]:
     if is_preview is not None:
@@ -2212,7 +2726,7 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
         seen_dossier_ids.add(dossier.id)
 
         if dossier.is_locked and not is_admin:
-            item["reasons"].append(f"پرونده {dossier.archive_number} مختومه و قفل است.")
+            item["reasons"].append("پرونده مختومه و قفل است.")
             errors.append(item)
             continue
 
@@ -2388,7 +2902,7 @@ EXPORT_COLUMNS = [
     ("نام خانوادگی همسر", "spouse_last_name", "str"),
     ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
     ("نام پدر همسر", "spouse_father_name", "str"),
-    ("کد ملی همسر", "spouse_national_id", "str"),
+    ("کد ملی همسر", "spouse_national_id", "national_id"),
     ("تاریخ تولد همسر (شمسی)", "spouse_birth_date", "str"),
     ("شماره شناسنامه همسر", "spouse_id_number", "str"),
     ("محل صدور شناسنامه همسر", "spouse_birth_place", "str"),
@@ -2421,7 +2935,6 @@ EXPORT_COLUMNS = [
     ("مساحت انباری (مترمربع)", "storage_area", "decimal"),
     ("شماره پارکینگ", "parking_number", "int"),
     ("مساحت پارکینگ (مترمربع)", "parking_area", "decimal"),
-    ("متراژ پارکینگ مسقف (مترمربع)", "covered_parking_area", "decimal"),
 
     # Registry Plaques
     ("بخش ثبتی", "registration_section", "str"),
@@ -2432,6 +2945,7 @@ EXPORT_COLUMNS = [
     ("کد نوسازی", "renovation_code", "str"),
 
     # Financial & Loans (amounts in Rials)
+    ("مبلغ کل قرارداد (ریال)", lambda d: (d.base_cost_without_loan or 0) + (d.bank_loan_amount or 0), "price"),
     ("قیمت تمام شده بدون وام (ریال)", "base_cost_without_loan", "price"),
     ("مبلغ تسهیلات وام بانکی (ریال)", "bank_loan_amount", "price"),
     ("مبلغ وام صندوق (ریال)", "fund_loan_amount", "price"),
@@ -2479,6 +2993,9 @@ EXPORT_COLUMNS = [
     # Official Letters & Stage Control
     ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
     ("تاریخ نامه راه و شهرسازی (شمسی)", "rah_letter_date", "str"),
+    ("شماره دفترخانه اسناد رسمی", "notary_office_number", "str"),
+    ("شماره نامه معرفی به محضر", "notary_letter_number", "str"),
+    ("تاریخ نامه معرفی به محضر (شمسی)", "notary_letter_date", "str"),
     ("تاریخ تشکیل پرونده", lambda d: jdatetime.datetime.fromgregorian(datetime=d.created_at).strftime('%Y/%m/%d %H:%M') if d.created_at else "", "str"),
     ("تاریخ آخرین بروزرسانی", lambda d: jdatetime.datetime.fromgregorian(datetime=d.updated_at).strftime('%Y/%m/%d %H:%M') if d.updated_at else "", "str"),
     ("کارمزد خدمات چک (ریال)", "check_service_fee", "price"),
@@ -2499,9 +3016,9 @@ EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
         "project", "site", "construction_type", "block_name", "block_code",
         "floor_number", "unit_number", "unit_code", "bedroom_count", "unit_direction",
         "net_unit_area", "common_area", "total_area", "unit_area", "storage_number",
-        "storage_area", "parking_number", "parking_area", "covered_parking_area",
+        "storage_area", "parking_number", "parking_area",
         "registration_section", "main_plaque", "separated_plaque", "sub_plaque",
-        "plot_number", "renovation_code"
+        "plot_number", "renovation_code", "deed_number", "deed_date", "is_land_deed_confirmed"
     }),
     "financial": ("اطلاعات مالی و تسهیلات بانکی", {
         "base_cost_without_loan", "bank_loan_amount", "fund_loan_amount",
@@ -2517,7 +3034,7 @@ EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
         "total_preparation_check_amount", "is_preparation_checks_confirmed",
         "commitment_number", "commitment_date", "check_count", "check_amount",
         "last_check_amount", "total_check_amount", "is_decile_loan_confirmed",
-        "rah_letter", "rah_letter_date", "check_service_fee", "preparation_service_fee"
+        "rah_letter", "rah_letter_date", "notary_office_number", "notary_letter_number", "notary_letter_date", "check_service_fee", "preparation_service_fee"
     }),
     "form_j": ("وضعیت‌های فرم ج", {
         "applicant_form_j_status", "applicant_form_j_directorate_status",

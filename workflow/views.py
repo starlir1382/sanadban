@@ -24,6 +24,15 @@ from .excel_hub_views import (
 
 )
 
+from .land_rates_views import (
+    land_rates_admin_view,
+    land_rates_update_api,
+    land_rates_upload_excel_api,
+    land_rates_export_excel,
+    land_rates_bulk_apply_api,
+    calculate_land_rates_api,
+)
+
 import hashlib
 
 import hmac
@@ -203,7 +212,6 @@ DOSSIER_FIELD_LABELS = {
 
     "parking_area": "مساحت پارکینگ (م²)",
 
-    "covered_parking_area": "متراژ پارکینگ مسقف (م²)",
 
     "registration_section": "بخش ثبتی",
 
@@ -296,6 +304,18 @@ DOSSIER_FIELD_LABELS = {
     "rah_letter": "شماره نامه راه و شهرسازی",
 
     "rah_letter_date": "تاریخ نامه راه و شهرسازی",
+
+    "deed_number": "شماره سند عرصه",
+
+    "deed_date": "تاریخ سند عرصه (شمسی)",
+
+    "is_land_deed_confirmed": "تایید سند مالکیت عرصه",
+
+    "notary_office_number": "شماره دفترخانه اسناد رسمی",
+
+    "notary_letter_number": "شماره نامه معرفی به محضر",
+
+    "notary_letter_date": "تاریخ نامه معرفی به محضر (شمسی)",
 
 }
 
@@ -404,6 +424,10 @@ def get_token_search_condition(token: str):
     digits = re.sub(r"\D", "", t_ascii)
 
     if digits:
+        if len(digits) <= 10:
+            cond |= models.Q(national_id__icontains=digits.zfill(10)) | models.Q(spouse_national_id__icontains=digits.zfill(10))
+            if digits.lstrip("0"):
+                cond |= models.Q(national_id__icontains=digits.lstrip("0")) | models.Q(spouse_national_id__icontains=digits.lstrip("0"))
 
         num = int(digits)
 
@@ -468,71 +492,64 @@ def dossier_list_view(request):
 
 
 
-    dossiers = HousingDossier.objects.all()
-
-
-
-    # Stage restriction for regular experts
-
     user_allowed_stages = []
-
     if not is_full_admin:
-
         if profile and profile.allowed_stages:
-
             user_allowed_stages = [int(s.strip()) for s in profile.allowed_stages.split(',') if s.strip().isdigit()]
 
+    status_filter = request.GET.get('status', '').strip()
+
+    dossiers = HousingDossier.objects.all()
+
+    # Stage restriction for regular experts
+    if not is_full_admin:
         dossiers = dossiers.filter(models.Q(current_stage__in=user_allowed_stages) | models.Q(is_locked=True))
 
+    # Status Filters: Redirected Red Form J, Deleted Archive, Red Form J, or Stage Filters
+    if status_filter == 'pending_red':
+        # Specific place for Admin to see Red Form J dossiers redirected to it
+        dossiers = dossiers.filter(status="REJECT_RED_PENDING")
+    elif status_filter == 'deleted_all':
+        # Specific place for Admin to see all dossiers deleted/disqualified from Form J or other reasons
+        dossiers = dossiers.filter(status__in=["DELETED", "REJECTED_RED"])
+    elif status_filter == 'deleted':
+        dossiers = dossiers.filter(status="DELETED")
+    elif status_filter == 'red_form_j' or stage_filter == 'red_form_j':
+        red_cond = (
+            models.Q(applicant_form_j_status__icontains="قرمز") |
+            models.Q(spouse_form_j_status__icontains="قرمز") |
+            models.Q(status__in=["REJECTED_RED", "REJECT_RED_PENDING"])
+        )
+        dossiers = dossiers.filter(red_cond)
+    else:
+        if stage_filter != '':
+            try:
+                stg_val = int(stage_filter)
+                if is_full_admin or stg_val in user_allowed_stages:
+                    dossiers = dossiers.filter(current_stage=stg_val)
+                else:
+                    dossiers = dossiers.none()
+            except ValueError:
+                pass
 
+        # By default, exclude archived/deleted and rejected red dossiers from active workflow
+        if not query and not status_filter:
+            dossiers = dossiers.exclude(status__in=["REJECTED_RED", "DELETED"])
 
     if query:
-
         whole_cond = get_token_search_condition(query)
-
         tokens = [t for t in query.split() if t.strip()]
-
         meaningful_tokens = [t for t in tokens if t != "مرحله"]
 
-        
-
         if len(meaningful_tokens) > 1:
-
             token_cond = models.Q()
-
             for t in meaningful_tokens:
-
                 token_cond &= get_token_search_condition(t)
-
             combined = token_cond
-
         else:
-
             combined = whole_cond
 
-            
-
         dossiers = dossiers.filter(combined).distinct()
-
-
-
-    if stage_filter != '':
-
-        try:
-
-            stg_val = int(stage_filter)
-
-            if is_full_admin or stg_val in user_allowed_stages:
-
-                dossiers = dossiers.filter(current_stage=stg_val)
-
-            else:
-
-                dossiers = dossiers.none()
-
-        except ValueError:
-
-            pass
 
 
 
@@ -556,11 +573,14 @@ def dossier_list_view(request):
 
 
 
-    # Compute stuck breakdown and annotate stages_meta with counts
+    # Compute stuck breakdown and annotate stages_meta with counts (excluding archived rejected red dossiers)
 
     from django.db.models import Count
 
-    counts_by_stage = dict(HousingDossier.objects.values_list('current_stage').annotate(cnt=Count('id')))
+    active_dossiers_qs = HousingDossier.objects.exclude(status__in=["REJECTED_RED", "DELETED"])
+    total_active_count = active_dossiers_qs.count()
+
+    counts_by_stage = dict(active_dossiers_qs.values_list('current_stage').annotate(cnt=Count('id')))
 
     for stg in stages_meta:
 
@@ -600,11 +620,19 @@ def dossier_list_view(request):
 
     recent_activity_logs = []
 
-
+    red_all_cond = (
+        models.Q(applicant_form_j_status__icontains="قرمز") |
+        models.Q(spouse_form_j_status__icontains="قرمز") |
+        models.Q(status__in=["REJECTED_RED", "REJECT_RED_PENDING"])
+    )
+    red_form_j_cnt = HousingDossier.objects.filter(red_all_cond).count()
+    red_pending_cnt = HousingDossier.objects.filter(status="REJECT_RED_PENDING").count()
+    deleted_cnt = HousingDossier.objects.filter(status="DELETED").count()
+    deleted_total_cnt = HousingDossier.objects.filter(status__in=["DELETED", "REJECTED_RED"]).count()
 
     if is_full_admin:
 
-        total_all_count = HousingDossier.objects.count()
+        total_all_count = total_active_count
 
         p1_cnt = sum(counts_by_stage.get(i, 0) for i in range(1, 9))
 
@@ -614,11 +642,9 @@ def dossier_list_view(request):
 
         p4_cnt = sum(counts_by_stage.get(i, 0) for i in range(16, 23))
 
-        red_form_j_cnt = HousingDossier.objects.filter(applicant_form_j_status__icontains="قرمز").count()
+        completed_cnt = active_dossiers_qs.filter(is_locked=True).count()
 
-        completed_cnt = HousingDossier.objects.filter(is_locked=True).count()
-
-        returned_cnt = HousingDossier.objects.filter(status="RETURNED").count()
+        returned_cnt = active_dossiers_qs.filter(status="RETURNED").count()
 
         in_progress_cnt = total_all_count - completed_cnt
 
@@ -628,6 +654,8 @@ def dossier_list_view(request):
 
             "total": total_all_count,
 
+            "total_all": HousingDossier.objects.count(),
+
             "in_progress": in_progress_cnt,
 
             "completed": completed_cnt,
@@ -635,6 +663,12 @@ def dossier_list_view(request):
             "returned": returned_cnt,
 
             "red_form_j": red_form_j_cnt,
+
+            "red_pending_cnt": red_pending_cnt,
+
+            "deleted_cnt": deleted_cnt,
+
+            "deleted_total_cnt": deleted_total_cnt,
 
             "p1_count": p1_cnt,
 
@@ -834,9 +868,26 @@ def dossier_list_view(request):
 
         "elided_page_range": getattr(paginator, "get_elided_page_range")(number=page_obj.number, on_each_side=2, on_ends=1),
 
-        "total_all_dossiers": HousingDossier.objects.count() if is_full_admin else paginator.count,
+        "total_all_dossiers": total_active_count if is_full_admin else paginator.count,
+
+        "status_filter": status_filter,
+
+        "red_form_j_cnt": red_form_j_cnt,
+
+        "red_pending_cnt": red_pending_cnt,
+
+        "deleted_cnt": deleted_cnt,
+
+        "deleted_total_cnt": deleted_total_cnt,
+
+        "pending_red_dossiers": list(HousingDossier.objects.filter(status="REJECT_RED_PENDING").order_by("-updated_at")[:10]),
 
     }
+
+    if request.GET.get('ajax') == '1':
+        from django.template.loader import render_to_string
+        html = render_to_string("dossiers/partials/table_rows.html", {"dossiers": page_obj}, request=request)
+        return JsonResponse({"status": "success", "html": html, "count": paginator.count})
 
     return render(request, "dossiers/list.html", context)
 
@@ -1048,7 +1099,11 @@ def dossier_detail_view(request, pk):
 
         ]
 
-
+    # Auto-calculate and pre-fill Section 9 land values in memory if empty or zero
+    if not dossier.is_locked and (dossier.renovation_code or dossier.plot_number or (dossier.project and "قطعه" in dossier.project)):
+        if not dossier.total_land_share or dossier.current_year_rent == 0:
+            from .land_rates import apply_land_calculation
+            apply_land_calculation(dossier)
 
     dossier_data = {
 
@@ -1063,6 +1118,14 @@ def dossier_detail_view(request, pk):
         "is_red_form_j": dossier.is_red_form_j,
 
         "is_rejected": dossier.is_rejected,
+
+        "is_deleted": dossier.is_deleted,
+
+        "deletion_reason": dossier.deletion_reason or "",
+
+        "deleted_by": dossier.deleted_by or "",
+
+        "deleted_at": dossier.deleted_at.strftime("%Y/%m/%d %H:%M") if dossier.deleted_at else "",
 
         "rejection_letter_number": dossier.rejection_letter_number or "",
 
@@ -1182,7 +1245,6 @@ def dossier_detail_view(request, pk):
 
             "parking_area": float(dossier.parking_area) if dossier.parking_area else 0.0,
 
-            "covered_parking_area": float(dossier.covered_parking_area) if dossier.covered_parking_area else 0.0,
 
             "registration_section": dossier.registration_section,
 
@@ -1231,6 +1293,10 @@ def dossier_detail_view(request, pk):
             "is_installment_booklet_confirmed": dossier.is_installment_booklet_confirmed,
 
             "is_land_deed_confirmed": dossier.is_land_deed_confirmed,
+
+            "deed_number": getattr(dossier, "deed_number", "") or "",
+
+            "deed_date": getattr(dossier, "deed_date", "") or "",
 
             "has_info_form": dossier.has_info_form,
 
@@ -1299,6 +1365,12 @@ def dossier_detail_view(request, pk):
             "rah_letter": dossier.rah_letter or "",
 
             "rah_letter_date": dossier.rah_letter_date or "",
+
+            "notary_office_number": getattr(dossier, "notary_office_number", "") or "",
+
+            "notary_letter_number": getattr(dossier, "notary_letter_number", "") or "",
+
+            "notary_letter_date": getattr(dossier, "notary_letter_date", "") or "",
 
         },
 
@@ -1453,6 +1525,7 @@ def dossier_detail_view(request, pk):
     dossier_data["user_allowed_stages"] = "all" if user_allowed_stages == "all" else list(user_allowed_stages)
 
     dossier_data["is_superuser"] = request.user.is_superuser
+    dossier_data["is_staff"] = request.user.is_staff
 
     dossier_data["stage_details"] = HousingDossier.STAGE_DETAILS
 
@@ -1461,6 +1534,10 @@ def dossier_detail_view(request, pk):
     context = {
 
         "dossier": dossier,
+
+        "is_superuser": request.user.is_superuser,
+
+        "is_staff": request.user.is_staff,
 
         "form_j_attachment": dossier.form_j_attachment,
 
@@ -1634,7 +1711,9 @@ def save_dossier_draft_view(request, pk):
 
         "first_name", "last_name", "spouse_first_name", "spouse_last_name",
 
-        "bank_branch", "project_code", "bank_name", "form_j_registration_type", "sms_sent_date"
+        "bank_branch", "project_code", "bank_name", "form_j_registration_type", "sms_sent_date",
+
+        "deed_number", "deed_date", "notary_office_number", "notary_letter_number", "notary_letter_date"
 
     ]:
 
@@ -1722,8 +1801,7 @@ def save_dossier_draft_view(request, pk):
 
         "unit_area", "storage_area", "parking_area", "total_land_share",
 
-        "net_unit_area", "common_area", "total_area", "covered_parking_area"
-
+        "net_unit_area", "common_area", "total_area",
     ]:
 
         if field in data:
@@ -1754,13 +1832,17 @@ def save_dossier_draft_view(request, pk):
 
     # Boolean fields
 
-    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed", "is_added_to_bank_shipment_list", "is_sent_to_bank", "has_installment_booklet", "has_info_form", "has_form_j", "has_affidavit", "has_sana", "has_national_id_doc"]:
+    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed", "is_added_to_bank_shipment_list", "is_sent_to_bank", "has_installment_booklet", "has_info_form", "has_form_j", "has_affidavit", "has_sana", "has_national_id_doc", "is_land_deed_confirmed"]:
 
         if field in data:
 
             val = data[field]
 
             parsed_updates[field] = bool(val) if not isinstance(val, str) else val.lower() in ("true", "1")
+
+    # If SMS sent date is provided, ensure is_sms_sent is marked as True
+    if parsed_updates.get("sms_sent_date") or ("sms_sent_date" in data and str(data.get("sms_sent_date", "")).strip()):
+        parsed_updates["is_sms_sent"] = True
 
 
 
@@ -1968,8 +2050,7 @@ def save_dossier_draft_view(request, pk):
 
         # For floats/decimals, normalize precision
 
-        if field in ["unit_area", "storage_area", "parking_area", "total_land_share", "net_unit_area", "common_area", "total_area", "covered_parking_area"]:
-
+        if field in ["unit_area", "storage_area", "parking_area", "total_land_share", "net_unit_area", "common_area", "total_area"]:
             try:
 
                 if old_val is not None:
@@ -2147,16 +2228,50 @@ def execute_dossier_sign(dossier, user, notes="تایید و امضای الکت
     if profile and not profile.can_sign:
         return False, "حق امضای الکترونیکی برای حساب کاربری شما فعال نیست."
 
+    current_role = dossier.STAGE_ROLES.get(current_idx, ("-", "-", "-"))[1]
+    current_title = dossier.STAGE_ROLES.get(current_idx, ("-", "-", f"مرحله {current_idx}"))[2]
+
     is_red_j = (
         ("قرمز" in (dossier.applicant_form_j_status or "")) or
         ("قرمز" in (dossier.spouse_form_j_status or "")) or
-        dossier.status == "REJECTED_RED"
+        dossier.status in ["REJECTED_RED", "REJECT_RED_PENDING"]
     )
     if is_red_j and current_idx == 3:
-        return False, "وضعیت استعلام فرم «ج» پرونده قرمز (دارای سابقه مسکن / عدم احراز صلاحیت) است و امکان تایید و ارسال به مراحل بعدی وجود ندارد."
+        # Escalate Red Form J dossier to Admin / Housing Chief
+        dossier.status = "REJECT_RED_PENDING"
+        dossier.save()
 
-    current_role = dossier.STAGE_ROLES.get(current_idx, ("-", "-", "-"))[1]
-    current_title = dossier.STAGE_ROLES.get(current_idx, ("-", "-", f"مرحله {current_idx}"))[2]
+        import hashlib, uuid
+        sig_hash = "SHA256: " + hashlib.sha256(f"ESCALATE_RED:{dossier.id}:{uuid.uuid4()}".encode()).hexdigest()[:24]
+
+        actor_name = profile.full_name if profile and profile.full_name else (user.get_full_name() or user.username)
+        actor_role = profile.role_title if profile and profile.role_title else current_role
+
+        WorkflowSignatureLog.objects.create(
+            dossier=dossier,
+            from_stage=f"مرحله {current_idx}: {current_title}",
+            to_stage="کارتابل مدیر سامانه (بررسی فرم «ج» قرمز)",
+            actor=actor_name,
+            role=actor_role,
+            action="ESCALATE_RED",
+            action_label="ارجاع به مدیر سامانه (فرم «ج» قرمز)",
+            signature_hash=sig_hash,
+            notes=notes or "به دلیل قرمز بودن استعلام فرم «ج»، پرونده جهت بررسی، تعیین تکلیف و صدور ابلاغیه رد صلاحیت به مدیر سامانه ارجاع شد."
+        )
+
+        DossierFieldChangeLog.objects.create(
+            dossier=dossier,
+            field_name="status",
+            field_label="وضعیت فرآیند",
+            old_value="در جریان اقدام",
+            new_value="ارجاع به مدیر سامانه (کد قرمز فرم «ج»)",
+            changed_by=actor_name,
+            role=actor_role,
+            stage=current_idx,
+            ip_address=user.username,
+            timestamp=timezone.now()
+        )
+        return False, "پرونده به دلیل کد قرمز فرم «ج» مسدود شد و جهت بررسی به کارتابل مدیر سامانه ارجاع داده شد."
 
     next_stage = dossier.find_next_actionable_stage(current_idx)
 
@@ -2274,6 +2389,23 @@ def electronic_sign_action(request, pk):
         return redirect(redirect_url)
 
     last_log = dossier.audit_logs.order_by("-timestamp").first()
+
+    if dossier.status == "REJECT_RED_PENDING":
+        msg = f"پرونده #{dossier.archive_number} به دلیل کد قرمز فرم «ج» با موفقیت به کارتابل مدیر سامانه ارجاع داده شد."
+        try:
+            messages.warning(request, msg)
+        except Exception:
+            pass
+        return JsonResponse({
+            "status": "success",
+            "new_stage": dossier.current_stage,
+            "dossier_status": dossier.status,
+            "is_locked": dossier.is_locked,
+            "hash": last_log.signature_hash if last_log else "",
+            "redirect_url": reverse("dossier_list"),
+            "message": msg,
+        })
+
     return JsonResponse({
         "status": "success",
         "new_stage": dossier.current_stage,
@@ -2630,7 +2762,6 @@ def lookup_preselected_unit_api(request):
 
             "parking_area": str(unit.parking_area),
 
-            "covered_parking_area": str(unit.covered_parking_area),
 
             "base_cost_without_loan": unit.base_cost_without_loan,
 
@@ -4038,6 +4169,147 @@ def return_red_form_j_action(request, pk):
 
 
 
+
+
+@csrf_exempt
+@transaction.atomic
+def archive_delete_dossier_action(request, pk):
+    """
+    Action for Admin / Housing Chief to delete and archive a dossier.
+    Sets status to DELETED, locks the dossier (archived), records the reason and who deleted it,
+    and removes it from active pipeline counts.
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
+
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    profile = getattr(request.user, 'profile', None)
+    is_chief = bool(profile and profile.is_housing_chief)
+
+    if not (request.user.is_superuser or is_chief or request.user.is_staff):
+        return JsonResponse({
+            "status": "error",
+            "message": "تنها مدیران سیستم و رئیس مسکن مجاز به حذف و انتقال پرونده به بایگانی راکد می‌باشند."
+        }, status=403)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    reason = str(data.get("reason") or "حذف پرونده و بایگانی راکد به دستور مدیر سامانه").strip()
+    actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+    actor_role = profile.role_title if profile and profile.role_title else "مدیر سامانه"
+
+    old_status = dossier.status
+    dossier.status = "DELETED"
+    dossier.is_locked = True
+    dossier.deletion_reason = reason
+    dossier.deleted_by = actor_name
+    dossier.deleted_at = timezone.now()
+    dossier.save()
+
+    import hashlib
+    raw_hash = f"{dossier.archive_number}-DELETE-{timezone.now().isoformat()}"
+    sig_hash = hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()
+
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+        to_stage="بایگانی راکد پرونده‌های حذفی",
+        actor=actor_name,
+        role=actor_role,
+        action="DELETE",
+        action_label="حذف پرونده و انتقال به بایگانی راکد",
+        notes=f"علت حذف: {reason}",
+        signature_hash=sig_hash
+    )
+
+    DossierFieldChangeLog.objects.create(
+        dossier=dossier,
+        field_name="status",
+        field_label="وضعیت فرآیند",
+        old_value=old_status,
+        new_value="حذف و بایگانی راکد",
+        changed_by=actor_name,
+        role=actor_role,
+        stage=dossier.current_stage,
+        ip_address=request.META.get('REMOTE_ADDR'),
+        timestamp=timezone.now()
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"پرونده #{dossier.archive_number} با موفقیت حذف و به بایگانی راکد منتقل گردید (از آمار فعال کسر شد).",
+        "dossier_status": dossier.status,
+        "is_locked": dossier.is_locked,
+        "is_deleted": True,
+        "deletion_reason": dossier.deletion_reason,
+        "deleted_by": dossier.deleted_by
+    })
+
+
+@csrf_exempt
+@transaction.atomic
+def restore_deleted_dossier_action(request, pk):
+    """
+    Action for Admin / Housing Chief to restore an archived/deleted dossier back to the active workflow.
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
+
+    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    profile = getattr(request.user, 'profile', None)
+    is_chief = bool(profile and profile.is_housing_chief)
+
+    if not (request.user.is_superuser or is_chief or request.user.is_staff):
+        return JsonResponse({
+            "status": "error",
+            "message": "تنها مدیران سیستم مجاز به بازیابی پرونده‌های حذف شده می‌باشند."
+        }, status=403)
+
+    actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+    actor_role = profile.role_title if profile and profile.role_title else "مدیر سامانه"
+
+    old_status = dossier.status
+    dossier.status = "IN_PROGRESS"
+    dossier.is_locked = False
+    dossier.deletion_reason = ""
+    dossier.deleted_by = ""
+    dossier.deleted_at = None
+    dossier.save()
+
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage="بایگانی راکد پرونده‌های حذفی",
+        to_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+        actor=actor_name,
+        role=actor_role,
+        action="RESTORE",
+        action_label="بازیابی پرونده از بایگانی راکد به چرخه فعال",
+        notes="بازیابی و فعال‌سازی مجدد پرونده در گردش کار توسط مدیر سامانه"
+    )
+
+    DossierFieldChangeLog.objects.create(
+        dossier=dossier,
+        field_name="status",
+        field_label="وضعیت فرآیند",
+        old_value=old_status,
+        new_value="در جریان اقدام",
+        changed_by=actor_name,
+        role=actor_role,
+        stage=dossier.current_stage,
+        ip_address=request.META.get('REMOTE_ADDR'),
+        timestamp=timezone.now()
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"پرونده #{dossier.archive_number} با موفقیت بازیابی شد و به چرخه فعال مرحله {dossier.current_stage} بازگشت.",
+        "dossier_status": dossier.status,
+        "is_locked": dossier.is_locked,
+        "is_deleted": False
+    })
 
 
 @login_required(login_url='login')
@@ -5851,7 +6123,9 @@ def excel_upload_create_view(request):
     if not _check_admin_access(request.user):
         return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
     if request.method != "POST":
-        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+        if request.headers.get("x-requested-with") != "XMLHttpRequest" and "application/json" not in request.headers.get("Accept", ""):
+            return redirect("/excel-hub/?tab=create")
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است. ارسال فایل اکسل صرفاً از طریق متد POST امکان‌پذیر است."}, status=405)
     
     excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
@@ -5870,7 +6144,9 @@ def excel_upload_update_view(request):
     if not _check_admin_access(request.user):
         return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
     if request.method != "POST":
-        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+        if request.headers.get("x-requested-with") != "XMLHttpRequest" and "application/json" not in request.headers.get("Accept", ""):
+            return redirect("/excel-hub/?tab=update")
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است. ارسال فایل اکسل صرفاً از طریق متد POST امکان‌پذیر است."}, status=405)
     
     excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
@@ -5889,7 +6165,9 @@ def excel_upload_group_sign_view(request):
     if not request.user.is_authenticated:
         return JsonResponse({"success": False, "error": "ورود به سامانه الزامی است."}, status=401)
     if request.method != "POST":
-        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+        if request.headers.get("x-requested-with") != "XMLHttpRequest" and "application/json" not in request.headers.get("Accept", ""):
+            return redirect("/excel-hub/?tab=group_sign")
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است. ارسال فایل اکسل صرفاً از طریق متد POST امکان‌پذیر است."}, status=405)
     
     excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
@@ -5908,7 +6186,9 @@ def excel_upload_swap_view(request):
     if not _check_admin_access(request.user):
         return JsonResponse({"success": False, "error": "دسترسی غیرمجاز: مختص مدیر ارشد سامانه و رئیس مسکن."}, status=403)
     if request.method != "POST":
-        return JsonResponse({"success": False, "error": "متد غیرمجاز است."}, status=405)
+        if request.headers.get("x-requested-with") != "XMLHttpRequest" and "application/json" not in request.headers.get("Accept", ""):
+            return redirect("/excel-hub/?tab=swap")
+        return JsonResponse({"success": False, "error": "متد غیرمجاز است. ارسال فایل اکسل صرفاً از طریق متد POST امکان‌پذیر است."}, status=405)
     
     excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
@@ -6025,6 +6305,12 @@ def excel_export_all_view(request):
             | Q(applicant_phone__icontains=query)
 
         )
+
+        q_digits = re.sub(r"\D", "", query)
+        if q_digits and len(q_digits) <= 10:
+            q_filter |= Q(national_id__icontains=q_digits.zfill(10)) | Q(spouse_national_id__icontains=q_digits.zfill(10))
+            if q_digits.lstrip("0"):
+                q_filter |= Q(national_id__icontains=q_digits.lstrip("0")) | Q(spouse_national_id__icontains=q_digits.lstrip("0"))
 
         if query.isdigit():
 
@@ -6757,7 +7043,6 @@ def bank_letter_sender_view(request):
             "unit_code": d.unit_number or d.unit_code or "-",
             "unit_number": d.unit_number or d.unit_code or "-",
 
-            "covered_parking_area": str(d.covered_parking_area or "-"),
 
             "parking_number": str(d.parking_number or "-"),
 
@@ -6928,7 +7213,6 @@ def bank_letter_lookup_api(request):
             "unit_code": d.unit_number or d.unit_code or "-",
             "unit_number": d.unit_number or d.unit_code or "-",
 
-            "covered_parking_area": str(d.covered_parking_area or "-"),
 
             "parking_number": str(d.parking_number or "-"),
 
@@ -7430,7 +7714,7 @@ def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs, proj_
 
                 d.unit_number or d.unit_code or "",
 
-                float(d.covered_parking_area) if d.covered_parking_area else "",
+                float(d.parking_area) if d.parking_area else "",
 
                 d.parking_number or "",
 
@@ -7740,7 +8024,7 @@ def bank_letter_export_excel(request):
 
             d.unit_number or d.unit_code or "",
 
-            float(d.covered_parking_area) if d.covered_parking_area else "",
+            float(d.parking_area) if d.parking_area else "",
 
             d.parking_number or "",
 

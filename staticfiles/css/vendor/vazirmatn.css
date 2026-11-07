@@ -70,3 +70,42 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* ==========================================================================
+   Persian Numerals via Vazirmatn OpenType Stylistic Set 1 (ss01)
+   Ensures 0-9 automatically display as ۰-۹ across the entire application
+   ========================================================================== */
+:root,
+html,
+body,
+input,
+textarea,
+select,
+button,
+table,
+td,
+th {
+  font-feature-settings: "ss01" 1;
+  -webkit-font-feature-settings: "ss01" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.fa-num,
+.num,
+.tabular-nums {
+  font-feature-settings: "ss01" 1 !important;
+  -webkit-font-feature-settings: "ss01" 1 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* Technical Latin code and hash exemptions */
+.en-num,
+.latin-num,
+.sha-hash,
+code,
+pre,
+kbd,
+.font-mono {
+  font-feature-settings: normal !important;
+  -webkit-font-feature-settings: normal !important;
+}

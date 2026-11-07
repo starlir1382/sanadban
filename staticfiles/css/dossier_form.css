@@ -33,6 +33,9 @@
 
     direction: rtl;
     color: var(--df-text);
+    font-feature-settings: "ss01" 1;
+    -webkit-font-feature-settings: "ss01" 1;
+    font-variant-numeric: tabular-nums;
 }
 .df *, .df *::before, .df *::after { box-sizing: border-box; }
 
@@ -126,6 +129,9 @@
     border: 1px solid var(--df-line-2); border-radius: var(--df-r);
     background: #fff; color: var(--df-text);
     font: inherit; font-size: .9rem;
+    font-feature-settings: "ss01" 1;
+    -webkit-font-feature-settings: "ss01" 1;
+    font-variant-numeric: tabular-nums;
     text-overflow: clip;
     transition: border-color .15s, box-shadow .15s, background .15s;
 }
@@ -159,6 +165,8 @@ select.df-input:disabled { cursor: default; }
 .df-money .df-input {
     direction: ltr; text-align: right; padding-left: 3.1rem;
     font-weight: 700; font-variant-numeric: tabular-nums;
+    font-feature-settings: "ss01" 1;
+    -webkit-font-feature-settings: "ss01" 1;
 }
 .df-unit {
     position: absolute; left: 12px; top: 50%; transform: translateY(-50%);

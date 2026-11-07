@@ -447,11 +447,6 @@
                     </select>
                 </div>
 
-                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('covered_parking_area')}">
-                    <label class="field-label"><span>متراژ پارکینگ مسقف (مترمربع)</span></label>
-                    <input type="number" step="0.01" class="input-control fa-num" x-model="form.covered_parking_area" :readonly="!isFieldEditable('covered_parking_area')">
-                </div>
-
                 <!-- Areas -->
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('net_unit_area')}">
                     <label class="field-label"><span>متراژ مفید واحد (مترمربع)</span></label>
@@ -522,8 +517,29 @@
                     <span style="background: #1d4ed8; color: #ffffff; padding: 0.2rem 0.75rem; border-radius: 6px; font-weight: 800; font-size: 0.88rem;" x-text="form.bank_name || 'بانک مسکن'"></span>
                     <span x-show="form.bank_branch" style="color: #475569; font-size: 0.82rem;" x-text="'(شعبه: ' + form.bank_branch + ')'"></span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #1e40af;" class="fa-num">
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 0.82rem; color: #1e40af;" class="fa-num">
                     <span>پروژه: <strong x-text="form.project || '-'"></strong></span>
+                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                        <button type="button" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 5px; height: 28px;"
+                                @click="openUploadScanModal('TITLE_DEED', 'اسکن سند مالکیت عرصه')"
+                                :disabled="!isFieldEditable('registration_section') && !(Array.isArray(userAllowedStages) && userAllowedStages.includes(13)) && !isChief && !isSuperuser"
+                                title="بارگذاری اسکن سند مالکیت عرصه در آلبوم مدارک">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <span x-text="hasDeedAttachment() ? 'اسکن سند عرصه ✓' : 'بارگذاری اسکن سند عرصه'"></span>
+                        </button>
+                        <template x-if="hasDeedAttachment()">
+                            <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                <button type="button" class="btn btn-sm btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.74rem; height: 28px;"
+                                        @click="openScanModal(getDeedAttachment())" title="مشاهده اسکن سند">
+                                    <span>مشاهده</span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.74rem; height: 28px;"
+                                        @click="printScan(getDeedAttachment())" title="چاپ برگه اسکن سند">
+                                    <span>چاپ</span>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
             <div class="fields-grid">
@@ -987,21 +1003,7 @@
                     </div>
                 </div>
 
-                <!-- Stage 9: SMS Trigger -->
-                <div class="field-group col-6">
-                    <label class="field-label"><span>اقدام مرحله ۵: ابلاغ پیامکی به متقاضی</span></label>
-                    <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
-                        <div>
-                            <div style="font-size: 0.82rem; font-weight: bold; color: #0f172a;" x-text="form.is_sms_sent ? 'پیامک ارسال گردید ✓' : 'پیامک هنوز ارسال نشده'"></div>
-                            <div style="font-size: 0.72rem; color: #64748b;" x-text="form.is_sms_sent ? 'زمان ارسال: ' + form.sms_sent_at : 'ارسال به شماره همراه متقاضی'"></div>
-                        </div>
-                        <button type="button" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;" 
-                                @click="sendEquitySMS()" :disabled="form.is_sms_sent">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                            <span>ارسال پیامک تعیین آورده</span>
-                        </button>
-                    </div>
-                </div>
+
 
                 <!-- Stage 10: Confirmation of funding -->
                 <div class="field-group col-12" style="margin-top: 0.5rem;">
@@ -1240,6 +1242,19 @@
         </div>
         
         <div class="form-section-body" x-show="sectionOpen" x-transition>
+            <div style="margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 0.82rem; color: #1e40af;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <span>محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong>)</span>
+                </div>
+                <button type="button" 
+                        class="btn btn-outline" 
+                        style="padding: 3px 10px; font-size: 0.78rem; font-weight: 800; background: #fff; border-color: #93c5fd; color: #1d4ed8; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                        @click="recalculateLandRates()"
+                        title="استعلام و محاسبه مجدد ارقام بر اساس کد نوسازی و متراژ">
+                    <span>⚡ محاسبه مجدد ارقام</span>
+                </button>
+            </div>
             <div class="fields-grid">
                 <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('total_land_share')}">
                     <label class="field-label"><span>جمع کل قدرالسهم (مترمربع )</span></label>
@@ -2334,6 +2349,91 @@
                     </div>
                 </div>
                 </div>
+        </div>
+    </div>
+
+
+    <!-- Section 11: صدور معرفی‌نامه محضر و دفتر اسناد رسمی (مرحله ۲۰) -->
+    <div class="form-card" id="section-notary" :class="{'section-active-highlight': isSectionActive('section-notary')}" x-data="{ sectionOpen: shouldSectionOpen('section-notary') }">
+        <div class="form-section-header" @click="sectionOpen = !sectionOpen">
+            <div class="section-title">
+                <div class="section-title-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                </div>
+                <span>بخش ۱۱: صدور معرفی‌نامه محضر و مشخصات دفتر اسناد رسمی (مرحله ۲۰)</span>
+            </div>
+            <div class="section-toggle">
+                <span class="badge badge-primary fa-num" x-show="isSectionActive('section-notary')">اقدام مرحله ۲۰</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{'rotate-180': sectionOpen}" style="transition: transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+        </div>
+
+        <div class="form-section-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="fields-grid">
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('notary_office_number')}">
+                    <label class="field-label"><span>شماره دفترخانه اسناد رسمی</span></label>
+                    <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.notary_office_number" :readonly="!isFieldEditable('notary_office_number')" placeholder="مثال: ۱۲">
+                </div>
+
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('notary_letter_number')}">
+                    <label class="field-label"><span>شماره نامه معرفی به محضر</span></label>
+                    <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.notary_letter_number" :readonly="!isFieldEditable('notary_letter_number')" placeholder="مثال: ۱۴۰۳/ص/۵۵۲۱">
+                </div>
+
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('notary_letter_date')}">
+                    <label class="field-label"><span>تاریخ نامه محضر (شمسی)</span></label>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="text" class="input-control fa-num" style="direction: ltr; flex: 1; font-weight: 700;" x-model="form.notary_letter_date" :readonly="!isFieldEditable('notary_letter_date')" placeholder="۱۴۰۳/۰۸/۲۰">
+                        <button type="button" @click="openDatePicker('notary_letter_date', form.notary_letter_date, 'تاریخ نامه محضر')" :disabled="!isFieldEditable('notary_letter_date')" class="btn-date-picker" title="انتخاب تاریخ از تقویم">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="field-group col-3">
+                    <label class="field-label"><span>اسکن نامه محضر</span></label>
+                    <button type="button" class="btn btn-primary" style="width: 100%; height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem;"
+                            @click="openUploadScanModal('NOTARY_LETTER', 'اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)')"
+                            :disabled="!isFieldEditable('notary_office_number') && !isChief && !isSuperuser">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span>بارگذاری / اسکن در آلبوم مدارک</span>
+                    </button>
+                </div>
+
+                <div class="field-group col-12" style="margin-top: -4px;">
+                    <template x-if="hasNotaryAttachment()">
+                        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #16a34a; font-size: 1.1rem; font-weight: bold;">✓</span>
+                                <div>
+                                    <strong style="color: #166534; font-size: 0.82rem;" x-text="getNotaryAttachment().title"></strong>
+                                    <span style="color: #15803d; font-size: 0.75rem; margin-right: 6px;">(موجود در آلبوم مدارک)</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button type="button" class="btn btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.76rem;"
+                                        @click="printScan(getNotaryAttachment())">
+                                    <span>چاپ برگه اسکن‌شده نامه محضر</span>
+                                </button>
+                                <button type="button" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.76rem; border-color: #86efac; color: #166534;"
+                                        @click="openScanModal(getNotaryAttachment())">
+                                    <span>مشاهده در نمایشگر اسناد</span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!hasNotaryAttachment()">
+                        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between; color: #64748b; font-size: 0.8rem;">
+                            <span>⚠️ هنوز اسکن معرفی‌نامه محضر در آلبوم مدارک بارگذاری نشده است.</span>
+                            <button type="button" class="btn btn-sm" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; border: 1px solid #cbd5e1;"
+                                    @click="openUploadScanModal('NOTARY_LETTER', 'اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)')"
+                                    :disabled="!isFieldEditable('notary_office_number') && !isChief && !isSuperuser">
+                                <span>افزودن اسکن</span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
     </div>
 

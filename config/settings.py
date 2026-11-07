@@ -158,6 +158,10 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = Path(os.environ.get('SANADBAN_STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
 
+# Reverse Proxy / SSL Configuration
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 # Media files (Scanned attachments, signatures, checks)
 MEDIA_URL = '/uploads/'
 MEDIA_ROOT = Path(os.environ.get('SANADBAN_MEDIA_ROOT', str(BASE_DIR / 'uploads')))

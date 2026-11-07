@@ -18,17 +18,27 @@
       * { box-sizing: border-box; }
       html { direction: rtl; }
 
+      html,
       body {
         margin: 0;
         padding: 24px;
         background: #eef2f6;
         color: #1e293b;
         font-family: "Vazirmatn", Tahoma, sans-serif;
+        font-feature-settings: "ss01" 1;
+        -webkit-font-feature-settings: "ss01" 1;
+        font-variant-numeric: tabular-nums;
         display: flex;
         justify-content: center;
         align-items: flex-start;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+      }
+
+      .fa-num, table, td, th {
+        font-feature-settings: "ss01" 1 !important;
+        -webkit-font-feature-settings: "ss01" 1 !important;
+        font-variant-numeric: tabular-nums !important;
       }
 
       /* A4 sheet: exactly 210 x 297 mm, double-line frame inside a 5 mm paper margin */

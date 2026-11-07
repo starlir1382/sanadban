@@ -37,6 +37,11 @@
     <!-- Alpine.js Cloak & FOUC Prevention -->
     <style>
         [x-cloak] { display: none !important; }
+        :root, html, body, input, select, textarea, button, table, td, th {
+            font-feature-settings: "ss01" 1;
+            -webkit-font-feature-settings: "ss01" 1;
+            font-variant-numeric: tabular-nums;
+        }
         html, body { overflow-x: hidden !important; max-width: 100vw; }
         .sticky-action-bar[x-cloak] { display: none !important; }
         .modal-overlay[x-cloak], .scan-viewer-modal[x-cloak] { display: none !important; }

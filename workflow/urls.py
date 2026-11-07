@@ -12,6 +12,8 @@ urlpatterns = [
     path("dossier/<int:pk>/return/", views.return_stage_action, name="dossier_return"),
     path("dossier/<int:pk>/reject-red/", views.reject_red_form_j_action, name="dossier_reject_red"),
     path("dossier/<int:pk>/return-red/", views.return_red_form_j_action, name="dossier_return_red"),
+    path("dossier/<int:pk>/delete-archive/", views.archive_delete_dossier_action, name="dossier_delete_archive"),
+    path("dossier/<int:pk>/restore/", views.restore_deleted_dossier_action, name="dossier_restore"),
     path("dossier/<int:pk>/print/notary-letter/", views.notary_letter_print_view, name="notary_letter_print"),
     path("dossier/<int:pk>/print/folder-label/", views.folder_label_print_view, name="folder_label_print"),
     path("dossier/<int:pk>/print/land-bank/", views.land_bank_print_view, name="land_bank_print"),
@@ -82,4 +84,12 @@ path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
     path("excel-hub/upload/commission/", views.process_commission_excel_view, name="excel_upload_commission"),
     path("excel-hub/upload/swap-spouse/", views.process_swap_spouse_excel_view, name="excel_upload_swap_spouse"),
 
+    # Land Rates & Section 9 Valuation Management
+    path("admin/land-rates/", views.land_rates_admin_view, name="land_rates_admin"),
+    path("land-rates/", RedirectView.as_view(url="/admin/land-rates/", permanent=True)),
+    path("api/land-rates/<int:pk>/update/", views.land_rates_update_api, name="land_rates_update_api"),
+    path("api/land-rates/upload-excel/", views.land_rates_upload_excel_api, name="land_rates_upload_excel_api"),
+    path("api/land-rates/export-excel/", views.land_rates_export_excel, name="land_rates_export_excel"),
+    path("api/land-rates/bulk-apply/", views.land_rates_bulk_apply_api, name="land_rates_bulk_apply_api"),
+    path("api/calculate-land-rates/", views.calculate_land_rates_api, name="calculate_land_rates_api"),
 ]

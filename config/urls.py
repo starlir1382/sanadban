@@ -13,10 +13,11 @@ def favicon_view(request):
     return HttpResponse(status=204)
 
 urlpatterns = [
-    # Ensure /admin/bank-letter/ is caught BEFORE Django admin's catch_all_view
+    # Ensure /admin/bank-letter/ and /admin/land-rates/ are caught BEFORE Django admin's catch_all_view
     path('admin/bank-letter/', workflow_views.bank_letter_sender_view),
     path('admin/bank-letter/send/', workflow_views.bank_letter_submit_api),
     path('admin/bank-letter/export-excel/', workflow_views.bank_letter_export_excel),
+    path('admin/land-rates/', workflow_views.land_rates_admin_view, name='land_rates_admin'),
 
     path('favicon.ico', favicon_view, name='favicon'),
 

@@ -53,15 +53,14 @@ FIELD_STAGE_MAP = {
     "storage_area": [1, 8],
     "parking_number": [1, 8],
     "parking_area": [1, 8],
-    "covered_parking_area": [1, 8],
 
     # Step 2: ورود پلاک ثبتی و قیمت تمام شده
-    # پلاک ثبتی: مرحله 2، مرحله 11 (کارشناس فنی و مهندسی)، مرحله 13 (بانک زمین)
-    "registration_section": [2, 12, 14],
-    "main_plaque": [2, 12, 14],
-    "separated_plaque": [2, 12, 14],
-    "sub_plaque": [2, 12, 14],
-    "plot_number": [2, 12, 14],
+    # پلاک ثبتی: مرحله 2، مرحله 12 (کارشناس فنی و مهندسی)، مرحله 13 (کارشناس املاک)، مرحله 14 (بانک زمین)
+    "registration_section": [2, 12, 13, 14],
+    "main_plaque": [2, 12, 13, 14],
+    "separated_plaque": [2, 12, 13, 14],
+    "sub_plaque": [2, 12, 13, 14],
+    "plot_number": [2, 12, 13, 14],
     # قیمت تمام شده پایه بدون وام: مرحله 2 و مرحله 18 (کارشناس تسویه با پیمانکار)
     "base_cost_without_loan": [2, 19],
 
@@ -104,6 +103,11 @@ FIELD_STAGE_MAP = {
     "has_sana": [7, 8],
     "has_national_id_doc": [7, 8],
 
+    # Step 13: کارشناس املاک (مشخصات و تأیید سند مالکیت عرصه)
+    "deed_number": [13],
+    "deed_date": [13],
+    "is_land_deed_confirmed": [13],
+
     # Step 15: کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)
     "total_land_share": [16],
     "past_years_rent": [16],
@@ -137,9 +141,12 @@ FIELD_STAGE_MAP = {
     "preparation_check_entries_json": [17],
     "is_preparation_checks_confirmed": [18],
 
-    # Step 19: صدور و ثبت نامه محضر اداره کل
+    # Step 20: صدور و ثبت نامه محضر اداره کل و دفتر اسناد رسمی
     "rah_letter": [20],
     "rah_letter_date": [20],
+    "notary_office_number": [20],
+    "notary_letter_number": [20],
+    "notary_letter_date": [20],
 }
 
 # 2. 14 Archival Signatures Slot to Stage Mapping (imported from stages.py)

@@ -336,6 +336,10 @@ def process_stage_signatures_excel_view(request):
         try:
             dossier = HousingDossier.objects.select_for_update().filter(national_id=nid).first()
             if not dossier:
+                dossier = HousingDossier.objects.select_for_update().filter(spouse_national_id=nid).first()
+            if not dossier and nid.lstrip('0'):
+                dossier = HousingDossier.objects.select_for_update().filter(models.Q(national_id=nid.lstrip('0')) | models.Q(spouse_national_id=nid.lstrip('0'))).first()
+            if not dossier:
                 error_logs.append(f"ردیف {row_idx}: کدملی {nid} در سامانه یافت نشد.")
                 skipped_count += 1
                 continue
@@ -495,14 +499,21 @@ def process_commission_excel_view(request):
         if "کد ملی" in norm or "کدملی" in norm:
             nid_col_idx = idx
         elif "قیمت تمام شده" in norm or "مبلغ تمام شده" in norm:
-            col_map["base_cost_without_loan"] = idx
-        elif "پلاک اصلی" in norm:
+            if "کل" in norm or "با وام" in norm:
+                col_map["total_price"] = idx
+            else:
+                col_map["base_cost_without_loan"] = idx
+        elif "مبلغ کل" in norm or "قیمت کل" in norm:
+            col_map["total_price"] = idx
+        elif ("اصلی" in norm and "فرعی" in norm) or ("مفروز" in norm and ("اصلی" in norm or "فرعی" in norm)):
+            col_map["composite_plaques"] = idx
+        elif "پلاک اصلی" in norm or norm == "اصلی":
             col_map["main_plaque"] = idx
         elif "فرعی" in norm:
             col_map["sub_plaque"] = idx
         elif "مفروز" in norm:
             col_map["separated_plaque"] = idx
-        elif "قطعه" in norm:
+        elif "قطعه" in norm or "پلاک کارگاهی" in norm:
             col_map["plot_number"] = idx
         elif "کد نوسازی" in norm:
             col_map["renovation_code"] = idx
@@ -530,6 +541,10 @@ def process_commission_excel_view(request):
 
         dossier = HousingDossier.objects.select_for_update().filter(national_id=nid).first()
         if not dossier:
+            dossier = HousingDossier.objects.select_for_update().filter(spouse_national_id=nid).first()
+        if not dossier and nid.lstrip('0'):
+            dossier = HousingDossier.objects.select_for_update().filter(models.Q(national_id=nid.lstrip('0')) | models.Q(spouse_national_id=nid.lstrip('0'))).first()
+        if not dossier:
             msg = f"کدملی {nid} در سیستم یافت نشد."
             errors.append(f"ردیف {row_idx}: {msg}")
             error_items.append({"row": row_idx, "national_id": nid, "name": "", "reasons": [msg], "original_cells": list(row)})
@@ -543,8 +558,21 @@ def process_commission_excel_view(request):
 
         changes = []
 
-        # Check base_cost_without_loan
-        if "base_cost_without_loan" in col_map and col_map["base_cost_without_loan"] < len(row):
+        # Check total_price or base_cost_without_loan
+        if "total_price" in col_map and col_map["total_price"] < len(row):
+            val = row[col_map["total_price"]]
+            if val is not None and str(val).strip():
+                try:
+                    tot_price = int(float(str(val).replace(",", "").strip()))
+                    loan_val = dossier.bank_loan_amount or 6500000000
+                    if tot_price >= loan_val:
+                        new_cost = tot_price - loan_val
+                        if new_cost != dossier.base_cost_without_loan:
+                            changes.append(("base_cost_without_loan", "قیمت تمام شده بدون وام (از مبلغ کل)", str(dossier.base_cost_without_loan), str(new_cost)))
+                            dossier.base_cost_without_loan = new_cost
+                except ValueError:
+                    pass
+        elif "base_cost_without_loan" in col_map and col_map["base_cost_without_loan"] < len(row):
             val = row[col_map["base_cost_without_loan"]]
             if val is not None and str(val).strip():
                 try:
@@ -554,6 +582,17 @@ def process_commission_excel_view(request):
                         dossier.base_cost_without_loan = new_cost
                 except ValueError:
                     pass
+
+        # Check composite plaques
+        if "composite_plaques" in col_map and col_map["composite_plaques"] < len(row):
+            val = row[col_map["composite_plaques"]]
+            if val is not None and str(val).strip():
+                from .excel_utils import parse_composite_plaques
+                p_main, p_sep, p_sub, _ = parse_composite_plaques(val)
+                for fld, int_val, title in [("main_plaque", p_main, "پلاک اصلی"), ("separated_plaque", p_sep, "پلاک مفروز"), ("sub_plaque", p_sub, "فرعی از")]:
+                    if int_val is not None and getattr(dossier, fld) != int_val:
+                        changes.append((fld, title, str(getattr(dossier, fld)), str(int_val)))
+                        setattr(dossier, fld, int_val)
 
         # Check plaque fields
         for fld, title in [("main_plaque", "پلاک اصلی"), ("sub_plaque", "فرعی از"), ("separated_plaque", "پلاک مفروز"), ("plot_number", "شماره قطعه")]:
@@ -865,6 +904,10 @@ def process_swap_spouse_excel_view(request):
         reason = str(row[reason_col_idx] or "").strip() if reason_col_idx and reason_col_idx < len(row) else "درخواست کتبی تعویض متقاضی با همسر"
 
         dossier = HousingDossier.objects.select_for_update().filter(national_id=nid).first()
+        if not dossier:
+            dossier = HousingDossier.objects.select_for_update().filter(spouse_national_id=nid).first()
+        if not dossier and nid.lstrip('0'):
+            dossier = HousingDossier.objects.select_for_update().filter(models.Q(national_id=nid.lstrip('0')) | models.Q(spouse_national_id=nid.lstrip('0'))).first()
         if not dossier:
             errors.append(f"ردیف {row_idx}: پرونده با کدملی {nid} یافت نشد.")
             continue

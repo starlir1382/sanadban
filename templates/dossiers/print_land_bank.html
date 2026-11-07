@@ -28,10 +28,15 @@
             background: #f1f5f9;
             color: #000000;
             font-size: 11pt;
+            font-feature-settings: "ss01" 1;
+            -webkit-font-feature-settings: "ss01" 1;
+            font-variant-numeric: tabular-nums;
         }
 
-        .fa-num {
-            font-feature-settings: "ss01";
+        .fa-num, table, td, th {
+            font-feature-settings: "ss01" 1 !important;
+            -webkit-font-feature-settings: "ss01" 1 !important;
+            font-variant-numeric: tabular-nums !important;
         }
 
         /* Toolbar for browser viewing (hidden on print) */
@@ -416,8 +421,6 @@
                             <td class="dashed-right">
                                 {% if dossier.parking_area and dossier.parking_area > 0 %}
                                     {{ dossier.parking_area }}
-                                {% elif dossier.covered_parking_area and dossier.covered_parking_area > 0 %}
-                                    {{ dossier.covered_parking_area }}
                                 {% else %}
                                     -
                                 {% endif %}

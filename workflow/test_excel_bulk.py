@@ -475,6 +475,411 @@ class ExcelBulkOperationsTestCase(TestCase):
             # Must be Persian
             self.assertTrue(any("؀" <= c <= "ۿ" for c in diff["label"]))
 
+    def test_update_search_spouse_national_id_without_leading_zero(self):
+        """Update searching by spouse national ID without leading zero (9 digits)."""
+        d = HousingDossier.objects.create(
+            national_id="0112233445",
+            first_name="آزمایش",
+            last_name="متقاضی",
+            spouse_national_id="0223344556",
+            project="پروژه اولیه",
+            archive_number=100091
+        )
+        # Search via 9 digits (missing leading zero) in primary column
+        headers = ["کد ملی متقاضی", "پروژه"]
+        rows = [["223344556", "پروژه به روز شده همسر"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        self.assertEqual(res["matched_via_spouse_count"], 1)
+        d.refresh_from_db()
+        self.assertEqual(d.project, "پروژه به روز شده همسر")
+        self.assertEqual(d.national_id, "0112233445")
+
+    def test_update_with_spouse_national_id_header_alone(self):
+        """Update file where primary key column header is 'کد ملی همسر' without 'کد ملی متقاضی'."""
+        d = HousingDossier.objects.create(
+            national_id="0556677889",
+            first_name="محمد",
+            last_name="رضایی",
+            spouse_national_id="0667788990",
+            project="پروژه قبلی",
+            archive_number=100092
+        )
+        # Header is directly کد ملی همسر, value has 9 digits (no 0)
+        headers = ["کد ملی همسر", "پروژه"]
+        rows = [["667788990", "پروژه تغییر یافته با هدر همسر"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        d.refresh_from_db()
+        self.assertEqual(d.project, "پروژه تغییر یافته با هدر همسر")
+
+    def test_update_normalizes_spouse_national_id_to_10_digits(self):
+        """Updating spouse_national_id with 9 digits automatically adds leading zero."""
+        d = HousingDossier.objects.create(
+            national_id="0778899001",
+            first_name="سارا",
+            last_name="نوری",
+            spouse_national_id="",
+            archive_number=100093
+        )
+        headers = ["کد ملی متقاضی", "کد ملی همسر"]
+        rows = [["0778899001", "889900112"]]  # 9 digits without leading zero
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        d.refresh_from_db()
+        self.assertEqual(d.spouse_national_id, "0889900112")  # Normalized with leading zero!
+
+    def test_update_composite_plaques_and_custom_headers(self):
+        """Updating dossiers with composite plaque column 'فرعی / مفروز ومجزا / اصلی'."""
+        d = HousingDossier.objects.create(
+            national_id="0998877665",
+            first_name="حسین",
+            last_name="شکاری",
+            archive_number=100094
+        )
+        headers = [
+            "ردیف", "کدملی", "فرعی / مفروز ومجزا / اصلی", "پلاک کارگاهی", "زیر بنا", "سهم آورده متقاضی (ریال)"
+        ]
+        rows = [
+            [1, "0998877665", "26/1353/2288", 2288, 106.66, 4035830640]
+        ]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        d.refresh_from_db()
+        self.assertEqual(d.main_plaque, 26)
+        self.assertEqual(d.separated_plaque, 1353)
+        self.assertEqual(d.sub_plaque, 2288)
+        self.assertEqual(d.plot_number, 2288)
+        self.assertEqual(float(d.unit_area), 106.66)
+        self.assertEqual(d.applicant_equity, 4035830640)
+
+        # Test non-flipping of legitimate values: 600/12/3 and 2-part 2405/12
+        from workflow.excel_utils import parse_composite_plaques
+        self.assertEqual(parse_composite_plaques("600/12/3"), (600, 12, 3, None))
+        self.assertEqual(parse_composite_plaques("2405/12"), (2405, None, 12, None))
+
+    def test_update_no_silent_fallback_when_applicant_nid_wrong(self):
+        """Bug 1 fix: If applicant NID is invalid/typoed, do not silently fallback to spouse."""
+        d = HousingDossier.objects.create(
+            national_id="0111222333",
+            first_name="علی",
+            last_name="احمدی",
+            spouse_national_id="0444555666",
+            archive_number=100095
+        )
+        headers = ["کد ملی متقاضی", "کد ملی همسر", "پروژه"]
+        # Applicant NID 0999999999 does not exist, spouse 0444555666 exists
+        rows = [["0999999999", "0444555666", "پروژه نفوذ نامعتبر"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertEqual(res["failed_count"], 1)
+        self.assertEqual(res["updated_count"], 0)
+        self.assertIn("کد ملی متقاضی در سامانه یافت نشد", res["errors"][0]["reasons"][0])
+        d.refresh_from_db()
+        self.assertNotEqual(d.project, "پروژه نفوذ نامعتبر")
+
+    def test_update_cross_couple_contradiction_rejected(self):
+        """Bug 3 fix: Applicant NID points to Couple A, Spouse NID points to Couple B."""
+        d1 = HousingDossier.objects.create(
+            national_id="0111111111",
+            first_name="مرد الف",
+            spouse_national_id="0222222221",
+            archive_number=100096
+        )
+        d2 = HousingDossier.objects.create(
+            national_id="0333333333",
+            first_name="مرد ب",
+            spouse_national_id="0444444444",
+            archive_number=100097
+        )
+        headers = ["کد ملی متقاضی", "کد ملی همسر", "پروژه"]
+        # Applicant is d1, spouse is from d2
+        rows = [["0111111111", "0444444444", "پروژه ناسازگار"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertEqual(res["failed_count"], 1)
+        self.assertIn("دو پرونده متفاوت", res["errors"][0]["reasons"][0])
+        d1.refresh_from_db()
+        self.assertEqual(d1.spouse_national_id, "0222222221")  # Not overwritten!
+
+    def test_update_swapped_form_j_orientation(self):
+        """Bug 4 fix: In swapped match, applicant_form_j in row maps to spouse_form_j in DB."""
+        d = HousingDossier.objects.create(
+            national_id="0555666777",
+            first_name="احمد",
+            last_name="صالحی",
+            spouse_national_id="0888999000",
+            spouse_first_name="زهرا",
+            spouse_last_name="کریمی",
+            applicant_form_j_status="سبز",
+            spouse_form_j_status="سبز",
+            archive_number=100098
+        )
+        headers = ["کد ملی متقاضی", "وضعیت فرم ج متقاضی"]
+        # Row has spouse NID in applicant column, status قرمز
+        rows = [["0888999000", "قرمز"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        d.refresh_from_db()
+        # Row's "وضعیت فرم ج متقاضی" must be written onto spouse_form_j_status!
+        self.assertEqual(d.applicant_form_j_status, "سبز")  # Applicant preserved!
+        self.assertEqual(d.spouse_form_j_status, "قرمز")    # Spouse updated!
+
+    def test_spouse_match_without_errors_has_no_failure_report(self):
+        """Bug 6 fix: Successful spouse match does not produce failure report."""
+        d = HousingDossier.objects.create(
+            national_id="0123456780",
+            first_name="متقاضی",
+            spouse_national_id="0987654320",
+            project="پروژه تست گزارش",
+            archive_number=100099
+        )
+        headers = ["کد ملی همسر", "پروژه"]
+        rows = [["0987654320", "پروژه جدید"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["failed_count"], 0)
+        self.assertIsNone(res["report_url"])  # No failure report!
+        self.assertIsNotNone(res["success_report_url"])  # Has success report!
+
+    def test_update_cross_dossier_applicant_and_spouse_ambiguity(self):
+        """Gap 1: NID is applicant in dossier A and spouse in dossier B -> rejected as ambiguous."""
+        HousingDossier.objects.create(
+            national_id="0321654987",
+            first_name="امیر در پرونده الف",
+            archive_number=100100
+        )
+        HousingDossier.objects.create(
+            national_id="0129873456",
+            first_name="متقاضی ب",
+            spouse_national_id="0321654987",  # Same NID as spouse in B
+            archive_number=100101
+        )
+        headers = ["کد ملی متقاضی", "پروژه"]
+        rows = [["0321654987", "پروژه مبهم بین الف و ب"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertEqual(res["failed_count"], 1)
+        self.assertIn("ابهام", res["errors"][0]["reasons"][0])
+
+    def test_update_identical_nid_in_applicant_and_spouse_updates_safely(self):
+        """User copied applicant NID into spouse column: update succeeds, spouse identity untouched."""
+        d = HousingDossier.objects.create(
+            national_id="0776655443",
+            first_name="متقاضی اصلی",
+            spouse_national_id="0887766554",
+            archive_number=100102
+        )
+        # Row has the exact same applicant NID in both applicant and spouse columns
+        headers = ["کد ملی متقاضی", "کد ملی همسر", "پروژه"]
+        rows = [["0776655443", "0776655443", "پروژه با کدملی تکراری"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertEqual(res["updated_count"], 1)
+        self.assertEqual(res["failed_count"], 0)
+        d.refresh_from_db()
+        self.assertEqual(d.project, "پروژه با کدملی تکراری")
+        # Ensure spouse_national_id is NOT overwritten with applicant's NID
+        self.assertEqual(d.spouse_national_id, "0887766554")
+        self.assertTrue(any("یکسان درج شده است" in w for w in res["warnings"]))
+
+    def test_update_new_spouse_national_id_collides_with_existing_applicant(self):
+        """Gap 3: Updating spouse_national_id to an NID belonging to an applicant elsewhere is prevented."""
+        d_target = HousingDossier.objects.create(
+            national_id="0101010101",
+            first_name="هدف",
+            spouse_national_id="",
+            archive_number=100103
+        )
+        d_other = HousingDossier.objects.create(
+            national_id="0202020202",
+            first_name="مالک کدملی",
+            archive_number=100104
+        )
+        headers = ["کد ملی متقاضی", "کد ملی همسر", "پروژه"]
+        # Trying to set d_target's spouse to 0202020202 (d_other's applicant ID)
+        rows = [["0101010101", "0202020202", "پروژه هدف"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertEqual(res["failed_count"], 1)
+        self.assertIn("دو پرونده متفاوت", res["errors"][0]["reasons"][0])
+        d_target.refresh_from_db()
+        self.assertEqual(d_target.spouse_national_id, "")  # Collision prevented!
+
+    def test_update_swapped_dropped_columns_warning(self):
+        """Gap 4: Swapped row warns user when applicant_phone is dropped."""
+        d = HousingDossier.objects.create(
+            national_id="0303030303",
+            first_name="متقاضی",
+            applicant_phone="09121111111",
+            spouse_national_id="0404040404",
+            spouse_first_name="همسر",
+            archive_number=100105
+        )
+        headers = ["کد ملی متقاضی", "تلفن همراه", "پروژه"]
+        # Swapped: row has spouse NID in applicant column, with a phone number
+        rows = [["0404040404", "09129999999", "پروژه معکوس"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        d.refresh_from_db()
+        self.assertEqual(d.project, "پروژه معکوس")
+        self.assertEqual(d.applicant_phone, "09121111111")  # Phone was not overwritten!
+        self.assertTrue(any("نادیده گرفته شد" in w for w in res["warnings"]))
+
+    def test_update_errors_contain_no_dynamic_dossier_numbers_for_clean_excel_filtering(self):
+        """Standardized error strings without archive/row numbers enable clean Excel AutoFilter grouping."""
+        HousingDossier.objects.create(
+            national_id="0909090909",
+            first_name="تکرار",
+            archive_number=100106
+        )
+        headers = ["کد ملی متقاضی", "پروژه"]
+        # Two rows resolving to the same dossier
+        rows = [
+            ["0909090909", "پروژه ردیف اول"],
+            ["0909090909", "پروژه ردیف دوم"],
+        ]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertEqual(res["failed_count"], 1)
+        reason = res["errors"][0]["reasons"][0]
+        # Must be exact categorizable string, NO dynamic archive number or row number
+        self.assertEqual(reason, "پرونده قبلاً در همین فایل بروزرسانی شده است (تکرار پرونده یا زوجین).")
+        self.assertNotIn("100106", reason)
+        self.assertNotIn("ردیف", reason)
+
+    def test_update_applicant_priority_over_spouse_regardless_of_row_order(self):
+        """When both spouse and applicant appear in the same file, applicant row ALWAYS wins."""
+        d = HousingDossier.objects.create(
+            national_id="0505050505",
+            first_name="شوهر_متقاضی",
+            last_name="اصلی",
+            spouse_national_id="0606060606",
+            spouse_first_name="همسر",
+            spouse_last_name="اصلی",
+            project="پروژه اولیه",
+            archive_number=100107,
+        )
+        headers = ["کد ملی متقاضی", "پروژه"]
+        # Row 1 has Spouse (0606060606), Row 2 has Applicant (0505050505)
+        # Even though Row 1 is higher up, Row 2 (Applicant) MUST win!
+        rows = [
+            ["0606060606", "داده ردیف همسر"],
+            ["0505050505", "داده ردیف متقاضی برنده"],
+        ]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        self.assertEqual(res["failed_count"], 1)
+
+        d.refresh_from_db()
+        # The applicant's row was the one applied!
+        self.assertEqual(d.project, "داده ردیف متقاضی برنده")
+
+        # The spouse row was rejected as duplicate with warning
+        self.assertEqual(res["errors"][0]["row"], 2)  # Excel row 2 is the spouse row
+        self.assertIn("قبلاً در همین فایل", res["errors"][0]["reasons"][0])
+        self.assertTrue(any("اولویت متقاضی اصلی" in w for w in res["warnings"]))
+
+    def test_create_with_total_price_calculates_base_cost_and_default_loan(self):
+        """Total price 11B Rials in Excel create auto-calculates base_cost (4.5B) with default 6.5B loan."""
+        headers = ["کد ملی متقاضی", "نام متقاضی", "نام خانوادگی متقاضی", "مبلغ کل قرارداد"]
+        rows = [["0881122334", "سعید", "کریمی", "11,000,000,000"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_create(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["created_count"], 1)
+
+        d = HousingDossier.objects.get(national_id="0881122334")
+        self.assertEqual(d.bank_loan_amount, 6500000000)
+        self.assertEqual(d.base_cost_without_loan, 4500000000)
+
+    def test_create_with_total_price_and_custom_loan(self):
+        """Total price 11B with custom loan 5.5B calculates base_cost as 5.5B."""
+        headers = ["کد ملی متقاضی", "نام متقاضی", "مبلغ کل قرارداد", "وام ساخت بانک مسکن"]
+        rows = [["0881122335", "نادر", "11,000,000,000", "5,500,000,000"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_create(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["created_count"], 1)
+
+        d = HousingDossier.objects.get(national_id="0881122335")
+        self.assertEqual(d.bank_loan_amount, 5500000000)
+        self.assertEqual(d.base_cost_without_loan, 5500000000)
+
+    def test_update_with_total_price_calculates_base_cost(self):
+        """Total price in Excel update calculates base_cost against existing loan."""
+        d = HousingDossier.objects.create(
+            national_id="0881122336",
+            first_name="محسن",
+            bank_loan_amount=6500000000,
+            base_cost_without_loan=4000000000,
+            archive_number=100108,
+        )
+        headers = ["کد ملی متقاضی", "مبلغ کل"]
+        # Updating total price to 11B -> base_cost should become 11B - 6.5B = 4.5B
+        rows = [["0881122336", "11,000,000,000"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+
+        d.refresh_from_db()
+        self.assertEqual(d.base_cost_without_loan, 4500000000)
+        self.assertEqual(d.bank_loan_amount, 6500000000)
+
+    def test_update_with_total_price_and_custom_loan(self):
+        """Updating total price and loan simultaneously computes base_cost accurately."""
+        d = HousingDossier.objects.create(
+            national_id="0881122337",
+            first_name="حامد",
+            bank_loan_amount=6500000000,
+            base_cost_without_loan=4000000000,
+            archive_number=100109,
+        )
+        headers = ["کد ملی متقاضی", "قیمت تمام شده کل", "وام ساخت"]
+        # Setting total to 11B and loan to 5.5B -> base_cost becomes 5.5B
+        rows = [["0881122337", "11000000000", "5500000000"]]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+
+        d.refresh_from_db()
+        self.assertEqual(d.bank_loan_amount, 5500000000)
+        self.assertEqual(d.base_cost_without_loan, 5500000000)
+
     def test_selective_category_export(self):
         """Case 13: Export with selected_categories exports only chosen column groups."""
         from workflow.excel_utils import generate_dossiers_export
@@ -640,3 +1045,151 @@ class ExcelBulkOperationsTestCase(TestCase):
 
         dD_green.refresh_from_db()
         self.assertEqual(dD_green.current_stage, 4) # Green Form J advanced 3 -> 4
+
+    def test_update_template_plaque_fields_and_no_duplicates(self):
+        """Verify update template has no duplicate columns and has exact 3 separated + 1 composite plaque fields."""
+        from workflow.excel_utils import generate_update_template, process_excel_update
+        buf = generate_update_template()
+        wb = openpyxl.load_workbook(buf, data_only=True)
+        ws = wb.worksheets[0]
+        headers = [c for c in next(ws.iter_rows(values_only=True)) if c]
+
+        # Check no duplicates
+        self.assertEqual(len(headers), len(set(headers)), "Headers in update template must be unique!")
+
+        # Check plaque columns: exactly 3 separated + 1 composite
+        self.assertIn("پلاک اصلی", headers)
+        self.assertIn("پلاک مفروز", headers)
+        self.assertIn("پلاک فرعی", headers)
+        self.assertIn("فرعی / مفروز ومجزا / اصلی", headers)
+
+        # Check that old duplicate variants are not in the template headers
+        self.assertNotIn("پلاک ثبتی اصلی", headers)
+        self.assertNotIn("پلاک ثبتی مفروز و مجزی", headers)
+        self.assertNotIn("پلاک ثبتی فرعی", headers)
+        self.assertNotIn("فرعی از", headers)
+        self.assertNotIn("فرعی از (پلاک فرعی)", headers)
+
+        # Verify update with 3 separated columns works
+        d1 = HousingDossier.objects.create(
+            national_id="0011223344",
+            archive_number=100095
+        )
+        f_sep = make_excel_file(
+            ["کد ملی متقاضی", "پلاک اصلی", "پلاک مفروز", "پلاک فرعی"],
+            [["0011223344", 500, 25, 4]]
+        )
+        res_sep = process_excel_update(f_sep, user=self.admin_user, preview=False)
+        self.assertTrue(res_sep["success"])
+        d1.refresh_from_db()
+        self.assertEqual(d1.main_plaque, 500)
+        self.assertEqual(d1.separated_plaque, 25)
+        self.assertEqual(d1.sub_plaque, 4)
+
+    def test_update_with_spouse_zero_does_not_fail(self):
+        """Verify that rows with spouse national id as 0, '0', or '0000000000' do not throw errors."""
+        from workflow.excel_utils import clean_national_id, get_national_id_variants, process_excel_update
+
+        # Unit tests on helpers
+        self.assertIsNone(clean_national_id(0))
+        self.assertIsNone(clean_national_id("0"))
+        self.assertIsNone(clean_national_id(0.0))
+        self.assertEqual(get_national_id_variants(0), [])
+        self.assertEqual(get_national_id_variants("0"), [])
+
+        d1 = HousingDossier.objects.create(
+            national_id="0019876543",
+            first_name="سارا",
+            last_name="عباسی",
+            spouse_national_id="",
+            archive_number=100096
+        )
+        d2 = HousingDossier.objects.create(
+            national_id="0029876543",
+            first_name="مریم",
+            last_name="حسینی",
+            spouse_national_id="",
+            archive_number=100097
+        )
+
+        headers = ["کد ملی متقاضی", "کد ملی همسر", "نام متقاضی", "قیمت پایه بدون وام (ریال)"]
+        rows = [
+            ["0019876543", 0, "سارا بروز شده", 5000000000],
+            ["0029876543", "0", "مریم بروز شده", 5200000000],
+        ]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 2)
+        self.assertEqual(res["failed_count"], 0)
+
+        d1.refresh_from_db()
+        self.assertEqual(d1.first_name, "سارا بروز شده")
+        self.assertEqual(d1.base_cost_without_loan, 5000000000)
+        self.assertEqual(d1.spouse_national_id, "") # Not corrupted to 0000000000
+
+        d2.refresh_from_db()
+        self.assertEqual(d2.first_name, "مریم بروز شده")
+        self.assertEqual(d2.base_cost_without_loan, 5200000000)
+        self.assertEqual(d2.spouse_national_id, "")
+
+    def test_update_rah_letter_headers_and_template(self):
+        """Verify that 'شماره نامه راه و شهرسازی' and date are present in template and can be updated."""
+        from workflow.excel_utils import generate_update_template, process_excel_update
+        buf = generate_update_template()
+        wb = openpyxl.load_workbook(buf, data_only=True)
+        ws = wb.worksheets[0]
+        headers = [c for c in next(ws.iter_rows(values_only=True)) if c]
+
+        self.assertIn("شماره نامه راه و شهرسازی", headers)
+        self.assertIn("تاریخ نامه راه و شهرسازی (شمسی)", headers)
+
+        d = HousingDossier.objects.create(
+            national_id="0098765432",
+            first_name="مهدی",
+            last_name="قاسمی",
+            archive_number=100098
+        )
+
+        update_headers = ["کد ملی متقاضی", "شماره نامه راه و شهرسازی", "تاریخ نامه راه و شهرسازی"]
+        update_rows = [
+            ["0098765432", "1405/9876/RH", "1405/08/15"]
+        ]
+        f = make_excel_file(update_headers, update_rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+
+        d.refresh_from_db()
+        self.assertEqual(d.rah_letter, "1405/9876/RH")
+        self.assertEqual(d.rah_letter_date, "1405/08/15")
+
+    def test_update_eleven_digit_national_id_and_shenase_melli_alias(self):
+        """Verify that 11-digit national IDs with extra zero match properly and 'شناسه ملی' alias works."""
+        from workflow.excel_utils import process_excel_update
+
+        d = HousingDossier.objects.create(
+            national_id="0382370651",
+            first_name="بهرام",
+            last_name="شمشیری",
+            archive_number=100099,
+            project="پروژه اولیه"
+        )
+
+        # Excel has header 'شناسه ملی' and value has 11 digits (double zero 00382370651)
+        update_headers = ["شناسه ملی", "نام پروژه مسکونی"]
+        update_rows = [
+            ["00382370651", "پروژه بهرام تغییر یافته"],
+            ["12345678901", "ردیف با شناسه نامعتبر ۱۱ رقمی"]  # Should fail gracefully without breaking file
+        ]
+        f = make_excel_file(update_headers, update_rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        self.assertEqual(res["failed_count"], 1)
+
+        d.refresh_from_db()
+        self.assertEqual(d.project, "پروژه بهرام تغییر یافته")

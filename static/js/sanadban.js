@@ -3,7 +3,7 @@ const SECTION_STAGE_MAP = {
   "section-applicant": [1, 8],
   "section-form-j": [3, 11],
   "section-spouse": [1],
-  "section-plot": [2, 8, 12, 14, 15],
+  "section-plot": [2, 8, 12, 13, 14, 15],
   "section-cost": [2, 19],
   "section-loans": [4, 19],
   "section-equity": [5],
@@ -15,7 +15,7 @@ const SECTION_STAGE_MAP = {
   "section-valuation": [16, 19],
   "section-valuation-rent": [16, 19],
   "section-checks": [17, 18],
-  "scans-album-section": [1, 7, 11, 13, 17, 18, 21],
+  "scans-album-section": [1, 7, 11, 13, 17, 18, 20, 21],
 };
 
 const FIELD_STAGE_MAP = {
@@ -57,13 +57,12 @@ const FIELD_STAGE_MAP = {
   storage_area: [1, 8, 9],
   parking_number: [1, 8, 9],
   parking_area: [1, 8, 9],
-  covered_parking_area: [1, 8, 9],
-  registration_section: [2, 8, 9, 12, 14],
-  main_plaque: [2, 8, 9, 12, 14],
-  separated_plaque: [2, 8, 9, 12, 14],
-  sub_plaque: [2, 8, 9, 12, 14],
-  plot_number: [2, 8, 9, 12, 14],
-  renovation_code: [2, 8, 9, 12, 14],
+  registration_section: [2, 8, 9, 12, 13, 14],
+  main_plaque: [2, 8, 9, 12, 13, 14],
+  separated_plaque: [2, 8, 9, 12, 13, 14],
+  sub_plaque: [2, 8, 9, 12, 13, 14],
+  plot_number: [2, 8, 9, 12, 13, 14],
+  renovation_code: [2, 8, 9, 12, 13, 14],
   base_cost_without_loan: [2, 19],
   form_j_questionnaire_number: [1, 3, 7, 8, 11],
   applicant_form_j_status: [1, 3, 8, 11],
@@ -122,6 +121,12 @@ const FIELD_STAGE_MAP = {
   is_preparation_checks_confirmed: [18],
   rah_letter: [20],
   rah_letter_date: [20],
+  deed_number: [13],
+  deed_date: [13],
+  is_land_deed_confirmed: [13],
+  notary_office_number: [20],
+  notary_letter_number: [20],
+  notary_letter_date: [20],
 };
 
 /**
@@ -214,6 +219,12 @@ const PersianNumberWords = {
   formatThousand(val) {
     if (!val && val !== 0) return "";
     return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  },
+
+  toPersianDigits(val) {
+    if (val === null || val === undefined) return "";
+    const faDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+    return String(val).replace(/[0-9]/g, (d) => faDigits[d]);
   },
 };
 
@@ -847,7 +858,6 @@ document.addEventListener("alpine:init", () => {
       storage_area: 0,
       parking_number: null,
       parking_area: 0,
-      covered_parking_area: 0,
 
       // Stage 2: Plot & Registry
       registration_section: "",
@@ -912,6 +922,12 @@ document.addEventListener("alpine:init", () => {
       preparation_check_entries: [],
       rah_letter: "",
       rah_letter_date: "",
+      deed_number: "",
+      deed_date: "",
+      is_land_deed_confirmed: false,
+      notary_office_number: "",
+      notary_letter_number: "",
+      notary_letter_date: "",
       is_cash_rent_confirmed: false,
       is_decile_loan_confirmed: false,
       is_preparation_checks_confirmed: false,
@@ -929,6 +945,14 @@ document.addEventListener("alpine:init", () => {
     auditActiveTab: "stages", // 'stages' or 'fields'
     showAuditDetails: true, // Expanded by default so audit logs load immediately
     stepperExpanded: false, // 21-step progress bar expansion toggle
+
+    // Deletion and Archive State
+    isDeleted: false,
+    deletionReason: "",
+    deletedBy: "",
+    deletedAt: "",
+    showDeleteModal: false,
+    deleteReason: "",
 
     // Red Form J Disqualification State
     isRejected: false,
@@ -1076,6 +1100,14 @@ document.addEventListener("alpine:init", () => {
           if (serverData.rejection_reason)
             this.rejectionReason = serverData.rejection_reason;
           if (serverData.rejected_by) this.rejectedBy = serverData.rejected_by;
+          if (typeof serverData.is_deleted !== "undefined")
+            this.isDeleted = Boolean(serverData.is_deleted);
+          if (serverData.deletion_reason)
+            this.deletionReason = serverData.deletion_reason;
+          if (serverData.deleted_by)
+            this.deletedBy = serverData.deleted_by;
+          if (serverData.deleted_at)
+            this.deletedAt = serverData.deleted_at;
           if (serverData.form) {
             this.form = Object.assign({}, this.form, serverData.form);
           }
@@ -2181,16 +2213,19 @@ document.addEventListener("alpine:init", () => {
         } else if (this.currentStage === 7) {
           computedTitle = "اسکن دفترچه اقساط تسهیلات بانک مسکن";
           computedType = "BANK_BOOKLET";
-        } else if (this.currentStage === 12) {
-          computedTitle = "اسکن سند مالکیت تک‌برگ عرصه و اعیان";
+        } else if (this.currentStage === 12 || this.currentStage === 13) {
+          computedTitle = "اسکن سند مالکیت عرصه";
           computedType = "TITLE_DEED";
-        } else if (this.currentStage === 16) {
+        } else if (this.currentStage === 16 || this.currentStage === 17) {
           computedTitle = "اسکن چک صیادی تسهیلات دهک";
           computedType = "LOAN_CHECK";
-        } else if (this.currentStage === 17) {
+        } else if (this.currentStage === 18) {
           computedTitle = "اسکن چک‌های آماده‌سازی و اجاره";
           computedType = "PREP_CHECK";
         } else if (this.currentStage === 20) {
+          computedTitle = "اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)";
+          computedType = "NOTARY_LETTER";
+        } else if (this.currentStage === 21) {
           computedTitle = "اسکن قرارداد اجاره عرصه";
           computedType = "OTHER";
         }
@@ -2586,6 +2621,32 @@ document.addEventListener("alpine:init", () => {
     },
     hasFormJ() {
       return Boolean(this.getFormJAttachment());
+    },
+
+    getDeedAttachment() {
+      return (this.attachments || []).find(
+        (a) =>
+          a.type === "TITLE_DEED" ||
+          a.doc_type === "TITLE_DEED" ||
+          a.type === "LAND_DEED" ||
+          a.doc_type === "LAND_DEED" ||
+          (a.title && a.title.includes("سند")),
+      );
+    },
+    hasDeedAttachment() {
+      return Boolean(this.getDeedAttachment());
+    },
+
+    getNotaryAttachment() {
+      return (this.attachments || []).find(
+        (a) =>
+          a.type === "NOTARY_LETTER" ||
+          a.doc_type === "NOTARY_LETTER" ||
+          (a.title && (a.title.includes("محضر") || a.title.includes("دفترخانه"))),
+      );
+    },
+    hasNotaryAttachment() {
+      return Boolean(this.getNotaryAttachment());
     },
 
     // --------------------------------------------------------------------------
@@ -3239,6 +3300,92 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
+    // General Dossier Deletion & Archival Handlers
+    openDeleteModal() {
+      this.deleteReason = "";
+      this.showDeleteModal = true;
+    },
+
+    async confirmDeleteDossier() {
+      if (!this.deleteReason || !this.deleteReason.trim()) {
+        this.triggerToast("لطفاً علت حذف پرونده را مرقوم فرمایید.", "warning");
+        return;
+      }
+      this.isSaving = true;
+      try {
+        const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+        const res = await fetch(`/dossier/${this.archiveNumber}/delete-archive/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+          body: JSON.stringify({
+            reason: this.deleteReason.trim(),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          this.status = data.dossier_status || "DELETED";
+          this.isLocked = Boolean(data.is_locked);
+          this.isDeleted = true;
+          this.deletionReason = data.deletion_reason;
+          this.deletedBy = data.deleted_by;
+          this.showDeleteModal = false;
+          this.triggerToast(
+            data.message || "پرونده با موفقیت حذف و به بایگانی راکد منتقل گردید.",
+            "success"
+          );
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          this.triggerToast(err.message || "خطا در حذف پرونده.", "error");
+        }
+      } catch (e) {
+        console.error("Delete error:", e);
+        this.triggerToast("خطا در برقراری ارتباط با سرور.", "error");
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
+    async restoreDeletedDossier() {
+      if (!confirm("آیا از بازیابی این پرونده و بازگردانی آن به چرخه فعال اطمینان دارید؟")) {
+        return;
+      }
+      this.isSaving = true;
+      try {
+        const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+        const res = await fetch(`/dossier/${this.archiveNumber}/restore/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          this.status = data.dossier_status || "IN_PROGRESS";
+          this.isLocked = false;
+          this.isDeleted = false;
+          this.triggerToast(data.message || "پرونده با موفقیت بازیابی شد.", "success");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          this.triggerToast(err.message || "خطا در بازیابی پرونده.", "error");
+        }
+      } catch (e) {
+        console.error("Restore error:", e);
+        this.triggerToast("خطا در برقراری ارتباط با سرور.", "error");
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
     // Red Form J Disqualification & Archival Handler
     openRedRejectionModal() {
       this.redLetterNumber =
@@ -3414,12 +3561,64 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
+    async recalculateLandRates() {
+      const code = (this.form.renovation_code || "").trim();
+      const project = (this.form.project || "").trim();
+      const plot = String(this.form.plot_number || "").trim();
+      const block = (this.form.block_name || "").trim();
+
+      if (!code && !project && !plot) {
+        this.triggerToast("لطفاً حداقل نام پروژه و شماره قطعه (یا کد نوسازی) را مشخص فرمایید.", "warning");
+        return;
+      }
+      const net = this.form.net_unit_area || this.form.unit_area || 0;
+      const storage = this.form.storage_area || 0;
+      const parking = this.form.parking_area || 0;
+      try {
+        const params = new URLSearchParams({
+          code: code,
+          project: project,
+          plot: plot,
+          block: block,
+          net: net,
+          storage: storage,
+          parking: parking,
+        });
+        const resp = await fetch(`/api/calculate-land-rates/?${params.toString()}`);
+        const res = await resp.json();
+        if (res.success && res.data) {
+          const d = res.data;
+          this.form.total_land_share = d.total_land_share;
+          this.form.land_lease_year = d.land_lease_year;
+          this.form.preparation_cost = d.preparation_cost;
+          this.form.past_years_rent = d.past_years_rent;
+          this.form.current_year_rent = d.current_year_rent;
+          if (!this.form.renovation_code && d.renovation_code) {
+            this.form.renovation_code = d.renovation_code;
+          }
+          if (!this.form.plot_number && d.plot_number) {
+            this.form.plot_number = d.plot_number;
+          }
+          this.triggerToast("ارقام بخش ۹ بر اساس نرخ مصوب قطعه با موفقیت محاسبه شدند.", "success");
+        } else {
+          this.triggerToast(res.error || "نرخ مصوب برای این قطعه/پروژه یافت نشد.", "error");
+        }
+      } catch (err) {
+        console.error("Calculate land rates error:", err);
+        this.triggerToast("خطا در محاسبه آنلاین: " + err.message, "error");
+      }
+    },
+
     toWords(num) {
       return PersianNumberWords.toWords(num);
     },
 
     formatNumber(num) {
       return PersianNumberWords.formatThousand(num);
+    },
+
+    toPersianDigits(num) {
+      return PersianNumberWords.toPersianDigits(num);
     },
 
     triggerToast(msg, type = "success") {

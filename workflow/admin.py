@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Site, Project, PreSelectedUnit, HousingDossier, DossierAttachment, WorkflowSignatureLog, BankLetter, UserProfile
+from .models import Site, Project, PreSelectedUnit, HousingDossier, DossierAttachment, WorkflowSignatureLog, BankLetter, UserProfile, LandRate
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -60,3 +60,9 @@ class BankLetterAdmin(admin.ModelAdmin):
     list_display = ("letter_number", "letter_date", "project_name", "sender_name", "created_at")
     search_fields = ("letter_number", "project_name", "sender_name")
     filter_horizontal = ("dossiers",)
+
+@admin.register(LandRate)
+class LandRateAdmin(admin.ModelAdmin):
+    list_display = ("renovation_code", "project_name", "plot_number", "block_name", "rent_current_per_m2", "rent_to_date_per_m2", "prep_per_m2", "updated_at")
+    search_fields = ("renovation_code", "project_name", "block_name", "plot_number")
+    list_filter = ("project_name",)
