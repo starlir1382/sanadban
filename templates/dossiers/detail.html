@@ -921,7 +921,7 @@
       <span>نقشه مراحل</span>
     </button>
     {% endif %}
-    {% if is_full_admin %}
+    {% if is_full_admin or can_view_audit %}
     <button
       type="button"
       class="dt-tab"
@@ -943,8 +943,8 @@
         <path d="M2 2l7.586 7.586"></path>
         <circle cx="11" cy="11" r="2"></circle>
       </svg>
-      <span>سوابق امضا</span>
-      <span class="dt-count fa-num" x-text="auditLogs.length"></span>
+      <span>سوابق و لاگ ممیزی</span>
+      <span class="dt-count fa-num" x-text="auditLogs.length + (fieldChanges ? fieldChanges.length : 0)"></span>
     </button>
     {% endif %}
     <button
@@ -1024,8 +1024,8 @@
   </div>
   {% endif %}
 
-  {% if is_full_admin %}
-  <!-- TAB: signature history -->
+  {% if is_full_admin or can_view_audit %}
+  <!-- TAB: signature history & audit log -->
   <div x-show="tab === 'history'" id="history">
     {% include 'components/audit_timeline.html' %}
   </div>

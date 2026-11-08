@@ -29,7 +29,7 @@ if __name__ == "__main__":
         host=host,
         port=port,
         threads=threads,
-        channel_timeout=180,
+        channel_timeout=600,
         cleanup_interval=30,
         connection_limit=1000,
         backlog=2048,

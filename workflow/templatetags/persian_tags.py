@@ -43,3 +43,33 @@ def fa_currency(value):
         return "-"
     formatted = fa_number(value)
     return mark_safe(f"{formatted} <span class='unit'>ریال</span>")
+
+
+@register.filter(name="jalali_datetime")
+def jalali_datetime(value, fmt="%Y/%m/%d %H:%M"):
+    """Converts a datetime to Jalali string format."""
+    if not value:
+        return ""
+    try:
+        import jdatetime
+        from django.utils import timezone
+        dt = value
+        if hasattr(dt, "strftime"):
+            if timezone.is_aware(dt):
+                dt = timezone.localtime(dt)
+            return jdatetime.datetime.fromgregorian(datetime=dt).strftime(fmt)
+        return str(value)
+    except Exception:
+        return str(value)
+
+
+@register.filter(name="jalali_datetime_full")
+def jalali_datetime_full(value):
+    """Converts a datetime to Jalali string format with seconds."""
+    return jalali_datetime(value, fmt="%Y/%m/%d %H:%M:%S")
+
+
+@register.filter(name="jalali_date")
+def jalali_date(value):
+    """Converts a date/datetime to Jalali date format."""
+    return jalali_datetime(value, fmt="%Y/%m/%d")

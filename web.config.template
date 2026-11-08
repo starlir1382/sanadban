@@ -22,4 +22,8 @@
             </customHeaders>
         </httpProtocol>
     </system.webServer>
+    <system.web>
+        <!-- Increase ASP.NET / IIS executionTimeout to 600s (10 min) and max upload size -->
+        <httpRuntime executionTimeout="600" maxRequestLength="104857" />
+    </system.web>
 </configuration>

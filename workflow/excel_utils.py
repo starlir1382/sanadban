@@ -56,6 +56,33 @@ import threading
 _export_lock = threading.Lock()
 _export_cache: Dict[str, Tuple[str, float, int]] = {}
 
+
+def set_excel_task_progress(
+    task_id: Optional[str],
+    stage: str,
+    percent: int,
+    message: str,
+    details: str = "",
+) -> None:
+    """Store current processing progress in Django cache for frontend real-time tracking."""
+    if not task_id:
+        return
+    try:
+        from django.core.cache import cache
+        cache.set(
+            f"excel_task_{task_id}",
+            {
+                "stage": stage,
+                "percent": int(percent),
+                "message": message,
+                "details": details,
+                "timestamp": time.time(),
+            },
+            timeout=600,
+        )
+    except Exception:
+        pass
+
 # -------------------------------------------------------------------------
 # Single Import Header Spec (Headers -> Model Field, Type)
 # No duplicate headers, no lambda display rows, includes commission cols
@@ -92,8 +119,8 @@ TEMPLATE_FIELD_SPECS = [
     ("نام پروژه مسکونی", "project", "str"),
     ("کد پروژه مسکونی", "project_code", "str"),
     ("شماره بلوک", "block_number", "str"),
-    ("شماره طبقه", "floor_number", "str"),
-    ("شماره واحد", "unit_number", "str"),
+    ("شماره طبقه", "floor_number", "int"),
+    ("شماره واحد", "unit_number", "int"),
     ("رتبه انتخابی متقاضی", "selection_rank", "int"),
     ("نام بانک عامل", "bank_name", "str"),
     ("شعبه بانک عامل", "bank_branch", "str"),
@@ -589,7 +616,17 @@ def clean_phone(val: Any) -> str:
     return s
 
 def parse_price(val: Any) -> int:
-    s = clean_digits(val).replace(",", "").replace("/", "").replace("_", "")
+    if val is None:
+        return 0
+    s = clean_digits(val).replace(",", "").replace("/", "").replace("_", "").replace(" ", "").replace("ریال", "")
+    if s.count(".") > 1:
+        s = s.replace(".", "")
+    elif "." in s:
+        parts = s.split(".")
+        if len(parts[1]) == 3:
+            s = s.replace(".", "")
+        else:
+            s = parts[0]
     if not s:
         return 0
     try:
@@ -646,6 +683,11 @@ def clean_field_value(field_name: str, field_type: str, val: Any) -> Tuple[Optio
         if not c_nid:
             return None, "کد ملی باید ۸ تا ۱۰ رقم عددی باشد."
         return c_nid, None
+    if field_name in ("floor_number", "unit_number"):
+        s_val = str(val).strip()
+        if "همکف" in s_val or "ground" in s_val.lower():
+            return 0, None
+        return parse_int(val), None
     elif field_type == "price":
         p = parse_price(val)
         return p, None
@@ -969,13 +1011,121 @@ def generate_spouse_swap_template() -> io.BytesIO:
 # -------------------------------------------------------------------------
 def _build_header_map(raw_headers: List[Any]) -> Tuple[Dict[int, Tuple[str, str, str]], Optional[int]]:
     """
-    Builds column mapping using pre-known template indexes as well as header title & alias matching.
+    Builds column mapping using title & alias matching across all known field specifications.
     Ensures 'ردیف' and row sequence columns are never mapped to national_id or other fields.
     Returns (col_map, national_id_col_idx).
     """
     col_map: Dict[int, Tuple[str, str, str]] = {}
     nid_col: Optional[int] = None
-    spec_by_header = {normalize_header(spec[0]): spec for spec in TEMPLATE_FIELD_SPECS}
+
+    # Comprehensive dictionary of (normalized_header -> (header_title, field_name, field_type))
+    spec_by_header: Dict[str, Tuple[str, str, str]] = {}
+
+    for spec in TEMPLATE_FIELD_SPECS:
+        spec_by_header[normalize_header(spec[0])] = spec
+
+    for spec in EXPORT_COLUMNS:
+        h, f, t = spec
+        if isinstance(f, str):
+            norm = normalize_header(h)
+            if norm not in spec_by_header:
+                spec_by_header[norm] = (h, f, t)
+
+    # Common aliases & variations
+    extra_field_specs: Dict[str, Tuple[str, str, str]] = {
+        "سایت": ("سایت مسکونی", "site", "str"),
+        "نام سایت": ("سایت مسکونی", "site", "str"),
+        "نوع ساخت": ("نوع ساخت", "construction_type", "str"),
+        "رتبه انتخاب واحد": ("رتبه انتخاب واحد", "selection_rank", "int"),
+        "نام بلوک": ("نام بلوک", "block_name", "str"),
+        "کد بلوک": ("کد بلوک", "block_code", "str"),
+        "شماره طبقه": ("شماره طبقه", "floor_number", "int"),
+        "شماره واحد": ("شماره واحد", "unit_number", "int"),
+        "کد واحد": ("کد واحد", "unit_code", "str"),
+        "تعداد خواب": ("تعداد خواب", "bedroom_count", "int"),
+        "جهت واحد": ("جهت واحد", "unit_direction", "str"),
+        "متراژ مفید واحد": ("متراژ مفید واحد", "net_unit_area", "decimal"),
+        "متراژ مفید واحد (م2)": ("متراژ مفید واحد", "net_unit_area", "decimal"),
+        "متراژ مشاعات": ("متراژ مشاعات", "common_area", "decimal"),
+        "متراژ مشاعات (م2)": ("متراژ مشاعات", "common_area", "decimal"),
+        "جمع کل متراژ واحد": ("جمع کل متراژ واحد", "total_area", "decimal"),
+        "جمع کل متراژ واحد (م2)": ("جمع کل متراژ واحد", "total_area", "decimal"),
+        "مساحت واحد": ("مساحت واحد", "unit_area", "decimal"),
+        "مساحت واحد (م2)": ("مساحت واحد", "unit_area", "decimal"),
+        "شماره انباری": ("شماره انباری", "storage_number", "int"),
+        "مساحت انباری": ("مساحت انباری", "storage_area", "decimal"),
+        "مساحت انباری (م2)": ("مساحت انباری", "storage_area", "decimal"),
+        "شماره پارکینگ": ("شماره پارکینگ", "parking_number", "int"),
+        "مساحت پارکینگ": ("مساحت پارکینگ", "parking_area", "decimal"),
+        "مساحت پارکینگ (م2)": ("مساحت پارکینگ", "parking_area", "decimal"),
+        "متراژ پارکینگ مسقف (م2)": ("متراژ پارکینگ مسقف", "parking_area", "decimal"),
+        "جمع کل قدرالسهم": ("جمع کل قدرالسهم", "total_land_share", "decimal"),
+        "جمع کل قدرالسهم (م2)": ("جمع کل قدرالسهم", "total_land_share", "decimal"),
+        "قیمت تمام شده بدون وام": ("قیمت تمام شده بدون وام", "base_cost_without_loan", "price"),
+        "قیمت تمام شده بدون وام (ریال)": ("قیمت تمام شده بدون وام", "base_cost_without_loan", "price"),
+        "مبلغ تسهیلات وام بانکی": ("مبلغ تسهیلات وام بانکی", "bank_loan_amount", "price"),
+        "مبلغ تسهیلات وام بانکی (ریال)": ("مبلغ تسهیلات وام بانکی", "bank_loan_amount", "price"),
+        "مبلغ وام صندوق": ("مبلغ وام صندوق", "fund_loan_amount", "price"),
+        "مبلغ وام صندوق (ریال)": ("مبلغ وام صندوق", "fund_loan_amount", "price"),
+        "مبلغ نامه پیمانکار": ("مبلغ نامه پیمانکار", "contractor_letter_amount", "price"),
+        "مبلغ نامه پیمانکار (ریال)": ("مبلغ نامه پیمانکار", "contractor_letter_amount", "price"),
+        "مبلغ وام دهک": ("مبلغ وام دهک", "decile_loan_amount", "price"),
+        "مبلغ وام دهک (ریال)": ("مبلغ وام دهک", "decile_loan_amount", "price"),
+        "مبلغ آورده نقدی متقاضی": ("مبلغ آورده نقدی متقاضی", "applicant_equity", "price"),
+        "مبلغ آورده نقدی متقاضی (ریال)": ("مبلغ آورده نقدی متقاضی", "applicant_equity", "price"),
+        "ارسال شده به بانک": ("ارسال شده به بانک", "is_sent_to_bank", "bool"),
+        "تاریخ ارسال به بانک": ("تاریخ ارسال به بانک", "bank_sent_date", "str"),
+        "تاریخ ارسال به بانک (شمسی)": ("تاریخ ارسال به بانک", "bank_sent_date", "str"),
+        "شماره نامه ارسال به بانک": ("شماره نامه ارسال به بانک", "bank_sent_letter_number", "str"),
+        "اضافه به لیست ارسالیها به بانک": ("اضافه به لیست ارسالیها به بانک", "is_added_to_bank_shipment_list", "bool"),
+        "اضافه به لیست ارسالی ها به بانک": ("اضافه به لیست ارسالیها به بانک", "is_added_to_bank_shipment_list", "bool"),
+        "بانک عامل تسهیلات دهک": ("بانک عامل تسهیلات دهک", "decile_loan_bank", "str"),
+        "نهاد تحت حمایت": ("نهاد تحت حمایت", "supported_institution", "str"),
+        "مبلغ اجاره سنوات گذشته": ("مبلغ اجاره سنوات گذشته", "past_years_rent", "price"),
+        "مبلغ اجاره سنوات گذشته (ریال)": ("مبلغ اجاره سنوات گذشته", "past_years_rent", "price"),
+        "مبلغ اجاره سال جاری": ("مبلغ اجاره سال جاری", "current_year_rent", "price"),
+        "مبلغ اجاره سال جاری (ریال)": ("مبلغ اجاره سال جاری", "current_year_rent", "price"),
+        "سال اجاره عرصه": ("سال اجاره عرصه", "land_lease_year", "int"),
+        "مبلغ پرداختی اجاره عرصه": ("مبلغ پرداختی اجاره عرصه", "tenant_price", "price"),
+        "مبلغ پرداختی اجاره عرصه (ریال)": ("مبلغ پرداختی اجاره عرصه", "tenant_price", "price"),
+        "کد پیگیری فیش اجاره": ("کد پیگیری فیش اجاره", "tenant_code", "str"),
+        "مبلغ نقدی آماده سازی": ("مبلغ نقدی آماده سازی", "cash_preparation_amount", "price"),
+        "مبلغ نقدی آمادهسازی": ("مبلغ نقدی آماده سازی", "cash_preparation_amount", "price"),
+        "مبلغ نقدی آماده سازی - 20% نقد": ("مبلغ نقدی آماده سازی", "cash_preparation_amount", "price"),
+        "مبلغ نقدی آمادهسازی - 20% نقد": ("مبلغ نقدی آماده سازی", "cash_preparation_amount", "price"),
+        "مبلغ نقدی آمادهسازی - 20% نقد (ریال)": ("مبلغ نقدی آماده سازی", "cash_preparation_amount", "price"),
+        "مبلغ غیرنقدی آماده سازی": ("مبلغ غیرنقدی آماده سازی", "non_cash_preparation_amount", "price"),
+        "مبلغ غیرنقدی آمادهسازی": ("مبلغ غیرنقدی آماده سازی", "non_cash_preparation_amount", "price"),
+        "مبلغ غیرنقدی آماده سازی - 80% اقساط": ("مبلغ غیرنقدی آماده سازی", "non_cash_preparation_amount", "price"),
+        "مبلغ غیرنقدی آمادهسازی - 80% اقساط": ("مبلغ غیرنقدی آماده سازی", "non_cash_preparation_amount", "price"),
+        "مبلغ غیرنقدی آمادهسازی - 80% اقساط (ریال)": ("مبلغ غیرنقدی آماده سازی", "non_cash_preparation_amount", "price"),
+        "کد پیگیری فیش پیش پرداخت آماده سازی": ("کد پیگیری پیش پرداخت آماده سازی", "prepayment_code", "str"),
+        "کد پیگیری فیش پیشپرداخت آمادهسازی": ("کد پیگیری پیش پرداخت آماده سازی", "prepayment_code", "str"),
+        "تعداد چکهای آماده سازی": ("تعداد چکهای آماده سازی", "preparation_check_count", "int"),
+        "تعداد چکهای آمادهسازی": ("تعداد چکهای آماده سازی", "preparation_check_count", "int"),
+        "تعداد چک های آماده سازی": ("تعداد چکهای آماده سازی", "preparation_check_count", "int"),
+        "تعداد چک های آماده‌سازی": ("تعداد چکهای آماده سازی", "preparation_check_count", "int"),
+        "مجموع مبلغ چکهای آماده سازی": ("مجموع چکهای آماده سازی", "total_preparation_check_amount", "price"),
+        "مجموع مبلغ چکهای آمادهسازی": ("مجموع چکهای آماده سازی", "total_preparation_check_amount", "price"),
+        "مجموع مبلغ چکهای آمادهسازی (ریال)": ("مجموع چکهای آماده سازی", "total_preparation_check_amount", "price"),
+        "شماره تعهدنامه": ("شماره تعهدنامه", "commitment_number", "str"),
+        "تاریخ تعهدنامه": ("تاریخ تعهدنامه", "commitment_date", "str"),
+        "تاریخ تعهدنامه (شمسی)": ("تاریخ تعهدنامه", "commitment_date", "str"),
+        "تعداد چکهای دهک": ("تعداد چکهای دهک", "check_count", "int"),
+        "تعداد چک های دهک": ("تعداد چکهای دهک", "check_count", "int"),
+        "مبلغ هر چک دهک": ("مبلغ هر چک دهک", "check_amount", "price"),
+        "مبلغ هر چک دهک (ریال)": ("مبلغ هر چک دهک", "check_amount", "price"),
+        "مبلغ چک آخر دهک": ("مبلغ چک آخر دهک", "last_check_amount", "price"),
+        "مبلغ چک آخر دهک (ریال)": ("مبلغ چک آخر دهک", "last_check_amount", "price"),
+        "مجموع مبلغ چکهای دهک": ("مجموع مبلغ چکهای دهک", "total_check_amount", "price"),
+        "مجموع مبلغ چکهای دهک (ریال)": ("مجموع مبلغ چکهای دهک", "total_check_amount", "price"),
+        "شماره نامه راه و شهرسازی": ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
+        "تاریخ نامه راه و شهرسازی": ("تاریخ نامه راه و شهرسازی", "rah_letter_date", "str"),
+        "تاریخ نامه راه و شهرسازی (شمسی)": ("تاریخ نامه راه و شهرسازی", "rah_letter_date", "str"),
+    }
+
+    for k, v in extra_field_specs.items():
+        spec_by_header[normalize_header(k)] = v
 
     # Step 1: Match by exact titles and aliases
     for idx, raw in enumerate(raw_headers):
@@ -1000,35 +1150,34 @@ def _build_header_map(raw_headers: List[Any]) -> Tuple[Dict[int, Tuple[str, str,
                 col_map[idx] = ("فرعی / مفروز ومجزا / اصلی", "composite_plaques", "composite_plaques")
                 continue
 
-        # Check exact spec title
-        if norm in spec_by_header:
-            col_map[idx] = spec_by_header[norm]
-            if spec_by_header[norm][1] == "national_id" and nid_col is None:
+        # Direct match from all specs
+        norm_clean = norm.replace("‌", " ").replace("(", "").replace(")", "").replace("²", "2").replace("٪", "%").strip()
+        matched_spec = spec_by_header.get(norm)
+        if not matched_spec:
+            matched_spec = spec_by_header.get(norm_clean)
+        if not matched_spec:
+            for k, v in spec_by_header.items():
+                k_clean = k.replace("‌", " ").replace("(", "").replace(")", "").replace("²", "2").replace("٪", "%").strip()
+                if k_clean == norm_clean:
+                    matched_spec = v
+                    break
+
+        if matched_spec:
+            col_map[idx] = matched_spec
+            if matched_spec[1] == "national_id" and nid_col is None:
                 nid_col = idx
             continue
 
         # Check aliases
         if norm in HEADER_ALIASES:
             field_name = HEADER_ALIASES[norm]
-            for spec in TEMPLATE_FIELD_SPECS:
-                if spec[1] == field_name:
-                    col_map[idx] = spec
+            for s in spec_by_header.values():
+                if s[1] == field_name:
+                    col_map[idx] = s
                     if field_name == "national_id" and nid_col is None:
                         nid_col = idx
                     break
             continue
-
-    # Step 2: Template Index Fallback
-    # If the sheet is formatted as our standard template (e.g. index 0 is national_id or col 0 title is کد ملی متقاضی),
-    # fill any missing unmapped columns according to TEMPLATE_FIELD_SPECS
-    is_template_layout = (nid_col == 0 or (0 in col_map and col_map[0][1] == "national_id"))
-    if is_template_layout:
-        for idx in range(min(len(TEMPLATE_FIELD_SPECS), len(raw_headers))):
-            if idx not in col_map:
-                raw_val = raw_headers[idx]
-                norm = normalize_header(raw_val) if raw_val else ""
-                if norm not in ("ردیف", "شماره ردیف", "row", "id", "شماره"):
-                    col_map[idx] = TEMPLATE_FIELD_SPECS[idx]
 
     # If nid_col is still None, scan col_map for national_id
     if nid_col is None:
@@ -1045,6 +1194,9 @@ def _build_header_map(raw_headers: List[Any]) -> Tuple[Dict[int, Tuple[str, str,
 def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_preview: Optional[bool] = None, **kwargs) -> Dict[str, Any]:
     if is_preview is not None:
         preview = is_preview
+    task_id = kwargs.get("task_id")
+    set_excel_task_progress(task_id, "reading", 10, "در حال بازگشایی و پردازش فایل اکسل ایجاد پرونده...", "خواندن کاربرگ‌ها")
+
     profile = getattr(user, "profile", None)
     is_admin = user.is_superuser or user.is_staff or (profile and profile.is_housing_chief)
     if not is_admin:
@@ -1053,6 +1205,12 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
     is_check_admin = user.is_superuser or (profile and getattr(profile, "is_check_admin", False))
     warnings: List[str] = []
     commission_warned = False
+
+    if hasattr(file_obj, "seek"):
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
 
     try:
         wb = openpyxl.load_workbook(file_obj, read_only=True, data_only=True)
@@ -1403,6 +1561,9 @@ SWAP_FIELD_PAIRS = [
 def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_preview: Optional[bool] = None, **kwargs) -> Dict[str, Any]:
     if is_preview is not None:
         preview = is_preview
+    task_id = kwargs.get("task_id")
+    set_excel_task_progress(task_id, "reading", 10, "در حال بازگشایی و خواندن شیت‌های فایل اکسل...", "آماده‌سازی شیت‌ها با موتور OpenPyXL")
+
     profile = getattr(user, "profile", None)
     is_admin = user.is_superuser or user.is_staff or (profile and profile.is_housing_chief)
     if not is_admin:
@@ -1427,6 +1588,8 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
 
     if not sheets_to_process:
         sheets_to_process = [wb.worksheets[0]]
+
+    set_excel_task_progress(task_id, "parsing", 25, "فایل اکسل با موفقیت باز شد. در حال استخراج و اعتبارسنجی ردیف‌ها...", f"تعداد {len(sheets_to_process)} کاربرگ شناسایی شد")
 
     parsed_rows: List[Dict[str, Any]] = []
     all_nids: Set[str] = set()
@@ -1489,6 +1652,15 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         for row_cells in row_stream:
             sheet_row_num += 1
             global_row_counter += 1
+            if global_row_counter % 1000 == 0:
+                pct = min(55, 25 + int(global_row_counter / 500))
+                set_excel_task_progress(
+                    task_id,
+                    "parsing",
+                    pct,
+                    f"در حال استخراج و اعتبارسنجی ردیف‌های اکسل ({global_row_counter:,} ردیف بررسی شد)...",
+                    "پاکسازی کدهای ملی و ساختار ستون‌ها",
+                )
             if not any(c is not None and str(c).strip() for c in row_cells):
                 continue
 
@@ -1600,6 +1772,13 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
     raw_headers = raw_headers_master
 
     # Preload DB dossiers in chunks matching any variant in national_id or spouse_national_id
+    set_excel_task_progress(
+        task_id,
+        "db_lookup",
+        60,
+        f"در حال استعلام و تطبیق با پایگاه داده ({len(all_nids):,} متقاضی و همسر)...",
+        f"مجموع ردیف‌های استخراج‌شده: {len(parsed_rows):,}",
+    )
     app_matches: Dict[str, HousingDossier] = {}
     spouse_matches: Dict[str, List[HousingDossier]] = {}
     loaded_pks: Set[int] = set()
@@ -1629,7 +1808,16 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
     unchanged_count = 0
     updated_count = 0
 
-    for item in parsed_rows:
+    for idx, item in enumerate(parsed_rows):
+        if idx > 0 and idx % 1000 == 0:
+            pct = 60 + int((idx / max(1, len(parsed_rows))) * 25)
+            set_excel_task_progress(
+                task_id,
+                "comparing",
+                pct,
+                f"در حال ارزیابی فیلدها و کشف تغییرات ({idx:,} از {len(parsed_rows):,})...",
+                f"پرونده‌های معتبر شناسایی‌شده: {valid_count:,}",
+            )
         nid = item["national_id"]
         if item["reasons"]:
             errors.append(item)
@@ -1871,13 +2059,21 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             "had_diffs": had_diffs
         }
 
+    set_excel_task_progress(
+        task_id,
+        "finalizing",
+        90,
+        "در حال تولید گزارش و ساخت پیش‌نمایش..." if preview else f"در حال ثبت نهایی {len(dossiers_to_update):,} پرونده در دیتابیس...",
+        "عملیات امن دیتابیس و اعتبارسنجی نهایی",
+    )
+
     report_url = None
     if errors:
         r_uuid = generate_failure_report(user.id, raw_headers, errors, spouse_matched_rows)
         report_url = f"/excel/report/{r_uuid}/"
 
     success_report_url = None
-    if valid_updated_records:
+    if valid_updated_records and not preview:
         success_rows = []
         for rec in valid_updated_records:
             d = rec["dossier"]
@@ -1897,6 +2093,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         success_report_url = f"/excel/report/{s_uuid}/"
 
     if preview:
+        set_excel_task_progress(task_id, "done", 100, "پیش‌نمایش تغییرات با موفقیت آماده شد.", "در حال بارگذاری نتایج...")
         return {
             "success": True,
             "error": None,
@@ -1937,11 +2134,6 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         # Safe batch size to prevent SQLite 'too many SQL variables' (max 32766 variables)
         SAFE_BATCH_SIZE = max(10, min(100, 25000 // (2 * max(1, len(all_update_fields)) + 1)))
 
-        for i in range(0, len(dossiers_to_update), SAFE_BATCH_SIZE):
-            chunk = dossiers_to_update[i : i + SAFE_BATCH_SIZE]
-            with transaction.atomic():
-                HousingDossier.objects.bulk_update(chunk, fields=all_update_fields)
-
         # Audit logs and field change logs
         actor_name = profile.full_name if profile and profile.full_name else (user.get_full_name() or user.username)
         actor_role = profile.role_title if profile and profile.role_title else "مدیر سیستم"
@@ -1973,15 +2165,22 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                     field_label=diff["label"],
                     old_value=diff["old"],
                     new_value=diff["new"],
-                    changed_by=user,
+                    changed_by=actor_name,
                     stage=d.current_stage
                 ))
 
-        for i in range(0, len(sig_logs), 200):
-            WorkflowSignatureLog.objects.bulk_create(sig_logs[i : i + 200])
-        for i in range(0, len(change_logs), 200):
-            DossierFieldChangeLog.objects.bulk_create(change_logs[i : i + 200])
+        with transaction.atomic():
+            if all_update_fields:
+                for i in range(0, len(dossiers_to_update), SAFE_BATCH_SIZE):
+                    chunk = dossiers_to_update[i : i + SAFE_BATCH_SIZE]
+                    HousingDossier.objects.bulk_update(chunk, fields=all_update_fields)
 
+            for i in range(0, len(sig_logs), 1000):
+                WorkflowSignatureLog.objects.bulk_create(sig_logs[i : i + 1000])
+            for i in range(0, len(change_logs), 1000):
+                DossierFieldChangeLog.objects.bulk_create(change_logs[i : i + 1000])
+
+    set_excel_task_progress(task_id, "done", 100, "بروزرسانی رکوردهای دیتابیس با موفقیت به پایان رسید.", "در حال بارگذاری گزارش نهایی...")
     return {
         "success": True,
         "error": None,
@@ -2002,6 +2201,9 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
 def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is_preview: Optional[bool] = None, **kwargs) -> Dict[str, Any]:
     if is_preview is not None:
         preview = is_preview
+    task_id = kwargs.get("task_id")
+    set_excel_task_progress(task_id, "reading", 10, "در حال بازگشایی و پردازش فایل اکسل امضای گروهی...", "خواندن کاربرگ‌ها")
+
     from .views import execute_dossier_sign
     from .stages import STAGE_ROLES, MAX_STAGE
 
@@ -2015,14 +2217,29 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
     except Exception as e:
         return {"success": False, "error": f"فایل اکسل نامعتبر است: {str(e)}"}
 
-    ws = wb.worksheets[0]
+    # Multi-sheet support: filter out guidance sheets
+    sheets_to_process = [s for s in wb.worksheets if "راهنما" not in (s.title or "") and "guide" not in (s.title or "").lower()]
+    ws = sheets_to_process[0] if sheets_to_process else wb.worksheets[0]
     all_rows = list(ws.iter_rows(values_only=True))
 
     if not all_rows:
         return {"success": False, "error": "فایل اکسل خالی است."}
 
-    header_row = list(all_rows[0] or [])
-    data_rows = all_rows[1:]
+    # Scan the first 10 rows to dynamically find the header row containing National ID or Stage
+    header_row_idx = 0
+    for r_idx in range(min(10, len(all_rows))):
+        row = all_rows[r_idx]
+        if not row:
+            continue
+        row_str = " ".join(str(c) for c in row if c is not None)
+        has_nid = any(k in row_str for k in ("کد ملی", "کدملی", "national_id", "national id", "شماره ملی"))
+        has_stg = "مرحله" in row_str or any(re.search(r"stage\s*\d+", str(c), re.I) for c in row if c)
+        if has_nid or has_stg:
+            header_row_idx = r_idx
+            break
+
+    header_row = list(all_rows[header_row_idx] or [])
+    data_rows = all_rows[header_row_idx + 1:]
 
     # Detect header columns
     nid_col: Optional[int] = None
@@ -2036,7 +2253,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
         h_str = str(h).strip()
         norm = normalize_header(h_str)
 
-        if norm in ("کد ملی متقاضی", "کدملی متقاضی", "کد ملی", "کدملی", "national_id", "national id"):
+        if norm in ("کد ملی متقاضی", "کدملی متقاضی", "کد ملی", "کدملی", "national_id", "national id", "شماره ملی"):
             nid_col = idx
             continue
 
@@ -2045,9 +2262,18 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
             continue
 
         h_digits = clean_digits(h_str)
-        m_stg = re.search(r"مرحله\s*(\d+)", h_digits)
+        # Matches: مرحله 1, مرحله1, مرحله - 1, مرحله: 1, مرحله ۱: انتخاب واحد
+        m_stg = re.search(r"مرحله\s*[-–:]*\s*(\d+)", h_digits)
         if m_stg:
             s_num = int(m_stg.group(1))
+            if 1 <= s_num <= MAX_STAGE:
+                stage_cols[idx] = s_num
+                continue
+
+        # Matches: Stage 1, Stage_1
+        m_stg_en = re.search(r"stage\s*[-–:_]*\s*(\d+)", h_digits, re.IGNORECASE)
+        if m_stg_en:
+            s_num = int(m_stg_en.group(1))
             if 1 <= s_num <= MAX_STAGE:
                 stage_cols[idx] = s_num
                 continue
@@ -2057,6 +2283,14 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
             if 1 <= s_num <= MAX_STAGE:
                 stage_cols[idx] = s_num
                 continue
+
+        if "مرحله" in h_str:
+            m_any_num = re.search(r"(\d+)", h_digits)
+            if m_any_num:
+                s_num = int(m_any_num.group(1))
+                if 1 <= s_num <= MAX_STAGE:
+                    stage_cols[idx] = s_num
+                    continue
 
         if norm in ("شماره مرحله", "مرحله", "مرحله گردش کار"):
             legacy_single_stg_col = idx
@@ -2072,6 +2306,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
     # Format A: Matrix Format (National ID in Col 1, Stage 1..22 in Headers)
     # -------------------------------------------------------------------------
     if stage_cols:
+        set_excel_task_progress(task_id, "parsing", 25, f"ستون‌های مراحل شناسایی شدند. در حال خواندن {len(data_rows):,} ردیف متقاضیان...", f"{len(stage_cols)} ستون مرحله شناسایی شد")
         parsed_rows: List[Dict[str, Any]] = []
         all_nids: Set[str] = set()
         errors: List[Dict[str, Any]] = []
@@ -2117,6 +2352,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                 "reasons": row_errors,
             })
 
+        set_excel_task_progress(task_id, "db_lookup", 60, f"در حال استعلام وضعیت پرونده‌ها از دیتابیس ({len(all_nids):,} متقاضی)...", f"مجموع ردیف‌های امضا: {len(parsed_rows):,}")
         app_matches: Dict[str, HousingDossier] = {}
         spouse_matches: Dict[str, List[HousingDossier]] = {}
         loaded_pks: Set[int] = set()
@@ -2133,6 +2369,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                 for v in get_national_id_variants(d.spouse_national_id):
                     spouse_matches.setdefault(v, []).append(d)
 
+        set_excel_task_progress(task_id, "signing", 75, "در حال بررسی و تحلیل امضاها و پرش‌های هوشمند مراحل...")
         seen_dossier_ids: Set[int] = set()
         valid_count = 0
         failed_count = 0
@@ -2250,11 +2487,14 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
             orig_stage_title = STAGE_ROLES.get(orig_stage, ("", "", f"مرحله {orig_stage}"))[2]
 
             if preview:
-                sim_stage = orig_stage
-                signed_labels = []
-                for stg in item["marked_stages"]:
-                    signed_labels.append(f"مرحله {stg}")
-                    sim_stage = dossier.find_next_actionable_stage(stg)
+                signed_labels = [f"مرحله {stg}" for stg in item["marked_stages"]]
+                # Simulate stages that will be signed: existing signed stages union marked stages
+                sim_signed = dossier.get_signed_stages_set() | set(item["marked_stages"])
+                sim_stage = 23
+                for s in range(orig_stage, 23):
+                    if s not in sim_signed:
+                        sim_stage = s
+                        break
 
                 target_stage_title = STAGE_ROLES.get(sim_stage, ("", "", f"مرحله {sim_stage}"))[2] if sim_stage <= MAX_STAGE else "بایگانی نهایی (مختومه)"
                 valid_count += 1
@@ -2316,9 +2556,28 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                         "original_cells": item["original_cells"]
                     })
                 else:
+                    # Recalculate target stage: dossier must go to the lowest unsigned stage (1..22)
+                    all_signed = dossier.get_signed_stages_set()
+                    target_stage = 23
+                    for s in range(orig_stage, 23):
+                        if s not in all_signed:
+                            target_stage = s
+                            break
+
+                    if target_stage >= 23 or (target_stage == 22 and 22 in all_signed):
+                        dossier.current_stage = 22
+                        dossier.is_locked = True
+                        dossier.status = "COMPLETED"
+                    else:
+                        dossier.current_stage = target_stage
+                        dossier.status = "IN_PROGRESS"
+                        dossier.return_reason = ""
+                        dossier.return_by = ""
+                        dossier.return_from_stage = None
+                    dossier.save()
+
                     transaction.savepoint_commit(sid)
                     valid_count += 1
-                    dossier.refresh_from_db()
                     end_stage = dossier.current_stage
                     end_stage_title = STAGE_ROLES.get(end_stage, ("", "", f"مرحله {end_stage}"))[2] if not dossier.is_locked else "بایگانی نهایی (مختومه)"
 
@@ -2369,6 +2628,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
             s_uuid = generate_success_report(user.id, ["مراحل امضاشده", "مرحله مقصد"], success_rows, title="امضاهای تاییدشده")
             success_report_url = f"/excel/report/{s_uuid}/"
 
+        set_excel_task_progress(task_id, "done", 100, "امضای گروهی با موفقیت انجام شد.", "در حال بارگذاری نتایج...")
         return {
             "success": True,
             "error": None,
@@ -2391,7 +2651,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
     # Format B: Legacy Single Stage Column Fallback (کد ملی متقاضی، مرحله، توضیحات)
     # -------------------------------------------------------------------------
     if legacy_single_stg_col is None:
-        return {"success": False, "error": "ستون‌های مرحله (مرحله ۱ تا ۲۲) در سربرگ اکسل یافت نشد."}
+        return {"success": False, "error": "ستون‌های مرحله (مرحله ۱ تا ۲۲) در سربرگ اکسل یافت نشد. اگر قصد بروزرسانی اطلاعات پرونده‌ها را دارید، لطفاً از تب «بروزرسانی پرونده‌ها» استفاده فرمایید."}
 
     parsed_rows: List[Dict[str, Any]] = []
     all_nids: Set[str] = set()

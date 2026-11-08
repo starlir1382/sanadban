@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load persian_tags %}
 
 {% block title %}{% if is_full_admin %}داشبورد نظارتی و رهگیری جامع پرونده‌ها | سامانه مسکن یار{% else %}کارپوشه تخصصی اقدام پرونده‌ها | سامانه مسکن یار{% endif %}{% endblock %}
 
@@ -1928,7 +1929,7 @@
                     {{ log.action_label|default:log.action }}
                   </span>
                 </td>
-                <td style="font-size: 0.72rem; color: #64748b;">{{ log.timestamp|date:'Y/m/d H:i' }}</td>
+                <td style="font-size: 0.72rem; color: #64748b;">{{ log.timestamp|jalali_datetime }}</td>
               </tr>
               {% empty %}
               <tr>

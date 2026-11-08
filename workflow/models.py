@@ -42,6 +42,23 @@ def normalize_national_id(val: Any) -> str:
         return digits.zfill(10)
     return str(val).strip()
 
+_PROJECT_BANK_CACHE = None
+
+def get_project_bank_mapping(project_name: str):
+    global _PROJECT_BANK_CACHE
+    if not project_name:
+        return None
+    if _PROJECT_BANK_CACHE is None:
+        try:
+            from .models import ProjectBankMapping
+            _PROJECT_BANK_CACHE = {}
+            for pbm in ProjectBankMapping.objects.all():
+                if pbm.project_name:
+                    _PROJECT_BANK_CACHE[pbm.project_name.strip()] = pbm
+        except Exception:
+            _PROJECT_BANK_CACHE = {}
+    return _PROJECT_BANK_CACHE.get(str(project_name).strip())
+
 class Site(models.Model):
 
     name = models.CharField(max_length=100, unique=True, verbose_name="نام سایت")
@@ -781,8 +798,7 @@ class HousingDossier(models.Model):
         if self.project:
             if not any(k in skip_set for k in ('bank_name', 'project_code', 'bank_branch')):
                 try:
-                    from .models import ProjectBankMapping
-                    m = ProjectBankMapping.objects.filter(project_name=self.project).first()
+                    m = get_project_bank_mapping(self.project)
                     if m:
                         if 'bank_name' not in skip_set and not self.bank_name:
                             self.bank_name = m.get_bank_code_display()
@@ -923,25 +939,48 @@ class HousingDossier(models.Model):
         return self.status in ["REJECTED_RED", "DELETED"]
 
     @property
-
     def created_at_jalali(self):
-
         """Returns the Jalali date when the dossier was created."""
-
         try:
-
             import jdatetime
-
+            from django.utils import timezone
             dt = self.created_at
-
             if dt:
-
+                if timezone.is_aware(dt):
+                    dt = timezone.localtime(dt)
                 return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d")
-
         except Exception:
-
             pass
+        return ""
 
+    @property
+    def updated_at_jalali(self):
+        """Returns the Jalali date when the dossier was last updated."""
+        try:
+            import jdatetime
+            from django.utils import timezone
+            dt = self.updated_at
+            if dt:
+                if timezone.is_aware(dt):
+                    dt = timezone.localtime(dt)
+                return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d %H:%M")
+        except Exception:
+            pass
+        return ""
+
+    @property
+    def deleted_at_jalali(self):
+        """Returns the Jalali date when the dossier was deleted."""
+        try:
+            import jdatetime
+            from django.utils import timezone
+            dt = self.deleted_at
+            if dt:
+                if timezone.is_aware(dt):
+                    dt = timezone.localtime(dt)
+                return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d %H:%M")
+        except Exception:
+            pass
         return ""
 
     @property
@@ -993,79 +1032,71 @@ class HousingDossier(models.Model):
         return {s.slot_key: s for s in self.signatures.all()}
 
     def get_signed_stages_set(self):
-
         """
-
-        Returns the set of integer stage numbers (1..21) that have been successfully signed and not returned.
-
+        Returns the set of integer stage numbers (1..22) that have been successfully signed and not returned.
         Handles disconnected / decoupled workflow stages.
-
         """
-
         import re
 
         signed = set()
+        _FA_TO_EN = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
         for log in self.audit_logs.all().order_by("timestamp", "id"):
+            from_stage_clean = (log.from_stage or "").translate(_FA_TO_EN)
+            action_label_clean = (log.action_label or "").translate(_FA_TO_EN)
 
             if log.action in ["SIGN", "APPROVE", "SIGN_EXCEL", "ARCHIVE", "BANK_LETTER"]:
-
-                m = re.search(r'مرحله\s+(\d+)', log.from_stage)
-
+                m = re.search(r'مرحله\s*(\d+)', from_stage_clean)
                 if m:
-
-                    signed.add(int(m.group(1)))
-
-                elif log.action_label and "مرحله" in log.action_label:
-
-                    m2 = re.search(r'مرحله\s+(\d+)', log.action_label)
-
+                    try:
+                        signed.add(int(m.group(1)))
+                    except ValueError:
+                        pass
+                elif action_label_clean and "مرحله" in action_label_clean:
+                    m2 = re.search(r'مرحله\s*(\d+)', action_label_clean)
                     if m2:
-
-                        signed.add(int(m2.group(1)))
-
+                        try:
+                            signed.add(int(m2.group(1)))
+                        except ValueError:
+                            pass
             elif log.action == "RETURN":
-
-                m = re.search(r'مرحله\s+(\d+)', log.to_stage)
-
+                to_stage_clean = (log.to_stage or "").translate(_FA_TO_EN)
+                m = re.search(r'مرحله\s*(\d+)', to_stage_clean)
                 if m:
-
-                    target_stage = int(m.group(1))
-
-                    signed = {s for s in signed if s < target_stage}
-
+                    try:
+                        target_stage = int(m.group(1))
+                        signed = {s for s in signed if s < target_stage}
+                    except ValueError:
+                        pass
         return signed
 
     def find_next_actionable_stage(self, current_signed_stage=None):
-
         """
-
         Determines the next stage that requires action/signature.
-
         If stages are decoupled, jumps past already-signed stages directly to the next unsigned stage.
-
-        If current_signed_stage is provided, advances forward from current_signed_stage + 1 upwards to 21.
-
-        If all subsequent stages up to 21 are signed, returns 22 (Final Archive).
-
+        If current_signed_stage is provided, advances forward from current_signed_stage + 1 upwards to 22,
+        jumping over any stages that are already signed.
+        If all subsequent stages up to 22 are signed, checks if any earlier stage was missed (from 1 upwards).
+        If current_signed_stage is None, returns the first unsigned stage starting from stage 1.
+        If all stages 1..22 are signed, returns 23.
         """
-
         signed = self.get_signed_stages_set()
-
         if current_signed_stage is not None:
-
             signed.add(int(current_signed_stage))
-
             start_stg = int(current_signed_stage) + 1
-
+            for stg in range(start_stg, 23):      # start_stg..22
+                if stg not in signed:
+                    return stg
+            # If all subsequent stages are signed, check if any earlier stage was missed
+            for stg in range(1, 23):
+                if stg not in signed:
+                    return stg
+            return 23
         else:
-
-            start_stg = self.current_stage
-
-        for stg in range(start_stg, 23):      # 1..22
-            if stg not in signed:
-                return stg
-        return 23                              # everything, including 22, is signed
+            for stg in range(1, 23):
+                if stg not in signed:
+                    return stg
+            return 23
 
     def __str__(self):
 
@@ -1199,6 +1230,21 @@ class DossierAttachment(models.Model):
 
         return f"{self.title} (مرحله {self.stage})"
 
+    @property
+    def uploaded_at_jalali(self):
+        """Returns the Jalali date when the attachment was uploaded."""
+        try:
+            import jdatetime
+            from django.utils import timezone
+            dt = self.uploaded_at
+            if dt:
+                if timezone.is_aware(dt):
+                    dt = timezone.localtime(dt)
+                return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d")
+        except Exception:
+            pass
+        return ""
+
 class WorkflowSignatureLog(models.Model):
 
     """
@@ -1252,6 +1298,21 @@ class WorkflowSignatureLog(models.Model):
 
         return f"{self.dossier.archive_number}: {self.action_label} توسط {self.actor}"
 
+    @property
+    def timestamp_jalali(self):
+        """Returns the Jalali date/time of the signature log."""
+        try:
+            import jdatetime
+            from django.utils import timezone
+            dt = self.timestamp
+            if dt:
+                if timezone.is_aware(dt):
+                    dt = timezone.localtime(dt)
+                return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d %H:%M:%S")
+        except Exception:
+            pass
+        return ""
+
 class DossierFieldChangeLog(models.Model):
 
     """
@@ -1293,6 +1354,21 @@ class DossierFieldChangeLog(models.Model):
     def __str__(self):
 
         return f"{self.dossier.archive_number}: {self.field_label} ({self.old_value} -> {self.new_value}) توسط {self.changed_by}"
+
+    @property
+    def timestamp_jalali(self):
+        """Returns the Jalali date/time of the field change."""
+        try:
+            import jdatetime
+            from django.utils import timezone
+            dt = self.timestamp
+            if dt:
+                if timezone.is_aware(dt):
+                    dt = timezone.localtime(dt)
+                return jdatetime.datetime.fromgregorian(datetime=dt).strftime("%Y/%m/%d %H:%M:%S")
+        except Exception:
+            pass
+        return ""
 
 class DossierSignature(models.Model):
 

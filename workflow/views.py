@@ -54,6 +54,32 @@ from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
+def to_jalali_str(dt, fmt="%Y/%m/%d %H:%M:%S"):
+    """Converts any datetime/date to Tehran Jalali string."""
+    if not dt:
+        return ""
+    try:
+        import jdatetime
+        from django.utils import timezone
+        import datetime
+        if isinstance(dt, str):
+            dt_s = dt.strip()
+            if dt_s.startswith("13") or dt_s.startswith("14"):
+                return dt_s
+            try:
+                dt = datetime.datetime.fromisoformat(dt_s.replace("Z", "+00:00"))
+            except Exception:
+                return dt_s
+        if isinstance(dt, datetime.datetime):
+            if timezone.is_aware(dt):
+                dt = timezone.localtime(dt)
+            return jdatetime.datetime.fromgregorian(datetime=dt).strftime(fmt)
+        elif isinstance(dt, datetime.date):
+            return jdatetime.date.fromgregorian(date=dt).strftime(fmt)
+        return str(dt)
+    except Exception:
+        return dt.strftime(fmt) if hasattr(dt, 'strftime') else str(dt)
+
 from django.db import transaction, models
 
 from django.contrib import messages
@@ -1028,7 +1054,7 @@ def dossier_detail_view(request, pk):
 
             "uploader": att.uploaded_by,
 
-            "uploadDate": att.uploaded_at.strftime("%Y/%m/%d"),
+            "uploadDate": to_jalali_str(att.uploaded_at, "%Y/%m/%d"),
 
             "sha256": att.file_sha256,
 
@@ -1062,7 +1088,7 @@ def dossier_detail_view(request, pk):
 
             "actionLabel": log.action_label,
 
-            "timestamp": log.timestamp.strftime("%Y/%m/%d %H:%M:%S"),
+            "timestamp": to_jalali_str(log.timestamp, "%Y/%m/%d %H:%M:%S"),
 
             "hash": log.signature_hash,
 
@@ -1184,7 +1210,7 @@ def dossier_detail_view(request, pk):
 
         "deleted_by": dossier.deleted_by or "",
 
-        "deleted_at": dossier.deleted_at.strftime("%Y/%m/%d %H:%M") if dossier.deleted_at else "",
+        "deleted_at": to_jalali_str(dossier.deleted_at, "%Y/%m/%d %H:%M") if dossier.deleted_at else "",
 
         "rejection_letter_number": dossier.rejection_letter_number or "",
 
@@ -1473,7 +1499,7 @@ def dossier_detail_view(request, pk):
 
                 "stage": c.stage,
 
-                "timestamp": c.timestamp.strftime("%Y/%m/%d %H:%M:%S"),
+                "timestamp": to_jalali_str(c.timestamp, "%Y/%m/%d %H:%M:%S"),
 
                 "ipAddress": c.ip_address or "-"
 
@@ -1495,7 +1521,7 @@ def dossier_detail_view(request, pk):
 
     user_can_action = request.user.is_superuser or is_chief or (profile and profile.can_action_stage(dossier.current_stage))
 
-    can_view_audit = request.user.is_superuser or is_chief or (profile and profile.can_view_all_audit_logs())
+    can_view_audit = is_full_admin or request.user.is_superuser or is_chief or (profile and profile.can_view_all_audit_logs())
 
 
 
@@ -1603,12 +1629,14 @@ def dossier_detail_view(request, pk):
     dossier_data["is_staff"] = request.user.is_staff
 
     dossier_data["stage_details"] = HousingDossier.STAGE_DETAILS
-
-
+    dossier_data["is_full_admin"] = is_full_admin
+    dossier_data["can_view_audit"] = can_view_audit
 
     context = {
 
         "dossier": dossier,
+
+        "is_full_admin": is_full_admin,
 
         "is_superuser": request.user.is_superuser,
 
@@ -2260,7 +2288,7 @@ def save_dossier_draft_view(request, pk):
 
             "stage": log.stage,
 
-            "timestamp": log.timestamp.strftime("%Y/%m/%d %H:%M:%S"),
+            "timestamp": to_jalali_str(log.timestamp, "%Y/%m/%d %H:%M:%S"),
 
             "ipAddress": log.ip_address or "-"
 
@@ -3341,7 +3369,7 @@ def generate_and_archive_doc_view(request, pk, doc_type):
             "title": att.title,
             "fileName": att.file_name,
             "uploader": att.uploaded_by,
-            "uploadDate": att.uploaded_at.strftime("%Y/%m/%d"),
+            "uploadDate": to_jalali_str(att.uploaded_at, "%Y/%m/%d"),
             "preview_url": att.preview_url,
             "immutable": True
         }
@@ -3895,7 +3923,127 @@ def dossier_print_checks_view(request, pk):
 
     total_prep_amount = dossier.total_preparation_check_amount or _calc_sum(prep_checks)
 
+    # 1. متصدی (Admin who ticks the checks)
+    ticker_name = ""
+    ticker_date = ""
+    ticker_role = "متصدی ثبت و کنترل چک"
+    ticker_sig_url = None
 
+    if check_type_norm == "prep":
+        ticker_name = dossier.prep_checks_confirmed_by or dossier.cash_rent_confirmed_by
+        ticker_date = dossier.prep_checks_confirmed_at_jalali or dossier.cash_rent_confirmed_at_jalali
+    else:
+        ticker_name = dossier.loan_checks_confirmed_by
+        ticker_date = dossier.loan_checks_confirmed_at_jalali
+
+    if not ticker_name:
+        chk_sub = "آماده‌سازی" if check_type_norm == "prep" else "وام دهک"
+        confirm_log = WorkflowSignatureLog.objects.filter(
+            dossier=dossier,
+            action="CONFIRM_CHECK"
+        ).filter(
+            models.Q(action_label__icontains=chk_sub) | models.Q(notes__icontains=chk_sub)
+        ).order_by("-timestamp").first()
+        if confirm_log:
+            ticker_name = confirm_log.actor
+            ticker_date = confirm_log.timestamp_jalali
+            if confirm_log.role:
+                ticker_role = confirm_log.role
+
+    if ticker_name:
+        ticker_user = User.objects.filter(
+            models.Q(username=ticker_name) |
+            models.Q(profile__full_name=ticker_name) |
+            models.Q(first_name=ticker_name)
+        ).select_related("profile").first()
+        if ticker_user and hasattr(ticker_user, "profile"):
+            if ticker_user.profile.role_title:
+                ticker_role = ticker_user.profile.role_title
+            if ticker_user.profile.signature_image:
+                try:
+                    ticker_sig_url = ticker_user.profile.signature_image.url
+                except Exception:
+                    pass
+
+    def _extract_date_time_parts(val):
+        if not val:
+            return "", ""
+        s = str(val).strip()
+        m_date = re.search(r"(\d{4}/\d{1,2}/\d{1,2})", s)
+        date_p = m_date.group(1) if m_date else s
+        m_time = re.search(r"(\d{1,2}:\d{2})", s)
+        time_p = m_time.group(1) if m_time else ""
+        return date_p, time_p
+
+    t_date_p, t_time_p = _extract_date_time_parts(ticker_date)
+    motasaddi_info = {
+        "name": ticker_name,
+        "date": ticker_date,
+        "date_part": t_date_p,
+        "time_part": t_time_p,
+        "role": ticker_role,
+        "sig_image": ticker_sig_url,
+    }
+
+    # 2. کارگزار (Admin who signed the stage: Stage 18 for prep, Stage 17 for loan)
+    target_stage_num = 18 if check_type_norm == "prep" else 17
+    target_stage_fa = str(target_stage_num).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+    stage_sig_log = WorkflowSignatureLog.objects.filter(
+        dossier=dossier,
+        action__in=["SIGN", "SIGN_EXCEL", "APPROVE"]
+    ).filter(
+        models.Q(from_stage__icontains=f"مرحله {target_stage_num}") |
+        models.Q(from_stage__icontains=f"مرحله {target_stage_fa}") |
+        models.Q(from_stage__startswith=f"{target_stage_num}") |
+        models.Q(notes__icontains=f"مرحله {target_stage_num}")
+    ).order_by("-timestamp").first()
+
+    kargozar_name = ""
+    kargozar_date = ""
+    kargozar_role = "کارشناس وصول اجاره و آماده‌سازی" if check_type_norm == "prep" else "کارشناس اخذ چک تسهیلات دهک"
+    kargozar_sig_url = None
+
+    if stage_sig_log:
+        kargozar_name = stage_sig_log.actor
+        kargozar_date = stage_sig_log.timestamp_jalali
+        if stage_sig_log.role:
+            kargozar_role = stage_sig_log.role
+    else:
+        target_slots = ["applicant_settlement", "revenue", "brokerage"] if check_type_norm == "prep" else ["decile_facility", "brokerage"]
+        dossier_sig = dossier.signatures.filter(slot_key__in=target_slots, signer_name__gt="").order_by("-id").first()
+        if dossier_sig:
+            kargozar_name = dossier_sig.signer_name
+            kargozar_date = dossier_sig.signed_date
+            if dossier_sig.signer_title:
+                kargozar_role = dossier_sig.signer_title
+            if dossier_sig.signature_image:
+                try:
+                    kargozar_sig_url = dossier_sig.signature_image.url
+                except Exception:
+                    pass
+
+    if kargozar_name and not kargozar_sig_url:
+        k_user = User.objects.filter(
+            models.Q(username=kargozar_name) |
+            models.Q(profile__full_name=kargozar_name) |
+            models.Q(first_name=kargozar_name)
+        ).select_related("profile").first()
+        if k_user and hasattr(k_user, "profile"):
+            if k_user.profile.signature_image:
+                try:
+                    kargozar_sig_url = k_user.profile.signature_image.url
+                except Exception:
+                    pass
+
+    k_date_p, k_time_p = _extract_date_time_parts(kargozar_date)
+    kargozar_info = {
+        "name": kargozar_name,
+        "date": kargozar_date,
+        "date_part": k_date_p,
+        "time_part": k_time_p,
+        "role": kargozar_role,
+        "sig_image": kargozar_sig_url,
+    }
 
     context = {
 
@@ -3922,6 +4070,10 @@ def dossier_print_checks_view(request, pk):
         "total_scans": len(check_scans),
 
         "scan_url": scan_url,
+
+        "motasaddi_info": motasaddi_info,
+
+        "kargozar_info": kargozar_info,
 
     }
 
@@ -3989,7 +4141,7 @@ def archive_check_receipt_api(request, pk):
 
             "uploader": attachment.uploaded_by,
 
-            "uploadDate": attachment.uploaded_at.strftime("%Y/%m/%d"),
+            "uploadDate": to_jalali_str(attachment.uploaded_at, "%Y/%m/%d"),
 
             "sha256": attachment.file_sha256,
 
@@ -4313,7 +4465,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
             "uploaded_by": att.uploaded_by,
 
-            "uploadDate": att.uploaded_at.strftime("%Y/%m/%d") if att.uploaded_at else "",
+            "uploadDate": to_jalali_str(att.uploaded_at, "%Y/%m/%d") if att.uploaded_at else "",
 
             "sha256": att.file_sha256,
 
@@ -5279,7 +5431,7 @@ def upload_scan_attachment_view(request, pk):
 
             "uploader": a.uploaded_by,
 
-            "uploadDate": timezone.now().strftime("%Y/%m/%d %H:%M"),
+            "uploadDate": to_jalali_str(timezone.now(), "%Y/%m/%d %H:%M"),
 
             "sha256": a.file_sha256,
 
@@ -6753,9 +6905,10 @@ def excel_upload_create_view(request):
         return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
     
     is_preview = request.POST.get("preview") in ["true", "1", True]
+    task_id = request.POST.get("task_id") or request.GET.get("task_id")
     try:
         from .excel_utils import process_excel_create
-        res = process_excel_create(excel_file, user=request.user, preview=is_preview)
+        res = process_excel_create(excel_file, user=request.user, preview=is_preview, task_id=task_id)
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
@@ -6774,9 +6927,10 @@ def excel_upload_update_view(request):
         return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
     
     is_preview = request.POST.get("preview") in ["true", "1", True]
+    task_id = request.POST.get("task_id") or request.GET.get("task_id")
     try:
         from .excel_utils import process_excel_update
-        res = process_excel_update(excel_file, user=request.user, preview=is_preview)
+        res = process_excel_update(excel_file, user=request.user, preview=is_preview, task_id=task_id)
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
@@ -6795,9 +6949,10 @@ def excel_upload_group_sign_view(request):
         return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
     
     is_preview = request.POST.get("preview") in ["true", "1", True]
+    task_id = request.POST.get("task_id") or request.GET.get("task_id")
     try:
         from .excel_utils import process_excel_group_sign
-        res = process_excel_group_sign(excel_file, user=request.user, preview=is_preview)
+        res = process_excel_group_sign(excel_file, user=request.user, preview=is_preview, task_id=task_id)
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
@@ -6816,12 +6971,29 @@ def excel_upload_swap_view(request):
         return JsonResponse({"success": False, "error": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
     
     is_preview = request.POST.get("preview") in ["true", "1", True]
+    task_id = request.POST.get("task_id") or request.GET.get("task_id")
     try:
         from .excel_utils import process_excel_spouse_swap
-        res = process_excel_spouse_swap(excel_file, user=request.user, preview=is_preview)
+        res = process_excel_spouse_swap(excel_file, user=request.user, preview=is_preview, task_id=task_id)
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"success": False, "error": f"خطا در پردازش فایل اکسل: {str(e)}"}, status=500)
+
+def excel_upload_progress_view(request):
+    """Return real-time progress of an Excel upload task from Django cache."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"status": "unauthenticated"}, status=401)
+    task_id = request.GET.get("task_id") or request.POST.get("task_id")
+    if not task_id:
+        return JsonResponse({"status": "unknown"})
+    try:
+        from django.core.cache import cache
+        data = cache.get(f"excel_task_{task_id}")
+        if not data:
+            return JsonResponse({"status": "waiting", "message": "در انتظار آغاز پردازش سرور...", "percent": 0})
+        return JsonResponse({"status": "ok", **data})
+    except Exception as e:
+        return JsonResponse({"status": "error", "error": str(e)})
 
 def excel_report_download_view(request, report_id):
     """Download failure and spouse match report."""

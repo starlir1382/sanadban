@@ -103,7 +103,15 @@
         <span class="at-count b">تغییرات فیلدها: <strong class="fa-num" x-text="fieldChanges.length"></strong></span>
       </div>
     </div>
-    <button type="button" class="at-toggle" @click.stop="showAuditDetails = !showAuditDetails" x-text="showAuditDetails ? 'بستن ▲' : 'مشاهده جزئیات ▼'"></button>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      {% if is_full_admin or can_view_audit %}
+      <a href="{% url 'audit_logs' %}?archive={{ dossier.archive_number }}" target="_blank" class="at-toggle" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: #eef2ff; color: #4338ca; border-color: #c7d2fe;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <span>جستجوی پیشرفته در لاگ سراسری ↗</span>
+      </a>
+      {% endif %}
+      <button type="button" class="at-toggle" @click.stop="showAuditDetails = !showAuditDetails" x-text="showAuditDetails ? 'بستن ▲' : 'مشاهده جزئیات ▼'"></button>
+    </div>
   </div>
 
   <div class="at-body" x-show="showAuditDetails" x-cloak x-transition>

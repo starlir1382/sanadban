@@ -95,14 +95,22 @@ class Command(BaseCommand):
                 deleted_cnt, _ = model.objects.all().delete()
                 self.stdout.write(f"  Deleted {deleted_cnt} records from {name}")
 
-            # Reset SQLite autoincrement sequences
+            # Reset autoincrement sequences
             with connection.cursor() as cursor:
-                placeholders = ",".join(["%s"] * len(table_names))
-                cursor.execute(
-                    f"DELETE FROM sqlite_sequence WHERE name IN ({placeholders})",
-                    table_names,
-                )
-                self.stdout.write(f"  Reset sqlite_sequence for: {', '.join(table_names)}")
+                if connection.vendor == "sqlite":
+                    placeholders = ",".join(["%s"] * len(table_names))
+                    cursor.execute(
+                        f"DELETE FROM sqlite_sequence WHERE name IN ({placeholders})",
+                        table_names,
+                    )
+                    self.stdout.write(f"  Reset sqlite_sequence for: {', '.join(table_names)}")
+                elif connection.vendor == "postgresql":
+                    for tbl in table_names:
+                        try:
+                            cursor.execute(f"ALTER SEQUENCE IF EXISTS {tbl}_id_seq RESTART WITH 1;")
+                        except Exception:
+                            pass
+                    self.stdout.write("  Reset postgresql sequences.")
 
         # Delete media files/directories
         deleted_media_count = 0

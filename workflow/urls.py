@@ -58,6 +58,7 @@ path("dossier/<int:pk>/upload-scan/", views.upload_scan_attachment_view, name="d
     path("excel/upload/update/", views.excel_upload_update_view, name="excel_upload_update"),
     path("excel/upload/group-sign/", views.excel_upload_group_sign_view, name="excel_upload_group_sign"),
     path("excel/upload/swap/", views.excel_upload_swap_view, name="excel_upload_swap"),
+    path("excel/upload/progress/", views.excel_upload_progress_view, name="excel_upload_progress"),
     path("excel/report/<uuid:report_id>/", views.excel_report_download_view, name="excel_report_download"),
 path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
     # Bank Letter Sender Component (ارسال دسته جمعی نامه بانک)

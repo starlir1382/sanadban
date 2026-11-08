@@ -10,6 +10,7 @@ from workflow.models import (
     DossierFieldChangeLog,
     DossierSignature,
     DossierCheck,
+    BankLetter,
 )
 
 
@@ -92,7 +93,8 @@ class Command(BaseCommand):
             DossierSignature.objects.all().delete()
             DossierCheck.objects.all().delete()
             DossierAttachment.objects.all().delete()
-            self.stdout.write(self.style.SUCCESS("  ✓ All signature logs, field change logs, checks, and attachments wiped."))
+            BankLetter.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS("  ✓ All signature logs, field change logs, checks, bank letters, and attachments wiped."))
 
             # 2. Reset or Wipe dossiers
             if wipe_mode:

@@ -267,7 +267,7 @@ def process_stage_signatures_excel_view(request):
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
 
-    excel_file = request.FILES.get("excel_file")
+    excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
         return JsonResponse({"status": "error", "message": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
 
@@ -350,6 +350,7 @@ def process_stage_signatures_excel_view(request):
                 continue
 
             # Check each stage (supporting decoupled / disconnected workflow)
+            orig_stage = dossier.current_stage
             row_signed = False
             stage_to_slots_map = {
                 1: ["brokerage"],
@@ -427,13 +428,18 @@ def process_stage_signatures_excel_view(request):
 
             if row_signed:
                 # Recalculate next actionable stage with disconnected jumps
-                next_stage = dossier.find_next_actionable_stage()
-                if next_stage >= 22:
+                all_signed = dossier.get_signed_stages_set()
+                target_stage = 23
+                for s in range(orig_stage, 23):
+                    if s not in all_signed:
+                        target_stage = s
+                        break
+                if target_stage >= 23 or (target_stage == 22 and 22 in all_signed):
                     dossier.current_stage = 22
                     dossier.is_locked = True
                     dossier.status = "COMPLETED"
                 else:
-                    dossier.current_stage = next_stage
+                    dossier.current_stage = target_stage
                     dossier.status = "IN_PROGRESS"
                     dossier.return_reason = ""
                     dossier.return_by = ""
@@ -477,7 +483,7 @@ def process_commission_excel_view(request):
     if not is_admin:
         return JsonResponse({"status": "error", "message": "عملیات کمیسیون صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد."}, status=403)
 
-    excel_file = request.FILES.get("excel_file")
+    excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
         return JsonResponse({"status": "error", "message": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
 
@@ -867,7 +873,7 @@ def process_swap_spouse_excel_view(request):
     if not is_admin:
         return JsonResponse({"status": "error", "message": "دسترسی غیرمجاز."}, status=403)
 
-    excel_file = request.FILES.get("excel_file")
+    excel_file = request.FILES.get("file") or request.FILES.get("excel_file")
     if not excel_file:
         return JsonResponse({"status": "error", "message": "فایل اکسل یافت نشد."}, status=400)
 

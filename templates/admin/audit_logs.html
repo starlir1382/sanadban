@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load persian_tags %}
 
 {% block title %}سامانه ممیزی و ردگیری تغییرات داده‌ها (Audit Trail) | سامانه مسکن یار{% endblock %}
 
@@ -214,7 +215,7 @@
                     <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <!-- Timestamp -->
                         <td style="padding: 0.75rem 1rem; font-size: 0.78rem; color: #64748b; white-space: nowrap;" class="fa-num">
-                            {{ c.timestamp|date:"Y/m/d H:i:s" }}
+                            {{ c.timestamp|jalali_datetime_full }}
                         </td>
 
                         <!-- Dossier Archive # -->
@@ -306,7 +307,7 @@
                     <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <!-- Timestamp -->
                         <td style="padding: 0.75rem 1rem; font-size: 0.78rem; color: #64748b; white-space: nowrap;" class="fa-num">
-                            {{ s.timestamp|date:"Y/m/d H:i:s" }}
+                            {{ s.timestamp|jalali_datetime_full }}
                         </td>
 
                         <!-- Dossier Archive # -->
