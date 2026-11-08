@@ -1,5 +1,5 @@
 {% for d in dossiers %}
-<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}">
+<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}{% if d.has_confirmed_checks %} چک تایید شده چک‌های تاییدشده{% endif %}">
   
   <!-- Checkbox for Batch Signing -->
   <td class="t-center dl-td-chk" style="width: 38px; min-width: 38px; padding: 0.65rem 0.35rem;">
@@ -12,9 +12,13 @@
            style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;">
   </td>
 
-  <!-- 1. Archive number -->
-  <td class="t-center fa-num" style="width: 75px; min-width: 70px;">
-    <span class="dl-id">{{ d.archive_number }}</span>
+  <!-- 1. Archive number / Row -->
+  <td class="t-center fa-num" style="width: 85px; min-width: 70px;">
+    {% if d.current_stage >= 8 or d.is_locked %}
+      <span class="dl-id" title="شماره پرونده بایگانی رسمی">{{ d.archive_number }}</span>
+    {% else %}
+      <span class="dl-id-draft" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-size: 0.76rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; display: inline-block;" title="پرونده در جریان مراحل مقدماتی (پیش از اسکن مرحله ۷)">ردیف {{ d.id }}</span>
+    {% endif %}
   </td>
 
   <!-- 2. Applicant + national id (Clean 2 lines max, no spouse on home page) -->
@@ -52,10 +56,10 @@
         <span>{{ d.stage_entry_date_jalali|default:'-' }}</span>
       </span>
 
-      {% if d.status == 'REJECTED_RED' or d.status == 'DELETED' or d.status == 'REJECT_RED_PENDING' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked %}
+      {% if d.status == 'REJECTED_RED' or d.status == 'DELETED' or d.status == 'REJECT_RED_PENDING' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked or d.has_pending_check_signature %}
       <div class="dl-stage-meta">
         {% if d.status == 'DELETED' %}
-          <span class="dl-status gray" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700;" title="حذف و بایگانی راکد{% if d.deletion_reason %}: {{ d.deletion_reason }}{% endif %}">🗑 حذف و راکد</span>
+          <span class="dl-status gray" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700;" title="حذف و بایگانی{% if d.deletion_reason %}: {{ d.deletion_reason }}{% endif %}">🗑 حذف و راکد</span>
         {% elif d.status == 'REJECTED_RED' %}
           <span class="dl-status red" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">⛔ رد صلاحیت فرم ج</span>
         {% elif d.status == 'REJECT_RED_PENDING' %}
@@ -64,6 +68,8 @@
           <span class="dl-status orange" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">⚠ فرم «ج» قرمز</span>
         {% elif d.current_stage == 22 or d.is_locked %}
           <span class="dl-status green" title="نهایی و بایگانی قطعی (مختومه)">✓ مختومه</span>
+        {% elif d.has_pending_check_signature %}
+          <span class="dl-status green" style="background: #ecfdf5; color: #065f46; border: 1.5px solid #10b981; font-weight: 800;" title="تاییدیه چک‌ها ثبت گردیده و در انتظار امضای الکترونیک مدیر چک / ادمین است">💳 چک‌های تاییدشده</span>
         {% elif d.status == 'RETURNED' %}
           <span class="dl-status ret" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">↩ برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
         {% endif %}

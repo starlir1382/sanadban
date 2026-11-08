@@ -1,9 +1,9 @@
 // Which form section belongs to which workflow stage(s)
 const SECTION_STAGE_MAP = {
-  "section-applicant": [1, 8],
+  "section-applicant": [1, 8, 9],
   "section-form-j": [3, 11],
-  "section-spouse": [1],
-  "section-plot": [2, 8, 12, 13, 14, 15],
+  "section-spouse": [1, 8, 9],
+  "section-plot": [2, 8, 9, 12, 13, 14, 15],
   "section-cost": [2, 19],
   "section-loans": [4, 19],
   "section-equity": [5],
@@ -20,21 +20,30 @@ const SECTION_STAGE_MAP = {
 
 const FIELD_STAGE_MAP = {
   national_id: [1, 8, 9],
+  first_name: [1, 8, 9],
+  last_name: [1, 8, 9],
   full_name: [1, 8, 9],
   father_name: [1, 8, 9],
   birth_date: [1, 8, 9],
   applicant_id_number: [1, 8, 9],
+  applicant_id_serial: [1, 8, 9],
   applicant_birth_place: [1, 8, 9],
   applicant_phone: [1, 8, 9],
+  applicant_address: [1, 8, 9],
+  applicant_postal_code: [1, 8, 9],
+  applicant_landline_phone: [1, 8, 9],
   selection_rank: [1, 8, 9],
-  decile: [1, 4],
+  decile: [1, 4, 8, 9],
   marital_status: [1, 8, 9],
   is_married_confirmed: [1, 8, 9],
+  spouse_first_name: [1, 8, 9],
+  spouse_last_name: [1, 8, 9],
   spouse_full_name: [1, 8, 9],
   spouse_father_name: [1, 8, 9],
   spouse_national_id: [1, 8, 9],
   spouse_birth_date: [1, 8, 9],
   spouse_id_number: [1, 8, 9],
+  spouse_id_serial: [1, 8, 9],
   spouse_birth_place: [1, 8, 9],
   site: [1, 8, 9],
   project: [1, 8, 9],
@@ -63,7 +72,7 @@ const FIELD_STAGE_MAP = {
   sub_plaque: [2, 8, 9, 12, 13, 14],
   plot_number: [2, 8, 9, 12, 13, 14],
   renovation_code: [2, 8, 9, 12, 13, 14],
-  base_cost_without_loan: [2, 19],
+  base_cost_without_loan: [2, 8, 9, 19],
   form_j_questionnaire_number: [1, 3, 7, 8, 11],
   applicant_form_j_status: [1, 3, 8, 11],
   applicant_form_j_directorate_status: [1, 3, 8, 11],
@@ -103,22 +112,22 @@ const FIELD_STAGE_MAP = {
   check_amount: [17],
   last_check_amount: [17],
   total_check_amount: [17],
-  check_service_fee: [17],
-  commitment_number: [17],
-  commitment_date: [17],
-  check_entries_json: [17],
-  is_decile_loan_confirmed: [17],
-  tenant_price: [18],
-  tenant_code: [18],
-  is_cash_rent_confirmed: [18],
-  cash_preparation_amount: [18],
-  prepayment_code: [18],
-  non_cash_preparation_amount: [18],
-  preparation_service_fee: [18],
-  preparation_check_count: [18],
-  total_preparation_check_amount: [18],
-  preparation_check_entries_json: [18],
-  is_preparation_checks_confirmed: [18],
+  check_service_fee: [17, 18],
+  commitment_number: [17, 18],
+  commitment_date: [17, 18],
+  check_entries_json: [17, 18],
+  is_decile_loan_confirmed: [17, 18],
+  tenant_price: [17, 18],
+  tenant_code: [17, 18],
+  is_cash_rent_confirmed: [17, 18],
+  cash_preparation_amount: [17, 18],
+  prepayment_code: [17, 18],
+  non_cash_preparation_amount: [17, 18],
+  preparation_service_fee: [17, 18],
+  preparation_check_count: [17, 18],
+  total_preparation_check_amount: [17, 18],
+  preparation_check_entries_json: [17, 18],
+  is_preparation_checks_confirmed: [17, 18],
   rah_letter: [20],
   rah_letter_date: [20],
   deed_number: [13],
@@ -821,6 +830,10 @@ document.addEventListener("alpine:init", () => {
       national_id: "",
       birth_date: "",
       applicant_phone: "",
+      applicant_address: "",
+      applicant_postal_code: "",
+      applicant_landline_phone: "",
+      applicant_id_serial: "",
       selection_rank: null,
       form_j_questionnaire_number: "",
       applicant_form_j_status: "سبز (استعلام شده)",
@@ -833,6 +846,7 @@ document.addEventListener("alpine:init", () => {
       spouse_national_id: "",
       spouse_birth_date: "",
       spouse_id_number: "",
+      spouse_id_serial: "",
       spouse_birth_place: "",
       spouse_form_j_status: "سبز (استعلام شده)",
       spouse_form_j_directorate_status: "تایید نهایی اداره کل",
@@ -929,8 +943,14 @@ document.addEventListener("alpine:init", () => {
       notary_letter_number: "",
       notary_letter_date: "",
       is_cash_rent_confirmed: false,
+      cash_rent_confirmed_by: "",
+      cash_rent_confirmed_at: "",
       is_decile_loan_confirmed: false,
+      loan_checks_confirmed_by: "",
+      loan_checks_confirmed_at: "",
       is_preparation_checks_confirmed: false,
+      prep_checks_confirmed_by: "",
+      prep_checks_confirmed_at: "",
     },
 
     // Scanned Documents (populated dynamically from database without ghost record flicker)
@@ -1384,6 +1404,18 @@ document.addEventListener("alpine:init", () => {
           }
           if (typeof data.applicant_equity !== "undefined") {
             this.form.applicant_equity = data.applicant_equity;
+          }
+          if (typeof data.cash_rent_confirmed_by !== "undefined") {
+            this.form.cash_rent_confirmed_by = data.cash_rent_confirmed_by;
+            this.form.cash_rent_confirmed_at = data.cash_rent_confirmed_at;
+          }
+          if (typeof data.prep_checks_confirmed_by !== "undefined") {
+            this.form.prep_checks_confirmed_by = data.prep_checks_confirmed_by;
+            this.form.prep_checks_confirmed_at = data.prep_checks_confirmed_at;
+          }
+          if (typeof data.loan_checks_confirmed_by !== "undefined") {
+            this.form.loan_checks_confirmed_by = data.loan_checks_confirmed_by;
+            this.form.loan_checks_confirmed_at = data.loan_checks_confirmed_at;
           }
           if (Array.isArray(data.new_changes) && data.new_changes.length > 0) {
             this.fieldChanges.unshift(...data.new_changes);
@@ -2187,6 +2219,44 @@ document.addEventListener("alpine:init", () => {
       return true;
     },
 
+    async generateAndArchiveDocument(docType) {
+      if (!this.archiveNumber) return;
+      try {
+        const res = await fetch(`/dossier/${this.archiveNumber}/generate-doc/${docType}/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": this.getCSRFToken()
+          }
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          this.triggerToast(data.message, "success");
+          if (docType === "affidavit" || docType === "iqrar") {
+            this.form.has_affidavit = true;
+          } else if (docType === "info_form" || docType === "info") {
+            this.form.has_info_form = true;
+          }
+          if (data.attachment && Array.isArray(this.attachments)) {
+            const existingIdx = this.attachments.findIndex(a => a.doc_type === data.attachment.doc_type);
+            if (existingIdx >= 0) {
+              this.attachments.splice(existingIdx, 1, data.attachment);
+            } else {
+              this.attachments.unshift(data.attachment);
+            }
+          }
+          if (data.print_url) {
+            window.open(data.print_url, "_blank");
+          }
+        } else {
+          this.triggerToast(data.message || "خطا در تولید سند", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        this.triggerToast("خطای شبکه در تولید مدرک", "error");
+      }
+    },
+
     // Upload & Scanner Controller Methods
     openUploadScanModal(docType = null, defaultTitle = null) {
       if (this.isLocked) {
@@ -2612,6 +2682,33 @@ document.addEventListener("alpine:init", () => {
         ? this.userAllowedStages
         : [];
       return fieldStages.some((stg) => allowed.includes(stg));
+    },
+
+    isStage8User() {
+      if (this.isSuperuser || this.isChief) return true;
+      if (this.userAllowedStages === "all") return true;
+      if (
+        Array.isArray(this.userAllowedStages) &&
+        (this.userAllowedStages.includes(8) ||
+          this.userAllowedStages.includes("8"))
+      ) {
+        return true;
+      }
+      return Number(this.currentStage) === 8;
+    },
+
+    canSignCurrentStage() {
+      if (this.isLocked || this.isRejected || this.isRedJ) return false;
+      if (!this.userCanAction) return false;
+      if ([17, 18].includes(Number(this.currentStage))) {
+        return Boolean(
+          this.isCheckAdmin ||
+          this.isChief ||
+          this.isSuperuser ||
+          this.userAllowedStages === "all"
+        );
+      }
+      return true;
     },
 
     getFormJAttachment() {
@@ -3565,10 +3662,10 @@ document.addEventListener("alpine:init", () => {
       const code = (this.form.renovation_code || "").trim();
       const project = (this.form.project || "").trim();
       const plot = String(this.form.plot_number || "").trim();
-      const block = (this.form.block_name || "").trim();
+      const block = (this.form.block_name || this.form.block_code || "").trim();
 
-      if (!code && !project && !plot) {
-        this.triggerToast("لطفاً حداقل نام پروژه و شماره قطعه (یا کد نوسازی) را مشخص فرمایید.", "warning");
+      if (!code && !project && !plot && !block) {
+        this.triggerToast("لطفاً حداقل نام پروژه و کد بلوک (یا کد نوسازی) را مشخص فرمایید.", "warning");
         return;
       }
       const net = this.form.net_unit_area || this.form.unit_area || 0;
@@ -3580,6 +3677,7 @@ document.addEventListener("alpine:init", () => {
           project: project,
           plot: plot,
           block: block,
+          block_code: block,
           net: net,
           storage: storage,
           parking: parking,
@@ -3599,9 +3697,12 @@ document.addEventListener("alpine:init", () => {
           if (!this.form.plot_number && d.plot_number) {
             this.form.plot_number = d.plot_number;
           }
-          this.triggerToast("ارقام بخش ۹ بر اساس نرخ مصوب قطعه با موفقیت محاسبه شدند.", "success");
+          if (!this.form.block_name && d.block_name) {
+            this.form.block_name = d.block_name;
+          }
+          this.triggerToast("ارقام بخش ۹ بر اساس نرخ مصوب با موفقیت محاسبه شدند.", "success");
         } else {
-          this.triggerToast(res.error || "نرخ مصوب برای این قطعه/پروژه یافت نشد.", "error");
+          this.triggerToast(res.error || "نرخ مصوب برای این بلوک/پروژه یافت نشد.", "error");
         }
       } catch (err) {
         console.error("Calculate land rates error:", err);

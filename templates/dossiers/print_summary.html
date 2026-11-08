@@ -6,7 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>
+      {% if dossier.current_stage >= 8 or dossier.is_locked %}
       فرم مراحل قرارداد اجاره عرصه انفرادی - پرونده {{ dossier.archive_number|default:'-' }}
+      {% else %}
+      فرم مراحل قرارداد اجاره عرصه انفرادی - ردیف {{ dossier.id }}
+      {% endif %}
     </title>
 
     <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}" />
@@ -310,10 +314,18 @@
             </div>
 
             <div class="document-meta">
-              <span>شماره پرونده بایگانی: <strong>{{ dossier.archive_number|default:'-' }}</strong></span>
+              <span>
+                {% if dossier.current_stage >= 8 or dossier.is_locked %}
+                شماره پرونده بایگانی: <strong>{{ dossier.archive_number|default:'-' }}</strong>
+                {% else %}
+                شماره پرونده: <strong style="color: #64748b;">فاقد شماره بایگانی (ردیف {{ dossier.id }})</strong>
+                {% endif %}
+              </span>
               <span>
                 وضعیت امضاهای رسمی:
-                {% if signed_count == 14 %}
+                {% if dossier.current_stage < 8 and not dossier.is_locked %}
+                <strong style="color: #64748b;">در جریان مراحل مقدماتی (امضای رسمی از مرحله ۸)</strong>
+                {% elif signed_count == 14 %}
                 <strong style="color: #15803d">تکمیل هر ۱۴ امضای رسمی ✓</strong>
                 {% else %}
                 <strong style="color: #b45309">{{ signed_count|default:'0' }} از ۱۴ امضا ثبت شده است</strong>

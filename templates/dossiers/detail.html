@@ -858,7 +858,9 @@
           >🔒 قفل نهایی (فقط خواندنی)</span
         >
       </span>
-      <div class="dt-id fa-num"><span x-text="archiveNumber"></span></div>
+      <div class="dt-id fa-num" :style="currentStage < 8 && !isLocked ? 'background: #f1f5f9; color: #475569; border-color: #cbd5e1;' : ''" :title="currentStage < 8 && !isLocked ? 'پرونده در جریان مراحل مقدماتی (پیش از اسکن مرحله ۷)' : 'شماره بایگانی رسمی'">
+        <span x-text="currentStage >= 8 || isLocked ? 'پرونده: ' + archiveNumber : 'ردیف: ' + (dossierId || archiveNumber)"></span>
+      </div>
     </div>
   </div>
 
@@ -1169,12 +1171,34 @@
               🖨 چاپ برچسب / لیبل پوشه
             </a>
             <a
+              href="{% url 'dossier_print_affidavit' pk=dossier.archive_number %}"
+              target="_blank"
+            >
+              🖨 چاپ اقرارنامه تعهد به تقسیط
+            </a>
+            <a
+              href="{% url 'dossier_print_info_form' pk=dossier.archive_number %}"
+              target="_blank"
+            >
+              🖨 چاپ فرم اطلاعات متقاضی و سکونت
+            </a>
+            <a
               href="{% url 'land_bank_print' pk=dossier.archive_number %}"
               target="_blank"
-              x-show="currentStage >= 15"
-              x-cloak
             >
-              🖨 چاپ مشخصات ملک و قدرالسهم (مرحله ۱۵ - A4 افقی)
+              🖨 چاپ سند عرصه و قدرالسهم (arse - A4 افقی)
+            </a>
+            <a
+              :href="'/dossier/' + archiveNumber + '/print/checks/?type=loan&auto_archive=1'"
+              target="_blank"
+            >
+              🖨 چاپ برگه چک‌های تسهیلات وام دهک
+            </a>
+            <a
+              :href="'/dossier/' + archiveNumber + '/print/checks/?type=prep&auto_archive=1'"
+              target="_blank"
+            >
+              🖨 چاپ برگه چک‌های اقساط آماده‌سازی و اجاره
             </a>
             <a
               :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'"
@@ -1278,7 +1302,7 @@
           @click="openDeleteModal()"
           title="حذف پرونده و انتقال به بایگانی راکد (کسر از آمار فعال)"
         >
-          <span>🗑 حذف و بایگانی راکد</span>
+          <span>🗑 حذف و بایگانی</span>
         </button>
 
         <!-- If Dossier is Deleted: Badge and Restore Button -->
@@ -1301,10 +1325,18 @@
           </div>
         </template>
 
+        <!-- Notice for Operator of Stage 17 or 18: Admin must sign -->
+        <template x-if="[17, 18].includes(Number(currentStage)) && !isCheckAdmin && !isChief && !isSuperuser && userAllowedStages !== 'all' && !isLocked && !isRejected">
+          <div style="display: inline-flex; align-items: center; gap: 8px; padding: 0.55rem 1rem; border-radius: 8px; background: #ecfdf5; border: 1.5px solid #a7f3d0; color: #065f46; font-size: 0.82rem; font-weight: 700;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            <span>پس از ثبت تیک و ذخیره پیش‌نویس، پرونده جهت امضا در کارتابل مدیر چک / رئیس مسکن قرار می‌گیرد.</span>
+          </div>
+        </template>
+
         <button
           type="button"
           class="btn btn-success"
-          x-show="userCanAction && !isLocked && !isRejected && !isRedJ"
+          x-show="canSignCurrentStage()"
           x-cloak
           style="display: none"
           @click="openSignatureModal()"

@@ -501,5 +501,14 @@
         </div>
     </div>
 
+    {% if auto_print %}
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 400);
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

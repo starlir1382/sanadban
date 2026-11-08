@@ -96,7 +96,12 @@
                                         <rect x="6" y="14" width="12" height="8"></rect>
                                     </svg>
                                 </div>
-                                <div style="margin-top: 0.6rem; color: #c4b5fd; font-size: 0.75rem; font-weight: 700;">HTML</div>
+                                <div style="color: #ffffff; font-size: 0.85rem; font-weight: 800; line-height: 1.4; margin-bottom: 0.35rem;" x-text="item.title || item.fileName || item.file_name || 'سند رسمی چاپی'"></div>
+                                <span style="background: rgba(167, 139, 250, 0.25); color: #e0e7ff; font-size: 0.72rem; padding: 2px 10px; border-radius: 12px; font-weight: 700;">برگه رسمی چاپی (A4)</span>
+                                <div style="margin-top: 0.7rem; font-size: 0.72rem; color: #93c5fd; display: flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    <span>برای مشاهده و چاپ کلیک کنید</span>
+                                </div>
                             </div>
                         </template>
 
@@ -123,7 +128,16 @@
 
                     </div>
 
-
+                    <!-- Document Info Footer -->
+                    <div style="padding: 0.6rem 0.85rem; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 4px;">
+                        <div style="font-weight: 800; font-size: 0.84rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                             :title="item.title || item.fileName || item.file_name"
+                             x-text="item.title || item.fileName || item.file_name"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #64748b;">
+                            <span class="fa-num" style="direction: ltr; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" x-text="item.fileName || item.file_name || ''"></span>
+                            <span class="fa-num" x-text="item.uploadDate || item.uploaded_at || ''"></span>
+                        </div>
+                    </div>
 
                 </div>
             </template>

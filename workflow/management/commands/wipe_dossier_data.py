@@ -60,7 +60,7 @@ class Command(BaseCommand):
         # 2. Inspect media files to delete
         media_root = settings.MEDIA_ROOT
         items_to_delete = []
-        protected_items = ["signatures"]
+        protected_items = ["signatures", "avatars", "base_land_rates.csv", "base_land_rates.xlsx"]
 
         if os.path.exists(media_root):
             for entry in os.listdir(media_root):

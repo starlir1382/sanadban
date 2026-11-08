@@ -329,37 +329,33 @@ def convert_allowed_stages_string(allowed_stages_str: str, forward: bool = True)
 
 
 # stage -> archival signature slots filled automatically when that stage is signed
-# Step 8 (semi-admin audit) has NO slot: it is logged per stage but does not touch the 14-slot sheet.
+# IMPORTANT RULE: Only sign papers after مرحله 7 (stages >= 8). Before it, no one signs papers; their action is recorded in audit logs only.
 # Slot "brokerage" (official brokerage stamp) belongs to the CEO, step 9, only.
-# Form J slot is signed at directorate registration (step 10/11) only, NOT at step 3 inquiry review.
 STAGE_TO_SLOTS = {
-    4:  ["other_facilities", "decile_facility"],
-    5:  ["applicant_settlement"],
-    6:  ["bank_facility"],
     9:  ["brokerage"],
-    10: ["national_housing", "bank_facility", "form_j"],
+    10: ["national_housing", "bank_facility"],
     11: ["form_j"],
     12: ["technical"],
     13: ["real_estate"],
     14: ["land_bank"],
     15: ["legal"],
     16: ["evaluation"],
-    17: ["decile_facility"],
-    18: ["revenue"],
+    17: ["decile_facility", "other_facilities"],
+    18: ["revenue", "applicant_settlement"],
     19: ["contractor_settlement"],
 }
 
 # slot -> stages whose experts may upload that slot's signature
 SLOT_TO_STAGES = {
-    "brokerage": [1, 2, 7, 8, 9],
+    "brokerage": [9],
     "national_housing": [10],
-    "bank_facility": [6, 10],
-    "decile_facility": [4, 17],
-    "contractor_settlement": [4, 19],
-    "applicant_settlement": [5],
-    "other_facilities": [4],
+    "bank_facility": [10],
+    "decile_facility": [17],
+    "contractor_settlement": [19],
+    "applicant_settlement": [18],
+    "other_facilities": [17],
     "legal": [15],
-    "form_j": [10, 11],
+    "form_j": [11],
     "evaluation": [16],
     "technical": [12],
     "real_estate": [13],

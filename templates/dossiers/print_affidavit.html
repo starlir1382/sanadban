@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>اقرار نامه - پرونده {{ dossier.display_number|default:dossier.archive_number }}</title>
+    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sanadban.css' %}">
+    <style>
+        @page { size: A4; margin: 10mm; }
+
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+        body {
+            background: #f1f5f9;
+            color: #000;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .print-paper {
+            background: #fff;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* thin page frame, like the printed pad */
+        .frame {
+            border: 0.35mm solid #7b8794;
+            border-radius: 2.5mm;
+            min-height: 277mm;
+            box-sizing: border-box;
+            padding: 16mm 15mm 12mm;
+        }
+
+        @media print {
+            body { background: #fff !important; padding: 0 !important; display: block !important; }
+            .print-paper { width: auto !important; min-height: 0 !important; padding: 0 !important; box-shadow: none !important; }
+            .frame { min-height: 270mm; }
+            .no-print { display: none !important; }
+        }
+
+        .top-action-bar-print {
+            position: fixed; top: 1rem; right: 2rem; z-index: 100;
+            display: flex; gap: 0.5rem;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 11.5pt;
+            font-weight: 600;
+            margin: 0 0 9mm;
+            color: #1f2937;
+        }
+
+        .body {
+            font-size: 10pt;
+            line-height: 2.45;
+            text-align: justify;
+            color: #1f2937;
+        }
+
+        /* filled value on a dotted leader */
+        .fill {
+            font-weight: 800;
+            color: #000;
+            border-bottom: 1px dotted #475569;
+            padding: 0 4px;
+        }
+        /* empty dotted blank to write on */
+        .blank {
+            display: inline-block;
+            border-bottom: 1px dotted #475569;
+            height: 1.05em;
+            vertical-align: bottom;
+        }
+        .w-sm { min-width: 14mm; }
+        .w-md { min-width: 24mm; }
+        .w-lg { min-width: 34mm; }
+        .w-xl { min-width: 70mm; }
+
+        .sig-row { display: flex; justify-content: flex-end; margin-top: 11mm; }
+        .sig-box { width: 72mm; font-size: 10pt; color: #1f2937; }
+        .sig-box .date-line { display: flex; align-items: flex-end; gap: 2mm; }
+        .sig-box .date-line .dots {
+            flex: 1; border-bottom: 1px dotted #475569; text-align: center;
+            font-weight: 800; color: #000; min-height: 1.2em;
+        }
+        .sig-box .label { margin-top: 1.5mm; }
+        .sig-space { height: 30mm; }
+
+        .broker { margin-top: 12mm; font-size: 10pt; line-height: 2.3; color: #1f2937; text-align: right; }
+        .broker-sign { display: flex; justify-content: flex-end; margin-top: 10mm; }
+        .broker-sign div { width: 72mm; font-size: 10pt; color: #1f2937; }
+    </style>
+</head>
+<body>
+
+    <!-- Non-print controls -->
+    <div class="top-action-bar-print no-print">
+        <button onclick="window.print()" class="btn btn-primary" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>چاپ اقرارنامه (Ctrl + P)</span>
+        </button>
+        <button onclick="window.close()" class="btn btn-outline" style="box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+            <span>بستن</span>
+        </button>
+    </div>
+
+    <div class="print-paper">
+      <div class="frame">
+
+        <div class="title">اقرار نامه</div>
+
+        <div class="body">
+            اینجانب
+            {% if dossier.full_name %}<span class="fill">{{ dossier.full_name }}</span>{% else %}<span class="blank w-lg"></span>{% endif %}
+            متقاضی نهضت ملی مسکن در استان قم به شماره ملی
+            {% if dossier.national_id %}<span class="fill fa-num">{{ dossier.national_id }}</span>{% else %}<span class="blank w-md"></span>{% endif %}
+            و شماره تماس
+            {% if dossier.applicant_phone %}<span class="fill fa-num">{{ dossier.applicant_phone }}</span>{% else %}<span class="blank w-md"></span>{% endif %}
+            و آدرس
+            {% if dossier.applicant_address %}<span class="fill">{{ dossier.applicant_address }}</span>{% else %}<span class="blank w-xl"></span>{% endif %}
+            متعهد می‌شوم ظرف مدت یک ماه از تاریخ ابلاغ علی‌الحساب قیمت تمام شده واحد انتخابی خود به شماره نقشه تفکیکی
+            {% with u=dossier.unit_number|default:dossier.unit_code %}{% if u %}<span class="fill fa-num">{{ u }}</span>{% else %}<span class="blank w-md"></span>{% endif %}{% endwith %}
+            واقع در پروژه
+            {% if dossier.project %}<span class="fill">{{ dossier.project }}</span>{% else %}<span class="blank w-lg"></span>{% endif %}
+            بلوک
+            {% with b=dossier.block_code|default:dossier.block_name %}{% if b %}<span class="fill fa-num">{{ b }}</span>{% else %}<span class="blank w-sm"></span>{% endif %}{% endwith %}
+            و طبقه
+            {% if dossier.floor_number %}<span class="fill fa-num">{{ dossier.floor_number }}</span>{% else %}<span class="blank w-sm"></span>{% endif %}
+            ضمن تسویه مبلغ مابه‌التفاوت احتمالی با دریافت معرفی‌نامه از اداره کل راه و شهرسازی به بانک پرداخت کننده تسهیلات نهضت ملی مسکن مراجعه نمایم و نسبت به تقسیط تسهیلات یا تسویه حساب آن اقدام کنم و اقرار می‌نمایم در صورت عدم تسویه‌حساب هزینه مابه‌التفاوت اعلامی و عدم مراجعه به بانک حداکثر تا تاریخ
+            <span class="blank w-lg"></span>
+            اداره کل راه و شهرسازی استان قم مجاز است بدون نیاز به رجوع به مراجع قضایی واحد مسکونی فوق را به متقاضی اولویت‌دار دیگر واگذار نماید.
+            با امضای این اقرارنامه هرگونه حق اعتراض و شکایت و ادعای حقوقی را نسبت به این تصمیم‌گیری از خود سلب می‌نمایم. همچنین از آنجا که قبل از صدور پایان کار و برای سرعت دادن به انجام امور اداری به بانک برای تعیین تکلیف تسهیلات معرفی می‌شوم متعهد می‌شوم در صورت اعلام هزینه‌های احتمالی دیگر که به دلیل تسریع در معرفی به بانک تعیین تکلیف نشده، من‌جمله هزینه محوطه و دیوار محوطه، هزینه صدور پایان‌کار و سند و هزینه‌های مشابه دیگر نسبت به پرداخت آن قبل از تحویل واحد اقدام نمایم. متعهد می‌شوم در صورت لغو قرارداد طبق ضوابط و شرایط روز و تشخیص اداره کل راه و شهرسازی تخصیص پروژه شوم و حق هرگونه اعتراض را از خود سلب می‌نمایم.
+        </div>
+
+        <!-- Applicant date / signature / fingerprint (bottom-left, like the paper form) -->
+        <div class="sig-row">
+            <div class="sig-box">
+                <div class="date-line">
+                    <span>تاریخ</span>
+                    <span class="dots fa-num">{{ today_jalali }}</span>
+                </div>
+                <div class="label">امضاء و اثر انگشت متقاضی</div>
+                <div class="sig-space"></div>
+            </div>
+        </div>
+
+        <!-- Brokerage witness line -->
+        <div class="broker">
+            این اقرارنامه در تاریخ <span class="blank" style="min-width:16mm"></span> در حضور اینجانب <span class="blank" style="min-width:30mm"></span> نماینده شرکت کارگزاری<br>
+            انتخاب و تحویل واحدهای نهضت ملی مسکن توسط متقاضی امضاء شد و اثر انگشت ایشان دریافت شد.
+        </div>
+
+        <div class="broker-sign">
+            <div>امضاء نماینده کارگزاری</div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto_print') === '1') {
+                setTimeout(() => window.print(), 400);
+            }
+        });
+    </script>
+</body>
+</html>

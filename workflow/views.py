@@ -152,7 +152,17 @@ DOSSIER_FIELD_LABELS = {
 
     "applicant_id_number": "شماره شناسنامه متقاضی",
 
+    "applicant_id_serial": "سریال شناسنامه متقاضی",
+
     "applicant_birth_place": "محل صدور شناسنامه متقاضی",
+
+    "applicant_address": "آدرس محل سکونت متقاضی",
+
+    "applicant_postal_code": "کد پستی متقاضی",
+
+    "applicant_landline_phone": "تلفن ثابت متقاضی",
+
+    "spouse_id_serial": "سریال شناسنامه همسر",
 
     "renovation_code": "کد نوسازی (شهرداری)",
 
@@ -266,8 +276,12 @@ DOSSIER_FIELD_LABELS = {
     "non_cash_preparation_amount": "مبلغ غیرنقدی آماده سازی (۸۰٪ اقساط - ریال)",
 
     "is_cash_rent_confirmed": "تایید مبلغ نقدی اجاره",
+    "cash_rent_confirmed_by": "تاییدکننده وصول نقدی اجاره",
+    "cash_rent_confirmed_at": "زمان تایید وصول نقدی اجاره",
 
     "is_decile_loan_confirmed": "تایید چک‌های وام دهک",
+    "loan_checks_confirmed_by": "تاییدکننده چک‌های وام دهک",
+    "loan_checks_confirmed_at": "زمان تایید چک‌های وام دهک",
 
     "decile_loan_bank": "بانک عامل وام دهک",
 
@@ -300,6 +314,8 @@ DOSSIER_FIELD_LABELS = {
     "total_preparation_check_amount": "مجموع مبلغ چک‌های آماده‌سازی (ریال)",
 
     "is_preparation_checks_confirmed": "تایید چک‌های اقساط آماده‌سازی",
+    "prep_checks_confirmed_by": "تاییدکننده چک‌های اقساط آماده‌سازی",
+    "prep_checks_confirmed_at": "زمان تایید چک‌های اقساط آماده‌سازی",
 
     "rah_letter": "شماره نامه راه و شهرسازی",
 
@@ -481,16 +497,11 @@ def dossier_list_view(request):
     is_system = bool(profile and profile.organization == 'system')
 
     is_all_stages = bool(profile and profile.allowed_stages == 'all')
-
-    
+    is_check_admin = bool(profile and getattr(profile, 'is_check_admin', False))
 
     is_full_admin = is_super or is_staff or is_chief or is_system or is_all_stages
 
-
-
     sort = request.GET.get('sort', 'stage_asc').strip()
-
-
 
     user_allowed_stages = []
     if not is_full_admin:
@@ -501,11 +512,17 @@ def dossier_list_view(request):
 
     dossiers = HousingDossier.objects.all()
 
-    # Stage restriction for regular experts
+    # Stage restriction for regular experts (check admins have access to stages 17 and 18, and all ticked check dossiers)
     if not is_full_admin:
-        dossiers = dossiers.filter(models.Q(current_stage__in=user_allowed_stages) | models.Q(is_locked=True))
+        if status_filter == 'checks_ticked' and (is_check_admin or is_chief):
+            pass
+        elif is_check_admin:
+            check_stages = list(set(user_allowed_stages + [17, 18]))
+            dossiers = dossiers.filter(models.Q(current_stage__in=check_stages) | models.Q(is_locked=True))
+        else:
+            dossiers = dossiers.filter(models.Q(current_stage__in=user_allowed_stages) | models.Q(is_locked=True))
 
-    # Status Filters: Redirected Red Form J, Deleted Archive, Red Form J, or Stage Filters
+    # Status Filters: Redirected Red Form J, Deleted Archive, Red Form J, Ticked Checks, or Stage Filters
     if status_filter == 'pending_red':
         # Specific place for Admin to see Red Form J dossiers redirected to it
         dossiers = dossiers.filter(status="REJECT_RED_PENDING")
@@ -521,6 +538,23 @@ def dossier_list_view(request):
             models.Q(status__in=["REJECTED_RED", "REJECT_RED_PENDING"])
         )
         dossiers = dossiers.filter(red_cond)
+    elif status_filter == 'checks_ticked':
+        checks_cond = (
+            (
+                models.Q(is_cash_rent_confirmed=True) |
+                models.Q(is_preparation_checks_confirmed=True) |
+                models.Q(is_decile_loan_confirmed=True)
+            ) &
+            models.Q(is_locked=False) &
+            ~models.Q(status__in=["REJECTED_RED", "DELETED"])
+        )
+        dossiers = dossiers.filter(checks_cond)
+        if stage_filter != '':
+            try:
+                stg_val = int(stage_filter)
+                dossiers = dossiers.filter(current_stage=stg_val)
+            except ValueError:
+                pass
     else:
         if stage_filter != '':
             try:
@@ -630,6 +664,17 @@ def dossier_list_view(request):
     deleted_cnt = HousingDossier.objects.filter(status="DELETED").count()
     deleted_total_cnt = HousingDossier.objects.filter(status__in=["DELETED", "REJECTED_RED"]).count()
 
+    checks_ticked_cond = (
+        (
+            models.Q(is_cash_rent_confirmed=True) |
+            models.Q(is_preparation_checks_confirmed=True) |
+            models.Q(is_decile_loan_confirmed=True)
+        ) &
+        models.Q(is_locked=False) &
+        ~models.Q(status__in=["REJECTED_RED", "DELETED"])
+    )
+    checks_ticked_cnt = HousingDossier.objects.filter(checks_ticked_cond).count()
+
     if is_full_admin:
 
         total_all_count = total_active_count
@@ -669,6 +714,8 @@ def dossier_list_view(request):
             "deleted_cnt": deleted_cnt,
 
             "deleted_total_cnt": deleted_total_cnt,
+
+            "checks_ticked_cnt": checks_ticked_cnt,
 
             "p1_count": p1_cnt,
 
@@ -880,6 +927,10 @@ def dossier_list_view(request):
 
         "deleted_total_cnt": deleted_total_cnt,
 
+        "checks_ticked_cnt": checks_ticked_cnt,
+
+        "is_check_admin": is_check_admin,
+
         "pending_red_dossiers": list(HousingDossier.objects.filter(status="REJECT_RED_PENDING").order_by("-updated_at")[:10]),
 
     }
@@ -893,6 +944,14 @@ def dossier_list_view(request):
 
 
 
+
+
+def _get_dossier_by_pk(pk):
+    from django.http import Http404
+    d = HousingDossier.objects.filter(models.Q(archive_number=pk) | models.Q(id=pk)).first()
+    if not d:
+        raise Http404(f"پرونده با شناسه {pk} یافت نشد.")
+    return d
 
 
 @login_required(login_url='login')
@@ -909,7 +968,7 @@ def dossier_detail_view(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
 
 
@@ -1100,7 +1159,7 @@ def dossier_detail_view(request, pk):
         ]
 
     # Auto-calculate and pre-fill Section 9 land values in memory if empty or zero
-    if not dossier.is_locked and (dossier.renovation_code or dossier.plot_number or (dossier.project and "قطعه" in dossier.project)):
+    if not dossier.is_locked and (dossier.renovation_code or dossier.plot_number or dossier.project):
         if not dossier.total_land_share or dossier.current_year_rent == 0:
             from .land_rates import apply_land_calculation
             apply_land_calculation(dossier)
@@ -1161,6 +1220,14 @@ def dossier_detail_view(request, pk):
 
             "applicant_phone": dossier.applicant_phone or "",
 
+            "applicant_address": dossier.applicant_address or "",
+
+            "applicant_postal_code": dossier.applicant_postal_code or "",
+
+            "applicant_landline_phone": dossier.applicant_landline_phone or "",
+
+            "applicant_id_serial": dossier.applicant_id_serial or "",
+
             "selection_rank": dossier.selection_rank,
 
             "form_j_questionnaire_number": dossier.form_j_questionnaire_number or "",
@@ -1186,6 +1253,8 @@ def dossier_detail_view(request, pk):
             "spouse_birth_date": dossier.spouse_birth_date,
 
             "spouse_id_number": dossier.spouse_id_number,
+
+            "spouse_id_serial": dossier.spouse_id_serial or "",
 
             "spouse_birth_place": dossier.spouse_birth_place,
 
@@ -1323,8 +1392,12 @@ def dossier_detail_view(request, pk):
             "non_cash_preparation_amount": dossier.non_cash_preparation_amount,
 
             "is_cash_rent_confirmed": dossier.is_cash_rent_confirmed,
+            "cash_rent_confirmed_by": dossier.cash_rent_confirmed_by,
+            "cash_rent_confirmed_at": dossier.cash_rent_confirmed_at_jalali,
 
             "is_decile_loan_confirmed": dossier.is_decile_loan_confirmed,
+            "loan_checks_confirmed_by": dossier.loan_checks_confirmed_by,
+            "loan_checks_confirmed_at": dossier.loan_checks_confirmed_at_jalali,
 
             "decile_loan_bank": dossier.decile_loan_bank or "بانک مسکن",
 
@@ -1361,6 +1434,8 @@ def dossier_detail_view(request, pk):
             "total_preparation_check_amount": dossier.total_preparation_check_amount or sum(c.get("check_amount", 0) for c in prep_check_items_list),
 
             "is_preparation_checks_confirmed": dossier.is_preparation_checks_confirmed,
+            "prep_checks_confirmed_by": dossier.prep_checks_confirmed_by,
+            "prep_checks_confirmed_at": dossier.prep_checks_confirmed_at_jalali,
 
             "rah_letter": dossier.rah_letter or "",
 
@@ -1591,7 +1666,7 @@ def save_dossier_draft_view(request, pk):
 
 
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     if dossier.is_locked:
 
@@ -1707,7 +1782,7 @@ def save_dossier_draft_view(request, pk):
 
         "bank_sent_date", "bank_sent_letter_number", "form_j_number",
 
-        "applicant_id_number", "applicant_birth_place", "renovation_code",
+        "applicant_id_number", "applicant_birth_place", "applicant_id_serial", "applicant_address", "applicant_postal_code", "applicant_landline_phone", "spouse_id_serial", "renovation_code",
 
         "first_name", "last_name", "spouse_first_name", "spouse_last_name",
 
@@ -1849,6 +1924,46 @@ def save_dossier_draft_view(request, pk):
     # Enforce role-based field restrictions: everyone can only change what is related to him
 
     parsed_updates = filter_allowed_updates(request.user, parsed_updates)
+
+    # Audit log and track timestamps / confirmers for check confirmations
+    now_ts = timezone.now()
+    check_confirm_triplets = [
+        ("is_cash_rent_confirmed", "cash_rent_confirmed_by", "cash_rent_confirmed_at", "تایید وصول نقدی اجاره عرصه"),
+        ("is_preparation_checks_confirmed", "prep_checks_confirmed_by", "prep_checks_confirmed_at", "تایید دریافت و کنترل چک‌های اقساط آماده‌سازی"),
+        ("is_decile_loan_confirmed", "loan_checks_confirmed_by", "loan_checks_confirmed_at", "تایید دریافت و کنترل چک‌های وام دهک"),
+    ]
+    for bool_field, by_field, at_field, field_title in check_confirm_triplets:
+        if bool_field in parsed_updates:
+            new_bool = bool(parsed_updates[bool_field])
+            old_bool = bool(getattr(dossier, bool_field, False))
+            if new_bool and not old_bool:
+                parsed_updates[by_field] = actor_name
+                parsed_updates[at_field] = now_ts
+                WorkflowSignatureLog.objects.create(
+                    dossier=dossier,
+                    from_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+                    to_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+                    actor=actor_name,
+                    role=actor_role,
+                    action="CONFIRM_CHECK",
+                    action_label=f"تایید چک و وصول: {field_title}",
+                    signature_hash="",
+                    notes=f"«{field_title}» توسط {actor_name} ({actor_role}) تایید و ثبت گردید."
+                )
+            elif not new_bool and old_bool:
+                parsed_updates[by_field] = ""
+                parsed_updates[at_field] = None
+                WorkflowSignatureLog.objects.create(
+                    dossier=dossier,
+                    from_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+                    to_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+                    actor=actor_name,
+                    role=actor_role,
+                    action="UNCONFIRM_CHECK",
+                    action_label=f"لغو تایید: {field_title}",
+                    signature_hash="",
+                    notes=f"تاییدیه «{field_title}» توسط {actor_name} ({actor_role}) لغو گردید."
+                )
 
 
 
@@ -2175,6 +2290,18 @@ def save_dossier_draft_view(request, pk):
 
         "preparation_check_count": dossier.preparation_check_count,
 
+        "is_cash_rent_confirmed": dossier.is_cash_rent_confirmed,
+        "cash_rent_confirmed_by": dossier.cash_rent_confirmed_by,
+        "cash_rent_confirmed_at": dossier.cash_rent_confirmed_at_jalali,
+
+        "is_preparation_checks_confirmed": dossier.is_preparation_checks_confirmed,
+        "prep_checks_confirmed_by": dossier.prep_checks_confirmed_by,
+        "prep_checks_confirmed_at": dossier.prep_checks_confirmed_at_jalali,
+
+        "is_decile_loan_confirmed": dossier.is_decile_loan_confirmed,
+        "loan_checks_confirmed_by": dossier.loan_checks_confirmed_by,
+        "loan_checks_confirmed_at": dossier.loan_checks_confirmed_at_jalali,
+
         "new_changes": recent_changes
 
     })
@@ -2224,6 +2351,11 @@ def execute_dossier_sign(dossier, user, notes="تایید و امضای الکت
     can_action = user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(current_idx))
     if not can_action:
         return False, f"دسترسی مجاز برای امضا در مرحله {current_idx} را ندارید."
+
+    if current_idx in (17, 18):
+        is_check_admin = user.is_superuser or (profile and (profile.is_housing_chief or profile.is_check_admin or profile.allowed_stages == "all"))
+        if not is_check_admin:
+            return False, "امضا و تأیید نهایی مرحله چک‌ها و آماده‌سازی منحصراً در اختیار مدیر کارگزاری چک یا رئیس مسکن می‌باشد. لطفاً تنها چک‌باکس‌های تاییدیه را ثبت نمایید."
 
     if profile and not profile.can_sign:
         return False, "حق امضای الکترونیکی برای حساب کاربری شما فعال نیست."
@@ -2688,6 +2820,16 @@ def lookup_preselected_unit_api(request):
 
             "applicant_phone": unit.applicant_phone or "",
 
+            "applicant_address": getattr(unit, "applicant_address", "") or "",
+
+            "applicant_postal_code": getattr(unit, "applicant_postal_code", "") or "",
+
+            "applicant_landline_phone": getattr(unit, "applicant_landline_phone", "") or "",
+
+            "applicant_id_serial": getattr(unit, "applicant_id_serial", "") or "",
+
+            "spouse_id_serial": getattr(unit, "spouse_id_serial", "") or "",
+
             "selection_rank": unit.selection_rank,
 
             "form_j_questionnaire_number": getattr(unit, "form_j_questionnaire_number", "") or "",
@@ -2803,7 +2945,7 @@ def notary_letter_print_view(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     return render(request, "dossiers/print_notary.html", {"dossier": dossier})
 
@@ -2823,9 +2965,388 @@ def folder_label_print_view(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     return render(request, "dossiers/print_folder_label.html", {"dossier": dossier})
+
+
+def _find_system_browser():
+    candidates = [
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    import shutil
+    return shutil.which("chrome") or shutil.which("msedge")
+
+
+def _render_html_template_to_jpg(template_name, context, nat_id, file_stem, landscape=False):
+    """
+    Renders Django template to HTML, then converts it to a high-quality A4 JPG
+    image saved in MEDIA_ROOT/{nat_id}/{file_stem}.jpg using headless Chrome/Edge.
+    Forces zero outer margins, removes toolbars, and crops exactly to the A4 sheet.
+    Returns (file_name, media_url, sha256_hash).
+    """
+    from django.template.loader import render_to_string
+    import hashlib
+    import subprocess
+    from PIL import Image
+
+    nat_str = str(nat_id).strip() or "general"
+    upload_dir = os.path.join(settings.MEDIA_ROOT, nat_str)
+    os.makedirs(upload_dir, exist_ok=True)
+
+    html_content = render_to_string(template_name, context)
+
+    # Inject edge-to-edge crop style so the image is 100% the actual A4 page with NO grey/black borders and NO buttons
+    if landscape:
+        w_px, h_px = 1123, 794
+        crop_style = """
+<style id="render-img-crop">
+    @page { size: A4 landscape; margin: 0; }
+    html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        width: 1123px !important;
+        height: 794px !important;
+        min-height: 794px !important;
+        overflow: hidden !important;
+    }
+    .sheet-container, .sheet-a4-landscape, .sheet, .print-paper {
+        width: 1123px !important;
+        height: 794px !important;
+        min-height: 794px !important;
+        margin: 0 !important;
+        padding: 6mm 10mm !important;
+        box-sizing: border-box !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    .no-print, .no-print-toolbar, .top-action-bar-print {
+        display: none !important;
+    }
+</style>
+"""
+    else:
+        w_px, h_px = 794, 1123
+        crop_style = """
+<style id="render-img-crop">
+    @page { size: A4; margin: 0; }
+    html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        width: 794px !important;
+        height: 1123px !important;
+        min-height: 1123px !important;
+        overflow: hidden !important;
+    }
+    .print-paper, .sheet {
+        width: 794px !important;
+        height: 1123px !important;
+        min-height: 1123px !important;
+        margin: 0 !important;
+        padding: 8mm 10mm !important;
+        box-sizing: border-box !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    .frame {
+        height: 100% !important;
+        min-height: 0 !important;
+        box-sizing: border-box !important;
+    }
+    .no-print, .no-print-toolbar, .top-action-bar-print {
+        display: none !important;
+    }
+</style>
+"""
+    if "</head>" in html_content:
+        html_content = html_content.replace("</head>", f"{crop_style}</head>")
+    else:
+        html_content = f"{crop_style}{html_content}"
+
+    html_path = os.path.join(upload_dir, f"{file_stem}.html")
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    browser_exe = _find_system_browser()
+    if browser_exe:
+        temp_png = os.path.join(upload_dir, f"temp_{file_stem}.png")
+        target_jpg = os.path.join(upload_dir, f"{file_stem}.jpg")
+        cmd = [
+            browser_exe,
+            "--headless=new",
+            "--disable-gpu",
+            "--hide-scrollbars",
+            "--force-device-scale-factor=1.5",
+            f"--window-size={w_px},{h_px}",
+            f"--screenshot={temp_png}",
+            f"file:///{os.path.abspath(html_path).replace(os.sep, '/')}"
+        ]
+        try:
+            res = subprocess.run(cmd, capture_output=True, timeout=15)
+            if res.returncode == 0 and os.path.exists(temp_png):
+                im = Image.open(temp_png).convert("RGB")
+                im.save(target_jpg, "JPEG", quality=92)
+                try:
+                    os.remove(temp_png)
+                except OSError:
+                    pass
+
+                with open(target_jpg, "rb") as f_img:
+                    raw_hash = hashlib.sha256(f_img.read()).hexdigest()[:24]
+
+                file_name = f"{file_stem}.jpg"
+                preview_url = f"{settings.MEDIA_URL}{nat_str}/{file_name}"
+                return file_name, preview_url, f"SHA256: {raw_hash}"
+        except Exception as e:
+            logger.warning(f"Headless browser render to JPG failed: {e}")
+
+    # Fallback to HTML
+    with open(html_path, "rb") as f_html:
+        raw_hash = hashlib.sha256(f_html.read()).hexdigest()[:24]
+    file_name = f"{file_stem}.html"
+    preview_url = f"{settings.MEDIA_URL}{nat_str}/{file_name}"
+    return file_name, preview_url, f"SHA256: {raw_hash}"
+
+
+@login_required(login_url='login')
+def dossier_print_affidavit_view(request, pk):
+    """
+    Print-ready view for اقرار نامه (Affidavit / Commitment letter).
+    Auto-filled based on applicant identity, project, block, and unit.
+    Also automatically archives a copy into the scan album.
+    """
+    dossier = _get_dossier_by_pk(pk)
+    try:
+        import jdatetime
+        today_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d")
+    except Exception:
+        today_jalali = timezone.now().strftime("%Y/%m/%d")
+
+    nat_id = dossier.national_id or dossier.archive_number
+    file_stem = f"{nat_id}_affidavit"
+    context = {
+        "dossier": dossier,
+        "today_jalali": today_jalali,
+    }
+
+    # Automatically archive image copy into the scan album
+    doc_code = "AFFIDAVIT"
+    title = f"اسکن اقرارنامه - {nat_id}"
+    file_name, preview_url, file_sha = _render_html_template_to_jpg(
+        "dossiers/print_affidavit.html", context, nat_id, file_stem
+    )
+    dossier.has_affidavit = True
+    dossier.save(update_fields=["has_affidavit"])
+
+    att = dossier.attachments.filter(doc_type=doc_code).first()
+    if not att:
+        DossierAttachment.objects.create(
+            dossier=dossier,
+            stage=8 if dossier.current_stage >= 8 else dossier.current_stage,
+            doc_type=doc_code,
+            title=title,
+            file_name=file_name,
+            file_sha256=file_sha,
+            uploaded_by=request.user.get_full_name() or request.user.username,
+            preview_url=preview_url
+        )
+    else:
+        if att.preview_url != preview_url or att.file_name != file_name or att.title != title:
+            att.title = title
+            att.file_name = file_name
+            att.preview_url = preview_url
+            att.file_sha256 = file_sha
+            att.save(update_fields=["title", "file_name", "preview_url", "file_sha256"])
+
+    return render(request, "dossiers/print_affidavit.html", context)
+
+
+@login_required(login_url='login')
+def dossier_print_info_form_view(request, pk):
+    """
+    Print-ready view for فرم اطلاعات متقاضی، همسر و محل سکونت.
+    Auto-filled based on dossier and project details.
+    Also automatically archives a copy into the scan album.
+    """
+    dossier = _get_dossier_by_pk(pk)
+    try:
+        import jdatetime
+        today_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d")
+    except Exception:
+        today_jalali = timezone.now().strftime("%Y/%m/%d")
+
+    total_units = "-"
+    if dossier.project:
+        p = Project.objects.filter(name=dossier.project).first()
+        if p:
+            total_units = str(p.total_units)
+
+    nat_id = dossier.national_id or dossier.archive_number
+    file_stem = f"{nat_id}_info_form"
+    context = {
+        "dossier": dossier,
+        "today_jalali": today_jalali,
+        "project_total_units": total_units,
+    }
+
+    # Automatically archive image copy into the scan album
+    doc_code = "INFO_FORM"
+    title = f"اسکن فرم اطلاعات - {nat_id}"
+    file_name, preview_url, file_sha = _render_html_template_to_jpg(
+        "dossiers/print_info_form.html", context, nat_id, file_stem
+    )
+    dossier.has_info_form = True
+    dossier.save(update_fields=["has_info_form"])
+
+    att = dossier.attachments.filter(doc_type=doc_code).first()
+    if not att:
+        DossierAttachment.objects.create(
+            dossier=dossier,
+            stage=8 if dossier.current_stage >= 8 else dossier.current_stage,
+            doc_type=doc_code,
+            title=title,
+            file_name=file_name,
+            file_sha256=file_sha,
+            uploaded_by=request.user.get_full_name() or request.user.username,
+            preview_url=preview_url
+        )
+    else:
+        if att.preview_url != preview_url or att.file_name != file_name or att.title != title:
+            att.title = title
+            att.file_name = file_name
+            att.preview_url = preview_url
+            att.file_sha256 = file_sha
+            att.save(update_fields=["title", "file_name", "preview_url", "file_sha256"])
+
+    return render(request, "dossiers/print_info_form.html", context)
+
+
+@login_required(login_url='login')
+def generate_and_archive_doc_view(request, pk, doc_type):
+    """
+    Generates and adds اقرارنامه or فرم اطلاعات to the scan album (DossierAttachment),
+    updates the stage 7/8 checklist checkbox on the dossier, logs the action,
+    and returns JSON with the print/preview URL.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "متد غیرمجاز است."}, status=405)
+
+    dossier = _get_dossier_by_pk(pk)
+    profile = getattr(request.user, 'profile', None)
+    uploader_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
+
+    doc_type_clean = (doc_type or "").strip().lower()
+    target_stage = 8 if dossier.current_stage >= 8 else dossier.current_stage
+    nat_id = dossier.national_id or dossier.archive_number
+
+    try:
+        import jdatetime
+        today_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d")
+    except Exception:
+        today_jalali = timezone.now().strftime("%Y/%m/%d")
+
+    if doc_type_clean in ("affidavit", "iqrar"):
+        doc_code = "AFFIDAVIT"
+        title = f"اسکن اقرارنامه - {nat_id}"
+        file_stem = f"{nat_id}_affidavit"
+        dossier.has_affidavit = True
+        log_action = "تولید و ثبت اقرارنامه در آلبوم مدارک"
+        context = {
+            "dossier": dossier,
+            "today_jalali": today_jalali,
+        }
+        file_name, preview_url, file_sha = _render_html_template_to_jpg(
+            "dossiers/print_affidavit.html", context, nat_id, file_stem
+        )
+        print_url = f"/dossier/{dossier.archive_number}/print/affidavit/?auto_print=1"
+
+    elif doc_type_clean in ("info_form", "info-form", "info"):
+        doc_code = "INFO_FORM"
+        title = f"اسکن فرم اطلاعات - {nat_id}"
+        file_stem = f"{nat_id}_info_form"
+        dossier.has_info_form = True
+        log_action = "تولید و ثبت فرم اطلاعات در آلبوم مدارک"
+        total_units = "-"
+        if dossier.project:
+            p = Project.objects.filter(name=dossier.project).first()
+            if p:
+                total_units = str(p.total_units)
+        context = {
+            "dossier": dossier,
+            "today_jalali": today_jalali,
+            "project_total_units": total_units,
+        }
+        file_name, preview_url, file_sha = _render_html_template_to_jpg(
+            "dossiers/print_info_form.html", context, nat_id, file_stem
+        )
+        print_url = f"/dossier/{dossier.archive_number}/print/info-form/?auto_print=1"
+
+    else:
+        return JsonResponse({"status": "error", "message": "نوع مدرک نامعتبر است."}, status=400)
+
+    dossier.save()
+
+    att = dossier.attachments.filter(doc_type=doc_code).first()
+    if att:
+        att.title = title
+        att.stage = target_stage
+        att.file_name = file_name
+        att.preview_url = preview_url
+        att.file_sha256 = file_sha
+        att.uploaded_by = uploader_name
+        att.save()
+    else:
+        att = DossierAttachment.objects.create(
+            dossier=dossier,
+            stage=target_stage,
+            doc_type=doc_code,
+            title=title,
+            file_name=file_name,
+            file_sha256=file_sha,
+            uploaded_by=uploader_name,
+            preview_url=preview_url
+        )
+
+    WorkflowSignatureLog.objects.create(
+        dossier=dossier,
+        from_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+        to_stage=f"مرحله {dossier.current_stage}: {dossier.current_stage_title}",
+        actor=uploader_name,
+        role=profile.role_title if profile and profile.role_title else "کارشناس",
+        action="GENERATE_DOC",
+        action_label=log_action,
+        notes=f"مدرک {title} به صورت خودکار تولید و به آلبوم مدارک افزوده شد."
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "message": f"{title} با موفقیت تولید و به آلبوم مدارک پیوست گردید.",
+        "print_url": print_url,
+        "preview_url": preview_url,
+        "attachment": {
+            "id": att.id,
+            "stage": att.stage,
+            "type": att.doc_type,
+            "doc_type": att.doc_type,
+            "title": att.title,
+            "fileName": att.file_name,
+            "uploader": att.uploaded_by,
+            "uploadDate": att.uploaded_at.strftime("%Y/%m/%d"),
+            "preview_url": att.preview_url,
+            "immutable": True
+        }
+    })
+
 
 
 
@@ -2843,7 +3364,7 @@ def land_bank_print_view(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     sig_obj = dossier.signatures.filter(slot_key="land_bank").first()
 
@@ -2891,8 +3412,6 @@ def land_bank_print_view(request, pk):
 
         prep_amount = f"{dossier.preparation_cost:,}"
 
-
-
     context = {
 
         "dossier": dossier,
@@ -2909,7 +3428,45 @@ def land_bank_print_view(request, pk):
 
         "prep_amount": prep_amount,
 
+        "auto_print": request.GET.get("auto_print") == "1",
+
     }
+
+    # Auto-archive land bank deed print document to dossier attachments
+    auto_archive = request.GET.get('auto_archive', '1') == '1'
+    if auto_archive:
+        nat_id = dossier.national_id or dossier.archive_number
+        title = f"اسکن سند عرصه - {nat_id}"
+        file_stem = f"{nat_id}_arse"
+        file_name, preview_url, file_sha = _render_html_template_to_jpg(
+            "dossiers/print_land_bank.html", context, nat_id, file_stem, landscape=True
+        )
+
+        att = dossier.attachments.filter(doc_type="TITLE_DEED").first()
+        if not att:
+            uploader_name = "متصدی چاپ سند عرصه"
+            if request.user and request.user.is_authenticated:
+                profile = getattr(request.user, 'profile', None)
+                uploader_name = (profile and profile.full_name) or request.user.get_full_name() or request.user.username
+            DossierAttachment.objects.create(
+                dossier=dossier,
+                stage=13,
+                doc_type="TITLE_DEED",
+                title=title,
+                file_name=file_name,
+                file_sha256=file_sha,
+                uploaded_by=uploader_name,
+                preview_url=preview_url,
+            )
+            dossier.is_land_deed_confirmed = True
+            dossier.save(update_fields=['is_land_deed_confirmed'])
+        else:
+            if att.preview_url != preview_url or att.file_name != file_name or att.title != title:
+                att.title = title
+                att.file_name = file_name
+                att.preview_url = preview_url
+                att.file_sha256 = file_sha
+                att.save(update_fields=['title', 'file_name', 'preview_url', 'file_sha256'])
 
     return render(request, "dossiers/print_land_bank.html", context)
 
@@ -2922,6 +3479,11 @@ def get_dossier_signatures_summary(dossier):
     """Returns (signatures_map, signed_count). Read-only: never writes to the DB."""
 
     import jdatetime
+
+    # Rule: Only sign papers after مرحله 7 (stages >= 8).
+    # Before مرحله 7, no one signs anything on papers; just record their log.
+    if not dossier.is_locked and dossier.current_stage <= 7:
+        return {}, 0
 
     sigs = {s.slot_key: s for s in dossier.signatures.all()}
 
@@ -2951,6 +3513,12 @@ def get_dossier_signatures_summary(dossier):
 
             continue
 
+        stage_num = int(m.group(1))
+
+        # Before stage 8, no one signs papers; audit log only!
+        if stage_num <= 7:
+            continue
+
         try:
 
             date_str = jdatetime.datetime.fromgregorian(datetime=log.timestamp).strftime("%Y/%m/%d - %H:%M")
@@ -2965,7 +3533,7 @@ def get_dossier_signatures_summary(dossier):
 
 
 
-        for slot_key in STAGE_TO_SLOTS.get(int(m.group(1)), []):
+        for slot_key in STAGE_TO_SLOTS.get(stage_num, []):
 
             sig = sigs.get(slot_key)
 
@@ -3049,7 +3617,7 @@ def _build_summary_context(request, dossier, is_word_export=False):
 
 def dossier_summary_print_view(request, pk):
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     return render(request, "dossiers/print_summary.html", _build_summary_context(request, dossier))
 
@@ -3079,37 +3647,45 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=
 
     scans_count = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").count()
 
+    nat_id = dossier.national_id or dossier.archive_number
+
     if scans_count > 1:
 
-        title = f"رسید رسمی و برگه تحویل چک‌های {type_label} ({scans_count} برگ اسکن با سربرگ)"
+        title = f"رسید چک‌های {type_label} ({nat_id}) - {scans_count} برگ"
 
     elif scans_count == 1:
 
-        title = f"رسید رسمی و برگه تحویل چک‌های {type_label} (با تصویر اسکن)"
+        title = f"رسید چک‌های {type_label} ({nat_id})"
 
     else:
 
-        title = f"رسید رسمی و برگه تحویل چک‌های {type_label}"
+        title = f"رسید چک‌های {type_label} ({nat_id})"
 
 
 
     preview_url = f"/dossier/{dossier.archive_number}/print/checks/?type={check_type_norm}&auto_archive=0"
 
-    file_name = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
+    file_name = f"{nat_id}_{check_type_norm}_receipt.html"
 
 
 
     # Check if this receipt attachment already exists
 
     att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.archive_number}/print/checks/").filter(doc_type=doc_type).first()
+    if not att:
+        att = dossier.attachments.filter(file_name=file_name).first()
 
     if att:
 
+        updated_fields = []
         if att.title != title:
-
             att.title = title
-
-            att.save(update_fields=['title'])
+            updated_fields.append('title')
+        if att.file_name != file_name:
+            att.file_name = file_name
+            updated_fields.append('file_name')
+        if updated_fields:
+            att.save(update_fields=updated_fields)
 
         return att
 
@@ -3211,7 +3787,7 @@ def dossier_print_checks_view(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     check_type = request.GET.get('type', 'prep' if request.GET.get('stage') == '18' else 'loan').lower()
 
@@ -3371,7 +3947,7 @@ def archive_check_receipt_api(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     try:
 
@@ -3447,7 +4023,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     check_type = request.POST.get('check_type', 'loan').lower()
 
@@ -3521,17 +4097,27 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
     for idx, file_obj in enumerate(uploaded_files):
 
+        page_num = existing_count + idx + 1
+
         raw_name = os.path.basename(file_obj.name)
 
-        base_stem, ext = os.path.splitext(raw_name)
+        _, ext = os.path.splitext(raw_name)
 
-        clean_stem = "".join(c for c in base_stem if c.isalnum() or c in "._-") or "check"
+        clean_ext = (ext or ".jpg").lower()
 
-        clean_name = f"{clean_stem}_{int(time.time())}_{idx+1}{ext}"
+        if check_type_norm == "prep":
+
+            clean_name = f"{nat_id}_prep_check_{page_num}{clean_ext}"
+
+            scan_title = f"چک آماده‌سازی ({nat_id}) - برگه {page_num}"
+
+        else:
+
+            clean_name = f"{nat_id}_loan_check_{page_num}{clean_ext}"
+
+            scan_title = f"چک تسهیلات دهک ({nat_id}) - برگه {page_num}"
 
         save_path = os.path.join(upload_dir, clean_name)
-
-
 
         with open(save_path, 'wb+') as destination:
 
@@ -3539,15 +4125,9 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
                 destination.write(chunk)
 
-
-
         saved_url = f"{settings.MEDIA_URL}{nat_id}/check_scans/{clean_name}"
 
-        page_num = existing_count + idx + 1
-
         file_sha = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-{clean_name}-{idx}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
-
-
 
         scan_att = DossierAttachment.objects.create(
 
@@ -3557,9 +4137,9 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
             doc_type=doc_type,
 
-            title=f"اسکن اصل چک صیادی {type_label} (برگ {page_num})",
+            title=scan_title,
 
-            file_name=file_obj.name,
+            file_name=clean_name,
 
             file_sha256=file_sha,
 
@@ -3789,7 +4369,7 @@ def reject_red_form_j_action(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     profile = getattr(request.user, 'profile', None)
 
@@ -3971,7 +4551,7 @@ def return_red_form_j_action(request, pk):
 
 
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     profile = getattr(request.user, 'profile', None)
 
@@ -4182,7 +4762,7 @@ def archive_delete_dossier_action(request, pk):
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
     profile = getattr(request.user, 'profile', None)
     is_chief = bool(profile and profile.is_housing_chief)
 
@@ -4230,7 +4810,7 @@ def archive_delete_dossier_action(request, pk):
         field_name="status",
         field_label="وضعیت فرآیند",
         old_value=old_status,
-        new_value="حذف و بایگانی راکد",
+        new_value="حذف و بایگانی",
         changed_by=actor_name,
         role=actor_role,
         stage=dossier.current_stage,
@@ -4258,7 +4838,7 @@ def restore_deleted_dossier_action(request, pk):
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
     profile = getattr(request.user, 'profile', None)
     is_chief = bool(profile and profile.is_housing_chief)
 
@@ -4322,7 +4902,7 @@ def red_rejection_letter_print_view(request, pk):
 
     """
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     import jdatetime
 
@@ -4360,7 +4940,7 @@ def upload_scan_attachment_view(request, pk):
 
 
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
 
 
@@ -4432,7 +5012,28 @@ def upload_scan_attachment_view(request, pk):
 
             name_base, ext = os.path.splitext(orig_name)
 
-            safe_name = f"{timestamp_prefix}_{idx}_{orig_name}" if os.path.exists(os.path.join(nat_id_dir, orig_name)) else orig_name
+            clean_ext = (ext or ".jpg").lower()
+
+            if doc_type == "TITLE_DEED":
+                standard_name = f"{nat_id}_arse{clean_ext}" if total_files == 1 else f"{nat_id}_arse_{idx}{clean_ext}"
+                default_title = f"اسکن سند عرصه - {nat_id}" if total_files == 1 else f"اسکن سند عرصه ({nat_id}) - برگه {idx}"
+            elif doc_type == "AFFIDAVIT":
+                standard_name = f"{nat_id}_affidavit{clean_ext}" if total_files == 1 else f"{nat_id}_affidavit_{idx}{clean_ext}"
+                default_title = f"اسکن اقرارنامه - {nat_id}" if total_files == 1 else f"اسکن اقرارنامه ({nat_id}) - برگه {idx}"
+            elif doc_type == "INFO_FORM":
+                standard_name = f"{nat_id}_info_form{clean_ext}" if total_files == 1 else f"{nat_id}_info_form_{idx}{clean_ext}"
+                default_title = f"اسکن فرم اطلاعات - {nat_id}" if total_files == 1 else f"اسکن فرم اطلاعات ({nat_id}) - برگه {idx}"
+            elif doc_type == "PREP_CHECK":
+                standard_name = f"{nat_id}_prep_check_{idx}{clean_ext}"
+                default_title = f"چک آماده‌سازی ({nat_id}) - برگه {idx}"
+            elif doc_type == "LOAN_CHECK":
+                standard_name = f"{nat_id}_loan_check_{idx}{clean_ext}"
+                default_title = f"چک تسهیلات دهک ({nat_id}) - برگه {idx}"
+            else:
+                standard_name = orig_name
+                default_title = name_base or f"برگه اسکن {idx}"
+
+            safe_name = f"{timestamp_prefix}_{standard_name}" if os.path.exists(os.path.join(nat_id_dir, standard_name)) else standard_name
 
             file_path = os.path.join(nat_id_dir, safe_name)
 
@@ -4460,7 +5061,7 @@ def upload_scan_attachment_view(request, pk):
 
             else:
 
-                item_title = name_base or f"برگه اسکن {idx}"
+                item_title = default_title
 
 
 
@@ -4494,7 +5095,27 @@ def upload_scan_attachment_view(request, pk):
 
         for idx, p_url in enumerate(preview_urls, start=1):
 
-            file_name = f"scan_{timestamp_prefix}_{idx}.jpg"
+            clean_ext = ".jpg"
+            if doc_type == "TITLE_DEED":
+                standard_name = f"{nat_id}_arse{clean_ext}" if total_previews == 1 else f"{nat_id}_arse_{idx}{clean_ext}"
+                default_title = f"اسکن سند عرصه - {nat_id}" if total_previews == 1 else f"اسکن سند عرصه ({nat_id}) - برگه {idx}"
+            elif doc_type == "AFFIDAVIT":
+                standard_name = f"{nat_id}_affidavit{clean_ext}" if total_previews == 1 else f"{nat_id}_affidavit_{idx}{clean_ext}"
+                default_title = f"اسکن اقرارنامه - {nat_id}" if total_previews == 1 else f"اسکن اقرارنامه ({nat_id}) - برگه {idx}"
+            elif doc_type == "INFO_FORM":
+                standard_name = f"{nat_id}_info_form{clean_ext}" if total_previews == 1 else f"{nat_id}_info_form_{idx}{clean_ext}"
+                default_title = f"اسکن فرم اطلاعات - {nat_id}" if total_previews == 1 else f"اسکن فرم اطلاعات ({nat_id}) - برگه {idx}"
+            elif doc_type == "PREP_CHECK":
+                standard_name = f"{nat_id}_prep_check_{idx}{clean_ext}"
+                default_title = f"چک آماده‌سازی ({nat_id}) - برگه {idx}"
+            elif doc_type == "LOAN_CHECK":
+                standard_name = f"{nat_id}_loan_check_{idx}{clean_ext}"
+                default_title = f"چک تسهیلات دهک ({nat_id}) - برگه {idx}"
+            else:
+                standard_name = f"scan_{timestamp_prefix}_{idx}.jpg"
+                default_title = f"اسکن مدرک پرونده (برگه {idx})"
+
+            file_name = f"{timestamp_prefix}_{standard_name}" if os.path.exists(os.path.join(nat_id_dir, standard_name)) else standard_name
 
             file_path = os.path.join(nat_id_dir, file_name)
 
@@ -4534,7 +5155,7 @@ def upload_scan_attachment_view(request, pk):
 
             else:
 
-                item_title = f"اسکن مدرک پرونده (برگه {idx})"
+                item_title = default_title
 
 
 
@@ -4710,7 +5331,7 @@ def delete_scan_attachment_view(request, pk, attachment_id):
 
 
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     if dossier.is_locked:
 
@@ -6371,7 +6992,7 @@ def upload_dossier_signature_view(request, pk):
 
 
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     profile = getattr(request.user, 'profile', None)
 
@@ -8094,7 +8715,7 @@ def export_notary_letter_word_view(request, pk):
 
     from django.template.loader import render_to_string
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     html_content = render_to_string("dossiers/print_notary.html", {"dossier": dossier, "is_word_export": True}, request=request)
 
@@ -8116,7 +8737,7 @@ def export_dossier_summary_word_view(request, pk):
 
     from django.template.loader import render_to_string
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
 
     html = render_to_string("dossiers/print_summary.html",
 

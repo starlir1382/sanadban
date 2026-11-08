@@ -42,7 +42,7 @@ from workflow.models import (
     Site, Project, PreSelectedUnit, HousingDossier,
     DossierCheck, DossierAttachment, WorkflowSignatureLog,
     DossierFieldChangeLog, UserProfile, ProjectBankMapping,
-    BankLetter, DossierSignature
+    BankLetter, DossierSignature, LandRate
 )
 
 def migrate_table(model, batch_size=1000):
@@ -128,6 +128,7 @@ def main():
         ProjectBankMapping,
         BankLetter,
         DossierSignature,
+        LandRate,
     ]
 
     for m in models_to_migrate:

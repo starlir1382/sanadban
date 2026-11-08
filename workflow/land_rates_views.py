@@ -260,7 +260,9 @@ def land_rates_bulk_apply_api(request):
     project_filter = request.POST.get("project") or ""
     only_empty = request.POST.get("only_empty", "false").lower() in ("true", "1")
 
-    qs = HousingDossier.objects.filter(is_locked=False).exclude(project="")
+    qs = HousingDossier.objects.filter(is_locked=False).filter(
+        Q(renovation_code__gt="") | Q(project__gt="")
+    )
     if project_filter:
         qs = qs.filter(project=project_filter)
 
@@ -273,10 +275,11 @@ def land_rates_bulk_apply_api(request):
         })
 
     updated_count = 0
-    chunk_size = 500
+    chunk_size = 100
     fields_to_save = [
         "total_land_share", "current_year_rent", "past_years_rent",
-        "preparation_cost", "land_lease_year", "renovation_code"
+        "preparation_cost", "land_lease_year", "renovation_code",
+        "plot_number", "block_name"
     ]
 
     all_pks = list(qs.values_list("id", flat=True))
@@ -312,14 +315,24 @@ def calculate_land_rates_api(request):
     code = request.GET.get("code") or request.POST.get("code") or ""
     project = request.GET.get("project") or request.POST.get("project") or ""
     plot = request.GET.get("plot") or request.POST.get("plot") or ""
-    block = request.GET.get("block") or request.POST.get("block") or ""
+    block = (
+        request.GET.get("block")
+        or request.POST.get("block")
+        or request.GET.get("block_code")
+        or request.POST.get("block_code")
+        or ""
+    )
     net = request.GET.get("net") or request.POST.get("net") or 0
     storage = request.GET.get("storage") or request.POST.get("storage") or 0
     parking = request.GET.get("parking") or request.POST.get("parking") or 0
 
     rate = get_rate(code=code, project=project, plot=plot, block=block)
     if not rate:
-        desc = f"کد «{code}»" if code else f"پروژه «{project}» - قطعه «{plot}»"
+        desc = (
+            f"کد «{code}»" if code
+            else f"پروژه «{project}» - بلوک «{block}»" if block
+            else f"پروژه «{project}» - قطعه «{plot}»"
+        )
         return JsonResponse({
             "success": False,
             "error": f"نرخ مصوبی برای {desc} در جدول نرخ‌های عرصه یافت نشد.",

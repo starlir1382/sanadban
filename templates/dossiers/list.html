@@ -1252,6 +1252,23 @@
         </div>
       </a>
 
+      <!-- 4. Specific Queue for Admin / Check Admin: Ticked Checks & Preparation Awaiting Admin Sign -->
+      {% if is_full_admin or is_check_admin %}
+      <a href="{% url 'dossier_list' %}?status=checks_ticked{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+         class="dl-scard {% if status_filter == 'checks_ticked' %}active{% elif checks_ticked_cnt > 0 %}has{% endif %}" 
+         style="border-color: #10b981; background: #ecfdf5;" 
+         title="پرونده‌های دارای تاییدیه چک و آماده‌سازی منتظر امضای مدیر چک / ادمین">
+        <div class="top">
+          <span class="no" style="color: #059669;">💳</span>
+          {% if checks_ticked_cnt > 0 %}<span class="cnt fa-num" style="background: #059669; color: #ffffff; font-weight: 800;">{{ checks_ticked_cnt }}</span>{% endif %}
+        </div>
+        <div class="tt" style="color: #065f46; font-weight: 800;">چک‌های تاییدشده (آماده امضا)</div>
+        <div class="rl" style="color: #047857; font-weight: 700;">
+          {% if checks_ticked_cnt > 0 %}{{ checks_ticked_cnt }} پرونده منتظر امضای مدیر{% else %}کارتابل خالی است{% endif %}
+        </div>
+      </a>
+      {% endif %}
+
       {% for stg in stages_meta %}
       <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="dl-scard {% if stage_filter == stg.id|stringformat:'i' %}active{% elif stg.count > 0 %}has{% endif %}" title="مرحله {{ stg.id }}: {{ stg.title }} — {{ stg.role }}">
         <div class="top">
@@ -1386,7 +1403,7 @@
             <th class="t-center">
               <input type="checkbox" id="selectAllDossiers" title="انتخاب همه پرونده‌های این صفحه" onchange="toggleSelectAllDossiers(this)">
             </th>
-            <th class="t-center">شماره بایگانی</th>
+            <th class="t-center">شماره بایگانی / ردیف</th>
             <th>متقاضی</th>
             <th>پروژه و سایت</th>
             <th class="t-center">مرحله و تاریخ ورود</th>
@@ -1395,7 +1412,7 @@
         </thead>
         <tbody id="dossier-table-body">
           {% for d in dossiers %}
-          <tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}">
+          <tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.id }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}">
 
             <!-- Checkbox for Batch Signing -->
             <td class="t-center dl-td-chk">
@@ -1407,9 +1424,13 @@
                      onchange="updateSelectedDossiers()">
             </td>
 
-            <!-- 1. Archive number -->
+            <!-- 1. Archive number / Row -->
             <td class="t-center fa-num">
-              <span class="dl-id">{{ d.archive_number }}</span>
+              {% if d.current_stage >= 8 or d.is_locked %}
+                <span class="dl-id" title="شماره پرونده بایگانی رسمی">{{ d.archive_number }}</span>
+              {% else %}
+                <span class="dl-id-draft" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-size: 0.76rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; display: inline-block;" title="پرونده در جریان مراحل مقدماتی (پیش از اسکن مرحله ۷)">ردیف {{ d.id }}</span>
+              {% endif %}
             </td>
 
             <!-- 2. Applicant + spouse + national id (max 2 lines) -->
@@ -1545,8 +1566,8 @@
 
       <div class="dl-pager-nav fa-num">
         {% if page_obj.has_previous %}
-        <a class="dl-pg" title="صفحه اول" href="?page=1{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">« اول</a>
-        <a class="dl-pg" title="صفحه قبل" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">قبلی</a>
+        <a class="dl-pg" title="صفحه اول" href="?page=1{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">« اول</a>
+        <a class="dl-pg" title="صفحه قبل" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">قبلی</a>
         {% endif %}
 
         {% for p in elided_page_range %}
@@ -1555,13 +1576,13 @@
           {% elif p == page_obj.number %}
             <span class="dl-pg current">{{ p }}</span>
           {% else %}
-            <a class="dl-pg" href="?page={{ p }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">{{ p }}</a>
+            <a class="dl-pg" href="?page={{ p }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">{{ p }}</a>
           {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <a class="dl-pg" title="صفحه بعد" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">بعدی</a>
-        <a class="dl-pg" title="صفحه آخر" href="?page={{ paginator.num_pages }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">آخر »</a>
+        <a class="dl-pg" title="صفحه بعد" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">بعدی</a>
+        <a class="dl-pg" title="صفحه آخر" href="?page={{ paginator.num_pages }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">آخر »</a>
         {% endif %}
       </div>
     </div>
@@ -1673,6 +1694,18 @@
         <div class="admin-kpi-val" style="color: #475569;">{{ admin_stats.deleted_total_cnt|default:0 }}</div>
         <div class="admin-kpi-sub" style="color: #64748b;">
           {{ admin_stats.deleted_cnt|default:0 }} حذف شده · {{ admin_stats.red_form_j|default:0 }} رد صلاحیت فرم ج
+        </div>
+      </a>
+
+      <!-- Ticked Checks Pending Admin Sign KPI Card -->
+      <a href="{% url 'dossier_list' %}?status=checks_ticked" class="admin-kpi-card green" style="border-color: #10b981; background: #ecfdf5; text-decoration: none; cursor: pointer; display: block;" title="مشاهده پرونده‌های دارای تاییدیه چک و آماده‌سازی منتظر امضای مدیر چک / ادمین">
+        <div class="admin-kpi-header">
+          <span class="admin-kpi-title" style="color: #065f46;">چک‌های تاییدشده (مشاهده ↗)</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+        </div>
+        <div class="admin-kpi-val" style="color: #059669;">{{ admin_stats.checks_ticked_cnt|default:0 }}</div>
+        <div class="admin-kpi-sub" style="color: #047857;">
+          منتظر امضای نهایی مدیر چک و مسکن
         </div>
       </a>
     </div>

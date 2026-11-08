@@ -199,6 +199,12 @@
                     <input type="text" class="input-control" x-model="form.applicant_birth_place" :readonly="!isFieldEditable('applicant_birth_place')" placeholder="شهر صدور">
                 </div>
 
+                <!-- 4-D. applicant_id_serial -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('applicant_id_serial')}">
+                    <label class="field-label"><span>سریال شناسنامه</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.applicant_id_serial" :readonly="!isFieldEditable('applicant_id_serial')" placeholder="سریال شناسنامه">
+                </div>
+
                 <!-- 5. applicant_phone -->
                 <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('applicant_phone')}">
                     <label class="field-label">
@@ -206,6 +212,27 @@
                         <span class="helper-badge text-emerald-700">تماس</span>
                     </label>
                     <input type="text" class="input-control fa-num" x-model="form.applicant_phone" :readonly="!isFieldEditable('applicant_phone')" placeholder="0912">
+                </div>
+
+                <!-- 5-B. applicant_landline_phone -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('applicant_landline_phone')}">
+                    <label class="field-label"><span>تلفن ثابت با کد شهر</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.applicant_landline_phone" :readonly="!isFieldEditable('applicant_landline_phone')" placeholder="0253...">
+                </div>
+
+                <!-- 5-C. applicant_postal_code -->
+                <div class="field-group col-2" :class="{'field-locked': !isFieldEditable('applicant_postal_code')}">
+                    <label class="field-label"><span>کد پستی ۱۰ رقمی</span></label>
+                    <input type="text" maxlength="10" class="input-control fa-num" x-model="form.applicant_postal_code" :readonly="!isFieldEditable('applicant_postal_code')" placeholder="371...">
+                </div>
+
+                <!-- 5-D. applicant_address -->
+                <div class="field-group col-12" :class="{'field-locked': !isFieldEditable('applicant_address')}">
+                    <label class="field-label">
+                        <span>آدرس محل سکونت متقاضی</span>
+                        <span class="helper-badge text-blue-700">درج در اقرارنامه و فرم اطلاعات</span>
+                    </label>
+                    <input type="text" class="input-control" x-model="form.applicant_address" :readonly="!isFieldEditable('applicant_address')" placeholder="قم، خیابان/بلوار، کوچه، پلاک، طبقه، واحد">
                 </div>
 
                 <!-- 6. selection_rank -->
@@ -286,6 +313,12 @@
                     <input type="text" class="input-control fa-num" x-model="form.spouse_id_number" :readonly="!isFieldEditable('spouse_id_number')" placeholder="شماره شناسنامه">
                 </div>
 
+                <!-- 4-B. spouse_id_serial -->
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_id_serial')}">
+                    <label class="field-label"><span>سریال شناسنامه همسر</span></label>
+                    <input type="text" class="input-control fa-num" x-model="form.spouse_id_serial" :readonly="!isFieldEditable('spouse_id_serial')" placeholder="سریال شناسنامه همسر">
+                </div>
+
                 <!-- 5. spouse_birth_date -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('spouse_birth_date')}">
                     <label class="field-label"><span>تاریخ تولد همسر (شمسی)</span></label>
@@ -309,7 +342,69 @@
 
             </div>
 
-            
+            <!-- دکمه‌های تولید و چاپ اقرارنامه و فرم اطلاعات (مرحله ۸) -->
+            <div x-show="isStage8User()"
+                 x-cloak
+                 style="background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%); border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 1rem 1.25rem; margin: 1.25rem 0 1rem 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    </div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.92rem; color: #0f172a;">اسناد و برگه‌های رسمی ممیزی پرونده (مرحله ۸)</div>
+                        <div style="font-size: 0.78rem; color: #475569;">تولید خودکار اقرارنامه و فرم اطلاعات متقاضی، درج مستقیم در آلبوم مدارک و چاپ رسمی</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <!-- دکمه ۱: تولید و چاپ اقرارنامه -->
+                    <button
+                        type="button"
+                        class="btn btn-outline"
+                        @click="generateAndArchiveDocument('affidavit')"
+                        style="
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 6px;
+                            border-color: #059669;
+                            color: #047857;
+                            background: #ffffff;
+                            font-weight: 800;
+                            padding: 0.5rem 1rem;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+                            cursor: pointer;
+                        "
+                        title="تولید اقرارنامه با اطلاعات پرونده، پیوست به آلبوم و چاپ"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                        <span>📄 تولید و چاپ اقرارنامه</span>
+                    </button>
+
+                    <!-- دکمه ۲: تولید و چاپ فرم اطلاعات -->
+                    <button
+                        type="button"
+                        class="btn btn-outline"
+                        @click="generateAndArchiveDocument('info_form')"
+                        style="
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 6px;
+                            border-color: #0284c7;
+                            color: #0369a1;
+                            background: #ffffff;
+                            font-weight: 800;
+                            padding: 0.5rem 1rem;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+                            cursor: pointer;
+                        "
+                        title="تولید فرم مشخصات هویتی و سکونت، پیوست به آلبوم و چاپ"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>
+                        <span>📋 تولید و چاپ فرم اطلاعات</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- مشخصات سایت، پروژه و واحد مسکونی -->
 
             <div class="sb-advanced-only" style="font-weight: 700; font-size: 0.88rem; color: #1e3a8a; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 0.85rem;">
@@ -1181,6 +1276,7 @@
                                :style="form.has_info_form ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
                             <input type="checkbox" x-model="form.has_info_form" :disabled="!isFieldEditable('has_info_form')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
                             <span style="font-size: 0.84rem; font-weight: 700;">۲. فرم اطلاعات</span>
+                            <button type="button" @click.stop="generateAndArchiveDocument('info_form')" style="margin-right: auto; padding: 2px 7px; font-size: 0.72rem; border-radius: 6px; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 700; cursor: pointer;" title="تولید خودکار، پیوست به آلبوم و چاپ">تولید و چاپ ↗</button>
                         </label>
 
                         <!-- 3. فرم ج -->
@@ -1195,6 +1291,7 @@
                                :style="form.has_affidavit ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
                             <input type="checkbox" x-model="form.has_affidavit" :disabled="!isFieldEditable('has_affidavit')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
                             <span style="font-size: 0.84rem; font-weight: 700;">۴. اقرارنامه محضری</span>
+                            <button type="button" @click.stop="generateAndArchiveDocument('affidavit')" style="margin-right: auto; padding: 2px 7px; font-size: 0.72rem; border-radius: 6px; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-weight: 700; cursor: pointer;" title="تولید خودکار، پیوست به آلبوم و چاپ">تولید و چاپ ↗</button>
                         </label>
 
                         <!-- 5. ثنا -->
@@ -1245,7 +1342,7 @@
             <div style="margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 0.82rem; color: #1e40af;">
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span>محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong>)</span>
+                    <span>محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong> | بلوک: <strong class="fa-num" x-text="form.block_name || form.block_code || '-'"></strong>)</span>
                 </div>
                 <button type="button" 
                         class="btn btn-outline" 
@@ -1805,6 +1902,14 @@
                         <div>
                             <strong style="display: block; font-size: 0.88rem;">تایید دریافت، ثبت و کنترل کلیه چک‌های وام دهک (مرحله ۱۶)</strong>
                             <span style="font-size: 0.74rem; color: #64748b; font-weight: normal;">اصالت‌سنجی چک‌های صیادی متقاضی بر اساس سقف وام دهک درآمدی تایید گردید.</span>
+                            <template x-if="form.is_decile_loan_confirmed && form.loan_checks_confirmed_by">
+                                <span style="display: block; font-size: 0.73rem; color: #059669; font-weight: 700; margin-top: 3px;">
+                                    ✓ ثبت توسط: <span x-text="form.loan_checks_confirmed_by"></span>
+                                    <template x-if="form.loan_checks_confirmed_at">
+                                        <span> (<span class="fa-num" x-text="form.loan_checks_confirmed_at"></span>)</span>
+                                    </template>
+                                </span>
+                            </template>
                         </div>
                     </label>
                     <span class="fa-num" style="font-weight: 800; font-size: 0.82rem;" x-text="form.is_decile_loan_confirmed ? 'تایید شد ✓' : 'در انتظار تایید'"></span>
@@ -1885,6 +1990,14 @@
                                 <div>
                                     <strong style="display: block; font-size: 0.86rem;">تایید وصول نقدی اجاره عرصه</strong>
                                     <span style="font-size: 0.72rem; color: #64748b; font-weight: normal;">واریز نقدی اجاره عرصه بر اساس ارزیابی رسمی ممیزی و تایید گردید.</span>
+                                    <template x-if="form.is_cash_rent_confirmed && form.cash_rent_confirmed_by">
+                                        <span style="display: block; font-size: 0.73rem; color: #059669; font-weight: 700; margin-top: 3px;">
+                                            ✓ ثبت توسط: <span x-text="form.cash_rent_confirmed_by"></span>
+                                            <template x-if="form.cash_rent_confirmed_at">
+                                                <span> (<span class="fa-num" x-text="form.cash_rent_confirmed_at"></span>)</span>
+                                            </template>
+                                        </span>
+                                    </template>
                                 </div>
                             </label>
                             <span class="fa-num" style="font-weight: 800; font-size: 0.82rem;" x-text="form.is_cash_rent_confirmed ? 'تایید شد ✓' : 'در انتظار تایید'"></span>
@@ -2343,6 +2456,14 @@
                             <div>
                                 <strong style="display: block; font-size: 0.88rem;">تایید دریافت، ثبت و کنترل کلیه چک‌های اقساط آماده‌سازی (tashilatCheck)</strong>
                                 <span style="font-size: 0.74rem; color: #64748b; font-weight: normal;">اصالت‌سنجی و دریافت چک‌های صیادی اقساط ۸۰٪ آماده‌سازی متقاضی تایید گردید.</span>
+                                <template x-if="form.is_preparation_checks_confirmed && form.prep_checks_confirmed_by">
+                                    <span style="display: block; font-size: 0.73rem; color: #059669; font-weight: 700; margin-top: 3px;">
+                                        ✓ ثبت توسط: <span x-text="form.prep_checks_confirmed_by"></span>
+                                        <template x-if="form.prep_checks_confirmed_at">
+                                            <span> (<span class="fa-num" x-text="form.prep_checks_confirmed_at"></span>)</span>
+                                        </template>
+                                    </span>
+                                </template>
                             </div>
                         </label>
                         <span class="fa-num" style="font-weight: 800; font-size: 0.82rem;" x-text="form.is_preparation_checks_confirmed ? 'تایید شد ✓' : 'در انتظار تایید'"></span>

@@ -14,6 +14,7 @@ import time
 import uuid
 import tempfile
 import hashlib
+import itertools
 import jdatetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -1434,14 +1435,21 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
     global_row_counter = 0
 
     for ws in sheets_to_process:
-        all_sheet_rows = list(ws.iter_rows(values_only=True))
-        if not all_sheet_rows:
+        row_iter = ws.iter_rows(values_only=True)
+        buffered_rows = []
+        for _ in range(10):
+            try:
+                buffered_rows.append(next(row_iter))
+            except StopIteration:
+                break
+
+        if not buffered_rows:
             continue
 
         # Header scan: look in first 10 rows for national_id column
         header_row = None
         header_row_num = 0
-        for r_idx, r in enumerate(all_sheet_rows[:10]):
+        for r_idx, r in enumerate(buffered_rows):
             if not r:
                 continue
             r_str = " ".join(str(c) for c in r if c is not None)
@@ -1452,7 +1460,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
 
         if not header_row:
             # Fallback to first non-empty row
-            for r_idx, r in enumerate(all_sheet_rows[:10]):
+            for r_idx, r in enumerate(buffered_rows):
                 if r and any(c is not None and str(c).strip() for c in r):
                     header_row = r
                     header_row_num = r_idx + 1
@@ -1477,7 +1485,8 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             continue
 
         sheet_row_num = header_row_num
-        for row_cells in all_sheet_rows[header_row_num:]:
+        row_stream = itertools.chain(buffered_rows[header_row_num:], row_iter)
+        for row_cells in row_stream:
             sheet_row_num += 1
             global_row_counter += 1
             if not any(c is not None and str(c).strip() for c in row_cells):
@@ -1779,7 +1788,10 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                 # User copied applicant NID into spouse column: keep spouse untouched
                 raw_data.pop("spouse_national_id", None)
                 warnings.append(f"کد ملی همسر با کد ملی متقاضی در ردیف {item['row']} یکسان درج شده است و نادیده گرفته شد.")
-            elif new_snid and HousingDossier.objects.filter(national_id=new_snid).exclude(id=dossier.id).exists():
+            elif new_snid and any(
+                v in app_matches and app_matches[v].id != dossier.id
+                for v in get_national_id_variants(new_snid)
+            ):
                 item["reasons"].append(f"کد ملی همسر {new_snid} قبلاً به عنوان متقاضی در پرونده دیگری ثبت شده است.")
                 errors.append(item)
                 valid_count -= 1

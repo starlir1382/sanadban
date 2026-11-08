@@ -23,11 +23,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='housingdossier',
             name='deletion_reason',
-            field=models.TextField(blank=True, default='', verbose_name='علت حذف و بایگانی راکد'),
+            field=models.TextField(blank=True, default='', verbose_name='علت حذف و بایگانی'),
         ),
         migrations.AlterField(
             model_name='housingdossier',
             name='status',
-            field=models.CharField(choices=[('IN_PROGRESS', 'در جریان اقدام'), ('RETURNED', 'برگشت\u200cخورده جهت اصلاح و بازبینی'), ('COMPLETED', 'نهایی و بایگانی قطعی'), ('REJECT_RED_PENDING', 'ارجاع به مدیر سامانه (کد قرمز فرم «ج»)'), ('REJECTED_RED', 'رد صلاحیت - کد قرمز فرم «ج» (عدم واگذاری واحد)'), ('DELETED', 'حذف و بایگانی راکد')], db_index=True, default='IN_PROGRESS', max_length=30, verbose_name='وضعیت فرآیند'),
+            field=models.CharField(choices=[('IN_PROGRESS', 'در جریان اقدام'), ('RETURNED', 'برگشت\u200cخورده جهت اصلاح و بازبینی'), ('COMPLETED', 'نهایی و بایگانی قطعی'), ('REJECT_RED_PENDING', 'ارجاع به مدیر سامانه (کد قرمز فرم «ج»)'), ('REJECTED_RED', 'رد صلاحیت - کد قرمز فرم «ج» (عدم واگذاری واحد)'), ('DELETED', 'حذف و بایگانی')], db_index=True, default='IN_PROGRESS', max_length=30, verbose_name='وضعیت فرآیند'),
         ),
     ]

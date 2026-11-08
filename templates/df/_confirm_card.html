@@ -1,10 +1,25 @@
 {% comment %}
 Confirmation checkbox card bound to form.<name>.
-Params: name, title, hint, ok, wait, change (JS for @change), free (do not lock by isFieldEditable)
+Params: name, title, hint, ok, wait, change (JS for @change), free (do not lock by isFieldEditable), by_field, at_field
 {% endcomment %}<div class="df-confirm" :class="{'is-on': form.{{ name }}}">
     <label class="df-confirm-main">
         <input type="checkbox" x-model="form.{{ name }}"{% if change %} @change="{{ change }}"{% endif %}{% if not free %} :disabled="!isFieldEditable('{{ name }}')"{% endif %}>
-        <span><strong>{{ title }}</strong>{% if hint %}<small>{{ hint }}</small>{% endif %}</span>
+        <span>
+            <strong>{{ title }}</strong>
+            {% if hint %}<small>{{ hint }}</small>{% endif %}
+            {% if by_field %}
+            <template x-if="form.{{ name }} && form.{{ by_field }}">
+                <small style="color: #059669; font-weight: 700; margin-top: 3px; display: block;">
+                    ✓ ثبت توسط: <span x-text="form.{{ by_field }}"></span>
+                    {% if at_field %}
+                    <template x-if="form.{{ at_field }}">
+                        <span> (<span class="fa-num" x-text="form.{{ at_field }}"></span>)</span>
+                    </template>
+                    {% endif %}
+                </small>
+            </template>
+            {% endif %}
+        </span>
     </label>
     <span class="df-pill fa-num" :class="form.{{ name }} ? 'df-pill-green' : 'df-pill-muted'"
           x-text="form.{{ name }} ? '{{ ok|default:'تایید شد ✓' }}' : '{{ wait|default:'در انتظار تایید' }}'"></span>

@@ -26,6 +26,10 @@
                     {% include "df/_field.html" with name="applicant_phone" label="شماره همراه" cols=3 num=1 mode="tel" ph="09123456789" %}
                     {% include "df/_field.html" with name="selection_rank" label="رتبه انتخاب واحد" cols=3 num=1 mode="numeric" ph="45" %}
                     {% include "df/_decile_select.html" with cols=3 label="دهک درآمدی" %}
+                    {% include "df/_field.html" with name="applicant_id_serial" label="سریال شناسنامه" cols=3 num=1 ph="سریال شناسنامه" %}
+                    {% include "df/_field.html" with name="applicant_landline_phone" label="تلفن ثابت با کد شهر" cols=3 num=1 mode="tel" ph="0253..." %}
+                    {% include "df/_field.html" with name="applicant_postal_code" label="کد پستی ۱۰ رقمی" cols=3 num=1 mode="numeric" maxlen=10 ph="371..." %}
+                    {% include "df/_field.html" with name="applicant_address" label="آدرس محل سکونت متقاضی" cols=12 ph="استان قم، شهر، خیابان/بلوار، کوچه، پلاک، طبقه، واحد" %}
                 </div>
             </fieldset>
 
@@ -39,6 +43,7 @@
                     {% include "df/_field.html" with name="spouse_id_number" label="شماره شناسنامه" cols=3 num=1 mode="numeric" ph="شماره شناسنامه" %}
                     {% include "df/_field.html" with name="spouse_birth_date" label="تاریخ تولد (شمسی)" cols=3 num=1 mode="numeric" ph="1365/01/01" %}
                     {% include "df/_field.html" with name="spouse_birth_place" label="محل تولد / صدور" cols=3 ph="شهر صدور" %}
+                    {% include "df/_field.html" with name="spouse_id_serial" label="سریال شناسنامه همسر" cols=3 num=1 ph="سریال شناسنامه" %}
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('marital_status')}">
                         <label class="df-label" for="f_marital_status">وضعیت تاهل</label>
                         <select id="f_marital_status" class="df-input" x-model="form.marital_status" :disabled="!isFieldEditable('marital_status')">
@@ -48,6 +53,67 @@
                     </div>
                 </div>
             </fieldset>
+
+            <!-- دکمه‌های تولید و چاپ اقرارنامه و فرم اطلاعات (مرحله ۸) -->
+            <div x-show="isStage8User()"
+                 x-cloak
+                 style="background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%); border: 1.5px solid #86efac; border-radius: 12px; padding: 1rem 1.25rem; margin: 1.25rem 0 1rem 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg class="df-i" style="width: 20px; height: 20px;"><use href="#i-file"/></svg>
+                    </div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">اسناد و برگه‌های رسمی ممیزی پرونده (مرحله ۸)</div>
+                        <div style="font-size: 0.8rem; color: #475569;">تولید خودکار اقرارنامه و فرم اطلاعات متقاضی، پیوست یک نسخه به آلبوم اسناد و چاپ رسمی</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <!-- دکمه ۱: تولید و چاپ اقرارنامه -->
+                    <button
+                        type="button"
+                        class="df-btn df-btn-primary"
+                        @click="generateAndArchiveDocument('affidavit')"
+                        style="
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 6px;
+                            background: #059669;
+                            color: #ffffff;
+                            font-weight: 800;
+                            padding: 0.55rem 1.15rem;
+                            border-radius: 8px;
+                            cursor: pointer;
+                        "
+                        title="تولید اقرارنامه با اطلاعات پرونده، پیوست یک نسخه به آلبوم مدارک و چاپ رسمی"
+                    >
+                        <svg class="df-i" style="width: 16px; height: 16px;"><use href="#i-print"/></svg>
+                        <span>📄 تولید و چاپ اقرارنامه</span>
+                    </button>
+
+                    <!-- دکمه ۲: تولید و چاپ فرم اطلاعات -->
+                    <button
+                        type="button"
+                        class="df-btn df-btn-primary"
+                        @click="generateAndArchiveDocument('info_form')"
+                        style="
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 6px;
+                            background: #0284c7;
+                            color: #ffffff;
+                            font-weight: 800;
+                            padding: 0.55rem 1.15rem;
+                            border-radius: 8px;
+                            cursor: pointer;
+                        "
+                        title="تولید فرم اطلاعات متقاضی و سکونت، پیوست یک نسخه به آلبوم مدارک و چاپ رسمی"
+                    >
+                        <svg class="df-i" style="width: 16px; height: 16px;"><use href="#i-print"/></svg>
+                        <span>📋 تولید و چاپ فرم اطلاعات</span>
+                    </button>
+                </div>
+            </div>
 
             <fieldset class="df-set sb-advanced-only">
                 <legend class="df-legend"><svg class="df-i"><use href="#i-building"/></svg>سایت، پروژه و واحد مسکونی</legend>
@@ -457,7 +523,7 @@
             <div style="margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 0.82rem; color: #1e40af;">
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span>محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong>)</span>
+                    <span>محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong> | بلوک: <strong class="fa-num" x-text="form.block_name || form.block_code || '-'"></strong>)</span>
                 </div>
                 <button type="button" 
                         class="btn btn-outline" 
@@ -531,7 +597,7 @@
 
                     {% include "df/_check_scans.html" with theme="amber" kind="loan" getter="getLoanCheckScans" input_id="loanCheckScanFileInput" title="اسکن چک‌های وام دهک" %}
 
-                    {% include "df/_confirm_card.html" with name="is_decile_loan_confirmed" title="تایید دریافت و کنترل چک‌های وام دهک" hint="اصالت چک‌های صیادی بر اساس سقف وام دهک تایید شد." %}
+                    {% include "df/_confirm_card.html" with name="is_decile_loan_confirmed" title="تایید دریافت و کنترل چک‌های وام دهک" hint="اصالت چک‌های صیادی بر اساس سقف وام دهک تایید شد." by_field="loan_checks_confirmed_by" at_field="loan_checks_confirmed_at" %}
                 </div>
 
                 <!-- ---------- ب) اجاره عرصه و آماده‌سازی ---------- -->
@@ -551,7 +617,7 @@
                             {% include "df/_money.html" with name="tenant_price" label="مبلغ پرداختی اجاره عرصه" cols=6 %}
                             {% include "df/_field.html" with name="tenant_code" label="کد رهگیری فیش اجاره" cols=6 ltr=1 num=1 ph="۱۲/۹۹۸۸۷۷۶۶" %}
                             <div class="df-field df-col-12">
-                                {% include "df/_confirm_card.html" with name="is_cash_rent_confirmed" title="تایید وصول نقدی اجاره عرصه" hint="واریز نقدی بر اساس ارزیابی رسمی تایید شد." %}
+                                {% include "df/_confirm_card.html" with name="is_cash_rent_confirmed" title="تایید وصول نقدی اجاره عرصه" hint="واریز نقدی بر اساس ارزیابی رسمی تایید شد." by_field="cash_rent_confirmed_by" at_field="cash_rent_confirmed_at" %}
                             </div>
                         </div>
                     </div>
@@ -581,7 +647,7 @@
 
                     {% include "df/_check_scans.html" with theme="green" kind="prep" getter="getPrepCheckScans" input_id="prepCheckScanFileInput" title="اسکن چک‌های اقساط آماده‌سازی" %}
 
-                    {% include "df/_confirm_card.html" with name="is_preparation_checks_confirmed" title="تایید دریافت و کنترل چک‌های اقساط آماده‌سازی" hint="اصالت چک‌های صیادی ۸۰٪ آماده‌سازی تایید شد." %}
+                    {% include "df/_confirm_card.html" with name="is_preparation_checks_confirmed" title="تایید دریافت و کنترل چک‌های اقساط آماده‌سازی" hint="اصالت چک‌های صیادی ۸۰٪ آماده‌سازی تایید شد." by_field="prep_checks_confirmed_by" at_field="prep_checks_confirmed_at" %}
                 </div>
 
             </div>

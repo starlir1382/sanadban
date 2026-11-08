@@ -110,6 +110,14 @@ class PreSelectedUnit(models.Model):
 
     applicant_phone = models.CharField(max_length=20, blank=True, verbose_name="شماره تماس متقاضی")
 
+    applicant_address = models.CharField(max_length=500, blank=True, default="", verbose_name="آدرس محل سکونت متقاضی")
+
+    applicant_postal_code = models.CharField(max_length=20, blank=True, default="", verbose_name="کد پستی متقاضی")
+
+    applicant_landline_phone = models.CharField(max_length=30, blank=True, default="", verbose_name="تلفن ثابت متقاضی")
+
+    applicant_id_serial = models.CharField(max_length=50, blank=True, default="", verbose_name="سریال شناسنامه متقاضی")
+
     selection_rank = models.PositiveIntegerField(null=True, blank=True, verbose_name="رتبه انتخاب واحد")
 
     
@@ -147,6 +155,8 @@ class PreSelectedUnit(models.Model):
     spouse_birth_date = models.CharField(max_length=30, blank=True, verbose_name="تاریخ تولد همسر")
 
     spouse_id_number = models.CharField(max_length=20, blank=True, verbose_name="شماره شناسنامه همسر")
+
+    spouse_id_serial = models.CharField(max_length=50, blank=True, default="", verbose_name="سریال شناسنامه همسر")
 
     spouse_birth_place = models.CharField(max_length=100, blank=True, verbose_name="محل تولد / صدور همسر")
 
@@ -312,7 +322,7 @@ class HousingDossier(models.Model):
 
         ("REJECTED_RED", "رد صلاحیت - کد قرمز فرم «ج» (عدم واگذاری واحد)"),
 
-        ("DELETED", "حذف و بایگانی راکد"),
+        ("DELETED", "حذف و بایگانی"),
 
     ]
 
@@ -337,7 +347,7 @@ class HousingDossier(models.Model):
     rejected_by = models.CharField(max_length=150, blank=True, verbose_name="رد صلاحیت کننده")
 
     # General Deletion & Archival Fields
-    deletion_reason = models.TextField(blank=True, default="", verbose_name="علت حذف و بایگانی راکد")
+    deletion_reason = models.TextField(blank=True, default="", verbose_name="علت حذف و بایگانی")
     deleted_by = models.CharField(max_length=150, blank=True, default="", verbose_name="حذف‌کننده پرونده")
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="تاریخ و زمان حذف")
 
@@ -358,6 +368,14 @@ class HousingDossier(models.Model):
     applicant_birth_place = models.CharField(max_length=100, blank=True, default="", verbose_name="محل صدور شناسنامه متقاضی")
 
     applicant_phone = models.CharField(max_length=20, blank=True, verbose_name="شماره تماس متقاضی")
+
+    applicant_address = models.CharField(max_length=500, blank=True, default="", verbose_name="آدرس محل سکونت متقاضی")
+
+    applicant_postal_code = models.CharField(max_length=20, blank=True, default="", verbose_name="کد پستی متقاضی")
+
+    applicant_landline_phone = models.CharField(max_length=30, blank=True, default="", verbose_name="تلفن ثابت متقاضی")
+
+    applicant_id_serial = models.CharField(max_length=50, blank=True, default="", verbose_name="سریال شناسنامه متقاضی")
 
     selection_rank = models.PositiveIntegerField(null=True, blank=True, verbose_name="رتبه انتخاب واحد")
 
@@ -396,6 +414,8 @@ class HousingDossier(models.Model):
     spouse_birth_date = models.CharField(max_length=30, blank=True, verbose_name="تاریخ تولد همسر")
 
     spouse_id_number = models.CharField(max_length=20, blank=True, verbose_name="شماره شناسنامه همسر")
+
+    spouse_id_serial = models.CharField(max_length=50, blank=True, default="", verbose_name="سریال شناسنامه همسر")
 
     spouse_birth_place = models.CharField(max_length=100, blank=True, verbose_name="محل تولد / صدور همسر")
 
@@ -613,16 +633,60 @@ class HousingDossier(models.Model):
     notary_letter_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ نامه معرفی به محضر (شمسی)")
 
     is_cash_rent_confirmed = models.BooleanField(default=False, verbose_name="تایید مبلغ نقدی اجاره")
+    cash_rent_confirmed_by = models.CharField(max_length=150, blank=True, default="", verbose_name="تاییدکننده وصول نقدی اجاره")
+    cash_rent_confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان تایید وصول نقدی اجاره")
 
     is_decile_loan_confirmed = models.BooleanField(default=False, verbose_name="تایید چک‌های وام دهک")
+    loan_checks_confirmed_by = models.CharField(max_length=150, blank=True, default="", verbose_name="تاییدکننده چک‌های وام دهک")
+    loan_checks_confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان تایید چک‌های وام دهک")
 
     is_preparation_checks_confirmed = models.BooleanField(default=False, verbose_name="تایید دریافت چک‌های اقساط آماده‌سازی")
+    prep_checks_confirmed_by = models.CharField(max_length=150, blank=True, default="", verbose_name="تاییدکننده چک‌های اقساط آماده‌سازی")
+    prep_checks_confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان تایید چک‌های اقساط آماده‌سازی")
 
     # Metadata
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ تشکیل پرونده")
 
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+
+    @property
+    def has_confirmed_checks(self) -> bool:
+        return bool(self.is_cash_rent_confirmed or self.is_decile_loan_confirmed or self.is_preparation_checks_confirmed)
+
+    @property
+    def has_pending_check_signature(self) -> bool:
+        return bool(self.has_confirmed_checks and not self.is_locked and self.current_stage <= 18)
+
+    @property
+    def cash_rent_confirmed_at_jalali(self) -> str:
+        if not self.cash_rent_confirmed_at:
+            return ""
+        try:
+            import jdatetime
+            return jdatetime.datetime.fromgregorian(datetime=self.cash_rent_confirmed_at).strftime("%Y/%m/%d %H:%M")
+        except Exception:
+            return self.cash_rent_confirmed_at.strftime("%Y/%m/%d %H:%M")
+
+    @property
+    def loan_checks_confirmed_at_jalali(self) -> str:
+        if not self.loan_checks_confirmed_at:
+            return ""
+        try:
+            import jdatetime
+            return jdatetime.datetime.fromgregorian(datetime=self.loan_checks_confirmed_at).strftime("%Y/%m/%d %H:%M")
+        except Exception:
+            return self.loan_checks_confirmed_at.strftime("%Y/%m/%d %H:%M")
+
+    @property
+    def prep_checks_confirmed_at_jalali(self) -> str:
+        if not self.prep_checks_confirmed_at:
+            return ""
+        try:
+            import jdatetime
+            return jdatetime.datetime.fromgregorian(datetime=self.prep_checks_confirmed_at).strftime("%Y/%m/%d %H:%M")
+        except Exception:
+            return self.prep_checks_confirmed_at.strftime("%Y/%m/%d %H:%M")
 
     @property
 
@@ -768,7 +832,7 @@ class HousingDossier(models.Model):
                 self.check_service_fee = 2000000
 
         # 6. Auto-calculate Section 9 Land Valuation & Rates from LandRate table
-        if self.renovation_code or self.plot_number or (self.project and "قطعه" in self.project):
+        if not self.is_locked and (self.renovation_code or self.plot_number or self.project):
             try:
                 from .land_rates import apply_land_calculation
                 apply_land_calculation(self, skip=skip_set)
@@ -791,7 +855,18 @@ class HousingDossier(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def is_numbered_archive(self) -> bool:
+        """Official archive number is active only after document scanning (stage >= 8) or when locked."""
+        return bool(self.is_locked or self.current_stage >= 8)
 
+    @property
+    def display_number(self) -> str:
+        """Returns official archive number for stages >= 8, or 'ردیف {id}' before stage 8."""
+        if self.is_numbered_archive and self.archive_number:
+            return str(self.archive_number)
+        return f"ردیف {self.id}"
+
+    @property
     def current_unit(self):
 
         return self.STAGE_ROLES.get(self.current_stage, ("-", "-", "-"))[0]
@@ -1079,6 +1154,10 @@ class DossierAttachment(models.Model):
         ("COMMITMENT_LETTER", "تعهدنامه محضری / ثبتی"),
 
         ("NOTARY_LETTER", "اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)"),
+
+        ("AFFIDAVIT", "اقرارنامه تعهد به تقسیط و تسویه حساب"),
+
+        ("INFO_FORM", "فرم اطلاعات خواسته شده متقاضی و سکونت"),
 
         ("OTHER", "سایر مستندات و ضمائم"),
 

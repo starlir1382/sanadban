@@ -926,29 +926,29 @@ class ExcelBulkOperationsTestCase(TestCase):
 
         d = HousingDossier.objects.create(
             national_id="0321654987",
-            current_stage=3,
+            current_stage=12,
             archive_number=100016
         )
 
-        # Add signatures for stage 1 (brokerage) and stage 10 (national_housing)
+        # Add signatures for stage 1 (brokerage) and stage 10 (real_estate)
         DossierSignature.objects.create(
             dossier=d,
             slot_key="brokerage",
-            signer_name="کارشناس کارگزاری",
+            signer_name="مدیرعامل کارگزاری",
             signed_date="1405/08/01 - 10:00"
         )
         DossierSignature.objects.create(
             dossier=d,
-            slot_key="national_housing",
-            signer_name="رئیس مسکن",
+            slot_key="real_estate",
+            signer_name="کارشناس املاک",
             signed_date="1405/08/05 - 12:00"
         )
 
         sigs, signed_count = get_dossier_signatures_summary(d)
-        # brokerage is from stage 1 < 3, so it should stay
+        # brokerage is from stage 9 < 12, so it should stay
         self.assertIn("brokerage", sigs)
-        # national_housing is from stage 10 >= 3, so it MUST be wiped!
-        self.assertNotIn("national_housing", sigs)
+        # real_estate is from stage 13 >= 12, so it MUST be wiped!
+        self.assertNotIn("real_estate", sigs)
 
     def test_22_row_stage_signature_template_and_processing(self):
         """Case 16: Verify group signing template with national_id in col 1 and stages 1..22 in headers."""
