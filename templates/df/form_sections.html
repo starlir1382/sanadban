@@ -262,6 +262,8 @@
                 {% include "df/_field.html" with name="sub_plaque" label="فرعی از" cols=2 num=1 mode="numeric" ph="۰" %}
                 {% include "df/_field.html" with name="plot_number" label="شماره قطعه" cols=2 num=1 mode="numeric" ph="۰" %}
                 {% include "df/_field.html" with name="renovation_code" label="کد نوسازی (شهرداری)" cols=2 num=1 ph="کد نوسازی" %}
+                {% include "df/_field.html" with name="rah_letter" label="شماره نامه راه و شهرسازی" cols=6 ltr=1 num=1 ph="۱۱۱/۴۴۵۵۶" ed="rah_letter" %}
+                {% include "df/_date.html" with label="تاریخ نامه راه و شهرسازی (شمسی)" cols=6 model="form.rah_letter_date" keyexpr="'rah_letter_date'" titleexpr="'تاریخ نامه راه و شهرسازی'" ph="۱۴۰۳/۰۴/۲۰" ed="rah_letter_date" %}
             </div>
         </div>
     </section>
@@ -636,8 +638,6 @@
                             {% include "df/_money.html" with name="cash_preparation_amount" label="پیش‌پرداخت آماده‌سازی (۲۰٪ نقد)" cols=4 %}
                             {% include "df/_field.html" with name="prepayment_code" label="کد رهگیری فیش پیش‌پرداخت" cols=4 ltr=1 num=1 ph="۲۲/۱۱۴۴۳۳۵۵" %}
                             {% include "df/_money.html" with name="non_cash_preparation_amount" label="اقساط آماده‌سازی (۸۰٪)" cols=4 %}
-                            {% include "df/_field.html" with name="rah_letter" label="شماره نامه راه و شهرسازی" cols=6 ltr=1 num=1 ph="۱۱۱/۴۴۵۵۶" %}
-                            {% include "df/_date.html" with label="تاریخ نامه راه و شهرسازی (شمسی)" cols=6 model="form.rah_letter_date" keyexpr="'rah_letter_date'" titleexpr="'تاریخ نامه راه و شهرسازی'" ph="۱۴۰۳/۰۴/۲۰" ed="rah_letter_date" %}
                         </div>
                     </div>
 

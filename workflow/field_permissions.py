@@ -149,9 +149,9 @@ FIELD_STAGE_MAP = {
     "preparation_check_entries_json": [17, 18],
     "is_preparation_checks_confirmed": [17, 18],
 
-    # Step 20: صدور و ثبت نامه محضر اداره کل و دفتر اسناد رسمی
-    "rah_letter": [20],
-    "rah_letter_date": [20],
+    # Step 2 & 20: شماره و تاریخ نامه راه و شهرسازی (قابل ویرایش در بخش ۲ و مرحله ۲۰)
+    "rah_letter": [2, 8, 9, 12, 13, 14, 20],
+    "rah_letter_date": [2, 8, 9, 12, 13, 14, 20],
     "notary_office_number": [20],
     "notary_letter_number": [20],
     "notary_letter_date": [20],

@@ -88,44 +88,61 @@ def set_excel_task_progress(
 # No duplicate headers, no lambda display rows, includes commission cols
 # -------------------------------------------------------------------------
 TEMPLATE_FIELD_SPECS = [
-    # Required Primary Key Identifier
+    # ======================= بخش ۱: متقاضی، همسر، پروژه و واحد مسکونی =======================
+    # متقاضی
     ("کد ملی متقاضی", "national_id", "national_id"),
-
-    # Personal & Demographic Information
     ("نام متقاضی", "first_name", "str"),
     ("نام خانوادگی متقاضی", "last_name", "str"),
     ("نام و نام خانوادگی متقاضی", "full_name", "str"),
-    ("نام پدر", "father_name", "str"),
+    ("نام پدر متقاضی", "father_name", "str"),
     ("تاریخ تولد متقاضی (شمسی)", "birth_date", "str"),
     ("شماره شناسنامه متقاضی", "applicant_id_number", "str"),
     ("محل صدور متقاضی", "applicant_birth_place", "str"),
     ("شماره همراه متقاضی", "applicant_phone", "str"),
-    ("وضعیت تاهل", "marital_status", "str"),
-    ("تاییدیه تاهل", "is_married_confirmed", "bool"),
+    ("رتبه انتخابی متقاضی", "selection_rank", "int"),
     ("دهک درآمدی (۱ تا ۱۰)", "decile", "int"),
+    ("سریال شناسنامه متقاضی", "applicant_id_serial", "str"),
+    ("تلفن ثابت متقاضی", "applicant_landline_phone", "str"),
+    ("کد پستی متقاضی", "applicant_postal_code", "str"),
+    ("آدرس محل سکونت متقاضی", "applicant_address", "str"),
 
-    # Spouse Information
+    # همسر
     ("نام همسر", "spouse_first_name", "str"),
     ("نام خانوادگی همسر", "spouse_last_name", "str"),
     ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
-    ("نام پدر همسر", "spouse_father_name", "str"),
     ("کد ملی همسر", "spouse_national_id", "national_id"),
-    ("تاریخ تولد همسر (شمسی)", "spouse_birth_date", "str"),
+    ("نام پدر همسر", "spouse_father_name", "str"),
     ("شماره شناسنامه همسر", "spouse_id_number", "str"),
+    ("تاریخ تولد همسر (شمسی)", "spouse_birth_date", "str"),
     ("محل صدور همسر", "spouse_birth_place", "str"),
+    ("سریال شناسنامه همسر", "spouse_id_serial", "str"),
+    ("وضعیت تاهل", "marital_status", "str"),
+    ("تاییدیه تاهل", "is_married_confirmed", "bool"),
 
-    # Unit Selection & Project Details
+    # سایت، پروژه و واحد مسکونی
     ("نام سایت مسکونی", "site", "str"),
     ("نام پروژه مسکونی", "project", "str"),
     ("کد پروژه مسکونی", "project_code", "str"),
-    ("شماره بلوک", "block_number", "str"),
-    ("شماره طبقه", "floor_number", "int"),
-    ("شماره واحد", "unit_number", "int"),
-    ("رتبه انتخابی متقاضی", "selection_rank", "int"),
     ("نام بانک عامل", "bank_name", "str"),
     ("شعبه بانک عامل", "bank_branch", "str"),
+    ("نوع ساخت", "construction_type", "str"),
+    ("تعداد خواب", "bedroom_count", "int"),
+    ("نام بلوک", "block_name", "str"),
+    ("کد بلوک", "block_code", "str"),
+    ("شماره طبقه", "floor_number", "int"),
+    ("شماره واحد", "unit_number", "int"),
+    ("کد واحد", "unit_code", "str"),
+    ("جهت واحد", "unit_direction", "str"),
+    ("متراژ مفید واحد (مترمربع)", "net_unit_area", "decimal"),
+    ("متراژ مشاعات (مترمربع)", "common_area", "decimal"),
+    ("جمع کل متراژ واحد (مترمربع)", "total_area", "decimal"),
+    ("مساحت واحد (مترمربع)", "unit_area", "decimal"),
+    ("شماره انباری", "storage_number", "int"),
+    ("مساحت انباری (مترمربع)", "storage_area", "decimal"),
+    ("شماره پارکینگ", "parking_number", "int"),
+    ("مساحت پارکینگ (مترمربع)", "parking_area", "decimal"),
 
-    # Registration & Plaque Specifications
+    # ======================= بخش ۲: اطلاعات ثبتی عرصه، پلاک و مساحت =======================
     ("بخش ثبتی", "registration_section", "str"),
     ("پلاک اصلی", "main_plaque", "int"),
     ("پلاک مفروز", "separated_plaque", "int"),
@@ -133,79 +150,91 @@ TEMPLATE_FIELD_SPECS = [
     ("فرعی / مفروز ومجزا / اصلی", "composite_plaques", "composite_plaques"),
     ("شماره قطعه", "plot_number", "int"),
     ("کد نوسازی", "renovation_code", "str"),
-    ("مساحت مفید واحد (مترمربع)", "unit_area", "decimal"),
-    ("مساحت تراس / بالکن (مترمربع)", "balcony_area", "decimal"),
-    ("مساحت انباری (مترمربع)", "storage_area", "decimal"),
-    ("مساحت کل عرصه پروژه (مترمربع)", "total_land_area", "decimal"),
-    ("سهم‌العرصه واحد مسکونی (مترمربع)", "total_land_share", "decimal"),
-    ("قیمت کارشناسی عرصه (ریال)", "land_expert_price", "price"),
     ("تاییدیه سند عرصه", "is_land_deed_confirmed", "bool"),
+    ("شماره سند عرصه", "deed_number", "str"),
+    ("تاریخ سند عرصه (شمسی)", "deed_date", "str"),
+    ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
+    ("تاریخ نامه راه و شهرسازی (شمسی)", "rah_letter_date", "str"),
 
-    # Form J Statuses
-    ("شماره فرم ج", "form_j_number", "str"),
-    ("شماره پرسش‌نامه فرم ج", "form_j_questionnaire_number", "str"),
-    ("صفحه فرم ج", "form_j_page", "str"),
+    # ======================= بخش ۳: استعلام رسمی و فرم «ج» متقاضی و همسر =======================
+    ("نحوه ثبت فرم ج", "form_j_registration_type", "str"),
+    ("شماره پرسشنامه فرم ج", "form_j_questionnaire_number", "str"),
     ("وضعیت فرم ج متقاضی", "applicant_form_j_status", "str"),
     ("استعلام اداره کل متقاضی", "applicant_form_j_directorate_status", "str"),
     ("توضیحات فرم ج متقاضی", "applicant_form_j_red_description", "str"),
     ("وضعیت فرم ج همسر", "spouse_form_j_status", "str"),
     ("استعلام اداره کل همسر", "spouse_form_j_directorate_status", "str"),
     ("توضیحات فرم ج همسر", "spouse_form_j_red_description", "str"),
-    ("نحوه ثبت فرم ج", "form_j_registration_type", "str"),
 
-    # Financials & Loans
+    # ======================= بخش ۴: مبالغ قرارداد، قیمت تمام‌شده و تسهیلات بانکی =======================
     ("مبلغ کل قرارداد (ریال)", "total_price", "price"),
     ("قیمت پایه بدون وام (ریال)", "base_cost_without_loan", "price"),
     ("مبلغ وام بانکی (ریال)", "bank_loan_amount", "price"),
-    ("سهم آورده نقدی متقاضی (ریال)", "applicant_equity", "price"),
+
+    # ======================= بخش ۵: وام صندوق ملی، نامه پیمانکار و وام دهک =======================
     ("مبلغ وام صندوق ملی مسکن (ریال)", "fund_loan_amount", "price"),
     ("مبلغ کسر نامه پیمانکار (ریال)", "contractor_letter_amount", "price"),
-    ("مبلغ وام دهک‌های درآمدی (ریال)", "decile_loan_amount", "price"),
+    ("مبلغ وام دهکهای درآمدی (ریال)", "decile_loan_amount", "price"),
 
-    # Bank Shipment & Intro Letter
-    ("تاییدیه دفترچه اقساط", "is_installment_booklet_confirmed", "bool"),
-    ("افزودن به لیست محموله بانک", "is_added_to_bank_shipment_list", "bool"),
+    # ======================= بخش ۶: مبلغ آورده نقدی و پیامک اطلاع‌رسانی =======================
+    ("سهم آورده نقدی متقاضی (ریال)", "applicant_equity", "price"),
+    ("ارسال پیامک تعیین آورده", "is_sms_sent", "bool"),
+    ("تاریخ ارسال پیامک آورده نقدی (شمسی)", "sms_sent_date", "str"),
+    ("تاییدیه تامین آورده نقدی", "is_equity_funded", "bool"),
+
+    # ======================= بخش ۷: نامه بانک و استعلام تسهیلات =======================
     ("شماره نامه معرفی به بانک", "bank_letter_number", "str"),
     ("تاریخ نامه معرفی به بانک (شمسی)", "bank_letter_date", "str"),
     ("معرفی شده به بانک", "is_sent_to_bank", "bool"),
+    ("افزودن به لیست محموله بانک", "is_added_to_bank_shipment_list", "bool"),
     ("تاریخ ارسال به بانک (شمسی)", "bank_sent_date", "str"),
     ("شماره نامه ارسال به بانک", "bank_sent_letter_number", "str"),
-    ("تاریخ ارسال پیامک آورده نقدی (شمسی)", "sms_sent_date", "str"),
 
-    # Rent & Preparation Costs
+    # ======================= بخش ۸: پرونده کارگزاری، کنترل مدارک و دفترچه اقساط =======================
+    ("شماره فرم ج", "form_j_number", "str"),
+    ("تاییدیه دفترچه اقساط", "is_installment_booklet_confirmed", "bool"),
+    ("دفترچه اقساط (مدرک فیزیکی)", "has_installment_booklet", "bool"),
+    ("فرم اطلاعات (مدرک فیزیکی)", "has_info_form", "bool"),
+    ("فرم ج (مدرک فیزیکی)", "has_form_j", "bool"),
+    ("اقرارنامه (مدرک فیزیکی)", "has_affidavit", "bool"),
+    ("ثنا (مدرک فیزیکی)", "has_sana", "bool"),
+    ("شناسنامه و کارت ملی (مدرک فیزیکی)", "has_national_id_doc", "bool"),
+
+    # ======================= بخش ۹: ارزیابی اداره کل، تعیین اجاره و آماده‌سازی =======================
+    ("سهم‌العرصه واحد مسکونی (مترمربع)", "total_land_share", "decimal"),
+    ("سال اجاره عرصه", "land_lease_year", "str"),
+    ("هزینه آماده‌سازی (ریال)", "preparation_cost", "price"),
     ("اجاره سال‌های قبل (ریال)", "past_years_rent", "price"),
     ("اجاره سال جاری (ریال)", "current_year_rent", "price"),
-    ("سال اجاره عرصه", "land_lease_year", "int"),
-    ("هزینه آماده‌سازی (ریال)", "preparation_cost", "price"),
 
-    # Commission Columns (Feature 4)
-    ("کارمزد خدمات چک (ریال)", "check_service_fee", "price"),
-    ("کارمزد خدمات آماده‌سازی (ریال)", "preparation_service_fee", "price"),
-
-    # Decile Checks & Receipts
+    # ======================= بخش ۱۰: چک‌های وام دهک، اجاره عرصه و اقساط آماده‌سازی =======================
+    # الف) وام دهک
+    ("نهاد تحت حمایت", "supported_institution", "str"),
     ("بانک عامل تسهیلات دهک", "decile_loan_bank", "str"),
-    ("شعبه تسهیلات دهک", "decile_loan_branch", "str"),
-    ("شماره حساب تسهیلات دهک", "decile_loan_account_number", "str"),
-    ("ضامن تسهیلات دهک", "decile_loan_guarantor", "str"),
-    ("چک صیادی وام دهک دریافت شد", "decile_loan_check_received", "bool"),
-    ("تعداد چک‌های صیادی وام دهک", "decile_loan_check_count", "int"),
-    ("مبلغ کل چک‌های وام دهک (ریال)", "decile_loan_check_amount", "price"),
+    ("کارمزد خدمات چک (ریال)", "check_service_fee", "price"),
+    ("شماره تعهدنامه", "commitment_number", "str"),
+    ("تاریخ تعهدنامه (شمسی)", "commitment_date", "str"),
+    ("تعداد چک‌های صیادی وام دهک", "check_count", "int"),
+    ("مبلغ هر چک وام دهک (ریال)", "check_amount", "price"),
+    ("مبلغ چک آخر وام دهک (ریال)", "last_check_amount", "price"),
+    ("مبلغ کل چک‌های وام دهک (ریال)", "total_check_amount", "price"),
     ("تاییدیه چک‌های وام دهک", "is_decile_loan_confirmed", "bool"),
 
-    # Preparation & Rent Checks
+    # ب) اجاره عرصه
     ("قیمت پذیره متقاضی (ریال)", "tenant_price", "price"),
-    ("مبلغ نقد آماده‌سازی (ریال)", "preparation_cash_amount", "price"),
-    ("تعداد چک‌های آماده‌سازی", "preparation_check_count", "int"),
-    ("مبلغ کل چک‌های آماده‌سازی (ریال)", "preparation_check_amount", "price"),
-    ("مبلغ نقد اجاره عرصه (ریال)", "land_rent_cash_amount", "price"),
-    ("تعداد چک‌های اجاره عرصه", "land_rent_check_count", "int"),
-    ("مبلغ کل چک‌های اجاره عرصه (ریال)", "land_rent_check_amount", "price"),
-    ("تسویه اجاره انجام شد", "is_rent_settled", "bool"),
-    ("تاییدیه نقد و چک‌های آماده‌سازی و اجاره", "is_preparation_checks_confirmed", "bool"),
+    ("کد پیگیری فیش اجاره", "tenant_code", "str"),
+    ("تسویه اجاره انجام شد", "is_cash_rent_confirmed", "bool"),
 
-    # Directorate Final Letters / Road & Housing & Notary
-    ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
-    ("تاریخ نامه راه و شهرسازی (شمسی)", "rah_letter_date", "str"),
+    # ج) آماده‌سازی
+    ("مبلغ نقد آماده‌سازی (ریال)", "cash_preparation_amount", "price"),
+    ("کد پیگیری فیش پیش‌پرداخت", "prepayment_code", "str"),
+    ("مبلغ اقساط آماده‌سازی (ریال)", "non_cash_preparation_amount", "price"),
+    ("کارمزد خدمات آماده‌سازی (ریال)", "preparation_service_fee", "price"),
+    ("تعداد چک‌های آماده‌سازی", "preparation_check_count", "int"),
+    ("مبلغ کل چک‌های آماده‌سازی (ریال)", "total_preparation_check_amount", "price"),
+    ("تاییدیه نقد و چک‌های آماده‌سازی", "is_preparation_checks_confirmed", "bool"),
+
+    # ======================= بخش ۱۱: صدور معرفی‌نامه محضر و دفتر اسناد رسمی (مرحله ۲۰) =======================
     ("شماره دفترخانه اسناد رسمی", "notary_office_number", "str"),
     ("شماره نامه معرفی به محضر", "notary_letter_number", "str"),
     ("تاریخ نامه معرفی به محضر (شمسی)", "notary_letter_date", "str"),
@@ -392,6 +421,146 @@ HEADER_ALIASES: Dict[str, str] = {
     "تاریخ نامه معرفی به محضر": "notary_letter_date",
     "تاریخ نامه معرفی به محضر (شمسی)": "notary_letter_date",
     "تاریخ نامه محضر": "notary_letter_date",
+    # Extra & Historical aliases matching user and detail fields
+    "نام پدر": "father_name",
+    "نام پدر متقاضی": "father_name",
+    "شماره بلوک": "block_name",
+    "بلوک": "block_name",
+    "شماره و کد بلوک": "block_name",
+    "کد بلوک": "block_code",
+    "نام بلوک": "block_name",
+    "شماره طبقه": "floor_number",
+    "طبقه": "floor_number",
+    "شماره واحد": "unit_number",
+    "واحد": "unit_number",
+    "کد واحد": "unit_code",
+    "تعداد خواب": "bedroom_count",
+    "جهت واحد": "unit_direction",
+    "متراژ مفید واحد": "net_unit_area",
+    "متراژ مفید واحد (مترمربع)": "net_unit_area",
+    "متراژ مفید واحد (م2)": "net_unit_area",
+    "متراژ مشاعات": "common_area",
+    "متراژ مشاعات (مترمربع)": "common_area",
+    "متراژ مشاعات (م2)": "common_area",
+    "جمع کل متراژ واحد": "total_area",
+    "جمع کل متراژ واحد (مترمربع)": "total_area",
+    "جمع کل متراژ واحد (م2)": "total_area",
+    "مساحت مفید واحد": "unit_area",
+    "مساحت مفید واحد (مترمربع)": "unit_area",
+    "شماره انباری": "storage_number",
+    "مساحت انباری": "storage_area",
+    "مساحت انباری (مترمربع)": "storage_area",
+    "شماره پارکینگ": "parking_number",
+    "مساحت پارکینگ": "parking_area",
+    "مساحت پارکینگ (مترمربع)": "parking_area",
+    "متراژ پارکینگ": "parking_area",
+    "متراژ پارکینگ مسقف": "parking_area",
+    "متراژ پارکینگ مسقف (مترمربع)": "parking_area",
+    "متراژ پارکینگ مسقف (م2)": "parking_area",
+    "سریال شناسنامه": "applicant_id_serial",
+    "سریال شناسنامه متقاضی": "applicant_id_serial",
+    "سریال شناسنامه همسر": "spouse_id_serial",
+    "تلفن ثابت": "applicant_landline_phone",
+    "تلفن ثابت متقاضی": "applicant_landline_phone",
+    "کد پستی": "applicant_postal_code",
+    "کد پستی متقاضی": "applicant_postal_code",
+    "آدرس": "applicant_address",
+    "آدرس متقاضی": "applicant_address",
+    "آدرس محل سکونت": "applicant_address",
+    "آدرس محل سکونت متقاضی": "applicant_address",
+    "تاییدیه تاهل": "is_married_confirmed",
+    "احراز زوجیت": "is_married_confirmed",
+    "احراز زوجیت و تایید تاهل": "is_married_confirmed",
+    "تاییدیه سند عرصه": "is_land_deed_confirmed",
+    "تایید سند مالکیت عرصه": "is_land_deed_confirmed",
+    "شماره سند عرصه": "deed_number",
+    "شماره سند": "deed_number",
+    "تاریخ سند عرصه": "deed_date",
+    "تاریخ سند عرصه (شمسی)": "deed_date",
+    "تاریخ سند": "deed_date",
+    "شماره پرسشنامه فرم ج": "form_j_questionnaire_number",
+    "شماره پرسش‌نامه فرم ج": "form_j_questionnaire_number",
+    "شماره پرسش نامه فرم ج": "form_j_questionnaire_number",
+    "تاییدیه دفترچه اقساط": "is_installment_booklet_confirmed",
+    "دفترچه اقساط": "has_installment_booklet",
+    "دفترچه اقساط (مدرک فیزیکی)": "has_installment_booklet",
+    "فرم اطلاعات": "has_info_form",
+    "فرم اطلاعات (مدرک فیزیکی)": "has_info_form",
+    "برگه فرم ج": "has_form_j",
+    "برگه فرم «ج»": "has_form_j",
+    "فرم ج (مدرک فیزیکی)": "has_form_j",
+    "اقرارنامه": "has_affidavit",
+    "اقرارنامه محضری": "has_affidavit",
+    "اقرارنامه (مدرک فیزیکی)": "has_affidavit",
+    "ثنا": "has_sana",
+    "تاییدیه سامانه ثنا": "has_sana",
+    "ثنا (مدرک فیزیکی)": "has_sana",
+    "شناسنامه و کارت ملی": "has_national_id_doc",
+    "شناسنامه و کارت ملی (مدرک فیزیکی)": "has_national_id_doc",
+    "ارسال پیامک تعیین آورده": "is_sms_sent",
+    "تاییدیه تامین آورده نقدی": "is_equity_funded",
+    "تایید تامین آورده نقدی": "is_equity_funded",
+    "معرفی شده به بانک": "is_sent_to_bank",
+    "افزودن به لیست محموله بانک": "is_added_to_bank_shipment_list",
+    "اضافه کردن به لیست ارسالی‌ها به بانک": "is_added_to_bank_shipment_list",
+    "سهمالعرصه واحد مسکونی (مترمربع)": "total_land_share",
+    "سهم‌العرصه واحد مسکونی (مترمربع)": "total_land_share",
+    "جمع کل قدرالسهم": "total_land_share",
+    "جمع کل قدرالسهم (مترمربع)": "total_land_share",
+    "جمع کل قدرالسهم (m²)": "total_land_share",
+    "هزینه آمادهسازی (ریال)": "preparation_cost",
+    "هزینه آماده‌سازی (ریال)": "preparation_cost",
+    "مبلغ آماده‌سازی": "preparation_cost",
+    "مبلغ آماده سازی": "preparation_cost",
+    "اجاره سالهای قبل (ریال)": "past_years_rent",
+    "اجاره سال‌های قبل (ریال)": "past_years_rent",
+    "مبلغ اجاره سنوات گذشته": "past_years_rent",
+    "اجاره سال جاری (ریال)": "current_year_rent",
+    "مبلغ اجاره سال جاری": "current_year_rent",
+    "سال اجاره عرصه": "land_lease_year",
+    "بانک عامل تسهیلات دهک": "decile_loan_bank",
+    "شعبه تسهیلات دهک": "decile_loan_branch",
+    "شماره حساب تسهیلات دهک": "decile_loan_account_number",
+    "ضامن تسهیلات دهک": "decile_loan_guarantor",
+    "چک صیادی وام دهک دریافت شد": "is_decile_loan_confirmed",
+    "تعداد چکهای صیادی وام دهک": "check_count",
+    "تعداد چک‌های صیادی وام دهک": "check_count",
+    "تعداد چک‌های دهک": "check_count",
+    "مبلغ هر چک وام دهک (ریال)": "check_amount",
+    "مبلغ چک آخر وام دهک (ریال)": "last_check_amount",
+    "مبلغ کل چکهای وام دهک (ریال)": "total_check_amount",
+    "مبلغ کل چک‌های وام دهک (ریال)": "total_check_amount",
+    "تاییدیه چکهای وام دهک": "is_decile_loan_confirmed",
+    "تاییدیه چک‌های وام دهک": "is_decile_loan_confirmed",
+    "قیمت پذیره متقاضی (ریال)": "tenant_price",
+    "مبلغ نقد اجاره عرصه (ریال)": "tenant_price",
+    "مبلغ پرداختی اجاره عرصه": "tenant_price",
+    "مبلغ پرداختی اجاره عرصه (ریال)": "tenant_price",
+    "کد پیگیری فیش اجاره": "tenant_code",
+    "تسویه اجاره انجام شد": "is_cash_rent_confirmed",
+    "تایید نقدی اجاره": "is_cash_rent_confirmed",
+    "مبلغ نقد آمادهسازی (ریال)": "cash_preparation_amount",
+    "مبلغ نقد آماده‌سازی (ریال)": "cash_preparation_amount",
+    "پیش‌پرداخت آماده‌سازی (۲۰٪ نقد)": "cash_preparation_amount",
+    "کد پیگیری فیش پیش‌پرداخت": "prepayment_code",
+    "کد پیگیری فیش پیش‌پرداخت آماده‌سازی": "prepayment_code",
+    "مبلغ اقساط آماده‌سازی (ریال)": "non_cash_preparation_amount",
+    "اقساط آماده‌سازی (۸۰٪)": "non_cash_preparation_amount",
+    "کارمزد خدمات چک (ریال)": "check_service_fee",
+    "کارمزد خدمات آمادهسازی (ریال)": "preparation_service_fee",
+    "کارمزد خدمات آماده‌سازی (ریال)": "preparation_service_fee",
+    "تعداد چکهای آمادهسازی": "preparation_check_count",
+    "تعداد چک‌های آماده‌سازی": "preparation_check_count",
+    "مبلغ کل چکهای آمادهسازی (ریال)": "total_preparation_check_amount",
+    "مبلغ کل چک‌های آماده‌سازی (ریال)": "total_preparation_check_amount",
+    "مجموع مبلغ چک‌های آماده‌سازی (ریال)": "total_preparation_check_amount",
+    "تاییدیه نقد و چکهای آمادهسازی و اجاره": "is_preparation_checks_confirmed",
+    "تاییدیه نقد و چک‌های آماده‌سازی": "is_preparation_checks_confirmed",
+    "مبلغ وام دهکهای درآمدی (ریال)": "decile_loan_amount",
+    "مبلغ وام دهک‌های درآمدی (ریال)": "decile_loan_amount",
+    "شماره تعهدنامه": "commitment_number",
+    "تاریخ تعهدنامه": "commitment_date",
+    "تاریخ تعهدنامه (شمسی)": "commitment_date",
 }
 
 # -------------------------------------------------------------------------
@@ -1351,9 +1520,9 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
             if CHECK_COUPLE_CONFLICT:
                 snid = parsed_data.get("spouse_national_id")
                 if snid:
-                    if snid in seen_file_nids:
+                    if snid in seen_file_nids and seen_file_nids[snid] != row_num:
                         row_errors.append(f"کد ملی همسر در همین فایل به عنوان متقاضی در ردیف {seen_file_nids[snid]} وجود دارد.")
-                    if cleaned_nid in seen_file_snids:
+                    if cleaned_nid in seen_file_snids and seen_file_snids[cleaned_nid] != row_num:
                         row_errors.append(f"کد ملی متقاضی در همین فایل به عنوان همسر در ردیف {seen_file_snids[cleaned_nid]} وجود دارد.")
                     seen_file_snids[snid] = row_num
 
@@ -1445,8 +1614,10 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
             max_num += 1
             data = dict(item["data"])
             data.pop("archive_number", None)
+            valid_model_fields = {f.name for f in HousingDossier._meta.concrete_fields}
+            clean_data = {k: v for k, v in data.items() if k in valid_model_fields}
 
-            dossier = HousingDossier(**data)
+            dossier = HousingDossier(**clean_data)
             dossier.archive_number = max_num
 
             # Auto-fill bank from ProjectBankMapping if empty
@@ -2004,6 +2175,9 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
 
             for id_field in IDENTITY_FIELDS:
                 data_to_apply.pop(id_field, None)
+
+        valid_model_fields = {f.name for f in HousingDossier._meta.concrete_fields}
+        data_to_apply = {k: v for k, v in data_to_apply.items() if k in valid_model_fields}
 
         diffs: List[Dict[str, Any]] = []
         for f_name, new_val in data_to_apply.items():
@@ -3146,58 +3320,55 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
 # Verbatim EXPORT_COLUMNS and generate_dossiers_export
 # -------------------------------------------------------------------------
 EXPORT_COLUMNS = [
-    # (Header Title, Field Name / Lambda, Type)
+    # Administrative & Status Columns
     ("شماره بایگانی پرونده", "archive_number", "int"),
     ("کد ملی متقاضی", "national_id", "str"),
-    ("مرحله جاری پرونده (۱ تا ۲۲)", "current_stage", "int"),
+    ("مرحله جاری پرونده (۱ تا ۲۱)", "current_stage", "int"),
     ("عنوان مرحله جاری", lambda d: d.current_stage_title, "str"),
     ("سمت اقدام‌کننده مرحله جاری", lambda d: d.current_role, "str"),
     ("وضعیت گردش کار پرونده", lambda d: d.get_status_display(), "str"),
     ("قفل نهایی پرونده", lambda d: "بله" if d.is_locked else "خیر", "str"),
-    
-    # Personal & Family Information
+
+    # ======================= بخش ۱: متقاضی، همسر، پروژه و واحد مسکونی =======================
     ("نام متقاضی", "first_name", "str"),
     ("نام خانوادگی متقاضی", "last_name", "str"),
     ("نام و نام خانوادگی متقاضی", "full_name", "str"),
-    ("نام پدر", "father_name", "str"),
+    ("نام پدر متقاضی", "father_name", "str"),
     ("تاریخ تولد متقاضی (شمسی)", "birth_date", "str"),
     ("شماره شناسنامه متقاضی", "applicant_id_number", "str"),
     ("محل صدور متقاضی", "applicant_birth_place", "str"),
     ("شماره همراه متقاضی", "applicant_phone", "str"),
-    ("وضعیت تاهل", "marital_status", "str"),
-    ("تاییدیه تاهل", lambda d: "بله" if d.is_married_confirmed else "خیر", "str"),
+    ("رتبه انتخابی متقاضی", "selection_rank", "int"),
     ("دهک درآمدی (۱ تا ۱۰)", "decile", "int"),
-    ("رتبه انتخاب واحد", "selection_rank", "int"),
-    
-    # Spouse Information
+    ("سریال شناسنامه متقاضی", "applicant_id_serial", "str"),
+    ("تلفن ثابت متقاضی", "applicant_landline_phone", "str"),
+    ("کد پستی متقاضی", "applicant_postal_code", "str"),
+    ("آدرس محل سکونت متقاضی", "applicant_address", "str"),
+
     ("نام همسر", "spouse_first_name", "str"),
     ("نام خانوادگی همسر", "spouse_last_name", "str"),
     ("نام و نام خانوادگی همسر", "spouse_full_name", "str"),
-    ("نام پدر همسر", "spouse_father_name", "str"),
     ("کد ملی همسر", "spouse_national_id", "national_id"),
-    ("تاریخ تولد همسر (شمسی)", "spouse_birth_date", "str"),
+    ("نام پدر همسر", "spouse_father_name", "str"),
     ("شماره شناسنامه همسر", "spouse_id_number", "str"),
-    ("محل صدور شناسنامه همسر", "spouse_birth_place", "str"),
-    
-    # Form J Inquiries
-    ("وضعیت فرم ج متقاضی", "applicant_form_j_status", "str"),
-    ("استعلام اداره کل فرم ج متقاضی", "applicant_form_j_directorate_status", "str"),
-    ("توضیحات فرم ج متقاضی", "applicant_form_j_red_description", "str"),
-    ("وضعیت فرم ج همسر", "spouse_form_j_status", "str"),
-    ("استعلام اداره کل فرم ج همسر", "spouse_form_j_directorate_status", "str"),
-    ("توضیحات فرم ج همسر", "spouse_form_j_red_description", "str"),
-    ("نحوه ثبت فرم ج", "form_j_registration_type", "str"),
+    ("تاریخ تولد همسر (شمسی)", "spouse_birth_date", "str"),
+    ("محل صدور همسر", "spouse_birth_place", "str"),
+    ("سریال شناسنامه همسر", "spouse_id_serial", "str"),
+    ("وضعیت تاهل", "marital_status", "str"),
+    ("تاییدیه تاهل", lambda d: "بله" if d.is_married_confirmed else "خیر", "str"),
 
-    # Project & Unit Specifications
-    ("نام پروژه", "project", "str"),
-    ("سایت", "site", "str"),
+    ("نام سایت مسکونی", "site", "str"),
+    ("نام پروژه مسکونی", "project", "str"),
+    ("کد پروژه مسکونی", "project_code", "str"),
+    ("نام بانک عامل", "bank_name", "str"),
+    ("شعبه بانک عامل", "bank_branch", "str"),
     ("نوع ساخت", "construction_type", "str"),
+    ("تعداد خواب", "bedroom_count", "int"),
     ("نام بلوک", "block_name", "str"),
     ("کد بلوک", "block_code", "str"),
     ("شماره طبقه", "floor_number", "int"),
     ("شماره واحد", "unit_number", "int"),
     ("کد واحد", "unit_code", "str"),
-    ("تعداد خواب", "bedroom_count", "int"),
     ("جهت واحد", "unit_direction", "str"),
     ("متراژ مفید واحد (مترمربع)", "net_unit_area", "decimal"),
     ("متراژ مشاعات (مترمربع)", "common_area", "decimal"),
@@ -3208,89 +3379,124 @@ EXPORT_COLUMNS = [
     ("شماره پارکینگ", "parking_number", "int"),
     ("مساحت پارکینگ (مترمربع)", "parking_area", "decimal"),
 
-    # Registry Plaques
+    # ======================= بخش ۲: اطلاعات ثبتی عرصه، پلاک و مساحت =======================
     ("بخش ثبتی", "registration_section", "str"),
     ("پلاک اصلی", "main_plaque", "int"),
     ("پلاک مفروز", "separated_plaque", "int"),
-    ("فرعی از (پلاک فرعی)", "sub_plaque", "int"),
+    ("پلاک فرعی", "sub_plaque", "int"),
     ("شماره قطعه", "plot_number", "int"),
     ("کد نوسازی", "renovation_code", "str"),
-
-    # Financial & Loans (amounts in Rials)
-    ("مبلغ کل قرارداد (ریال)", lambda d: (d.base_cost_without_loan or 0) + (d.bank_loan_amount or 0), "price"),
-    ("قیمت تمام شده بدون وام (ریال)", "base_cost_without_loan", "price"),
-    ("مبلغ تسهیلات وام بانکی (ریال)", "bank_loan_amount", "price"),
-    ("مبلغ وام صندوق (ریال)", "fund_loan_amount", "price"),
-    ("مبلغ نامه پیمانکار (ریال)", "contractor_letter_amount", "price"),
-    ("مبلغ وام دهک (ریال)", "decile_loan_amount", "price"),
-    ("مبلغ آورده نقدی متقاضی (ریال)", "applicant_equity", "price"),
-    ("تایید تامین آورده نقدی", lambda d: "بله" if d.is_equity_funded else "خیر", "str"),
-    ("ارسال پیامک آورده نقدی", lambda d: "بله" if d.is_sms_sent else "خیر", "str"),
-    ("تاریخ ارسال پیامک آورده نقدی (شمسی)", "sms_sent_date", "str"),
-    ("شماره نامه بانک", "bank_letter_number", "str"),
-    ("تاریخ نامه بانک (شمسی)", "bank_letter_date", "str"),
-    ("اضافه به لیست ارسالی‌ها به بانک", lambda d: "بله" if d.is_added_to_bank_shipment_list else "خیر", "str"),
-    ("ارسال شده به بانک", lambda d: "بله" if d.is_sent_to_bank else "خیر", "str"),
-    ("تاریخ ارسال به بانک (شمسی)", "bank_sent_date", "str"),
-    ("شماره نامه ارسال به بانک", "bank_sent_letter_number", "str"),
-    ("بانک عامل تسهیلات دهک", "decile_loan_bank", "str"),
-    ("نهاد تحت حمایت", "supported_institution", "str"),
-
-    # Land Lease & Appraisal
-    ("جمع کل قدرالسهم (مترمربع)", "total_land_share", "decimal"),
-    ("مبلغ اجاره سنوات گذشته (ریال)", "past_years_rent", "price"),
-    ("مبلغ اجاره سال جاری (ریال)", "current_year_rent", "price"),
-    ("سال اجاره عرصه", "land_lease_year", "str"),
-    ("مبلغ پرداختی اجاره عرصه (ریال)", "tenant_price", "price"),
-    ("کد پیگیری فیش اجاره", "tenant_code", "str"),
-    ("تایید نقدی اجاره", lambda d: "بله" if d.is_cash_rent_confirmed else "خیر", "str"),
-
-    # Preparation (آماده‌سازی)
-    ("مبلغ نقدی آماده‌سازی - ۲۰٪ نقد (ریال)", "cash_preparation_amount", "price"),
-    ("مبلغ غیرنقدی آماده‌سازی - ۸۰٪ اقساط (ریال)", "non_cash_preparation_amount", "price"),
-    ("کد پیگیری فیش پیش‌پرداخت آماده‌سازی", "prepayment_code", "str"),
-    ("تعداد چک‌های آماده‌سازی", "preparation_check_count", "int"),
-    ("مجموع مبلغ چک‌های آماده‌سازی (ریال)", "total_preparation_check_amount", "price"),
-    ("تایید دریافت چک‌های آماده‌سازی", lambda d: "بله" if d.is_preparation_checks_confirmed else "خیر", "str"),
-
-    # Checks & Commitments
-    ("شماره تعهدنامه", "commitment_number", "str"),
-    ("تاریخ تعهدنامه (شمسی)", "commitment_date", "str"),
-    ("تعداد چک‌های دهک", "check_count", "int"),
-    ("مبلغ هر چک دهک (ریال)", "check_amount", "price"),
-    ("مبلغ چک آخر دهک (ریال)", "last_check_amount", "price"),
-    ("مجموع مبلغ چک‌های دهک (ریال)", "total_check_amount", "price"),
-    ("تایید چک‌های تسهیلات دهک", lambda d: "بله" if d.is_decile_loan_confirmed else "خیر", "str"),
-
-    # Official Letters & Stage Control
+    ("تاییدیه سند عرصه", lambda d: "بله" if d.is_land_deed_confirmed else "خیر", "str"),
+    ("شماره سند عرصه", "deed_number", "str"),
+    ("تاریخ سند عرصه (شمسی)", "deed_date", "str"),
     ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
     ("تاریخ نامه راه و شهرسازی (شمسی)", "rah_letter_date", "str"),
+
+    # ======================= بخش ۳: استعلام رسمی و فرم «ج» متقاضی و همسر =======================
+    ("نحوه ثبت فرم ج", "form_j_registration_type", "str"),
+    ("شماره پرسشنامه فرم ج", "form_j_questionnaire_number", "str"),
+    ("وضعیت فرم ج متقاضی", "applicant_form_j_status", "str"),
+    ("استعلام اداره کل متقاضی", "applicant_form_j_directorate_status", "str"),
+    ("توضیحات فرم ج متقاضی", "applicant_form_j_red_description", "str"),
+    ("وضعیت فرم ج همسر", "spouse_form_j_status", "str"),
+    ("استعلام اداره کل همسر", "spouse_form_j_directorate_status", "str"),
+    ("توضیحات فرم ج همسر", "spouse_form_j_red_description", "str"),
+
+    # ======================= بخش ۴: مبالغ قرارداد، قیمت تمام‌شده و تسهیلات بانکی =======================
+    ("مبلغ کل قرارداد (ریال)", lambda d: (d.base_cost_without_loan or 0) + (d.bank_loan_amount or 0), "price"),
+    ("قیمت پایه بدون وام (ریال)", "base_cost_without_loan", "price"),
+    ("مبلغ تسهیلات وام بانکی (ریال)", "bank_loan_amount", "price"),
+
+    # ======================= بخش ۵: وام صندوق ملی، نامه پیمانکار و وام دهک =======================
+    ("مبلغ وام صندوق ملی مسکن (ریال)", "fund_loan_amount", "price"),
+    ("مبلغ کسر نامه پیمانکار (ریال)", "contractor_letter_amount", "price"),
+    ("مبلغ وام دهکهای درآمدی (ریال)", "decile_loan_amount", "price"),
+
+    # ======================= بخش ۶: مبلغ آورده نقدی و پیامک اطلاع‌رسانی =======================
+    ("سهم آورده نقدی متقاضی (ریال)", "applicant_equity", "price"),
+    ("ارسال پیامک تعیین آورده", lambda d: "بله" if d.is_sms_sent else "خیر", "str"),
+    ("تاریخ ارسال پیامک آورده نقدی (شمسی)", "sms_sent_date", "str"),
+    ("تاییدیه تامین آورده نقدی", lambda d: "بله" if d.is_equity_funded else "خیر", "str"),
+
+    # ======================= بخش ۷: نامه بانک و استعلام تسهیلات =======================
+    ("شماره نامه معرفی به بانک", "bank_letter_number", "str"),
+    ("تاریخ نامه معرفی به بانک (شمسی)", "bank_letter_date", "str"),
+    ("معرفی شده به بانک", lambda d: "بله" if d.is_sent_to_bank else "خیر", "str"),
+    ("افزودن به لیست محموله بانک", lambda d: "بله" if d.is_added_to_bank_shipment_list else "خیر", "str"),
+    ("تاریخ ارسال به بانک (شمسی)", "bank_sent_date", "str"),
+    ("شماره نامه ارسال به بانک", "bank_sent_letter_number", "str"),
+
+    # ======================= بخش ۸: پرونده کارگزاری، کنترل مدارک و دفترچه اقساط =======================
+    ("شماره فرم ج", "form_j_number", "str"),
+    ("تاییدیه دفترچه اقساط", lambda d: "بله" if d.is_installment_booklet_confirmed else "خیر", "str"),
+    ("دفترچه اقساط (مدرک فیزیکی)", lambda d: "بله" if d.has_installment_booklet else "خیر", "str"),
+    ("فرم اطلاعات (مدرک فیزیکی)", lambda d: "بله" if d.has_info_form else "خیر", "str"),
+    ("فرم ج (مدرک فیزیکی)", lambda d: "بله" if d.has_form_j else "خیر", "str"),
+    ("اقرارنامه (مدرک فیزیکی)", lambda d: "بله" if d.has_affidavit else "خیر", "str"),
+    ("ثنا (مدرک فیزیکی)", lambda d: "بله" if d.has_sana else "خیر", "str"),
+    ("شناسنامه و کارت ملی (مدرک فیزیکی)", lambda d: "بله" if d.has_national_id_doc else "خیر", "str"),
+
+    # ======================= بخش ۹: ارزیابی اداره کل، تعیین اجاره و آماده‌سازی =======================
+    ("سهم‌العرصه واحد مسکونی (مترمربع)", "total_land_share", "decimal"),
+    ("سال اجاره عرصه", "land_lease_year", "str"),
+    ("هزینه آماده‌سازی (ریال)", "preparation_cost", "price"),
+    ("اجاره سال‌های قبل (ریال)", "past_years_rent", "price"),
+    ("اجاره سال جاری (ریال)", "current_year_rent", "price"),
+
+    # ======================= بخش ۱۰: چک‌های وام دهک، اجاره عرصه و اقساط آماده‌سازی =======================
+    ("نهاد تحت حمایت", "supported_institution", "str"),
+    ("بانک عامل تسهیلات دهک", "decile_loan_bank", "str"),
+    ("کارمزد خدمات چک (ریال)", "check_service_fee", "price"),
+    ("شماره تعهدنامه", "commitment_number", "str"),
+    ("تاریخ تعهدنامه (شمسی)", "commitment_date", "str"),
+    ("تعداد چک‌های صیادی وام دهک", "check_count", "int"),
+    ("مبلغ هر چک وام دهک (ریال)", "check_amount", "price"),
+    ("مبلغ چک آخر وام دهک (ریال)", "last_check_amount", "price"),
+    ("مبلغ کل چک‌های وام دهک (ریال)", "total_check_amount", "price"),
+    ("تاییدیه چک‌های وام دهک", lambda d: "بله" if d.is_decile_loan_confirmed else "خیر", "str"),
+
+    ("قیمت پذیره متقاضی (ریال)", "tenant_price", "price"),
+    ("کد پیگیری فیش اجاره", "tenant_code", "str"),
+    ("تسویه اجاره انجام شد", lambda d: "بله" if d.is_cash_rent_confirmed else "خیر", "str"),
+
+    ("مبلغ نقد آماده‌سازی (ریال)", "cash_preparation_amount", "price"),
+    ("کد پیگیری فیش پیش‌پرداخت", "prepayment_code", "str"),
+    ("مبلغ اقساط آماده‌سازی (ریال)", "non_cash_preparation_amount", "price"),
+    ("کارمزد خدمات آماده‌سازی (ریال)", "preparation_service_fee", "price"),
+    ("تعداد چک‌های آماده‌سازی", "preparation_check_count", "int"),
+    ("مبلغ کل چک‌های آماده‌سازی (ریال)", "total_preparation_check_amount", "price"),
+    ("تاییدیه نقد و چک‌های آماده‌سازی", lambda d: "بله" if d.is_preparation_checks_confirmed else "خیر", "str"),
+
+    # ======================= بخش ۱۱: صدور معرفی‌نامه محضر و دفتر اسناد رسمی (مرحله ۲۰) =======================
     ("شماره دفترخانه اسناد رسمی", "notary_office_number", "str"),
     ("شماره نامه معرفی به محضر", "notary_letter_number", "str"),
     ("تاریخ نامه معرفی به محضر (شمسی)", "notary_letter_date", "str"),
+
+    # تاریخ‌های سیستمی پرونده
     ("تاریخ تشکیل پرونده", lambda d: jdatetime.datetime.fromgregorian(datetime=d.created_at).strftime('%Y/%m/%d %H:%M') if d.created_at else "", "str"),
     ("تاریخ آخرین بروزرسانی", lambda d: jdatetime.datetime.fromgregorian(datetime=d.updated_at).strftime('%Y/%m/%d %H:%M') if d.updated_at else "", "str"),
-    ("کارمزد خدمات چک (ریال)", "check_service_fee", "price"),
-    ("کارمزد خدمات آماده‌سازی (ریال)", "preparation_service_fee", "price"),
 ]
 
 EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
     "applicant": ("اطلاعات هویتی متقاضی", {
         "first_name", "last_name", "full_name", "father_name", "birth_date",
         "applicant_id_number", "applicant_birth_place", "applicant_phone",
-        "marital_status", "is_married_confirmed", "decile", "selection_rank"
+        "marital_status", "is_married_confirmed", "decile", "selection_rank",
+        "applicant_id_serial", "applicant_landline_phone", "applicant_postal_code", "applicant_address"
     }),
     "spouse": ("مشخصات هویتی همسر", {
         "spouse_first_name", "spouse_last_name", "spouse_full_name", "spouse_father_name",
-        "spouse_national_id", "spouse_birth_date", "spouse_id_number", "spouse_birth_place"
+        "spouse_national_id", "spouse_birth_date", "spouse_id_number", "spouse_birth_place",
+        "spouse_id_serial"
     }),
     "property": ("اطلاعات پروژه و مشخصات ثبتی", {
-        "project", "site", "construction_type", "block_name", "block_code",
-        "floor_number", "unit_number", "unit_code", "bedroom_count", "unit_direction",
-        "net_unit_area", "common_area", "total_area", "unit_area", "storage_number",
-        "storage_area", "parking_number", "parking_area",
+        "project", "site", "project_code", "bank_name", "bank_branch", "construction_type",
+        "block_name", "block_code", "floor_number", "unit_number", "unit_code", "bedroom_count",
+        "unit_direction", "net_unit_area", "common_area", "total_area", "unit_area",
+        "storage_number", "storage_area", "parking_number", "parking_area",
         "registration_section", "main_plaque", "separated_plaque", "sub_plaque",
-        "plot_number", "renovation_code", "deed_number", "deed_date", "is_land_deed_confirmed"
+        "plot_number", "renovation_code", "deed_number", "deed_date", "is_land_deed_confirmed",
+        "rah_letter", "rah_letter_date"
     }),
     "financial": ("اطلاعات مالی و تسهیلات بانکی", {
         "base_cost_without_loan", "bank_loan_amount", "fund_loan_amount",
@@ -3306,17 +3512,20 @@ EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
         "total_preparation_check_amount", "is_preparation_checks_confirmed",
         "commitment_number", "commitment_date", "check_count", "check_amount",
         "last_check_amount", "total_check_amount", "is_decile_loan_confirmed",
-        "rah_letter", "rah_letter_date", "notary_office_number", "notary_letter_number", "notary_letter_date", "check_service_fee", "preparation_service_fee"
+        "rah_letter", "rah_letter_date", "notary_office_number", "notary_letter_number", "notary_letter_date",
+        "check_service_fee", "preparation_service_fee"
     }),
     "form_j": ("وضعیت‌های فرم ج", {
         "applicant_form_j_status", "applicant_form_j_directorate_status",
         "applicant_form_j_red_description", "spouse_form_j_status",
         "spouse_form_j_directorate_status", "spouse_form_j_red_description",
-        "form_j_registration_type"
+        "form_j_registration_type", "form_j_number", "form_j_questionnaire_number"
     }),
     "workflow": ("اطلاعات گردش کار و امضاها", {
         "current_stage", "current_stage_title", "current_role",
-        "status", "is_locked", "created_at", "updated_at"
+        "status", "is_locked", "created_at", "updated_at",
+        "is_installment_booklet_confirmed", "has_installment_booklet",
+        "has_info_form", "has_form_j", "has_affidavit", "has_sana", "has_national_id_doc"
     }),
 }
 
