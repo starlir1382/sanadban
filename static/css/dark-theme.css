@@ -384,6 +384,125 @@ html[data-theme="dark"] .dl-btn.ghost {
   color: #e2e8f0 !important;
   border-color: #24344d !important;
 }
+html[data-theme="dark"] .dl-extras-list {
+  background: #0b1220 !important;
+  border-color: #1e293b !important;
+}
+html[data-theme="dark"] .dl-extra-chip.bank {
+  background: rgba(59, 130, 246, 0.14) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.32) !important;
+}
+html[data-theme="dark"] .dl-extra-chip.loan {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.32) !important;
+}
+html[data-theme="dark"] .dl-extra-chip.prep {
+  background: rgba(245, 158, 11, 0.14) !important;
+  color: #fcd34d !important;
+  border-color: rgba(245, 158, 11, 0.32) !important;
+}
+html[data-theme="dark"] .dl-extra-chip.notary {
+  background: rgba(139, 92, 246, 0.14) !important;
+  color: #c4b5fd !important;
+  border-color: rgba(139, 92, 246, 0.32) !important;
+}
+html[data-theme="dark"] .dl-extra-chip.empty {
+  background: #141c2e !important;
+  color: #94a3b8 !important;
+  border-color: #243044 !important;
+}
+html[data-theme="dark"] .dl-extra-chip.empty .dt {
+  color: #94a3b8 !important;
+}
+/* Strict Catalog Searchable Dropdown Dark Mode */
+/* Section 9 Formula Card Dark Mode */
+html[data-theme="dark"] .df-formula-box {
+  background: #0b1220 !important;
+  border-color: #1e293b !important;
+}
+html[data-theme="dark"] .df-formula-head,
+html[data-theme="dark"] .df-formula-subhead,
+html[data-theme="dark"] .df-f-op,
+html[data-theme="dark"] .df-f-op-sm {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .df-formula-badge {
+  background: rgba(14, 165, 233, 0.16) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  color: #7dd3fc !important;
+}
+html[data-theme="dark"] .df-formula-badge.is-empty {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+  color: #fcd34d !important;
+}
+html[data-theme="dark"] .df-f-term,
+html[data-theme="dark"] .df-f-rate-card {
+  background: #131d2e !important;
+  border-color: #24344d !important;
+}
+html[data-theme="dark"] .df-f-mini {
+  background: #0f172a !important;
+  border-color: #24344d !important;
+}
+html[data-theme="dark"] .df-f-lbl {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .df-f-rate-title,
+html[data-theme="dark"] .df-f-val,
+html[data-theme="dark"] .df-f-rate-expr {
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .df-f-term.is-sum {
+  background: #172033 !important;
+}
+html[data-theme="dark"] .df-f-term.is-coeff {
+  background: rgba(139, 92, 246, 0.16) !important;
+  border-color: rgba(139, 92, 246, 0.35) !important;
+}
+html[data-theme="dark"] .df-f-term.is-coeff .df-f-val {
+  color: #c4b5fd !important;
+}
+html[data-theme="dark"] .df-f-term.is-result,
+html[data-theme="dark"] .df-f-mini.is-result {
+  background: rgba(37, 99, 235, 0.16) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+html[data-theme="dark"] .df-f-term.is-result .df-f-val,
+html[data-theme="dark"] .df-f-mini.is-result .df-f-val {
+  color: #7dd3fc !important;
+}
+html[data-theme="dark"] .df-formula-excel,
+html[data-theme="dark"] .df-formula-rates {
+  border-top-color: #1e293b !important;
+}
+html[data-theme="dark"] .df-combo-list {
+  background: #0f172a !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55) !important;
+}
+html[data-theme="dark"] .df-combo-item {
+  color: #f1f5f9 !important;
+  border-bottom-color: #1e293b !important;
+}
+html[data-theme="dark"] .df-combo-item:hover,
+html[data-theme="dark"] .df-combo-item.is-hi {
+  background: #172554 !important;
+}
+html[data-theme="dark"] .df-combo-item.is-selected {
+  background: #1e293b !important;
+}
+html[data-theme="dark"] .df-combo-item small,
+html[data-theme="dark"] .df-combo-empty,
+html[data-theme="dark"] .df-combo-arrow {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .df-combo-code {
+  background: rgba(56, 189, 248, 0.16) !important;
+  color: #7dd3fc !important;
+}
 html[data-theme="dark"] .dl-empty {
   background: #0f172a !important;
   color: #94a3b8 !important;
@@ -837,6 +956,104 @@ html[data-theme="dark"] .btn-ghost {
 html[data-theme="dark"] .btn-ghost:hover {
   background: #141f33 !important;
   color: #38bdf8 !important;
+}
+
+/* Signed History Search & Filters Dark Mode */
+html[data-theme="dark"] .dl-search-card {
+  color-scheme: dark;
+}
+html[data-theme="dark"] .dl-signed-filter-input,
+html[data-theme="dark"] .dl-signed-filter-select {
+  color-scheme: dark;
+  background-color: #0b1220 !important;
+  color: #f1f5f9 !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+html[data-theme="dark"] .dl-signed-filter-input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+html[data-theme="dark"] .dl-signed-filter-select option {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .dl-sig-date {
+  color: #34d399 !important;
+}
+html[data-theme="dark"] .dl-sig-time-pill {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Land Rates Admin Page Dark Mode */
+html[data-theme="dark"] .sb-rates-page {
+  color-scheme: dark;
+}
+html[data-theme="dark"] .sb-rates-page .sb-page-title,
+html[data-theme="dark"] .sb-rates-page .sb-stat-value,
+html[data-theme="dark"] .sb-rates-page .sb-table-title {
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-page-desc,
+html[data-theme="dark"] .sb-rates-page .sb-stat-label,
+html[data-theme="dark"] .sb-rates-page .sb-filter-label,
+html[data-theme="dark"] .sb-rates-page .text-muted {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-stat-card,
+html[data-theme="dark"] .sb-rates-page .sb-toolbar-card,
+html[data-theme="dark"] .sb-rates-page .sb-table-card,
+html[data-theme="dark"] .sb-rates-page .sb-modal-card {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-table-header,
+html[data-theme="dark"] .sb-rates-page .sb-pagination-bar {
+  background: #131d2e !important;
+  border-color: #1e293b !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-data-table th {
+  background: #131d2e !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #1e293b !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-data-table td {
+  color: #e2e8f0 !important;
+  border-bottom-color: #172033 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-data-table tr:hover td {
+  background: #162238 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-code-tag,
+html[data-theme="dark"] .sb-rates-page .sb-badge-count {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-btn-ghost,
+html[data-theme="dark"] .sb-rates-page .sb-btn-edit,
+html[data-theme="dark"] .sb-rates-page .sb-page-btn:not(.active) {
+  background: #141f33 !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-input-field {
+  color-scheme: dark;
+  background-color: #0b1220 !important;
+  color: #f1f5f9 !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+html[data-theme="dark"] .sb-rates-page .sb-input-field::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+html[data-theme="dark"] .sb-rates-page select.sb-input-field option {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
 }
 
 /* ==========================================================================

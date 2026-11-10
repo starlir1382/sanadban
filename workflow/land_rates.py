@@ -56,13 +56,37 @@ def normalize_project(p: Any) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+_PROJ_STOPWORDS = frozenset({
+    "شرکت", "تعاونی", "مسکن", "مهندسی", "سازمان", "گروه",
+    "بین", "المللی", "بینالمللی", "ساختمانی", "کارکنان", "ع", "و", "راه",
+})
+
+
+def _project_tokens(p: Any) -> frozenset:
+    """Extracts normalized meaningful tokens from a project name for resilient matching."""
+    if not p:
+        return frozenset()
+    s = str(p).translate(_DIGITS).replace("ي", "ی").replace("ك", "ک").replace("\u200c", " ")
+    s = re.sub(r"قطعه\s*\d+", " ", s)
+    s = re.sub(r"[^\w\s]", " ", s)
+    tokens = set()
+    for raw in s.split():
+        tok = raw.strip("_")
+        if not tok or tok in _PROJ_STOPWORDS:
+            continue
+        if len(tok) >= 3 and tok.endswith("ی") and tok[-2] in ("ا", "و"):
+            tok = tok[:-1]
+        tokens.add(tok)
+    return frozenset(tokens)
+
+
 def clean_project_fuzzy(p: Any) -> str:
     """Strips corporate prefixes to match projects across different naming styles."""
     if not p:
         return ""
     s = str(p).translate(_DIGITS).replace("ي", "ی").replace("ك", "ک").replace("\u200c", " ")
     s = re.sub(r"قطعه\s*\d+", "", s)
-    s = re.sub(r"(شرکت|تعاونی|مسکن|راه\s*و\s*ساختمانی|سازمان|گروه|بین\s*المللی|سپاه|امام|علی\s*ابن\s*ابیطالب|\(ع\)|\bع\b)", "", s)
+    s = re.sub(r"(شرکت|تعاونی|مسکن|مهندسی|راه\s*و\s*ساختمانی|سازمان|گروه|بین\s*المللی|کارکنان|\(ع\)|\bع\b)", "", s)
     s = re.sub(r"\s+", "", s)
     return s.strip()
 
@@ -110,6 +134,14 @@ def _rial(value: Decimal) -> int:
     return int(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
+def _fmt_coeff(value: Any) -> str:
+    d = _dec(value)
+    s = f"{d:f}"
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s or "0"
+
+
 def compute_land_values(net: Any, storage: Any, parking: Any, rate: Any) -> Dict[str, Any]:
     """Pure calculation. `rate` needs the five LandRate numeric attributes."""
     area = _dec(net) + _dec(storage) + _dec(parking)
@@ -124,6 +156,26 @@ def compute_land_values(net: Any, storage: Any, parking: Any, rate: Any) -> Dict
     }
 
 
+def serialize_rate_breakdown(rate: Any) -> Optional[Dict[str, Any]]:
+    """Serialize matched LandRate coefficients and per-m2 rates for transparent UI display."""
+    if rate is None:
+        return None
+    share_land = _dec(getattr(rate, "share_land", 0))
+    share_common = _dec(getattr(rate, "share_common", 0))
+    return {
+        "renovation_code": getattr(rate, "renovation_code", "") or "",
+        "project_name": getattr(rate, "project_name", "") or "",
+        "block_name": getattr(rate, "block_name", "") or "",
+        "plot_number": getattr(rate, "plot_number", "") or "",
+        "share_land": _fmt_coeff(share_land),
+        "share_common": _fmt_coeff(share_common),
+        "share_coefficient": _fmt_coeff(share_land + share_common),
+        "rent_current_per_m2": _rial(_dec(getattr(rate, "rent_current_per_m2", 0))),
+        "rent_to_date_per_m2": _rial(_dec(getattr(rate, "rent_to_date_per_m2", 0))),
+        "prep_per_m2": _rial(_dec(getattr(rate, "prep_per_m2", 0))),
+    }
+
+
 # ---- Rate lookup (cached for 60s, supports code OR project+block OR project+plot) ----------
 _CACHE: Dict[str, Any] = {
     "at": 0.0,
@@ -132,7 +184,10 @@ _CACHE: Dict[str, Any] = {
     "by_proj_blk": {},
     "by_clean_proj_blk": {},
     "by_proj_plot": {},
+    "by_block_fuzzy": {},
+    "by_plot_fuzzy": {},
     "all_rates": [],
+    "memo": {},
 }
 _TTL = 60
 
@@ -144,7 +199,10 @@ def reset_cache():
     _CACHE["by_proj_blk"] = {}
     _CACHE["by_clean_proj_blk"] = {}
     _CACHE["by_proj_plot"] = {}
+    _CACHE["by_block_fuzzy"] = {}
+    _CACHE["by_plot_fuzzy"] = {}
     _CACHE["all_rates"] = []
+    _CACHE["memo"] = {}
 
 
 def _ensure_cache():
@@ -155,6 +213,8 @@ def _ensure_cache():
         by_proj_blk = {}
         by_clean_proj_blk = {}
         by_proj_plot = {}
+        by_block_fuzzy: Dict[str, List[Tuple[Any, str, frozenset]]] = {}
+        by_plot_fuzzy: Dict[str, List[Tuple[Any, str, frozenset]]] = {}
         all_rates = []
 
         for r in LandRate.objects.all():
@@ -168,6 +228,7 @@ def _ensure_cache():
 
             p_norm = normalize_project(r.project_name)
             clean_p = clean_project_fuzzy(r.project_name)
+            p_tokens = _project_tokens(r.project_name)
             plot_norm = normalize_plot(r.plot_number)
             blk_norm = normalize_block(r.block_name)
             clean_b = clean_block_fuzzy(r.block_name)
@@ -190,13 +251,65 @@ def _ensure_cache():
             if clean_p and plot_norm and (clean_p, plot_norm) not in by_proj_plot:
                 by_proj_plot[(clean_p, plot_norm)] = r
 
+            if clean_p or p_tokens:
+                entry = (r, clean_p, p_tokens)
+                if clean_b:
+                    by_block_fuzzy.setdefault(clean_b, []).append(entry)
+                if blk_norm and blk_norm != clean_b:
+                    by_block_fuzzy.setdefault(blk_norm, []).append(entry)
+                if plot_norm:
+                    by_plot_fuzzy.setdefault(plot_norm, []).append(entry)
+
         _CACHE["by_code"] = by_code
         _CACHE["by_proj_plot_blk"] = by_proj_plot_blk
         _CACHE["by_proj_blk"] = by_proj_blk
         _CACHE["by_clean_proj_blk"] = by_clean_proj_blk
         _CACHE["by_proj_plot"] = by_proj_plot
+        _CACHE["by_block_fuzzy"] = by_block_fuzzy
+        _CACHE["by_plot_fuzzy"] = by_plot_fuzzy
         _CACHE["all_rates"] = all_rates
+        _CACHE["memo"] = {}
         _CACHE["at"] = time.time()
+
+
+def _project_match_score(
+    clean_p: str,
+    r_clean_p: str,
+    p_tokens: frozenset = frozenset(),
+    r_tokens: frozenset = frozenset(),
+) -> int:
+    """Scores fuzzy project similarity (>0 = match) while preventing cross-phase mismatches."""
+    if not ((clean_p and r_clean_p) or (p_tokens and r_tokens)):
+        return 0
+    p_nums = {t for t in p_tokens if t.isdigit()}
+    r_nums = {t for t in r_tokens if t.isdigit()}
+    if p_nums and r_nums and not (p_nums <= r_nums or r_nums <= p_nums):
+        return 0
+    if clean_p and r_clean_p and (r_clean_p in clean_p or clean_p in r_clean_p):
+        return 100 + min(len(r_clean_p), len(clean_p))
+    if p_tokens and r_tokens and (r_tokens <= p_tokens or p_tokens <= r_tokens):
+        return 80 + len(r_tokens & p_tokens)
+    if clean_p and r_clean_p and len(clean_p) >= 4 and len(r_clean_p) >= 4 and clean_p[:4] == r_clean_p[:4]:
+        return 50
+    shared = len(r_tokens & p_tokens) if (p_tokens and r_tokens) else 0
+    if shared >= 2:
+        return 40 + shared
+    return 0
+
+
+def _project_fuzzy_matches(clean_p: str, r_clean_p: str) -> bool:
+    return _project_match_score(clean_p, r_clean_p) > 0
+
+
+def _pick_best_fuzzy_candidate(candidates, clean_p: str, p_tokens: frozenset):
+    best_rate = None
+    best_score = 0
+    for r, r_clean_p, r_tokens in candidates:
+        sc = _project_match_score(clean_p, r_clean_p, p_tokens, r_tokens)
+        if sc > best_score:
+            best_score = sc
+            best_rate = r
+    return best_rate
 
 
 def get_rate(
@@ -215,6 +328,23 @@ def get_rate(
     """
     _ensure_cache()
 
+    memo_key = (code or "", project or "", plot or "", block or "")
+    memo = _CACHE["memo"]
+    if memo_key in memo:
+        return memo[memo_key]
+
+    result = _get_rate_uncached(code=code, project=project, plot=plot, block=block)
+    if len(memo) < 20000:
+        memo[memo_key] = result
+    return result
+
+
+def _get_rate_uncached(
+    code: Any = None,
+    project: Any = None,
+    plot: Any = None,
+    block: Any = None
+):
     # 1. Match by renovation_code
     if code:
         norm_c = normalize_code(code)
@@ -236,6 +366,7 @@ def get_rate(
 
     p_norm = normalize_project(p_str)
     clean_p = clean_project_fuzzy(p_str)
+    p_tokens = _project_tokens(p_str)
     plot_norm = normalize_plot(plot_str)
     blk_norm = normalize_block(blk_str)
     clean_b = clean_block_fuzzy(blk_str)
@@ -247,8 +378,18 @@ def get_rate(
                 if (kp, plot_norm, kb) in _CACHE["by_proj_plot_blk"]:
                     return _CACHE["by_proj_plot_blk"][(kp, plot_norm, kb)]
 
+        # 2b. Fuzzy project matching restricted to exact plot + block before falling back to block-only
+        target_b = clean_b or blk_norm
+        plot_blk_candidates = [
+            entry for entry in _CACHE["by_plot_fuzzy"].get(plot_norm, ())
+            if clean_block_fuzzy(entry[0].block_name) == target_b or normalize_block(entry[0].block_name) == blk_norm
+        ]
+        matched_rate = _pick_best_fuzzy_candidate(plot_blk_candidates, clean_p, p_tokens)
+        if matched_rate:
+            return matched_rate
+
     # 3. Match by (project, block) -> GUESS WITH ONLY PROJECT AND BLOCK CODE
-    if (p_norm or clean_p) and (blk_norm or clean_b):
+    if (p_norm or clean_p or p_tokens) and (blk_norm or clean_b):
         if (p_norm, blk_norm) in _CACHE["by_proj_blk"]:
             return _CACHE["by_proj_blk"][(p_norm, blk_norm)]
         if (clean_p, clean_b) in _CACHE["by_clean_proj_blk"]:
@@ -258,14 +399,11 @@ def get_rate(
         if (p_norm, clean_b) in _CACHE["by_proj_blk"]:
             return _CACHE["by_proj_blk"][(p_norm, clean_b)]
 
-        # Fuzzy project matching for this block
+        # Fuzzy project matching for this block using scored lookup
         target_b = clean_b or blk_norm
-        for r in _CACHE["all_rates"]:
-            r_clean_b = clean_block_fuzzy(r.block_name)
-            if r_clean_b == target_b or normalize_block(r.block_name) == target_b:
-                r_clean_p = clean_project_fuzzy(r.project_name)
-                if r_clean_p and (r_clean_p in clean_p or clean_p in r_clean_p or (len(clean_p) >= 4 and len(r_clean_p) >= 4 and clean_p[:4] == r_clean_p[:4])):
-                    return r
+        matched_rate = _pick_best_fuzzy_candidate(_CACHE["by_block_fuzzy"].get(target_b, ()), clean_p, p_tokens)
+        if matched_rate:
+            return matched_rate
 
     # 4. Fallback: Check if block has embedded plot e.g. HH180 -> blk HH, plot 180
     if not plot_norm and clean_b:
@@ -284,17 +422,15 @@ def get_rate(
         plot_norm = clean_b
 
     # 5. Match by (project, plot)
-    if (p_norm or clean_p) and plot_norm:
+    if (p_norm or clean_p or p_tokens) and plot_norm:
         if (p_norm, plot_norm) in _CACHE["by_proj_plot"]:
             return _CACHE["by_proj_plot"][(p_norm, plot_norm)]
         if (clean_p, plot_norm) in _CACHE["by_proj_plot"]:
             return _CACHE["by_proj_plot"][(clean_p, plot_norm)]
 
-        for r in _CACHE["all_rates"]:
-            if normalize_plot(r.plot_number) == plot_norm:
-                r_clean_p = clean_project_fuzzy(r.project_name)
-                if r_clean_p and (r_clean_p in clean_p or clean_p in r_clean_p or (len(clean_p) >= 4 and len(r_clean_p) >= 4 and clean_p[:4] == r_clean_p[:4])):
-                    return r
+        matched_rate = _pick_best_fuzzy_candidate(_CACHE["by_plot_fuzzy"].get(plot_norm, ()), clean_p, p_tokens)
+        if matched_rate:
+            return matched_rate
 
     return None
 

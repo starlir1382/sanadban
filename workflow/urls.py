@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     # Dashboard & Dossier Management
     path("", views.dossier_list_view, name="dossier_list"),
+    path("signed-history/", views.signed_dossiers_list_view, name="signed_dossiers_list"),
     path("dossier/<int:pk>/", views.dossier_detail_view, name="dossier_detail"),
     path("dossier/<int:pk>/save/", views.save_dossier_draft_view, name="dossier_save"),
     path("dossier/<int:pk>/set-stage/", views.set_dossier_stage_view, name="dossier_set_stage"),

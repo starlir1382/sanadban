@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load persian_tags %}
+
+{% block title %}سوابق پرونده‌های امضا شده | سامانه مسکن یار{% endblock %}
+
+{% block content %}
+<!-- Scripts for Fast Full-Database AJAX Search -->
+<script>
+  let searchDebounceTimer = null;
+  const searchForm = document.getElementById('dossier-search-form');
+  const searchInput = document.getElementById('table-search-input');
+
+  if (searchForm) {
+    searchForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      triggerAjaxSearch(searchInput.value.trim());
+    });
+  }
+
+  function filterDossierTable(val) {
+    const clearBtn = document.getElementById('clear-search-btn');
+    if (clearBtn) {
+      clearBtn.style.display = val && val.trim().length > 0 ? 'block' : 'none';
+    }
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      triggerAjaxSearch(val.trim());
+    }, 350);
+  }
+
+  async function triggerAjaxSearch(term) {
+    const tbody = document.getElementById('dossier-table-body');
+    const countBadge = document.getElementById('search-result-count');
+    const counterText = document.getElementById('search-counter-text');
+    const signerInput = document.getElementById('signer-select');
+    const signerVal = signerInput ? signerInput.value : '{{ signer_filter|default:"" }}';
+    const sortVal = document.getElementById('sort-select')?.value || '{{ current_sort|default:"date_desc" }}';
+
+    if (counterText) {
+      counterText.innerText = 'در حال جستجو در سوابق امضاها...';
+    }
+
+    try {
+      let url = `{% url "signed_dossiers_list" %}?q=${encodeURIComponent(term)}&sort=${encodeURIComponent(sortVal)}&ajax=1`;
+      if (signerVal) {
+        url += `&signer=${encodeURIComponent(signerVal)}`;
+      }
+      const resp = await fetch(url);
+      const res = await resp.json();
+
+      if (res.status === 'success') {
+        tbody.innerHTML = res.html;
+        if (countBadge) {
+          countBadge.innerText = res.count.toLocaleString('fa-IR') + ' پرونده امضا شده';
+        }
+        if (counterText) {
+          counterText.innerText = term ? `یافت‌شده: ${res.count.toLocaleString('fa-IR')} پرونده` : `تعداد پرونده‌های امضا شده: ${res.count.toLocaleString('fa-IR')} پرونده`;
+        }
+
+        const newUrl = `{% url "signed_dossiers_list" %}?q=${encodeURIComponent(term)}&sort=${encodeURIComponent(sortVal)}${signerVal ? '&signer=' + encodeURIComponent(signerVal) : ''}`;
+        window.history.replaceState({}, '', newUrl);
+      }
+    } catch (e) {
+      console.error('AJAX search failed:', e);
+    }
+  }
+
+  function clearSearchInput() {
+    const inp = document.getElementById('table-search-input');
+    if (inp) {
+      inp.value = '';
+      filterDossierTable('');
+    }
+  }
+</script>
+
+{% include 'dossiers/partials/list_styles.html' %}
+
+<style>
+  .dl-remark-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+    border: 1.5px solid #93c5fd;
+    border-radius: var(--radius, 16px);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.1rem;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.06);
+  }
+  .dl-remark-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #2563eb;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.28);
+  }
+  .dl-remark-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1e3a8a;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.35rem;
+  }
+  .dl-remark-badge {
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+  }
+  .dl-remark-text {
+    font-size: 0.86rem;
+    color: #334155;
+    line-height: 1.7;
+    margin: 0;
+  }
+  .dl-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .dl-stat-box {
+    background: var(--c-card, #ffffff);
+    border: 1px solid var(--c-line, #e2e8f0);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--shadow, 0 1px 3px rgba(0,0,0,0.05));
+  }
+  .dl-stat-ic {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .dl-stat-num {
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1.2;
+    color: #0f172a;
+  }
+  .dl-stat-lbl {
+    font-size: 0.78rem;
+    color: #64748b;
+    font-weight: 700;
+  }
+</style>
+
+<div class="dl">
+
+  <!-- ===================== TOP NAVIGATION TABS ===================== -->
+  <div class="dl-tabs-nav" style="margin-bottom: 1rem;">
+    <div class="dl-tabs-group">
+      <a href="{% url 'dossier_list' %}" class="dl-tab-item" style="text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>کارپوشه پرونده‌های جاری</span>
+      </a>
+
+      <button type="button" class="dl-tab-item active" style="cursor: default;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="9 15 11 17 15 13"></polyline></svg>
+        <span>سوابق پرونده‌های امضا شده</span>
+        <span class="dl-tab-badge fa-num" style="background: #2563eb; color: #fff;">{{ total_signed_count }}</span>
+      </button>
+    </div>
+
+    <div class="dl-tabs-actions">
+      <a href="{% url 'signed_dossiers_list' %}" class="dl-btn ghost" title="تازه‌سازی سوابق">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span>تازه‌سازی</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ===================== REMARK BANNER ===================== -->
+  <div class="dl-remark-card">
+    <div class="dl-remark-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+    </div>
+    <div style="flex: 1;">
+      <div class="dl-remark-title">
+        <span>سیاهه و بایگانی پرونده‌های امضا شده (حالت اختصاصی فقط مشاهده)</span>
+        <span class="dl-remark-badge">
+          {% if is_full_admin %}مشاهده کلیه امضاهای سامانه{% else %}پرونده‌های امضا شده توسط شما{% endif %}
+        </span>
+      </div>
+      <p class="dl-remark-text">
+        این صفحه به عنوان کارپوشه اختصاصی اسناد امضا شده جهت پیگیری سیر پرونده‌ها و استخراج گزارش‌ها در دسترس شما قرار دارد.
+        <strong>تمامی پرونده‌های این بخش به صورت «فقط خواندنی» (Read-Only) باز می‌شوند</strong> و امکان هرگونه ویرایش، بارگذاری مدرک جدید یا حذف به طور کامل مسدود می‌باشد.
+      </p>
+    </div>
+    <div style="align-self: center;">
+      <a href="{% url 'dossier_list' %}" class="dl-hbtn" style="background: #ffffff; border-color: #93c5fd; color: #1d4ed8; font-size: 0.82rem; font-weight: 700; white-space: nowrap;">
+        <span>بازگشت به کارتابل جاری</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- ===================== QUICK STATS ===================== -->
+  <div class="dl-stats-grid fa-num">
+    <div class="dl-stat-box">
+      <div class="dl-stat-ic" style="background: #eff6ff; color: #2563eb;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      </div>
+      <div>
+        <div class="dl-stat-num">{{ total_signed_count }}</div>
+        <div class="dl-stat-lbl">کل پرونده‌های امضا شده</div>
+      </div>
+    </div>
+
+    <div class="dl-stat-box">
+      <div class="dl-stat-ic" style="background: #ecfdf5; color: #059669;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      </div>
+      <div>
+        <div class="dl-stat-num">{{ completed_count }}</div>
+        <div class="dl-stat-lbl">پرونده‌های مختومه و نهایی</div>
+      </div>
+    </div>
+
+    <div class="dl-stat-box">
+      <div class="dl-stat-ic" style="background: #fffbeb; color: #d97706;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+      <div>
+        <div class="dl-stat-num">{{ in_progress_count }}</div>
+        <div class="dl-stat-lbl">پرونده‌های در جریان مراحل بعد</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SEARCH & FILTER BAR ===================== -->
+  <style>
+    /* Scoped Day-Mode / Contrast Safe Controls for Signed History */
+    .dl-search-card {
+      color-scheme: light;
+    }
+    .dl-signed-filter-input,
+    .dl-signed-filter-select {
+      width: 100%;
+      height: 42px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      font-size: 0.86rem;
+      outline: none;
+      color-scheme: light;
+      background-color: #ffffff;
+      color: #0f172a;
+      -webkit-text-fill-color: #0f172a;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .dl-signed-filter-input {
+      padding: 0.45rem 2.5rem 0.45rem 2.2rem;
+      font-size: 0.88rem;
+    }
+    .dl-signed-filter-select {
+      padding: 0.45rem 0.85rem;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+    .dl-signed-filter-input::placeholder {
+      color: #94a3b8;
+      -webkit-text-fill-color: #94a3b8;
+      opacity: 1;
+    }
+    .dl-signed-filter-input:-webkit-autofill,
+    .dl-signed-filter-input:-webkit-autofill:hover,
+    .dl-signed-filter-input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+      -webkit-text-fill-color: #0f172a;
+      caret-color: #0f172a;
+    }
+    .dl-signed-filter-select option {
+      background-color: #ffffff;
+      color: #0f172a;
+    }
+    .dl-signed-filter-input:focus,
+    .dl-signed-filter-select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .dl-signed-table thead th:first-child,
+    .dl-signed-table tbody td:first-child {
+      padding-inline: 0.85rem;
+    }
+    .dl-sig-date {
+      color: #059669;
+      font-weight: 800;
+      font-size: 0.84rem;
+    }
+    .dl-sig-time-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+  </style>
+
+  <div class="dl-card dl-search-card" style="margin-bottom: 1rem; padding: 1.1rem 1.4rem;">
+    <form id="dossier-search-form" method="GET" action="{% url 'signed_dossiers_list' %}" style="display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;">
+      
+      <!-- Live Search Box -->
+      <div style="position: relative; flex: 1; min-width: 260px;">
+        <svg style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text"
+               id="table-search-input"
+               name="q"
+               value="{{ query }}"
+               placeholder="جستجوی سریع با کدملی، شماره پرونده، نام متقاضی یا پروژه..."
+               oninput="filterDossierTable(this.value)"
+               class="dl-signed-filter-input"
+               autocomplete="off">
+        <button type="button"
+                id="clear-search-btn"
+                onclick="clearSearchInput()"
+                style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.1rem; display: {% if query %}block{% else %}none{% endif %};"
+                title="پاکسازی جستجو">✕</button>
+      </div>
+
+      {% if is_full_admin and all_signers %}
+      <!-- Signer Filter Dropdown (Admin only) -->
+      <div style="min-width: 200px;">
+        <select id="signer-select" name="signer" onchange="this.form.submit()" class="dl-signed-filter-select">
+          <option value="">همه کاربران امضاکننده</option>
+          {% for s in all_signers %}
+            <option value="{{ s }}" {% if signer_filter == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Sort Dropdown -->
+      <div style="min-width: 210px;">
+        <select id="sort-select" name="sort" onchange="this.form.submit()" class="dl-signed-filter-select">
+          <option value="date_desc" {% if current_sort == 'date_desc' or current_sort == 'signed_desc' %}selected{% endif %}>زمان امضا (جدیدتر به قدیمی‌تر)</option>
+          <option value="date_asc" {% if current_sort == 'date_asc' or current_sort == 'signed_asc' %}selected{% endif %}>زمان امضا (قدیمی‌تر به جدیدتر)</option>
+          <option value="archive_asc" {% if current_sort == 'archive_asc' %}selected{% endif %}>شماره بایگانی (صعودی)</option>
+          <option value="archive_desc" {% if current_sort == 'archive_desc' %}selected{% endif %}>شماره بایگانی (نزولی)</option>
+          <option value="stage_asc" {% if current_sort == 'stage_asc' %}selected{% endif %}>مرحله فعلی (صعودی)</option>
+          <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>نام خانوادگی متقاضی</option>
+        </select>
+      </div>
+
+      <button type="submit" class="dl-btn primary" style="height: 42px; padding: 0 1.25rem;">
+        <span>اعمال فیلتر</span>
+      </button>
+
+      {% if query or signer_filter %}
+      <a href="{% url 'signed_dossiers_list' %}" class="dl-btn ghost" style="height: 42px;">حذف فیلترها</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- ===================== DOSSIERS TABLE ===================== -->
+  <div class="dl-card dl-table-card">
+    <div class="dl-table-head">
+      <div class="dl-table-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="9 15 11 17 15 13"></polyline></svg>
+        <span>سیاهه پرونده‌های دارای امضا</span>
+      </div>
+      <div class="dl-table-meta fa-num">
+        {% if signer_filter %}<span class="dl-badge-filter">امضاکننده: {{ signer_filter }}</span>{% endif %}
+        <span id="search-result-count" class="dl-badge-count">{{ dossiers.count }} پرونده امضا شده</span>
+      </div>
+    </div>
+
+    <div class="dl-scroll">
+      <table class="dl-table dl-signed-table">
+        <colgroup>
+          <col style="width: 120px;">   <!-- archive number -->
+          <col style="width: 26%;">     <!-- applicant -->
+          <col style="width: 24%;">     <!-- project and site -->
+          <col style="width: 25%;">     <!-- stage -->
+          <col style="width: 190px;">   <!-- user signature date/time -->
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="t-center">شماره بایگانی</th>
+            <th>متقاضی</th>
+            <th>پروژه و سایت</th>
+            <th class="t-center">مرحله فعلی در گردش کار</th>
+            <th class="t-center">تاریخ امضا توسط شما</th>
+          </tr>
+        </thead>
+        <tbody id="dossier-table-body">
+          {% include 'dossiers/partials/signed_table_rows.html' %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if paginator.num_pages > 1 %}
+    <div class="dl-pager">
+      <div class="dl-pager-info fa-num">
+        نمایش ردیف‌های <strong>{{ page_obj.start_index }}</strong> تا <strong>{{ page_obj.end_index }}</strong> از مجموع <strong>{{ paginator.count }}</strong> پرونده امضا شده
+      </div>
+
+      <div class="dl-pager-nav fa-num">
+        {% if page_obj.has_previous %}
+        <a class="dl-pg" title="صفحه اول" href="?page=1{% if query %}&q={{ query|urlencode }}{% endif %}{% if signer_filter %}&signer={{ signer_filter|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">« اول</a>
+        <a class="dl-pg" title="صفحه قبل" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if signer_filter %}&signer={{ signer_filter|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">قبلی</a>
+        {% endif %}
+
+        {% for p in elided_page_range %}
+          {% if p == paginator.ELLIPSIS %}
+            <span class="dl-pg gap">…</span>
+          {% elif p == page_obj.number %}
+            <span class="dl-pg current">{{ p }}</span>
+          {% else %}
+            <a class="dl-pg" href="?page={{ p }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if signer_filter %}&signer={{ signer_filter|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a class="dl-pg" title="صفحه بعد" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if signer_filter %}&signer={{ signer_filter|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">بعدی</a>
+        <a class="dl-pg" title="صفحه آخر" href="?page={{ paginator.num_pages }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if signer_filter %}&signer={{ signer_filter|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">آخر »</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

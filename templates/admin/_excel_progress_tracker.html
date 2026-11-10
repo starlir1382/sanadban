@@ -1,0 +1,142 @@
+<!-- Progress Tracker (shared across Excel Hub tabs) -->
+<template x-if="isProcessing && activeTab === '{{ tab_key }}'">
+    <div class="sb-progress-wrap" :class="{ 'server-mode': isServerProcessing }">
+        <div class="sb-progress-header">
+            <div class="sb-progress-title-area">
+                <template x-if="isServerProcessing">
+                    <span class="sb-spin-ring"></span>
+                </template>
+                <template x-if="!isServerProcessing">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </template>
+                <div>
+                    <div class="sb-progress-title" x-text="isUploading ? 'در حال ارسال فایل به سرور...' : (serverMessage || 'در حال پردازش داده‌ها در سرور...')"></div>
+                    <template x-if="isServerProcessing && serverDetails">
+                        <div class="sb-progress-sub-details" x-text="serverDetails"></div>
+                    </template>
+                </div>
+            </div>
+            <div class="sb-progress-stat-pill">
+                <template x-if="isUploading">
+                    <span class="fa-num" x-text="formatNumber(uploadProgress) + '%'"></span>
+                </template>
+                <template x-if="isServerProcessing">
+                    <span class="fa-num" x-text="(serverProgress > 0 ? formatNumber(serverProgress) : '...') + '%'"></span>
+                </template>
+            </div>
+        </div>
+
+        <div class="sb-progress-bar-bg" :class="{ 'animated-shimmer': isServerProcessing }">
+            <div class="sb-progress-bar-fill"
+                 :class="{ 'pulse-mode': isServerProcessing }"
+                 :style="'width: ' + (isUploading ? uploadProgress : (serverProgress > 5 ? serverProgress : 20)) + '%'">
+            </div>
+        </div>
+
+        <div class="sb-progress-meta fa-num">
+            <template x-if="isUploading">
+                <div style="display:flex; justify-content:space-between; width:100%;">
+                    <span x-text="uploadedSize"></span>
+                    <span x-text="uploadSpeed"></span>
+                    <span x-text="uploadEta"></span>
+                </div>
+            </template>
+            <template x-if="isServerProcessing">
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                    <span class="sb-elapsed-timer">
+                        <span class="sb-pulse-dot"></span>
+                        <span>زمان سپری‌شده: <strong x-text="formatElapsed(elapsedSeconds)"></strong></span>
+                    </span>
+                    <span class="sb-processing-hint">در حال اجرای پردازش امن در پس‌زمینه</span>
+                </div>
+            </template>
+        </div>
+
+        <template x-if="isServerProcessing">
+            <div class="sb-progress-stepper">
+                <div class="sb-step-item" :class="{ 'done': serverStep > 1, 'active': serverStep === 1 }">
+                    <div class="sb-step-circle">
+                        <template x-if="serverStep > 1"><span>✔</span></template>
+                        <template x-if="serverStep <= 1"><span class="fa-num">۱</span></template>
+                    </div>
+                    <div class="sb-step-label">ارسال فایل</div>
+                </div>
+                <div class="sb-step-line" :class="{ 'done': serverStep > 1 }"></div>
+
+                <div class="sb-step-item" :class="{ 'done': serverStep > 2, 'active': serverStep === 2 }">
+                    <div class="sb-step-circle">
+                        <template x-if="serverStep > 2"><span>✔</span></template>
+                        <template x-if="serverStep <= 2"><span class="fa-num">۲</span></template>
+                    </div>
+                    <div class="sb-step-label">خواندن اکسل</div>
+                </div>
+                <div class="sb-step-line" :class="{ 'done': serverStep > 2 }"></div>
+
+                <div class="sb-step-item" :class="{ 'done': serverStep > 3, 'active': serverStep === 3 }">
+                    <div class="sb-step-circle">
+                        <template x-if="serverStep > 3"><span>✔</span></template>
+                        <template x-if="serverStep <= 3"><span class="fa-num">۳</span></template>
+                    </div>
+                    <div class="sb-step-label">استعلام دیتابیس</div>
+                </div>
+                <div class="sb-step-line" :class="{ 'done': serverStep > 3 }"></div>
+
+                <div class="sb-step-item" :class="{ 'done': serverStep > 4, 'active': serverStep === 4 }">
+                    <div class="sb-step-circle">
+                        <template x-if="serverStep > 4"><span>✔</span></template>
+                        <template x-if="serverStep <= 4"><span class="fa-num">۴</span></template>
+                    </div>
+                    <div class="sb-step-label">ارزیابی و مقایسه</div>
+                </div>
+                <div class="sb-step-line" :class="{ 'done': serverStep > 4 }"></div>
+
+                <div class="sb-step-item" :class="{ 'done': serverStep >= 5 && serverProgress >= 100, 'active': serverStep === 5 && serverProgress < 100 }">
+                    <div class="sb-step-circle">
+                        <template x-if="serverStep >= 5 && serverProgress >= 100"><span>✔</span></template>
+                        <template x-if="!(serverStep >= 5 && serverProgress >= 100)"><span class="fa-num">۵</span></template>
+                    </div>
+                    <div class="sb-step-label">ثبت نهایی / گزارش</div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Sub-Stage Live Progress Bar (highlights Step 5 DB writes & report generation) -->
+        <template x-if="isServerProcessing && (subProgress !== null || subCurrent > 0 || serverStep >= 5)">
+            <div class="sb-subprogress-card fa-num" :class="{ 'finalizing-mode': serverStep >= 5 }">
+                <div class="sb-subprogress-head">
+                    <div class="sb-subprogress-label-wrap">
+                        <span class="sb-subprogress-dot" :class="{ 'emerald': serverStep >= 5 }"></span>
+                        <span class="sb-subprogress-label" x-text="subLabel || (serverStep >= 5 ? 'ثبت نهایی تغییرات در دیتابیس و تولید گزارش اکسل' : 'پیشرفت زیرمرحله جاری')"></span>
+                    </div>
+                    <div class="sb-subprogress-stats">
+                        <template x-if="subTotal > 0">
+                            <span class="sb-subprogress-count" x-text="formatNumber(subCurrent) + ' از ' + formatNumber(subTotal)"></span>
+                        </template>
+                        <template x-if="subTotal <= 0 && subCurrent > 0">
+                            <span class="sb-subprogress-count" x-text="formatNumber(subCurrent) + ' ردیف'"></span>
+                        </template>
+                        <template x-if="subProgress !== null">
+                            <span class="sb-subprogress-pct" x-text="formatNumber(subProgress) + '٪'"></span>
+                        </template>
+                        <template x-if="subProgress === null">
+                            <span class="sb-subprogress-pct indeterminate">در حال اجرا...</span>
+                        </template>
+                    </div>
+                </div>
+                <div class="sb-subprogress-track">
+                    <div class="sb-subprogress-fill"
+                         :class="{ 'indeterminate': subProgress === null, 'finalizing': serverStep >= 5 }"
+                         :style="subProgress !== null ? ('width: ' + subProgress + '%') : ''">
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="isServerProcessing && elapsedSeconds >= 10">
+            <div class="sb-heavy-file-hint">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>این فایل حاوی حجم بالایی از داده‌هاست؛ سامانه در حال اعتبارسنجی دقیق و مقایسه فرمول‌هاست. لطفاً پنجره را نبندید...</span>
+            </div>
+        </template>
+    </div>
+</template>

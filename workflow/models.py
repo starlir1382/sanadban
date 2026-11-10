@@ -57,7 +57,14 @@ def get_project_bank_mapping(project_name: str):
                     _PROJECT_BANK_CACHE[pbm.project_name.strip()] = pbm
         except Exception:
             _PROJECT_BANK_CACHE = {}
-    return _PROJECT_BANK_CACHE.get(str(project_name).strip())
+    cached = _PROJECT_BANK_CACHE.get(str(project_name).strip())
+    if cached is not None:
+        return cached
+    try:
+        from .project_catalog import get_catalog_project_mapping
+        return get_catalog_project_mapping(project_name)
+    except Exception:
+        return None
 
 class Site(models.Model):
 
@@ -156,6 +163,8 @@ class PreSelectedUnit(models.Model):
         choices=[("خودکار", "ثبت خودکار"), ("دستی", "ثبت دستی")],
         verbose_name="نحوه ثبت فرم ج (ثبت دستی یا خودکار)"
     )
+
+    computer_code = models.CharField(max_length=100, blank=True, default="", verbose_name="کد کامپیوتری")
 
     # Spouse fields (Crucial for Couples Scheme - طرح زوجین)
 
@@ -414,6 +423,8 @@ class HousingDossier(models.Model):
         verbose_name="نحوه ثبت فرم ج (ثبت دستی یا خودکار)"
     )
 
+    computer_code = models.CharField(max_length=100, blank=True, default="", verbose_name="کد کامپیوتری")
+
     
 
     # Specific Spouse Fields (Crucial for Couples Scheme - طرح زوجین)
@@ -599,6 +610,10 @@ class HousingDossier(models.Model):
     # 1. BankCheckTracker: Decile Loan Check Fields
 
     decile_loan_bank = models.CharField(max_length=50, blank=True, default="", verbose_name="بانک عامل تسهیلات دهک")
+
+    decile_bank_letter_number = models.CharField(max_length=100, blank=True, default="", verbose_name="شماره نامه بانک دهک")
+
+    decile_bank_letter_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ نامه بانک دهک (شمسی)")
 
     supported_institution = models.CharField(max_length=100, blank=True, default="", verbose_name="نهاد تحت حمایت")
 
@@ -833,6 +848,21 @@ class HousingDossier(models.Model):
                 if 'spouse_last_name' not in skip_set:
                     self.spouse_last_name = parts[1] if len(parts) > 1 else ""
 
+        # 3b. Auto-sync Form J official number (شماره رسمی فرم ج) & questionnaire number (شماره پرسش‌نامه فرم ج)
+        fn_set = 'form_j_number' in skip_set
+        fq_set = 'form_j_questionnaire_number' in skip_set
+        fn_val = (self.form_j_number or "").strip()
+        fq_val = (self.form_j_questionnaire_number or "").strip()
+        if fn_set and not fq_set:
+            self.form_j_questionnaire_number = fn_val
+        elif fq_set and not fn_set:
+            self.form_j_number = fq_val
+        elif not fn_set and not fq_set:
+            if fn_val and not fq_val:
+                self.form_j_questionnaire_number = fn_val
+            elif fq_val and not fn_val:
+                self.form_j_number = fq_val
+
         # 4. Calculate Applicant Equity: Base Cost - Total Applicable Loans
         if 'applicant_equity' not in skip_set:
             base_cost = self.base_cost_without_loan or 0
@@ -860,6 +890,25 @@ class HousingDossier(models.Model):
             self.national_id = normalize_national_id(self.national_id)
         if self.spouse_national_id:
             self.spouse_national_id = normalize_national_id(self.spouse_national_id)
+
+        fn_cur = (self.form_j_number or "").strip()
+        fq_cur = (self.form_j_questionnaire_number or "").strip()
+        if fn_cur != fq_cur and self.pk:
+            orig = (
+                HousingDossier.objects.filter(pk=self.pk)
+                .values_list("form_j_number", "form_j_questionnaire_number")
+                .first()
+            )
+            if orig:
+                old_fn, old_fq = (orig[0] or "").strip(), (orig[1] or "").strip()
+                if fn_cur != old_fn and fq_cur == old_fq:
+                    self.form_j_questionnaire_number = fn_cur
+                elif fq_cur != old_fq and fn_cur == old_fn:
+                    self.form_j_number = fq_cur
+                else:
+                    canonical = fn_cur or fq_cur
+                    self.form_j_number = canonical
+                    self.form_j_questionnaire_number = canonical
 
         self.recompute_derived_fields()
 
@@ -1264,6 +1313,7 @@ class WorkflowSignatureLog(models.Model):
         ("EXCEL_UPDATE", "بروزرسانی گروهی از طریق اکسل"),
         ("EXCEL_SWAP", "جابجایی با همسر از طریق اکسل"),
         ("SIGN_EXCEL", "امضای گروهی از طریق اکسل"),
+        ("BANK_LETTER", "نامه معرفی به بانک / بانک دهک"),
     ]
 
     dossier = models.ForeignKey(HousingDossier, on_delete=models.CASCADE, related_name="audit_logs")
@@ -1648,6 +1698,16 @@ class BankLetter(models.Model):
 
         dossiers: Any
 
+    LETTER_TYPES = [
+
+        ("bank", "نامه بانک (راه و شهرسازی به بانک عامل)"),
+
+        ("decile", "نامه بانک دهک (راه و شهرسازی به بانک دهک)"),
+
+    ]
+
+    letter_type = models.CharField(max_length=20, choices=LETTER_TYPES, default="bank", db_index=True, verbose_name="نوع نامه")
+
     letter_number = models.CharField(max_length=100, unique=True, verbose_name="شماره نامه رسمی بانک")
 
     letter_date = models.CharField(max_length=20, verbose_name="تاریخ نامه بانک (شمسی)")
@@ -1680,7 +1740,9 @@ class BankLetter(models.Model):
 
     def __str__(self):
 
-        return f"نامه {self.letter_number} مورخ {self.letter_date}"
+        prefix = "نامه بانک دهک" if self.letter_type == "decile" else "نامه"
+
+        return f"{prefix} {self.letter_number} مورخ {self.letter_date}"
 
 @receiver(post_save, sender=User)
 

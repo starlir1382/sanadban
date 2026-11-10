@@ -17,7 +17,7 @@ import hashlib
 import itertools
 import jdatetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
@@ -25,7 +25,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
 from django.conf import settings
-from django.db import transaction, IntegrityError, models
+from django.db import connection, transaction, IntegrityError, models
 from django.db.models import Case, When, Value, Q
 from django.http import HttpResponse, Http404, FileResponse
 from django.utils import timezone
@@ -63,25 +63,180 @@ def set_excel_task_progress(
     percent: int,
     message: str,
     details: str = "",
+    sub_percent: Optional[int] = None,
+    sub_label: str = "",
+    sub_current: Optional[int] = None,
+    sub_total: Optional[int] = None,
 ) -> None:
     """Store current processing progress in Django cache for frontend real-time tracking."""
     if not task_id:
         return
     try:
         from django.core.cache import cache
+        payload: Dict[str, Any] = {
+            "stage": stage,
+            "percent": int(percent),
+            "message": message,
+            "details": details,
+            "timestamp": time.time(),
+        }
+        if sub_percent is not None:
+            payload["sub_percent"] = max(0, min(100, int(sub_percent)))
+        if sub_label:
+            payload["sub_label"] = sub_label
+        if sub_current is not None:
+            payload["sub_current"] = int(sub_current)
+        if sub_total is not None:
+            payload["sub_total"] = int(sub_total)
         cache.set(
             f"excel_task_{task_id}",
-            {
-                "stage": stage,
-                "percent": int(percent),
-                "message": message,
-                "details": details,
-                "timestamp": time.time(),
-            },
+            payload,
             timeout=600,
         )
     except Exception:
         pass
+
+
+def _preload_dossiers_by_nids(
+    all_nids: Set[str],
+    progress_cb: Optional[Callable[[int, int], None]] = None,
+) -> Tuple[Dict[str, HousingDossier], Dict[str, List[HousingDossier]]]:
+    """
+    Loads matching HousingDossier rows for a set of national IDs (or variants).
+    For large batches (>1000 NIDs), scans (pk, national_id, spouse_national_id) once
+    to avoid repeated OR full-table scans on unindexed spouse_national_id.
+    """
+    app_matches: Dict[str, HousingDossier] = {}
+    spouse_matches: Dict[str, List[HousingDossier]] = {}
+    if not all_nids:
+        return app_matches, spouse_matches
+
+    loaded_pks: Set[int] = set()
+
+    def _register_dossier(d: HousingDossier) -> None:
+        if d.pk in loaded_pks:
+            return
+        loaded_pks.add(d.pk)
+        for v in get_national_id_variants(d.national_id):
+            app_matches[v] = d
+        if d.spouse_national_id and clean_digits(d.spouse_national_id).strip("0") != "":
+            for v in get_national_id_variants(d.spouse_national_id):
+                spouse_matches.setdefault(v, []).append(d)
+
+    if len(all_nids) > 1000:
+        matched_pks: List[int] = []
+        for pk, nid, snid in HousingDossier.objects.values_list("pk", "national_id", "spouse_national_id"):
+            if (nid and nid in all_nids) or (snid and snid in all_nids):
+                matched_pks.append(pk)
+        total = len(matched_pks)
+        if progress_cb and total == 0:
+            progress_cb(0, 0)
+        for i in range(0, total, CHUNK_QUERY_SIZE):
+            pk_chunk = matched_pks[i : i + CHUNK_QUERY_SIZE]
+            for d in HousingDossier.objects.filter(pk__in=pk_chunk):
+                _register_dossier(d)
+            if progress_cb:
+                progress_cb(min(total, i + len(pk_chunk)), total)
+    else:
+        all_nids_list = list(all_nids)
+        total = len(all_nids_list)
+        for i in range(0, total, CHUNK_QUERY_SIZE):
+            chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
+            for d in HousingDossier.objects.filter(Q(national_id__in=chunk) | Q(spouse_national_id__in=chunk)):
+                _register_dossier(d)
+            if progress_cb:
+                progress_cb(min(total, i + len(chunk)), total)
+
+    return app_matches, spouse_matches
+
+
+def _fast_bulk_update_dossiers(
+    dossiers: List[HousingDossier],
+    fields: List[str],
+    progress_cb: Optional[Callable[[int, int], None]] = None,
+    chunk_size: int = 500,
+) -> None:
+    """
+    Fast chunked bulk update for HousingDossier.
+    Uses parameterized executemany on SQLite (avoiding Django's slow Case/When SQL
+    compilation on large column sets) and falls back to chunked bulk_update elsewhere.
+    """
+    if not dossiers or not fields:
+        return
+
+    meta_fields = [
+        HousingDossier._meta.get_field(f)
+        for f in fields
+        if f != HousingDossier._meta.pk.name
+    ]
+    if not meta_fields:
+        return
+
+    total = len(dossiers)
+    if connection.vendor == "sqlite":
+        table = connection.ops.quote_name(HousingDossier._meta.db_table)
+        pk_col = connection.ops.quote_name(HousingDossier._meta.pk.column)
+        set_sql = ", ".join(
+            f"{connection.ops.quote_name(f.column)} = %s" for f in meta_fields
+        )
+        sql = f"UPDATE {table} SET {set_sql} WHERE {pk_col} = %s"
+
+        with connection.cursor() as cur:
+            for i in range(0, total, chunk_size):
+                chunk = dossiers[i : i + chunk_size]
+                params_list = [
+                    [f.get_db_prep_save(getattr(d, f.attname), connection) for f in meta_fields]
+                    + [d.pk]
+                    for d in chunk
+                ]
+                cur.executemany(sql, params_list)
+                if progress_cb:
+                    progress_cb(min(total, i + len(chunk)), total)
+    else:
+        field_names = [f.name for f in meta_fields]
+        safe_batch = max(10, min(200, 25000 // (2 * max(1, len(field_names)) + 1)))
+        for i in range(0, total, safe_batch):
+            chunk = dossiers[i : i + safe_batch]
+            HousingDossier.objects.bulk_update(chunk, fields=field_names)
+            if progress_cb:
+                progress_cb(min(total, i + len(chunk)), total)
+
+
+def _fast_bulk_insert_logs(
+    model_cls: Any,
+    objects: List[Any],
+    progress_cb: Optional[Callable[[int, int], None]] = None,
+    chunk_size: int = 2000,
+) -> None:
+    """
+    Fast chunked bulk insert for immutable log models (WorkflowSignatureLog, DossierFieldChangeLog).
+    """
+    if not objects:
+        return
+    total = len(objects)
+    if connection.vendor == "sqlite":
+        concrete_fields = [f for f in model_cls._meta.concrete_fields if not f.primary_key]
+        table = connection.ops.quote_name(model_cls._meta.db_table)
+        cols = ", ".join(connection.ops.quote_name(f.column) for f in concrete_fields)
+        placeholders = ", ".join(["%s"] * len(concrete_fields))
+        sql = f"INSERT INTO {table} ({cols}) VALUES ({placeholders})"
+
+        with connection.cursor() as cur:
+            for i in range(0, total, chunk_size):
+                chunk = objects[i : i + chunk_size]
+                params_list = [
+                    [f.get_db_prep_save(getattr(obj, f.attname), connection) for f in concrete_fields]
+                    for obj in chunk
+                ]
+                cur.executemany(sql, params_list)
+                if progress_cb:
+                    progress_cb(min(total, i + len(chunk)), total)
+    else:
+        for i in range(0, total, 1000):
+            chunk = objects[i : i + 1000]
+            model_cls.objects.bulk_create(chunk)
+            if progress_cb:
+                progress_cb(min(total, i + len(chunk)), total)
 
 # -------------------------------------------------------------------------
 # Single Import Header Spec (Headers -> Model Field, Type)
@@ -159,6 +314,7 @@ TEMPLATE_FIELD_SPECS = [
     # ======================= بخش ۳: استعلام رسمی و فرم «ج» متقاضی و همسر =======================
     ("نحوه ثبت فرم ج", "form_j_registration_type", "str"),
     ("شماره پرسشنامه فرم ج", "form_j_questionnaire_number", "str"),
+    ("کد کامپیوتری", "computer_code", "str"),
     ("وضعیت فرم ج متقاضی", "applicant_form_j_status", "str"),
     ("استعلام اداره کل متقاضی", "applicant_form_j_directorate_status", "str"),
     ("توضیحات فرم ج متقاضی", "applicant_form_j_red_description", "str"),
@@ -238,6 +394,9 @@ TEMPLATE_FIELD_SPECS = [
     ("شماره دفترخانه اسناد رسمی", "notary_office_number", "str"),
     ("شماره نامه معرفی به محضر", "notary_letter_number", "str"),
     ("تاریخ نامه معرفی به محضر (شمسی)", "notary_letter_date", "str"),
+    # ======================= نامه بانک دهک (انتهای قالب جهت حفظ ترتیب ستون‌ها) =======================
+    ("شماره نامه بانک دهک", "decile_bank_letter_number", "str"),
+    ("تاریخ نامه بانک دهک (شمسی)", "decile_bank_letter_date", "str"),
 ]
 
 # Aliases dictionary to tolerate historical file headers
@@ -481,6 +640,12 @@ HEADER_ALIASES: Dict[str, str] = {
     "شماره پرسشنامه فرم ج": "form_j_questionnaire_number",
     "شماره پرسش‌نامه فرم ج": "form_j_questionnaire_number",
     "شماره پرسش نامه فرم ج": "form_j_questionnaire_number",
+    "شماره رسمی فرم ج": "form_j_number",
+    "شماره رسمی فرم «ج»": "form_j_number",
+    "کد کامپیوتری": "computer_code",
+    "کد کامپیوتر": "computer_code",
+    "شماره کامپیوتری": "computer_code",
+    "شماره یا کد کامپیوتری": "computer_code",
     "تاییدیه دفترچه اقساط": "is_installment_booklet_confirmed",
     "دفترچه اقساط": "has_installment_booklet",
     "دفترچه اقساط (مدرک فیزیکی)": "has_installment_booklet",
@@ -561,6 +726,12 @@ HEADER_ALIASES: Dict[str, str] = {
     "شماره تعهدنامه": "commitment_number",
     "تاریخ تعهدنامه": "commitment_date",
     "تاریخ تعهدنامه (شمسی)": "commitment_date",
+    "شماره نامه بانک دهک": "decile_bank_letter_number",
+    "نامه بانک دهک": "decile_bank_letter_number",
+    "شماره نامه راه و شهرسازی به بانک دهک": "decile_bank_letter_number",
+    "تاریخ نامه بانک دهک": "decile_bank_letter_date",
+    "تاریخ نامه بانک دهک (شمسی)": "decile_bank_letter_date",
+    "تاریخ نامه راه و شهرسازی به بانک دهک": "decile_bank_letter_date",
 }
 
 # -------------------------------------------------------------------------
@@ -762,6 +933,8 @@ PERSIAN_FIELD_LABELS.update({
     "is_preparation_checks_confirmed": "تایید چک‌های آماده‌سازی",
     "commitment_number": "شماره تعهدنامه",
     "commitment_date": "تاریخ تعهدنامه",
+    "decile_bank_letter_number": "شماره نامه بانک دهک",
+    "decile_bank_letter_date": "تاریخ نامه بانک دهک (شمسی)",
     "check_count": "تعداد چک‌های دهک",
     "check_amount": "مبلغ هر چک دهک (ریال)",
     "last_check_amount": "مبلغ چک آخر دهک (ریال)",
@@ -937,7 +1110,13 @@ def cleanup_old_reports():
     except Exception:
         pass
 
-def generate_failure_report(user_id: int, original_headers: List[str], error_rows: List[Dict[str, Any]], spouse_rows: Optional[List[Dict[str, Any]]] = None) -> str:
+def generate_failure_report(
+    user_id: int,
+    original_headers: List[str],
+    error_rows: List[Dict[str, Any]],
+    spouse_rows: Optional[List[Dict[str, Any]]] = None,
+    progress_callback: Optional[Callable[[int, int], None]] = None,
+) -> str:
     """
     Generates a write_only RTL failure workbook.
     Sheet 1: خطاها و موارد رد شده
@@ -958,6 +1137,9 @@ def generate_failure_report(user_id: int, original_headers: List[str], error_row
     err_headers = ["ردیف اکسل", "کد ملی", "نام متقاضی / همسر", "علت رد و خطا"] + [str(h or "") for h in original_headers]
     ws_errors.append(err_headers)
 
+    total_items = len(error_rows) + (len(spouse_rows) if spouse_rows else 0)
+    processed = 0
+
     for item in error_rows:
         reasons_str = " | ".join(item.get("reasons", []))
         orig_cells = item.get("original_cells", [])
@@ -966,8 +1148,11 @@ def generate_failure_report(user_id: int, original_headers: List[str], error_row
             item.get("national_id", ""),
             item.get("name", ""),
             reasons_str,
-        ] + [str(c if c is not None else "") for c in orig_cells]
+        ] + ["" if c is None else (c if isinstance(c, str) else str(c)) for c in orig_cells]
         ws_errors.append(row_vals)
+        processed += 1
+        if progress_callback and (processed % 1000 == 0 or processed == total_items):
+            progress_callback(processed, total_items)
 
     # Sheet 2: Spouse Matched (for Update)
     if spouse_rows:
@@ -983,11 +1168,20 @@ def generate_failure_report(user_id: int, original_headers: List[str], error_row
                 item.get("archive_number", ""),
                 diff_text or "بدون تغییر",
             ])
+            processed += 1
+            if progress_callback and (processed % 1000 == 0 or processed == total_items):
+                progress_callback(processed, total_items)
 
     wb.save(filepath)
     return report_uuid
 
-def generate_success_report(user_id: int, original_headers: List[str], success_rows: List[Dict[str, Any]], title: str = "پرونده‌های تایید و بروزرسانی‌شده") -> str:
+def generate_success_report(
+    user_id: int,
+    original_headers: List[str],
+    success_rows: List[Dict[str, Any]],
+    title: str = "پرونده‌های تایید و بروزرسانی‌شده",
+    progress_callback: Optional[Callable[[int, int], None]] = None,
+) -> str:
     """
     Generates a write_only RTL success workbook for accepted / updated dossiers.
     Returns the report UUID.
@@ -1008,22 +1202,25 @@ def generate_success_report(user_id: int, original_headers: List[str], success_r
         full_headers = base_headers
     ws.append(full_headers)
 
-    for item in success_rows:
+    total_rows = len(success_rows)
+    for idx, item in enumerate(success_rows, start=1):
         if isinstance(item, (list, tuple)):
             ws.append(list(item))
-            continue
-        orig_cells = item.get("original_cells", [])
-        row_vals = [
-            item.get("row", ""),
-            item.get("archive_number", ""),
-            item.get("national_id", ""),
-            item.get("name", ""),
-            item.get("status", "موفق"),
-            item.get("diff_summary", "") or item.get("notes", ""),
-        ]
-        if orig_cells:
-            row_vals.extend([str(c if c is not None else "") for c in orig_cells])
-        ws.append(row_vals)
+        else:
+            orig_cells = item.get("original_cells", [])
+            row_vals = [
+                item.get("row", ""),
+                item.get("archive_number", ""),
+                item.get("national_id", ""),
+                item.get("name", ""),
+                item.get("status", "موفق"),
+                item.get("diff_summary", "") or item.get("notes", ""),
+            ]
+            if orig_cells:
+                row_vals.extend(["" if c is None else (c if isinstance(c, str) else str(c)) for c in orig_cells])
+            ws.append(row_vals)
+        if progress_callback and (idx % 1000 == 0 or idx == total_rows):
+            progress_callback(idx, total_rows)
 
     wb.save(filepath)
     return report_uuid
@@ -1291,6 +1488,9 @@ def _build_header_map(raw_headers: List[Any]) -> Tuple[Dict[int, Tuple[str, str,
         "شماره نامه راه و شهرسازی": ("شماره نامه راه و شهرسازی", "rah_letter", "str"),
         "تاریخ نامه راه و شهرسازی": ("تاریخ نامه راه و شهرسازی", "rah_letter_date", "str"),
         "تاریخ نامه راه و شهرسازی (شمسی)": ("تاریخ نامه راه و شهرسازی", "rah_letter_date", "str"),
+        "شماره نامه بانک دهک": ("شماره نامه بانک دهک", "decile_bank_letter_number", "str"),
+        "تاریخ نامه بانک دهک": ("تاریخ نامه بانک دهک (شمسی)", "decile_bank_letter_date", "str"),
+        "تاریخ نامه بانک دهک (شمسی)": ("تاریخ نامه بانک دهک (شمسی)", "decile_bank_letter_date", "str"),
     }
 
     for k, v in extra_field_specs.items():
@@ -1421,9 +1621,31 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
     seen_file_nids: Dict[str, int] = {}
     seen_file_snids: Dict[str, int] = {}
 
+    set_excel_task_progress(
+        task_id,
+        "parsing",
+        25,
+        "فایل اکسل با موفقیت باز شد. در حال استخراج و اعتبارسنجی ردیف‌ها...",
+        "بررسی ساختار ستون‌ها و کدهای ملی",
+    )
+
     row_num = header_row_num
+    parsed_count = 0
     for row_cells in row_iter:
         row_num += 1
+        parsed_count += 1
+        if parsed_count % 1000 == 0:
+            pct = min(55, 25 + int(parsed_count / 500))
+            set_excel_task_progress(
+                task_id,
+                "parsing",
+                pct,
+                f"در حال استخراج و اعتبارسنجی ردیف‌های اکسل ({parsed_count:,} ردیف بررسی شد)...",
+                "پاکسازی کدهای ملی و کنترل تکراری‌ها",
+                sub_percent=min(99, int((parsed_count / max(1, parsed_count + 1000)) * 100)),
+                sub_label="خواندن و اعتبارسنجی ردیف‌های اکسل",
+                sub_current=parsed_count,
+            )
         if not any(c is not None and str(c).strip() for c in row_cells):
             continue
 
@@ -1542,29 +1764,61 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
         parsed_rows.append(row_item)
 
     # Chunked DB uniqueness & couple queries
+    set_excel_task_progress(
+        task_id,
+        "db_lookup",
+        58,
+        f"در حال استعلام یکتایی کدملی‌ها از دیتابیس ({len(all_nids):,} کد ملی)...",
+        f"تعداد ردیف‌های خوانده‌شده: {len(parsed_rows):,}",
+    )
     existing_app_nids: Set[str] = set()
     existing_spouse_to_archive: Dict[str, int] = {}
     existing_app_to_archive_for_spouse: Dict[str, int] = {}
 
-    all_nids_list = list(all_nids)
-    for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
-        chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
-        for nid in HousingDossier.objects.filter(national_id__in=chunk).values_list("national_id", flat=True):
-            existing_app_nids.add(nid)
-        if CHECK_COUPLE_CONFLICT:
-            for snid, arch in HousingDossier.objects.filter(spouse_national_id__in=chunk).exclude(spouse_national_id="").values_list("spouse_national_id", "archive_number"):
-                existing_spouse_to_archive[snid] = arch
+    if len(all_nids) > 1000:
+        for nid, snid, arch in HousingDossier.objects.values_list("national_id", "spouse_national_id", "archive_number"):
+            if nid and nid in all_nids:
+                existing_app_nids.add(nid)
+            if CHECK_COUPLE_CONFLICT:
+                if snid and snid in all_nids:
+                    existing_spouse_to_archive[snid] = arch
+                if nid and nid in all_snids:
+                    existing_app_to_archive_for_spouse[nid] = arch
+    else:
+        all_nids_list = list(all_nids)
+        for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
+            chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
+            for nid in HousingDossier.objects.filter(national_id__in=chunk).values_list("national_id", flat=True):
+                existing_app_nids.add(nid)
+            if CHECK_COUPLE_CONFLICT:
+                for snid, arch in HousingDossier.objects.filter(spouse_national_id__in=chunk).exclude(spouse_national_id="").values_list("spouse_national_id", "archive_number"):
+                    existing_spouse_to_archive[snid] = arch
 
-    if CHECK_COUPLE_CONFLICT and all_snids:
-        all_snids_list = list(all_snids)
-        for i in range(0, len(all_snids_list), CHUNK_QUERY_SIZE):
-            chunk = all_snids_list[i : i + CHUNK_QUERY_SIZE]
-            for nid, arch in HousingDossier.objects.filter(national_id__in=chunk).values_list("national_id", "archive_number"):
-                existing_app_to_archive_for_spouse[nid] = arch
+        if CHECK_COUPLE_CONFLICT and all_snids:
+            all_snids_list = list(all_snids)
+            for i in range(0, len(all_snids_list), CHUNK_QUERY_SIZE):
+                chunk = all_snids_list[i : i + CHUNK_QUERY_SIZE]
+                for nid, arch in HousingDossier.objects.filter(national_id__in=chunk).values_list("national_id", "archive_number"):
+                    existing_app_to_archive_for_spouse[nid] = arch
 
     # Validate against DB
     valid_rows: List[Dict[str, Any]] = []
-    for item in parsed_rows:
+    total_parsed = max(1, len(parsed_rows))
+    for idx, item in enumerate(parsed_rows, start=1):
+        if idx % 1000 == 0:
+            pct = 62 + int((idx / total_parsed) * 18)
+            sub_pct = int((idx / total_parsed) * 100)
+            set_excel_task_progress(
+                task_id,
+                "comparing",
+                pct,
+                f"در حال کنترل تعارض زوجین و اعتبارسنجی رکوردها ({idx:,} از {len(parsed_rows):,})...",
+                f"رکوردهای معتبر: {len(valid_rows):,}",
+                sub_percent=sub_pct,
+                sub_label="ارزیابی یکتایی و تعارض زوجین",
+                sub_current=idx,
+                sub_total=len(parsed_rows),
+            )
         nid = item["data"].get("national_id")
         snid = item["data"].get("spouse_national_id")
 
@@ -1583,11 +1837,31 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
             valid_rows.append(item)
 
     report_url = None
-    if errors:
-        r_uuid = generate_failure_report(user.id, raw_headers, errors)
+    if errors and preview:
+        set_excel_task_progress(
+            task_id,
+            "finalizing",
+            90,
+            "در حال تولید گزارش موارد رد شده و ساخت پیش‌نمایش...",
+            f"تعداد موارد دارای خطا: {len(errors):,}",
+            sub_percent=0,
+            sub_label="تولید گزارش اکسل خطاها",
+            sub_current=0,
+            sub_total=len(errors),
+        )
+        def _err_cb(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100)
+            set_excel_task_progress(
+                task_id, "finalizing", 90 + int(sp * 0.09),
+                f"در حال تولید فایل گزارش خطاها ({done:,} از {tot:,})...",
+                "آماده‌سازی خروجی پیش‌نمایش",
+                sub_percent=sp, sub_label="تولید گزارش اکسل خطاها", sub_current=done, sub_total=tot,
+            )
+        r_uuid = generate_failure_report(user.id, raw_headers, errors, progress_callback=_err_cb)
         report_url = f"/excel/report/{r_uuid}/"
 
     if preview:
+        set_excel_task_progress(task_id, "done", 100, "پیش‌نمایش ثبت پرونده‌ها آماده شد.", "در حال بارگذاری نتایج...", sub_percent=100)
         return {
             "success": True,
             "error": None,
@@ -1607,14 +1881,25 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
     # Confirm mode: Bulk create dossiers with auto-assigned archive_numbers
     created_count = 0
     if valid_rows:
+        set_excel_task_progress(
+            task_id,
+            "finalizing",
+            86,
+            f"در حال آماده‌سازی و محاسبه فیلدهای {len(valid_rows):,} پرونده جدید...",
+            "محاسبه قدرالسهم و تخصیص شماره بایگانی",
+            sub_percent=0,
+            sub_label="آماده‌سازی پرونده‌های جدید",
+            sub_current=0,
+            sub_total=len(valid_rows),
+        )
         max_num = HousingDossier.objects.aggregate(models.Max("archive_number"))["archive_number__max"] or 100000
+        valid_model_fields = {f.name for f in HousingDossier._meta.concrete_fields}
 
         instances_to_create: List[HousingDossier] = []
-        for item in valid_rows:
+        for idx, item in enumerate(valid_rows, start=1):
             max_num += 1
             data = dict(item["data"])
             data.pop("archive_number", None)
-            valid_model_fields = {f.name for f in HousingDossier._meta.concrete_fields}
             clean_data = {k: v for k, v in data.items() if k in valid_model_fields}
 
             dossier = HousingDossier(**clean_data)
@@ -1633,9 +1918,18 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
             explicit_set = set(data.keys())
             dossier.recompute_derived_fields(skip=explicit_set)
             instances_to_create.append(dossier)
+            if idx % 1000 == 0:
+                sp = int((idx / len(valid_rows)) * 100)
+                set_excel_task_progress(
+                    task_id, "finalizing", 86 + int(sp * 0.03),
+                    f"در حال آماده‌سازی پرونده‌های جدید ({idx:,} از {len(valid_rows):,})...",
+                    "محاسبه فیلدهای مشتق‌شده و شماره بایگانی",
+                    sub_percent=sp, sub_label="آماده‌سازی پرونده‌های جدید", sub_current=idx, sub_total=len(valid_rows),
+                )
 
         # Chunked write
-        for i in range(0, len(instances_to_create), CHUNK_WRITE_SIZE):
+        total_to_create = len(instances_to_create)
+        for i in range(0, total_to_create, CHUNK_WRITE_SIZE):
             chunk = instances_to_create[i : i + CHUNK_WRITE_SIZE]
             try:
                 with transaction.atomic():
@@ -1657,19 +1951,32 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
                             "original_cells": [],
                         }
                         errors.append(err_item)
+            done_create = min(total_to_create, i + len(chunk))
+            sp = int((done_create / max(1, total_to_create)) * 100)
+            set_excel_task_progress(
+                task_id,
+                "finalizing",
+                89 + int(sp * 0.05),
+                f"در حال ثبت نهایی پرونده‌های جدید در دیتابیس ({done_create:,} از {total_to_create:,})...",
+                "ذخیره‌سازی دسته‌جمعی رکوردها",
+                sub_percent=sp,
+                sub_label="ذخیره پرونده‌ها در دیتابیس",
+                sub_current=done_create,
+                sub_total=total_to_create,
+            )
 
         # Audit logs: re-query by national_id__in to ensure PKs
         all_created_nids = [d.national_id for d in instances_to_create]
         actor_name = profile.full_name if profile and profile.full_name else (user.get_full_name() or user.username)
         actor_role = profile.role_title if profile and profile.role_title else "مدیر سیستم"
 
+        logs_all: List[WorkflowSignatureLog] = []
         for i in range(0, len(all_created_nids), CHUNK_QUERY_SIZE):
             n_chunk = all_created_nids[i : i + CHUNK_QUERY_SIZE]
             saved_dossiers = list(HousingDossier.objects.filter(national_id__in=n_chunk))
-            logs = []
             for d in saved_dossiers:
                 s_hash = "SHA256: " + hashlib.sha256(f"EXCEL_CREATE:{d.id}:{uuid.uuid4()}".encode()).hexdigest()[:24]
-                logs.append(WorkflowSignatureLog(
+                logs_all.append(WorkflowSignatureLog(
                     dossier=d,
                     from_stage="مرحله ۱: ورود اطلاعات انتخاب واحد",
                     to_stage="مرحله ۱: ورود اطلاعات انتخاب واحد",
@@ -1680,11 +1987,30 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
                     signature_hash=s_hash,
                     notes="ایجاد پرونده از طریق فایل اکسل"
                 ))
-            WorkflowSignatureLog.objects.bulk_create(logs)
+
+        def _create_log_cb(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100)
+            set_excel_task_progress(
+                task_id, "finalizing", 94 + int(sp * 0.03),
+                f"در حال ثبت تاریخچه ایجاد پرونده‌ها ({done:,} از {tot:,})...",
+                "ثبت لاگ امضاهای الکترونیکی",
+                sub_percent=sp, sub_label="ثبت تاریخچه و لاگ‌ها", sub_current=done, sub_total=tot,
+            )
+        _fast_bulk_insert_logs(WorkflowSignatureLog, logs_all, progress_cb=_create_log_cb)
 
     if errors and not report_url:
-        r_uuid = generate_failure_report(user.id, raw_headers, errors)
+        def _err_cb2(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100)
+            set_excel_task_progress(
+                task_id, "finalizing", 97 + int(sp * 0.02),
+                f"در حال تولید فایل گزارش موارد رد شده ({done:,} از {tot:,})...",
+                "آماده‌سازی فایل اکسل خطاها",
+                sub_percent=sp, sub_label="تولید گزارش اکسل خطاها", sub_current=done, sub_total=tot,
+            )
+        r_uuid = generate_failure_report(user.id, raw_headers, errors, progress_callback=_err_cb2)
         report_url = f"/excel/report/{r_uuid}/"
+
+    set_excel_task_progress(task_id, "done", 100, "ایجاد دسته‌جمعی پرونده‌ها با موفقیت انجام شد.", "در حال بارگذاری نتایج...", sub_percent=100)
 
     return {
         "success": True,
@@ -1831,6 +2157,8 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                     pct,
                     f"در حال استخراج و اعتبارسنجی ردیف‌های اکسل ({global_row_counter:,} ردیف بررسی شد)...",
                     "پاکسازی کدهای ملی و ساختار ستون‌ها",
+                    sub_label="خواندن و اعتبارسنجی ردیف‌های اکسل",
+                    sub_current=global_row_counter,
                 )
             if not any(c is not None and str(c).strip() for c in row_cells):
                 continue
@@ -1942,30 +2270,34 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
 
     raw_headers = raw_headers_master
 
-    # Preload DB dossiers in chunks matching any variant in national_id or spouse_national_id
+    # Preload DB dossiers matching any variant in national_id or spouse_national_id
     set_excel_task_progress(
         task_id,
         "db_lookup",
-        60,
-        f"در حال استعلام و تطبیق با پایگاه داده ({len(all_nids):,} متقاضی و همسر)...",
+        56,
+        f"در حال استعلام و تطبیق با پایگاه داده ({len(all_nids):,} کد ملی)...",
         f"مجموع ردیف‌های استخراج‌شده: {len(parsed_rows):,}",
+        sub_percent=0,
+        sub_label="جستجوی پرونده‌ها در دیتابیس",
+        sub_current=0,
+        sub_total=len(parsed_rows),
     )
-    app_matches: Dict[str, HousingDossier] = {}
-    spouse_matches: Dict[str, List[HousingDossier]] = {}
-    loaded_pks: Set[int] = set()
 
-    all_nids_list = list(all_nids)
-    for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
-        chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
-        for d in HousingDossier.objects.filter(Q(national_id__in=chunk) | Q(spouse_national_id__in=chunk)):
-            if d.pk in loaded_pks:
-                continue
-            loaded_pks.add(d.pk)
-            for v in get_national_id_variants(d.national_id):
-                app_matches[v] = d
-            if d.spouse_national_id and clean_digits(d.spouse_national_id).strip("0") != "":
-                for v in get_national_id_variants(d.spouse_national_id):
-                    spouse_matches.setdefault(v, []).append(d)
+    def _lookup_cb(done: int, tot: int) -> None:
+        sp = int((done / max(1, tot)) * 100) if tot > 0 else 100
+        set_excel_task_progress(
+            task_id,
+            "db_lookup",
+            56 + int(sp * 0.07),
+            f"در حال بارگذاری پرونده‌های متناظر از دیتابیس ({done:,} از {tot:,})...",
+            f"مجموع ردیف‌های استخراج‌شده: {len(parsed_rows):,}",
+            sub_percent=sp,
+            sub_label="بارگذاری پرونده‌ها از دیتابیس",
+            sub_current=done,
+            sub_total=tot,
+        )
+
+    app_matches, spouse_matches = _preload_dossiers_by_nids(all_nids, progress_cb=_lookup_cb)
 
     seen_dossiers_info: Dict[int, Dict[str, Any]] = {}
     updates_preview: List[Dict[str, Any]] = []
@@ -1974,20 +2306,27 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
     modified_fields_set: Set[str] = set()
     spouse_matched_rows: List[Dict[str, Any]] = []
     valid_updated_records: List[Dict[str, Any]] = []
+    valid_model_fields = {f.name for f in HousingDossier._meta.concrete_fields}
 
     valid_count = 0
     unchanged_count = 0
     updated_count = 0
 
+    total_parsed_rows = max(1, len(parsed_rows))
     for idx, item in enumerate(parsed_rows):
-        if idx > 0 and idx % 1000 == 0:
-            pct = 60 + int((idx / max(1, len(parsed_rows))) * 25)
+        if idx > 0 and idx % 500 == 0:
+            pct = 64 + int((idx / total_parsed_rows) * 21)
+            sp = int((idx / total_parsed_rows) * 100)
             set_excel_task_progress(
                 task_id,
                 "comparing",
                 pct,
                 f"در حال ارزیابی فیلدها و کشف تغییرات ({idx:,} از {len(parsed_rows):,})...",
-                f"پرونده‌های معتبر شناسایی‌شده: {valid_count:,}",
+                f"پرونده‌های معتبر شناسایی‌شده: {valid_count:,} | دارای تغییر: {updated_count:,}",
+                sub_percent=sp,
+                sub_label="ارزیابی فیلدها و مقایسه تغییرات",
+                sub_current=idx,
+                sub_total=len(parsed_rows),
             )
         nid = item["national_id"]
         if item["reasons"]:
@@ -2176,7 +2515,6 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             for id_field in IDENTITY_FIELDS:
                 data_to_apply.pop(id_field, None)
 
-        valid_model_fields = {f.name for f in HousingDossier._meta.concrete_fields}
         data_to_apply = {k: v for k, v in data_to_apply.items() if k in valid_model_fields}
 
         diffs: List[Dict[str, Any]] = []
@@ -2197,6 +2535,11 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         if not diffs:
             unchanged_count += 1
         else:
+            changed_fields = {d["field"] for d in diffs}
+            if "form_j_number" in changed_fields and "form_j_questionnaire_number" not in changed_fields:
+                dossier.form_j_questionnaire_number = (dossier.form_j_number or "").strip()
+            elif "form_j_questionnaire_number" in changed_fields and "form_j_number" not in changed_fields:
+                dossier.form_j_number = (dossier.form_j_questionnaire_number or "").strip()
             updated_count += 1
             explicit_keys = set(data_to_apply.keys())
             dossier.recompute_derived_fields(skip=explicit_keys)
@@ -2233,41 +2576,39 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             "had_diffs": had_diffs
         }
 
-    set_excel_task_progress(
-        task_id,
-        "finalizing",
-        90,
-        "در حال تولید گزارش و ساخت پیش‌نمایش..." if preview else f"در حال ثبت نهایی {len(dossiers_to_update):,} پرونده در دیتابیس...",
-        "عملیات امن دیتابیس و اعتبارسنجی نهایی",
-    )
-
     report_url = None
-    if errors:
-        r_uuid = generate_failure_report(user.id, raw_headers, errors, spouse_matched_rows)
-        report_url = f"/excel/report/{r_uuid}/"
-
     success_report_url = None
-    if valid_updated_records and not preview:
-        success_rows = []
-        for rec in valid_updated_records:
-            d = rec["dossier"]
-            it = rec["item"]
-            dfs = rec["diffs"]
-            diff_text = " ، ".join([f"{df['label']}: {df['old']} -> {df['new']}" for df in dfs]) if dfs else "بدون تغییر داده"
-            success_rows.append({
-                "row": it.get("row", ""),
-                "archive_number": d.archive_number,
-                "national_id": d.national_id,
-                "name": d.full_name,
-                "status": "بروزرسانی شد" if dfs else "بدون تغییر",
-                "diff_summary": diff_text,
-                "original_cells": it.get("original_cells", []),
-            })
-        s_uuid = generate_success_report(user.id, raw_headers, success_rows, title="پرونده‌های بروزرسانی‌شده")
-        success_report_url = f"/excel/report/{s_uuid}/"
 
     if preview:
-        set_excel_task_progress(task_id, "done", 100, "پیش‌نمایش تغییرات با موفقیت آماده شد.", "در حال بارگذاری نتایج...")
+        set_excel_task_progress(
+            task_id,
+            "finalizing",
+            90,
+            "در حال تولید گزارش خطاها و ساخت پیش‌نمایش...",
+            f"پرونده‌های قابل بروزرسانی: {updated_count:,} | بدون تغییر: {unchanged_count:,}",
+            sub_percent=0 if errors else 100,
+            sub_label="آماده‌سازی خروجی پیش‌نمایش",
+            sub_current=0,
+            sub_total=len(errors) if errors else 0,
+        )
+        if errors:
+            def _preview_err_cb(done: int, tot: int) -> None:
+                sp = int((done / max(1, tot)) * 100)
+                set_excel_task_progress(
+                    task_id,
+                    "finalizing",
+                    90 + int(sp * 0.09),
+                    f"در حال تولید فایل گزارش خطاها ({done:,} از {tot:,})...",
+                    "نگارش فایل اکسل گزارش موارد رد شده",
+                    sub_percent=sp,
+                    sub_label="تولید گزارش اکسل خطاها",
+                    sub_current=done,
+                    sub_total=tot,
+                )
+            r_uuid = generate_failure_report(user.id, raw_headers, errors, spouse_matched_rows, progress_callback=_preview_err_cb)
+            report_url = f"/excel/report/{r_uuid}/"
+
+        set_excel_task_progress(task_id, "done", 100, "پیش‌نمایش تغییرات با موفقیت آماده شد.", "در حال بارگذاری نتایج...", sub_percent=100)
         return {
             "success": True,
             "error": None,
@@ -2285,8 +2626,20 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             "updates_preview": updates_preview,
         }
 
-    # Confirm mode: Bulk update modified dossiers
+    # Confirm mode: Bulk update modified dossiers FIRST inside atomic transaction
     if dossiers_to_update:
+        total_upd = len(dossiers_to_update)
+        set_excel_task_progress(
+            task_id,
+            "finalizing",
+            86,
+            f"در حال ثبت نهایی {total_upd:,} پرونده در دیتابیس...",
+            "آماده‌سازی تراکنش امن پایگاه داده",
+            sub_percent=0,
+            sub_label="ثبت تغییرات پرونده‌ها در دیتابیس",
+            sub_current=0,
+            sub_total=total_upd,
+        )
         now_dt = timezone.now()
         for d in dossiers_to_update:
             d.updated_at = now_dt
@@ -2296,6 +2649,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             "updated_at", "applicant_equity", "check_service_fee",
             "full_name", "first_name", "last_name",
             "spouse_full_name", "spouse_first_name", "spouse_last_name",
+            "form_j_number", "form_j_questionnaire_number",
             "bank_name", "project_code", "bank_branch",
             "total_land_share", "current_year_rent", "past_years_rent",
             "preparation_cost", "land_lease_year",
@@ -2304,9 +2658,6 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         })
         model_fields = {f.name for f in HousingDossier._meta.get_fields() if hasattr(f, "column")}
         all_update_fields = list(candidate_fields.intersection(model_fields))
-
-        # Safe batch size to prevent SQLite 'too many SQL variables' (max 32766 variables)
-        SAFE_BATCH_SIZE = max(10, min(100, 25000 // (2 * max(1, len(all_update_fields)) + 1)))
 
         # Audit logs and field change logs
         actor_name = profile.full_name if profile and profile.full_name else (user.get_full_name() or user.username)
@@ -2343,18 +2694,147 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                     stage=d.current_stage
                 ))
 
+        def _upd_cb(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100)
+            set_excel_task_progress(
+                task_id,
+                "finalizing",
+                86 + int(sp * 0.05),
+                f"در حال بروزرسانی رکوردهای دیتابیس ({done:,} از {tot:,} پرونده)...",
+                f"ذخیره‌سازی {len(all_update_fields)} ستون به‌صورت دسته‌جمعی",
+                sub_percent=sp,
+                sub_label="ذخیره تغییرات پرونده‌ها در دیتابیس",
+                sub_current=done,
+                sub_total=tot,
+            )
+
+        def _sig_cb(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100)
+            set_excel_task_progress(
+                task_id,
+                "finalizing",
+                91 + int(sp * 0.02),
+                f"در حال ثبت امضاهای تاریخچه گردش کار ({done:,} از {tot:,})...",
+                "ثبت لاگ عملیات اکسل",
+                sub_percent=sp,
+                sub_label="ثبت تاریخچه امضاهای سیستمی",
+                sub_current=done,
+                sub_total=tot,
+            )
+
+        def _chg_cb(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100)
+            set_excel_task_progress(
+                task_id,
+                "finalizing",
+                93 + int(sp * 0.02),
+                f"در حال ثبت جزئیات تغییر فیلدها ({done:,} از {tot:,})...",
+                "ثبت سابقه ممیزی تغییرات",
+                sub_percent=sp,
+                sub_label="ثبت تاریخچه تغییرات فیلدها",
+                sub_current=done,
+                sub_total=tot,
+            )
+
         with transaction.atomic():
             if all_update_fields:
-                for i in range(0, len(dossiers_to_update), SAFE_BATCH_SIZE):
-                    chunk = dossiers_to_update[i : i + SAFE_BATCH_SIZE]
-                    HousingDossier.objects.bulk_update(chunk, fields=all_update_fields)
+                _fast_bulk_update_dossiers(dossiers_to_update, all_update_fields, progress_cb=_upd_cb)
+            _fast_bulk_insert_logs(WorkflowSignatureLog, sig_logs, progress_cb=_sig_cb)
+            _fast_bulk_insert_logs(DossierFieldChangeLog, change_logs, progress_cb=_chg_cb)
 
-            for i in range(0, len(sig_logs), 1000):
-                WorkflowSignatureLog.objects.bulk_create(sig_logs[i : i + 1000])
-            for i in range(0, len(change_logs), 1000):
-                DossierFieldChangeLog.objects.bulk_create(change_logs[i : i + 1000])
+    if errors:
+        set_excel_task_progress(
+            task_id,
+            "finalizing",
+            95,
+            f"در حال تولید گزارش خطاها ({len(errors):,} مورد)...",
+            "آماده‌سازی فایل اکسل موارد رد شده",
+            sub_percent=0,
+            sub_label="تولید گزارش اکسل خطاها",
+            sub_current=0,
+            sub_total=len(errors),
+        )
+        def _err_rep_cb(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100)
+            set_excel_task_progress(
+                task_id,
+                "finalizing",
+                95 + int(sp * 0.01),
+                f"در حال تولید گزارش خطاها ({done:,} از {tot:,})...",
+                "نگارش فایل اکسل خطاها",
+                sub_percent=sp,
+                sub_label="تولید گزارش اکسل خطاها",
+                sub_current=done,
+                sub_total=tot,
+            )
+        r_uuid = generate_failure_report(user.id, raw_headers, errors, spouse_matched_rows, progress_callback=_err_rep_cb)
+        report_url = f"/excel/report/{r_uuid}/"
 
-    set_excel_task_progress(task_id, "done", 100, "بروزرسانی رکوردهای دیتابیس با موفقیت به پایان رسید.", "در حال بارگذاری گزارش نهایی...")
+    if valid_updated_records:
+        total_rec = len(valid_updated_records)
+        set_excel_task_progress(
+            task_id,
+            "finalizing",
+            96,
+            f"در حال تولید فایل اکسل گزارش موفق ({total_rec:,} پرونده)...",
+            "آماده‌سازی گزارش نهایی خروجی",
+            sub_percent=0,
+            sub_label="تولید فایل اکسل رکوردهای موفق",
+            sub_current=0,
+            sub_total=total_rec,
+        )
+        success_rows = []
+        for idx_rec, rec in enumerate(valid_updated_records, start=1):
+            d = rec["dossier"]
+            it = rec["item"]
+            dfs = rec["diffs"]
+            diff_text = " ، ".join([f"{df['label']}: {df['old']} -> {df['new']}" for df in dfs]) if dfs else "بدون تغییر داده"
+            success_rows.append({
+                "row": it.get("row", ""),
+                "archive_number": d.archive_number,
+                "national_id": d.national_id,
+                "name": d.full_name,
+                "status": "بروزرسانی شد" if dfs else "بدون تغییر",
+                "diff_summary": diff_text,
+                "original_cells": it.get("original_cells", []),
+            })
+            if idx_rec % 2000 == 0:
+                sp = int((idx_rec / total_rec) * 20)
+                set_excel_task_progress(
+                    task_id,
+                    "finalizing",
+                    96,
+                    f"در حال آماده‌سازی داده‌های گزارش موفق ({idx_rec:,} از {total_rec:,})...",
+                    "تنظیم شرح تغییرات ردیف‌ها",
+                    sub_percent=sp,
+                    sub_label="تولید فایل اکسل رکوردهای موفق",
+                    sub_current=idx_rec,
+                    sub_total=total_rec,
+                )
+
+        def _succ_rep_cb(done: int, tot: int) -> None:
+            sp = 20 + int((done / max(1, tot)) * 80)
+            set_excel_task_progress(
+                task_id,
+                "finalizing",
+                96 + int((done / max(1, tot)) * 3),
+                f"در حال نگارش فایل اکسل گزارش موفق ({done:,} از {tot:,})...",
+                "ایجاد کاربرگ اکسل قابل دانلود",
+                sub_percent=sp,
+                sub_label="تولید فایل اکسل رکوردهای موفق",
+                sub_current=done,
+                sub_total=tot,
+            )
+        s_uuid = generate_success_report(
+            user.id,
+            raw_headers,
+            success_rows,
+            title="پرونده‌های بروزرسانی‌شده",
+            progress_callback=_succ_rep_cb,
+        )
+        success_report_url = f"/excel/report/{s_uuid}/"
+
+    set_excel_task_progress(task_id, "done", 100, "بروزرسانی رکوردهای دیتابیس با موفقیت به پایان رسید.", "در حال بارگذاری گزارش نهایی...", sub_percent=100)
     return {
         "success": True,
         "error": None,
@@ -2526,31 +3006,66 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                 "reasons": row_errors,
             })
 
-        set_excel_task_progress(task_id, "db_lookup", 60, f"در حال استعلام وضعیت پرونده‌ها از دیتابیس ({len(all_nids):,} متقاضی)...", f"مجموع ردیف‌های امضا: {len(parsed_rows):,}")
-        app_matches: Dict[str, HousingDossier] = {}
-        spouse_matches: Dict[str, List[HousingDossier]] = {}
-        loaded_pks: Set[int] = set()
+        set_excel_task_progress(
+            task_id,
+            "db_lookup",
+            56,
+            f"در حال استعلام وضعیت پرونده‌ها از دیتابیس ({len(all_nids):,} کد ملی)...",
+            f"مجموع ردیف‌های امضا: {len(parsed_rows):,}",
+            sub_percent=0,
+            sub_label="جستجوی پرونده‌ها در دیتابیس",
+            sub_current=0,
+            sub_total=len(parsed_rows),
+        )
 
-        all_nids_list = list(all_nids)
-        for i in range(0, len(all_nids_list), CHUNK_QUERY_SIZE):
-            chunk = all_nids_list[i : i + CHUNK_QUERY_SIZE]
-            for d in HousingDossier.objects.filter(Q(national_id__in=chunk) | Q(spouse_national_id__in=chunk)):
-                if d.pk in loaded_pks:
-                    continue
-                loaded_pks.add(d.pk)
-                for v in get_national_id_variants(d.national_id):
-                    app_matches[v] = d
-                for v in get_national_id_variants(d.spouse_national_id):
-                    spouse_matches.setdefault(v, []).append(d)
+        def _gs_lookup_cb(done: int, tot: int) -> None:
+            sp = int((done / max(1, tot)) * 100) if tot > 0 else 100
+            set_excel_task_progress(
+                task_id,
+                "db_lookup",
+                56 + int(sp * 0.08),
+                f"در حال بارگذاری پرونده‌ها از دیتابیس ({done:,} از {tot:,})...",
+                f"مجموع ردیف‌های امضا: {len(parsed_rows):,}",
+                sub_percent=sp,
+                sub_label="بارگذاری پرونده‌ها از دیتابیس",
+                sub_current=done,
+                sub_total=tot,
+            )
 
-        set_excel_task_progress(task_id, "signing", 75, "در حال بررسی و تحلیل امضاها و پرش‌های هوشمند مراحل...")
+        app_matches, spouse_matches = _preload_dossiers_by_nids(all_nids, progress_cb=_gs_lookup_cb)
+
+        set_excel_task_progress(
+            task_id,
+            "signing",
+            66,
+            "در حال بررسی و تحلیل امضاها و پرش‌های هوشمند مراحل...",
+            f"کل ردیف‌ها: {len(parsed_rows):,}",
+            sub_percent=0,
+            sub_label="اجرا و اعتبارسنجی امضاها",
+            sub_current=0,
+            sub_total=len(parsed_rows),
+        )
         seen_dossier_ids: Set[int] = set()
         valid_count = 0
         failed_count = 0
         signed_dossiers_info: List[Dict[str, Any]] = []
         updates_preview: List[Dict[str, Any]] = []
 
-        for item in parsed_rows:
+        total_gs_rows = max(1, len(parsed_rows))
+        for gs_idx, item in enumerate(parsed_rows, start=1):
+            if gs_idx % 25 == 0 or gs_idx == len(parsed_rows):
+                sp = int((gs_idx / total_gs_rows) * 100)
+                set_excel_task_progress(
+                    task_id,
+                    "signing",
+                    66 + int(sp * 0.26),
+                    f"در حال بررسی و ثبت امضاهای الکترونیکی ({gs_idx:,} از {len(parsed_rows):,})...",
+                    f"امضاهای موفق: {valid_count:,} | خطا: {failed_count:,}",
+                    sub_percent=sp,
+                    sub_label="پردازش امضاهای مراحل",
+                    sub_current=gs_idx,
+                    sub_total=len(parsed_rows),
+                )
             if item["reasons"]:
                 failed_count += 1
                 errors.append({
@@ -2782,7 +3297,15 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
 
         report_url = None
         if errors:
-            r_uuid = generate_failure_report(user.id, ["ردیف", "شماره بایگانی", "کد ملی", "نام متقاضی", "علت رد"], errors)
+            def _gs_err_cb(done: int, tot: int) -> None:
+                sp = int((done / max(1, tot)) * 100)
+                set_excel_task_progress(
+                    task_id, "finalizing", 93 + int(sp * 0.03),
+                    f"در حال تولید گزارش خطاهای امضای گروهی ({done:,} از {tot:,})...",
+                    "نگارش فایل اکسل خطاها",
+                    sub_percent=sp, sub_label="تولید گزارش اکسل خطاها", sub_current=done, sub_total=tot,
+                )
+            r_uuid = generate_failure_report(user.id, ["ردیف", "شماره بایگانی", "کد ملی", "نام متقاضی", "علت رد"], errors, progress_callback=_gs_err_cb)
             report_url = f"/excel/report/{r_uuid}/"
 
         success_report_url = None
@@ -2799,10 +3322,18 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
                 }
                 for item in signed_dossiers_info
             ]
-            s_uuid = generate_success_report(user.id, ["مراحل امضاشده", "مرحله مقصد"], success_rows, title="امضاهای تاییدشده")
+            def _gs_succ_cb(done: int, tot: int) -> None:
+                sp = int((done / max(1, tot)) * 100)
+                set_excel_task_progress(
+                    task_id, "finalizing", 96 + int(sp * 0.03),
+                    f"در حال تولید گزارش اکسل امضاهای موفق ({done:,} از {tot:,})...",
+                    "آماده‌سازی فایل قابل دانلود",
+                    sub_percent=sp, sub_label="تولید گزارش اکسل امضاهای موفق", sub_current=done, sub_total=tot,
+                )
+            s_uuid = generate_success_report(user.id, ["مراحل امضاشده", "مرحله مقصد"], success_rows, title="امضاهای تاییدشده", progress_callback=_gs_succ_cb)
             success_report_url = f"/excel/report/{s_uuid}/"
 
-        set_excel_task_progress(task_id, "done", 100, "امضای گروهی با موفقیت انجام شد.", "در حال بارگذاری نتایج...")
+        set_excel_task_progress(task_id, "done", 100, "امضای گروهی با موفقیت انجام شد.", "در حال بارگذاری نتایج...", sub_percent=100)
         return {
             "success": True,
             "error": None,
@@ -2961,6 +3492,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
         report_url = f"/excel/report/{r_uuid}/"
 
     if preview:
+        set_excel_task_progress(task_id, "done", 100, "پیش‌نمایش امضای گروهی آماده شد.", "در حال بارگذاری نتایج...", sub_percent=100)
         return {
             "success": True,
             "error": None,
@@ -2981,8 +3513,22 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
 
     signed_count = 0
     signed_dossiers_info = []
+    total_sign_tasks = max(1, len(valid_sign_tasks))
 
-    for dossier, target_stage, note, item in valid_sign_tasks:
+    for s_idx, (dossier, target_stage, note, item) in enumerate(valid_sign_tasks, start=1):
+        if s_idx == 1 or s_idx % 25 == 0 or s_idx == len(valid_sign_tasks):
+            sp = int((s_idx / total_sign_tasks) * 100)
+            set_excel_task_progress(
+                task_id,
+                "signing",
+                70 + int(sp * 0.23),
+                f"در حال ثبت امضاهای الکترونیکی ({s_idx:,} از {len(valid_sign_tasks):,})...",
+                f"امضاهای موفق: {signed_count:,}",
+                sub_percent=sp,
+                sub_label="ثبت امضای مراحل پرونده‌ها",
+                sub_current=s_idx,
+                sub_total=len(valid_sign_tasks),
+            )
         orig_stage = dossier.current_stage
         orig_stage_title = STAGE_ROLES.get(orig_stage, ("", "", f"مرحله {orig_stage}"))[2]
         note_text = note or f"امضای گروهی مرحله {target_stage} از طریق اکسل"
@@ -3027,6 +3573,7 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
         s_uuid = generate_success_report(user.id, ["مرحله مبدأ", "مرحله مقصد"], success_rows, title="امضاهای تاییدشده")
         success_report_url = f"/excel/report/{s_uuid}/"
 
+    set_excel_task_progress(task_id, "done", 100, "امضای گروهی با موفقیت انجام شد.", "در حال بارگذاری نتایج...", sub_percent=100)
     return {
         "success": True,
         "error": None,
@@ -3050,6 +3597,8 @@ def process_excel_group_sign(file_obj: Any, user: Any, preview: bool = False, is
 def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, is_preview: Optional[bool] = None, **kwargs) -> Dict[str, Any]:
     if is_preview is not None:
         preview = is_preview
+    task_id = kwargs.get("task_id")
+    set_excel_task_progress(task_id, "reading", 10, "در حال بازگشایی و خواندن فایل اکسل جابجایی همسر...", "خواندن کاربرگ‌ها")
     profile = getattr(user, "profile", None)
     is_admin = user.is_superuser or user.is_staff or (profile and profile.is_housing_chief)
     if not is_admin:
@@ -3079,6 +3628,7 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
     if nid_col is None:
         nid_col = 0  # fallback to first column
 
+    set_excel_task_progress(task_id, "parsing", 25, "در حال خواندن کدهای ملی ردیف‌های اکسل...", "استخراج متقاضیان جهت بررسی زوجیت")
     parsed_rows: List[Dict[str, Any]] = []
     all_nids: Set[str] = set()
     errors: List[Dict[str, Any]] = []
@@ -3106,6 +3656,12 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
         })
 
     # Preload dossiers
+    set_excel_task_progress(
+        task_id, "db_lookup", 55,
+        f"در حال استعلام پرونده‌های متناظر از دیتابیس ({len(all_nids):,} کد ملی)...",
+        f"تعداد کل ردیف‌ها: {len(parsed_rows):,}",
+        sub_percent=0, sub_label="جستجوی پرونده‌ها در دیتابیس", sub_current=0, sub_total=len(parsed_rows),
+    )
     app_matches: Dict[str, HousingDossier] = {}
     spouse_matches: Dict[str, List[HousingDossier]] = {}
 
@@ -3116,6 +3672,13 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
             app_matches[d.national_id] = d
         for d in HousingDossier.objects.filter(spouse_national_id__in=chunk).exclude(spouse_national_id=""):
             spouse_matches.setdefault(d.spouse_national_id, []).append(d)
+
+    set_excel_task_progress(
+        task_id, "comparing", 70,
+        "در حال ارزیابی و کنترل تعارض کدهای ملی همسر...",
+        f"بررسی {len(parsed_rows):,} ردیف",
+        sub_percent=50, sub_label="اعتبارسنجی قوانین جابجایی همسر",
+    )
 
     seen_dossier_ids: Set[int] = set()
     valid_swap_rows: List[Tuple[HousingDossier, Dict[str, Any], str]] = []
@@ -3217,11 +3780,12 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
             })
 
     report_url = None
-    if errors:
+    if errors and preview:
         r_uuid = generate_failure_report(user.id, raw_headers, errors)
         report_url = f"/excel/report/{r_uuid}/"
 
     if preview:
+        set_excel_task_progress(task_id, "done", 100, "پیش‌نمایش جابجایی همسر آماده شد.", "در حال بارگذاری نتایج...", sub_percent=100)
         return {
             "success": True,
             "error": None,
@@ -3243,8 +3807,22 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
     swapped_count = 0
     actor_name = profile.full_name if profile and profile.full_name else (user.get_full_name() or user.username)
     actor_role = profile.role_title if profile and profile.role_title else "مدیر سیستم"
+    total_swaps = max(1, len(valid_swap_rows))
 
-    for d, item, matched_via in valid_swap_rows:
+    for sw_idx, (d, item, matched_via) in enumerate(valid_swap_rows, start=1):
+        if sw_idx == 1 or sw_idx % 25 == 0 or sw_idx == len(valid_swap_rows):
+            sp = int((sw_idx / total_swaps) * 100)
+            set_excel_task_progress(
+                task_id,
+                "finalizing",
+                85 + int(sp * 0.12),
+                f"در حال اجرای جابجایی متقاضی و همسر ({sw_idx:,} از {len(valid_swap_rows):,})...",
+                "بروزرسانی مدارک و ثبت تاریخچه ممیزی",
+                sub_percent=sp,
+                sub_label="اجرای جابجایی متقاضی با همسر",
+                sub_current=sw_idx,
+                sub_total=len(valid_swap_rows),
+            )
         try:
             with transaction.atomic():
                 # Swap attributes
@@ -3298,6 +3876,8 @@ def process_excel_spouse_swap(file_obj: Any, user: Any, preview: bool = False, i
     if errors and not report_url:
         r_uuid = generate_failure_report(user.id, raw_headers, errors)
         report_url = f"/excel/report/{r_uuid}/"
+
+    set_excel_task_progress(task_id, "done", 100, "جابجایی متقاضی با همسر با موفقیت به پایان رسید.", "در حال بارگذاری نتایج...", sub_percent=100)
 
     return {
         "success": True,
@@ -3395,6 +3975,7 @@ EXPORT_COLUMNS = [
     # ======================= بخش ۳: استعلام رسمی و فرم «ج» متقاضی و همسر =======================
     ("نحوه ثبت فرم ج", "form_j_registration_type", "str"),
     ("شماره پرسشنامه فرم ج", "form_j_questionnaire_number", "str"),
+    ("کد کامپیوتری", "computer_code", "str"),
     ("وضعیت فرم ج متقاضی", "applicant_form_j_status", "str"),
     ("استعلام اداره کل متقاضی", "applicant_form_j_directorate_status", "str"),
     ("توضیحات فرم ج متقاضی", "applicant_form_j_red_description", "str"),
@@ -3475,6 +4056,10 @@ EXPORT_COLUMNS = [
     # تاریخ‌های سیستمی پرونده
     ("تاریخ تشکیل پرونده", lambda d: jdatetime.datetime.fromgregorian(datetime=d.created_at).strftime('%Y/%m/%d %H:%M') if d.created_at else "", "str"),
     ("تاریخ آخرین بروزرسانی", lambda d: jdatetime.datetime.fromgregorian(datetime=d.updated_at).strftime('%Y/%m/%d %H:%M') if d.updated_at else "", "str"),
+
+    # نامه بانک دهک (در انتهای ستون‌ها جهت حفظ ترتیب قبلی)
+    ("شماره نامه بانک دهک", "decile_bank_letter_number", "str"),
+    ("تاریخ نامه بانک دهک (شمسی)", "decile_bank_letter_date", "str"),
 ]
 
 EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
@@ -3503,7 +4088,8 @@ EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
         "contractor_letter_amount", "decile_loan_amount", "applicant_equity",
         "is_equity_funded", "is_sms_sent", "sms_sent_date", "bank_letter_number",
         "bank_letter_date", "is_added_to_bank_shipment_list", "is_sent_to_bank",
-        "bank_sent_date", "bank_sent_letter_number", "decile_loan_bank", "supported_institution"
+        "bank_sent_date", "bank_sent_letter_number", "decile_loan_bank", "supported_institution",
+        "decile_bank_letter_number", "decile_bank_letter_date"
     }),
     "lease_prep_checks": ("تسهیلات دهک، چک‌ها و کارمزدها", {
         "total_land_share", "past_years_rent", "current_year_rent", "land_lease_year",
@@ -3513,13 +4099,15 @@ EXPORT_CATEGORY_MAP: Dict[str, Tuple[str, Set[str]]] = {
         "commitment_number", "commitment_date", "check_count", "check_amount",
         "last_check_amount", "total_check_amount", "is_decile_loan_confirmed",
         "rah_letter", "rah_letter_date", "notary_office_number", "notary_letter_number", "notary_letter_date",
+        "decile_bank_letter_number", "decile_bank_letter_date",
         "check_service_fee", "preparation_service_fee"
     }),
     "form_j": ("وضعیت‌های فرم ج", {
         "applicant_form_j_status", "applicant_form_j_directorate_status",
         "applicant_form_j_red_description", "spouse_form_j_status",
         "spouse_form_j_directorate_status", "spouse_form_j_red_description",
-        "form_j_registration_type", "form_j_number", "form_j_questionnaire_number"
+        "form_j_registration_type", "form_j_number", "form_j_questionnaire_number",
+        "computer_code"
     }),
     "workflow": ("اطلاعات گردش کار و امضاها", {
         "current_stage", "current_stage_title", "current_role",

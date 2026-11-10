@@ -716,6 +716,26 @@
 
 <!-- Page-level scope (inherits everything cleanly from sanadbanApp parent component) -->
 <div x-show="isLoaded">
+  <!-- View Only / Signed History Remark Banner -->
+  {% if is_view_only %}
+  <div class="dt-banner" style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px solid #60a5fa; color: #1e3a8a; padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.85rem;">
+      <span style="font-size: 1.4rem; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: #2563eb; color: white;">🔒</span>
+      <div>
+        <div style="font-weight: 800; font-size: 0.98rem; color: #1e3a8a;">
+          حالت اختصاصی فقط مشاهده — سوابق پرونده امضا شده
+        </div>
+        <div style="font-size: 0.84rem; color: #334155; margin-top: 2px;">
+          این پرونده صرفاً جهت رویت، پیگیری سوابق و چاپ اسناد باز شده است. امکان هرگونه ویرایش، بارگذاری فایل یا حذف به طور کامل مسدود می‌باشد.
+        </div>
+      </div>
+    </div>
+    <a href="{% url 'signed_dossiers_list' %}" class="btn btn-outline" style="background: white; border-color: #3b82f6; color: #1d4ed8; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1rem; border-radius: 8px; text-decoration: none;">
+      <span>بازگشت به سوابق امضاها ↩</span>
+    </a>
+  </div>
+  {% endif %}
+
   <!-- Returned banner -->
   <template x-if="status === 'RETURNED'">
     <div class="dt-banner warn">
@@ -762,8 +782,43 @@
     </div>
   </template>
 
-  <!-- Top navigation: back to inbox -->
+  <!-- Top navigation: back to inbox / signed list -->
   <div style="margin-bottom: 0.9rem">
+    {% if is_view_only %}
+    <a
+      href="{% url 'signed_dossiers_list' %}"
+      class="btn btn-outline"
+      style="
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        gap: 0.5rem;
+        background: #eff6ff;
+        padding: 0.5rem 1.1rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border-color: #93c5fd;
+        border-radius: 10px;
+        color: #1d4ed8;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        text-decoration: none;
+        touch-action: manipulation;
+      "
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+      >
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+      <span>بازگشت به سوابق پرونده‌های امضا شده</span>
+    </a>
+    {% else %}
     <a
       href="{% url 'dossier_list' %}"
       class="btn btn-outline"
@@ -797,6 +852,7 @@
       </svg>
       <span>بازگشت به کارتابل</span>
     </a>
+    {% endif %}
   </div>
 
   <!-- Hero (compact) -->
@@ -1049,10 +1105,13 @@
       </div>
 
       <div class="action-buttons-group">
+        <div x-show="isViewOnly" x-cloak style="display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1rem; border-radius: 8px; background: #eff6ff; color: #1e40af; border: 1.5px solid #bfdbfe; font-size: 0.84rem; font-weight: 800;">
+          <span>🔒 حالت فقط خواندنی (مشاهده سوابق امضا)</span>
+        </div>
         <button
           type="button"
           class="btn btn-outline"
-          x-show="!isLocked"
+          x-show="!isLocked && !isViewOnly"
           x-cloak
           @click="openUploadScanModal()"
           style="
@@ -1115,7 +1174,7 @@
         </a>
 
         <div
-          x-show="!userCanAction && !isLocked"
+          x-show="!userCanAction && !isLocked && !isViewOnly"
           x-cloak
           style="
             display: none;
@@ -1145,7 +1204,7 @@
             ⋯ بیشتر
           </button>
           <div class="dt-menu" x-show="moreOpen" x-cloak style="display: none">
-            {% if not dossier.is_locked and is_full_admin %}
+            {% if not dossier.is_locked and is_full_admin and not is_view_only %}
             <a
               href="{% url 'dossier_swap_spouse' pk=dossier.archive_number %}"
               onclick="
@@ -1212,7 +1271,7 @@
             <button
               type="button"
               class="danger"
-              x-show="(isChief || isSuperuser) && !isRejected && isRedJ"
+              x-show="(isChief || isSuperuser) && !isRejected && isRedJ && !isViewOnly"
               x-cloak
               @click="moreOpen=false; openRedRejectionModal()"
             >
@@ -1220,7 +1279,7 @@
             </button>
             <button
               type="button"
-              x-show="(isChief || isSuperuser) && (isRejected || isRedJ)"
+              x-show="(isChief || isSuperuser) && (isRejected || isRedJ) && !isViewOnly"
               x-cloak
               @click="moreOpen=false; openRedReturnModal()"
               x-text="isRejected ? '↩ رفع قفل و بازگشت جهت اصلاح' : '↩ بازگشت جهت اصلاح فرم «ج»'"
@@ -1231,7 +1290,7 @@
         <button
           type="button"
           class="btn btn-warning"
-          x-show="currentStage > 1 && userCanAction && !isLocked"
+          x-show="currentStage > 1 && userCanAction && !isLocked && !isViewOnly"
           x-cloak
           style="display: none"
           @click="openReturnModal()"
@@ -1242,7 +1301,7 @@
         <button
           type="button"
           class="btn btn-outline"
-          x-show="userCanAction && !isLocked"
+          x-show="userCanAction && !isLocked && !isViewOnly"
           x-cloak
           style="display: none"
           @click="saveDossierDraft()"
@@ -1270,7 +1329,7 @@
         <button
           type="button"
           class="btn btn-danger"
-          x-show="userCanAction && !isLocked && !isRejected && isRedJ && status !== 'REJECT_RED_PENDING'"
+          x-show="userCanAction && !isLocked && !isRejected && isRedJ && status !== 'REJECT_RED_PENDING' && !isViewOnly"
           x-cloak
           style="display: none; background: #dc2626; color: #fff; font-weight: 800; border: none; padding: 0.55rem 1.25rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(220,38,38,0.25);"
           @click="openSignatureModal()"
@@ -1283,7 +1342,7 @@
         <button
           type="button"
           class="btn btn-danger"
-          x-show="(isChief || isSuperuser || isStaff) && !isRejected && !isDeleted && isRedJ"
+          x-show="(isChief || isSuperuser || isStaff) && !isRejected && !isDeleted && isRedJ && !isViewOnly"
           x-cloak
           style="display: none; background: #991b1b; color: #fff; font-weight: 800; border: none; padding: 0.55rem 1.25rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(153,27,27,0.3);"
           @click="openRedRejectionModal()"
@@ -1296,7 +1355,7 @@
         <button
           type="button"
           class="btn btn-outline"
-          x-show="(isChief || isSuperuser || isStaff) && !isDeleted && !isRejected"
+          x-show="(isChief || isSuperuser || isStaff) && !isDeleted && !isRejected && !isViewOnly"
           x-cloak
           style="display: none; border-color: #cbd5e1; color: #475569; font-weight: 700; padding: 0.55rem 1rem; border-radius: 8px;"
           @click="openDeleteModal()"
@@ -1333,12 +1392,23 @@
           </div>
         </template>
 
+        <div
+          x-show="Number(currentStage) === 8 && userCanAction && !isLocked && !isViewOnly && getStage8MissingFields().length > 0"
+          x-cloak
+          style="display: none; background: #fffbeb; color: #92400e; border: 1.5px solid #fcd34d; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700;"
+          :title="'فیلدهای الزامی: ' + getStage8MissingFields().join('، ')"
+        >
+          <span>⚠️ پیش از امضای مرحله ۸ تکمیل کنید: <span x-text="getStage8MissingFields().join('، ')"></span></span>
+        </div>
+
         <button
           type="button"
           class="btn btn-success"
           x-show="canSignCurrentStage()"
           x-cloak
           style="display: none"
+          :style="(Number(currentStage) === 8 && getStage8MissingFields().length > 0) ? { opacity: 0.65 } : {}"
+          :title="(Number(currentStage) === 8 && getStage8MissingFields().length > 0) ? ('تکمیل فیلدهای زیر الزامی است: ' + getStage8MissingFields().join('، ')) : ''"
           @click="openSignatureModal()"
         >
           <span

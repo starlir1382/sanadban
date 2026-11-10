@@ -269,5 +269,241 @@ class LandRatesApiTestCase(TestCase):
         self.assertEqual(d1.plot_number, 307)
         self.assertEqual(d1.renovation_code, "8-806-12-5-2")
         self.assertGreater(d1.total_land_share, Decimal("0"))
-        self.assertEqual(d1.renovation_code, "8-806-12-5-2")
-        self.assertGreater(d1.total_land_share, Decimal("0"))
+
+
+class ClearLandRatesScriptTestCase(TestCase):
+    def setUp(self):
+        reset_cache()
+        LandRate.objects.create(
+            renovation_code="8-806-12-5-2-0-0",
+            project_name="پروژه الف",
+            plot_number="307",
+            block_name="K46",
+            share_land=Decimal("0.7"),
+            share_common=Decimal("0"),
+            rent_current_per_m2=Decimal("500000"),
+            rent_to_date_per_m2=Decimal("600000"),
+            prep_per_m2=Decimal("10000000"),
+        )
+        LandRate.objects.create(
+            renovation_code="8-806-43-4-1-0-0",
+            project_name="پروژه ب",
+            plot_number="302",
+            block_name="W18",
+            share_land=Decimal("0.5"),
+            share_common=Decimal("0"),
+            rent_current_per_m2=Decimal("400000"),
+            rent_to_date_per_m2=Decimal("450000"),
+            prep_per_m2=Decimal("9000000"),
+        )
+        self.dossier = HousingDossier.objects.create(
+            national_id="0011223344",
+            full_name="تست حفظ پرونده",
+            project="پروژه الف",
+            block_code="K46",
+            net_unit_area=Decimal("80.00"),
+        )
+
+    def test_dry_run_does_not_delete(self):
+        import io
+        from scripts.clear_land_rates import clear_land_rates
+
+        buf = io.StringIO()
+        res = clear_land_rates(confirm=False, stdout=buf)
+        self.assertTrue(res["dry_run"])
+        self.assertEqual(res["deleted_count"], 0)
+        self.assertEqual(LandRate.objects.count(), 2)
+        self.assertEqual(HousingDossier.objects.count(), 1)
+
+    def test_project_filtered_clear(self):
+        import io
+        from scripts.clear_land_rates import clear_land_rates
+
+        buf = io.StringIO()
+        res = clear_land_rates(confirm=True, project="پروژه الف", stdout=buf)
+        self.assertFalse(res["dry_run"])
+        self.assertEqual(res["deleted_count"], 1)
+        self.assertEqual(res["remaining_count"], 1)
+        self.assertFalse(res["sequence_reset"])
+        self.assertEqual(LandRate.objects.filter(project_name="پروژه ب").count(), 1)
+        self.assertEqual(HousingDossier.objects.count(), 1)
+
+    def test_full_clear_resets_table_and_cache(self):
+        import io
+        from scripts.clear_land_rates import clear_land_rates
+
+        # Warm the cache first
+        self.assertIsNotNone(get_rate(code="8-806-12-5-2-0-0"))
+
+        buf = io.StringIO()
+        res = clear_land_rates(confirm=True, stdout=buf)
+        self.assertFalse(res["dry_run"])
+        self.assertEqual(res["deleted_count"], 2)
+        self.assertEqual(res["remaining_count"], 0)
+        self.assertEqual(LandRate.objects.count(), 0)
+        self.assertEqual(HousingDossier.objects.count(), 1)
+        self.assertIsNone(get_rate(code="8-806-12-5-2-0-0"))
+
+        new_rate = LandRate.objects.create(
+            renovation_code="8-806-99-1-1",
+            project_name="پروژه جدید",
+            plot_number="1",
+            block_name="A1",
+            share_land=Decimal("0.5"),
+            share_common=Decimal("0"),
+            rent_current_per_m2=Decimal("100000"),
+            rent_to_date_per_m2=Decimal("100000"),
+            prep_per_m2=Decimal("1000000"),
+        )
+        self.assertEqual(new_rate.id, 1)
+
+    def test_section9_formula_breakdown_in_api_and_detail_view(self):
+        """API and dossier detail view include exact coefficient, area terms, and per-m2 rates for Section 9."""
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+        from workflow.models import LandRate
+
+        User = get_user_model()
+        user = User.objects.create_user(username="sec9_viewer", password="pw")
+        user.profile.allowed_stages = "16"
+        user.profile.save()
+
+        LandRate.objects.create(
+            renovation_code="8-806-55-1-1",
+            project_name="تدبیر عمران محنا",
+            plot_number="99",
+            block_name="Z9",
+            share_land=Decimal("0.600000000"),
+            share_common=Decimal("0.131738046"),
+            rent_current_per_m2=Decimal("10000000"),
+            rent_to_date_per_m2=Decimal("20000000"),
+            prep_per_m2=Decimal("30000000"),
+        )
+        reset_cache()
+
+        dossier = HousingDossier.objects.create(
+            archive_number=100995,
+            national_id="0399990009",
+            full_name="متقاضی فرمول بخش نه",
+            current_stage=16,
+            renovation_code="8-806-55-1-1",
+            net_unit_area=Decimal("88.00"),
+            storage_area=Decimal("5.00"),
+            parking_area=Decimal("15.00"),
+        )
+
+        client = Client()
+        client.force_login(user)
+
+        api_resp = client.get(
+            reverse("calculate_land_rates_api"),
+            {"code": "8-806-55-1-1", "net": "88", "storage": "5", "parking": "15"},
+        )
+        self.assertEqual(api_resp.status_code, 200)
+        d = api_resp.json()["data"]
+        self.assertEqual(d["share_land"], "0.6")
+        self.assertEqual(d["share_common"], "0.131738046")
+        self.assertEqual(d["share_coefficient"], "0.731738046")
+        self.assertEqual(d["rent_current_per_m2"], 10000000)
+        self.assertEqual(d["rent_to_date_per_m2"], 20000000)
+        self.assertEqual(d["prep_per_m2"], 30000000)
+
+        detail_resp = client.get(reverse("dossier_detail", kwargs={"pk": dossier.archive_number}))
+        self.assertEqual(detail_resp.status_code, 200)
+        html = detail_resp.content.decode("utf-8")
+        self.assertIn("df-formula-box", html)
+        self.assertIn('class="df-formula-row" dir="ltr"', html)
+        self.assertIn('class="df-excel-grid" dir="ltr"', html)
+        self.assertIn('class="df-f-rate-expr" dir="ltr"', html)
+        self.assertIn("متراژ مفید", html)
+        self.assertIn("انباری", html)
+        self.assertIn("پارکینگ", html)
+        self.assertIn("جمع متراژ", html)
+        self.assertIn("ضریب قدرالسهم", html)
+        self.assertIn("آماده‌سازی هر متر (ریال)", html)
+        self.assertIn("اجاره سنوات هر متر (ریال)", html)
+        self.assertIn("اجاره سال جاری هر متر (ریال)", html)
+        self.assertIn("قدرالسهم از عرصه", html)
+        self.assertIn("قدرالسهم از مشاع", html)
+        self.assertIn("جمع ضریب قدرالسهم", html)
+        self.assertIn("land_rate_info", html)
+        self.assertIn("0.731738046", html)
+        self.assertIn("30000000", html)
+        sec9_html = html[html.index('id="section-valuation-body"') : html.index('id="section-checks"')]
+        self.assertLess(sec9_html.index("form.total_land_share"), sec9_html.index('class="df-formula-box'))
+
+    def test_fuzzy_project_plot_block_lookup_disambiguation(self):
+        """Alias/corporate naming variants match exact LandRate without cross-project or cross-phase collisions."""
+        from workflow.models import LandRate
+        from workflow.land_rates import get_rate
+
+        LandRate.objects.create(
+            renovation_code="8-806-78-1-1",
+            project_name="تعاونی سپاه علی ابن ابیطالب",
+            plot_number="27",
+            block_name="KK",
+            share_land=Decimal("0.692840716"),
+            share_common=Decimal("0"),
+            rent_current_per_m2=Decimal("441600"),
+            rent_to_date_per_m2=Decimal("468550"),
+            prep_per_m2=Decimal("19733922"),
+        )
+        LandRate.objects.create(
+            renovation_code="8-806-74-2-7",
+            project_name="بسیج سازندگی",
+            plot_number="5",
+            block_name="KK",
+            share_land=Decimal("0.740000000"),
+            share_common=Decimal("0"),
+            rent_current_per_m2=Decimal("441600"),
+            rent_to_date_per_m2=Decimal("468550"),
+            prep_per_m2=Decimal("19733922"),
+        )
+        LandRate.objects.create(
+            renovation_code="8-806-99-1-1",
+            project_name="کیمیا بنا پارس",
+            plot_number="281",
+            block_name="M2",
+            share_land=Decimal("0.650000000"),
+            share_common=Decimal("0"),
+            rent_current_per_m2=Decimal("441600"),
+            rent_to_date_per_m2=Decimal("468550"),
+            prep_per_m2=Decimal("19733922"),
+        )
+        LandRate.objects.create(
+            renovation_code="8-806-88-1-1",
+            project_name="فاطر سازه ایلیا2",
+            plot_number="370",
+            block_name="Y5",
+            share_land=Decimal("0.620000000"),
+            share_common=Decimal("0"),
+            rent_current_per_m2=Decimal("441600"),
+            rent_to_date_per_m2=Decimal("468550"),
+            prep_per_m2=Decimal("19733922"),
+        )
+        reset_cache()
+
+        r_sepah = get_rate(
+            project="تعاونی مسکن پیشتازان سرافراز قم (تعاونی مسکن کارکنان سپاه علی ابن ابیطالب (ع))",
+            plot="27",
+            block="kk-36",
+        )
+        self.assertIsNotNone(r_sepah)
+        self.assertEqual(r_sepah.renovation_code, "8-806-78-1-1")
+
+        r_basij = get_rate(
+            project="سازمان بسیج سازندگی سپاه امام علی ابن ابیطالب (ع)",
+            plot="5",
+            block="KK",
+        )
+        self.assertIsNotNone(r_basij)
+        self.assertEqual(r_basij.renovation_code, "8-806-74-2-7")
+
+        r_kimia = get_rate(project="شرکت مهندسی کیمیا بنای پارس", plot="281", block="M2")
+        self.assertIsNotNone(r_kimia)
+        self.assertEqual(r_kimia.renovation_code, "8-806-99-1-1")
+
+        r_fater = get_rate(project="فاطر سازه ایلیا 1 و 2", plot="370", block="Y5")
+        self.assertIsNotNone(r_fater)
+        self.assertEqual(r_fater.renovation_code, "8-806-88-1-1")

@@ -460,12 +460,12 @@
                     <span class="value code">{{ dossier.national_id }}</span>
                 </div>
                 <div class="info-item">
-                    <span class="label-s">شماره نامه:</span>
+                    <span class="label-s">{% if check_type != 'prep' and dossier.decile_bank_letter_number %}شماره نامه بانک دهک:{% else %}شماره نامه:{% endif %}</span>
                     <span class="value-s code-s">
                         {% if check_type == 'prep' %}
                             {{ dossier.rah_letter|default:'---' }}
                         {% else %}
-                            {{ dossier.commitment_number|default:dossier.rah_letter|default:'---' }}
+                            {{ dossier.decile_bank_letter_number|default:dossier.commitment_number|default:dossier.rah_letter|default:'---' }}{% if dossier.decile_bank_letter_number and dossier.decile_bank_letter_date %} ({{ dossier.decile_bank_letter_date }}){% endif %}
                         {% endif %}
                     </span>
                 </div>

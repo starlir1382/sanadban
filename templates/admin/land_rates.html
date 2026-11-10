@@ -485,16 +485,39 @@
 .sb-filter-item.flex-2 { flex: 2; min-width: 250px; }
 .sb-filter-item.flex-1 { flex: 1; min-width: 200px; }
 .sb-filter-label { font-size: 0.8rem; font-weight: 700; color: #475569; }
+.sb-rates-page {
+    color-scheme: light;
+}
 .sb-input-field {
     width: 100%;
     padding: 0.5rem 0.75rem;
-    border: 1px solid #cbd5e1;
+    border: 1.5px solid #cbd5e1;
     border-radius: 8px;
     font-size: 0.84rem;
     outline: none;
-    background: #fff;
+    color-scheme: light;
+    background-color: #ffffff;
+    color: #0f172a;
+    -webkit-text-fill-color: #0f172a;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
-.sb-input-field:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+.sb-input-field::placeholder {
+    color: #94a3b8;
+    -webkit-text-fill-color: #94a3b8;
+    opacity: 1;
+}
+.sb-input-field:-webkit-autofill,
+.sb-input-field:-webkit-autofill:hover,
+.sb-input-field:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+    -webkit-text-fill-color: #0f172a;
+    caret-color: #0f172a;
+}
+select.sb-input-field option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
+.sb-input-field:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
 .sb-input-icon-wrap { position: relative; }
 .sb-input-icon-wrap svg {
     position: absolute;

@@ -12,8 +12,8 @@ Params: theme, kind (loan | prep – passed to the upload/print/delete handlers)
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <input type="file" multiple accept="image/*,application/pdf" id="{{ input_id }}" @change="handleMultiCheckScanUpload($event, '{{ kind }}')" style="display:none;">
-            <button type="button" class="df-btn df-btn-soft" @click="document.getElementById('{{ input_id }}').click()">
-                <svg class="df-i"><use href="#i-upload"/></svg><span>بارگذاری اسکن</span>
+            <button type="button" class="df-btn df-btn-soft" @click="document.getElementById('{{ input_id }}').click()" :disabled="isUploadingInlineScan" :style="isUploadingInlineScan ? { opacity: 0.65, cursor: 'wait' } : {}">
+                <svg class="df-i"><use href="#i-upload"/></svg><span class="fa-num" x-text="isUploadingInlineScan ? ('در حال ارسال (' + inlineUploadProgress + '٪)') : 'بارگذاری اسکن'"></span>
             </button>
             <button type="button" class="df-btn df-btn-accent" @click="printCheckScans('{{ kind }}')" title="چاپ متوالی چک‌ها همراه با سربرگ رسمی">
                 <svg class="df-i"><use href="#i-print"/></svg><span>چاپ چک‌ها</span>
@@ -21,6 +21,16 @@ Params: theme, kind (loan | prep – passed to the upload/print/delete handlers)
             <button type="button" class="df-btn" @click="tab = 'scans'; scrollToCategory('checks')" title="مشاهده در آلبوم اسناد پرونده">
                 <svg class="df-i"><use href="#i-link"/></svg><span>آلبوم اسناد</span>
             </button>
+        </div>
+    </div>
+
+    <div x-show="isUploadingInlineScan" x-cloak style="margin-bottom: 0.75rem; padding: 0.65rem 0.9rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #1e3a8a;">
+            <span>در حال بارگذاری اسکن چک و ثبت در سامانه... (لطفاً مجدداً کلیک نکنید)</span>
+            <span class="fa-num" x-text="inlineUploadProgress + '٪'"></span>
+        </div>
+        <div style="width: 100%; height: 6px; background: #dbeafe; border-radius: 999px; overflow: hidden;">
+            <div :style="`width: ${Math.max(5, inlineUploadProgress)}%; height: 100%; background: #2563eb; transition: width 0.2s ease;`"></div>
         </div>
     </div>
 

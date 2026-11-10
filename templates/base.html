@@ -36,6 +36,8 @@
 
     <!-- Alpine.js Cloak & FOUC Prevention -->
     <style>
+        html, html[data-theme="light"] { color-scheme: light; }
+        html[data-theme="dark"] { color-scheme: dark; }
         [x-cloak] { display: none !important; }
         :root, html, body, input, select, textarea, button, table, td, th {
             font-feature-settings: "ss01" 1;

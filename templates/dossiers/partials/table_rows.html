@@ -1,8 +1,8 @@
 {% for d in dossiers %}
-<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }}{% if d.has_confirmed_checks %} چک تایید شده چک‌های تاییدشده{% endif %}">
+<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }} {{ d.list_bank_letter_code }} {{ d.list_notary_letter_code }}{% if d.has_confirmed_checks %} چک تایید شده چک‌های تاییدشده{% endif %}">
   
   <!-- Checkbox for Batch Signing -->
-  <td class="t-center dl-td-chk" style="width: 38px; min-width: 38px; padding: 0.65rem 0.35rem;">
+  <td class="t-center dl-td-chk">
     <input type="checkbox" 
            class="dossier-chk" 
            value="{{ d.archive_number }}" 
@@ -13,7 +13,7 @@
   </td>
 
   <!-- 1. Archive number / Row -->
-  <td class="t-center fa-num" style="width: 85px; min-width: 70px;">
+  <td class="t-center fa-num">
     {% if d.current_stage >= 8 or d.is_locked %}
       <span class="dl-id" title="شماره پرونده بایگانی رسمی">{{ d.archive_number }}</span>
     {% else %}
@@ -42,7 +42,7 @@
   </td>
 
   <!-- 4. Stage + Date + Status -->
-  <td class="t-center fa-num">
+  <td class="fa-num">
     <div class="dl-stage">
       <span class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
         <span class="lbl">مرحله</span>
@@ -78,10 +78,11 @@
     </div>
   </td>
 
+  <!-- 5. Optional: Bank letter & paid/signed facility/prep status -->
+  <td class="dl-extras-td fa-num">{% include "dossiers/partials/_row_extra_status.html" %}</td>
 
-
-  <!-- 7. Action -->
-  <td class="t-center" style="width: 135px; min-width: 130px;">
+  <!-- 6. Action -->
+  <td class="t-center">
     <div class="dl-actions">
       <a href="{% url 'dossier_detail' pk=d.archive_number %}" class="dl-open" title="ورود و اقدام روی پرونده {{ d.archive_number }}">
         <span>ورود به پرونده</span>
@@ -95,7 +96,7 @@
 </tr>
 {% empty %}
 <tr>
-  <td colspan="6">
+  <td colspan="7">
     <div class="dl-empty" style="padding: 2.5rem 1rem; text-align: center; color: var(--color-text-muted, #64748b);">
       <div class="dl-empty-ic" style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-app, #f8fafc); border: 1px solid var(--color-border, #e2e8f0); color: var(--color-text-subtle, #94a3b8); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>

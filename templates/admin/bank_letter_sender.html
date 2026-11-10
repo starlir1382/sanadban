@@ -7,6 +7,10 @@
 <div style="margin-bottom: 3rem;" 
      x-data="{
         activeTab: 'create',
+        letterType: '{{ default_letter_type|default:"bank"|escapejs }}',
+        canSendBank: {{ can_send_bank|yesno:"true,false" }},
+        canSendDecile: {{ can_send_decile|yesno:"true,false" }},
+        letterHistoryFilter: 'all',
         activeBankFilter: 'all',
         showOnlyUnsent: true,
         allDossiers: [],
@@ -78,13 +82,30 @@
             if (initialLetter) {
                 const found = this.letterHistory.find(l => l.letter_number === initialLetter);
                 if (found) {
+                    this.letterType = found.letter_type || this.letterType;
                     this.loadHistoryLetterToSheet(found);
                 }
             }
         },
 
+        switchLetterType(newType) {
+            if (this.letterType === newType) return;
+            this.letterType = newType;
+            this.letterNumber = '';
+            this.letterNotes = '';
+            this.resetBatchToEligible();
+        },
+
         resetBatchToEligible() {
             this.viewingHistoricalLetter = null;
+            if (this.letterType === 'decile') {
+                const eligibleDecile = this.allDossiers.filter(d =>
+                    (d.current_stage === 16 || d.current_stage === 17 || d.current_stage === 18 || (d.decile_loan_amount && d.decile_loan_amount > 0))
+                    && !d.decile_bank_letter_number
+                );
+                this.selectedDossiers = [...eligibleDecile];
+                return;
+            }
             // Only dossiers genuinely eligible for bank shipment (Stage 6, equity funded, or added to shipment list)
             const eligible = this.allDossiers.filter(d => 
                 (d.current_stage === 6 || d.is_equity_funded || d.is_added_to_bank_shipment_list) && !d.is_sent_to_bank
@@ -191,6 +212,25 @@
             }
         },
 
+        addAllDecileStage() {
+            const decileEligible = this.allDossiers.filter(d =>
+                (d.current_stage === 16 || d.current_stage === 17 || d.current_stage === 18 || (d.decile_loan_amount && d.decile_loan_amount > 0))
+                && (!this.showOnlyUnsent || !d.decile_bank_letter_number)
+            );
+            let added = 0;
+            decileEligible.forEach(d => {
+                if (!this.selectedDossiers.some(sd => sd.archive_number === d.archive_number)) {
+                    this.selectedDossiers.push(d);
+                    added++;
+                }
+            });
+            if (added > 0) {
+                this.triggerToast(`تعداد ${added} پرونده مشمول وام دهک به محموله افزوده شدند.`);
+            } else {
+                this.triggerToast('پرونده جدید مشمول وام دهک یافت نشد.');
+            }
+        },
+
         addBySelectedProject() {
             if (!this.selectedProject) {
                 alert('لطفاً ابتدا یک پروژه را از منوی کشویی انتخاب فرمایید.');
@@ -221,18 +261,19 @@
         downloadBankExcel(bankCode) {
             let archivesParam = '';
             let targetDossiers = this.selectedDossiers;
-            if (bankCode !== 'zip') {
+            if (bankCode !== 'zip' && bankCode !== 'all') {
                 targetDossiers = targetDossiers.filter(d => d.bank_code === bankCode);
             }
             if (targetDossiers.length) {
                 archivesParam = '&archives=' + targetDossiers.map(d => d.archive_number).join(',');
             }
-            const url = `{% url 'bank_letter_export_excel' %}?bank=${bankCode}${archivesParam}`;
+            const url = `{% url 'bank_letter_export_excel' %}?bank=${bankCode}&letter_type=${encodeURIComponent(this.letterType)}${archivesParam}`;
             window.open(url, '_blank');
         },
 
         loadHistoryLetterToSheet(letter) {
             this.viewingHistoricalLetter = letter;
+            this.letterType = letter.letter_type || 'bank';
             this.letterNumber = letter.letter_number;
             this.letterDate = letter.letter_date;
             this.letterBankCode = letter.bank_code || 'maskan';
@@ -260,7 +301,8 @@
         exportHistoryExcel(letter) {
             const archives = (letter.dossier_archives || []).join(',');
             const bCode = letter.bank_code || 'maskan';
-            const url = `{% url 'bank_letter_export_excel' %}?bank=${bCode}&archives=${archives}&letter=${encodeURIComponent(letter.letter_number)}&date=${encodeURIComponent(letter.letter_date)}`;
+            const lType = letter.letter_type || 'bank';
+            const url = `{% url 'bank_letter_export_excel' %}?bank=${bCode}&letter_type=${encodeURIComponent(lType)}&archives=${archives}&letter=${encodeURIComponent(letter.letter_number)}&date=${encodeURIComponent(letter.letter_date)}`;
             window.open(url, '_blank');
         },
 
@@ -269,9 +311,13 @@
         },
 
         get filteredHistory() {
-            if (!this.historySearch.trim()) return this.letterHistory;
+            let list = this.letterHistory;
+            if (this.letterHistoryFilter !== 'all') {
+                list = list.filter(l => (l.letter_type || 'bank') === this.letterHistoryFilter);
+            }
+            if (!this.historySearch.trim()) return list;
             const q = this.historySearch.trim().toLowerCase();
-            return this.letterHistory.filter(l => 
+            return list.filter(l => 
                 (l.letter_number && l.letter_number.toLowerCase().includes(q)) ||
                 (l.letter_date && l.letter_date.toLowerCase().includes(q)) ||
                 (l.bank_name && l.bank_name.toLowerCase().includes(q)) ||
@@ -303,15 +349,19 @@
                 alert('هیچ پرونده‌ای برای ثبت شماره نامه بانک انتخاب نشده است.');
                 return;
             }
+            const isDecile = this.letterType === 'decile';
             const bankTitle = this.getBankName(this.letterBankCode);
             const numText = this.letterNumber.trim() ? `شماره نامه «${this.letterNumber.trim()}»` : 'پیش‌نویس بدون شماره (ثبت بعد از اعلام دبیرخانه)';
             const dateText = this.letterDate.trim() ? ` مورخ «${this.letterDate.trim()}»` : '';
-            const msg = `آیا از ثبت ارسال محموله معرفی به بانک به ${numText}${dateText} برای ${targetDocs.length} پرونده (${bankTitle}) اطمینان دارید؟\nاین عملیات وضعیت پرونده‌ها را به «ارسال به بانک» تغییر داده و آن‌ها را به مرحله ۷ (اسکن مدارک و دفترچه اقساط) منتقل می‌کند.`;
+            const msg = isDecile
+                ? `آیا از ثبت «نامه بانک دهک» به ${numText}${dateText} برای ${targetDocs.length} پرونده (${bankTitle}) اطمینان دارید؟\nشماره و تاریخ نامه بانک دهک در بخش ۱۰ پرونده‌های انتخابی ثبت خواهد شد.`
+                : `آیا از ثبت ارسال محموله معرفی به بانک به ${numText}${dateText} برای ${targetDocs.length} پرونده (${bankTitle}) اطمینان دارید؟\nاین عملیات وضعیت پرونده‌ها را به «ارسال به بانک» تغییر داده و آن‌ها را به مرحله ۷ (اسکن مدارک و دفترچه اقساط) منتقل می‌کند.`;
             if (!confirm(msg)) return;
 
             this.isSubmitting = true;
             try {
                 const payload = {
+                    letter_type: this.letterType,
                     archive_numbers: targetDocs.map(d => d.archive_number),
                     letter_number: this.letterNumber.trim(),
                     letter_date: this.letterDate.trim(),
@@ -332,19 +382,26 @@
                 if (data.status === 'success') {
                     // Update local state
                     targetDocs.forEach(d => {
-                        d.is_sent_to_bank = true;
-                        d.bank_letter_number = this.letterNumber;
-                        d.bank_letter_date = this.letterDate;
-                        if (d.current_stage === 6) {
-                            d.current_stage = 7;
-                            d.current_stage_title = 'اسکن مدارک و دفترچه اقساط';
+                        if (isDecile) {
+                            d.decile_bank_letter_number = data.letter_number || this.letterNumber;
+                            d.decile_bank_letter_date = data.letter_date || this.letterDate;
+                        } else {
+                            d.is_sent_to_bank = true;
+                            d.bank_letter_number = this.letterNumber;
+                            d.bank_letter_date = this.letterDate;
+                            if (d.current_stage === 6) {
+                                d.current_stage = 7;
+                                d.current_stage_title = 'اسکن مدارک و دفترچه اقساط';
+                            }
                         }
                     });
                     
                     // Add new letter to history
                     const newHistItem = {
                         id: data.letter_id || Date.now(),
-                        letter_number: this.letterNumber,
+                        letter_type: this.letterType,
+                        letter_type_display: isDecile ? 'نامه بانک دهک' : 'نامه بانک',
+                        letter_number: data.letter_number || this.letterNumber,
                         letter_date: this.letterDate,
                         bank_code: this.letterBankCode,
                         bank_name: data.bank_name || bankTitle,
@@ -432,11 +489,25 @@
                     <span style="font-size: 0.78rem; color: #93c5fd;" class="fa-num">مرحله ۶ گردش کار ۲۲ مرحله‌ای (تأیید آورده و معرفی به بانک)</span>
                 </div>
                 <h2 style="font-size: 1.35rem; font-weight: 900; color: #ffffff; margin: 0 0 0.4rem 0;">
-                    سامانه صدور و سوابق نامه‌های معرفی به ۵ بانک عامل
+                    سامانه صدور و سوابق <span x-text="letterType === 'decile' ? 'نامه بانک دهک (تسهیلات قرض‌الحسنه دهک‌های درآمدی)' : 'نامه‌های معرفی به ۵ بانک عامل'"></span>
                 </h2>
-                <p style="font-size: 0.84rem; color: #cbd5e1; margin: 0; line-height: 1.6;">
-                    تولید ۵ فایل اکسل مجزا به تفکیک بانک‌های مسکن، ملت، صادرات، تجارت و ملی (با شیت‌های مجزا برای هر پروژه از ۹۶ پروژه)، مدیریت حذفی/اضافی محموله ارسالی و ثبت رسمی شماره نامه جهت ارجاع به مرحله ۷
+                <p style="font-size: 0.84rem; color: #cbd5e1; margin: 0 0 0.75rem 0; line-height: 1.6;">
+                    <span x-show="letterType === 'bank'">تولید ۵ فایل اکسل مجزا به تفکیک بانک‌های مسکن، ملت، صادرات، تجارت و ملی (با شیت‌های مجزا برای هر پروژه از ۹۶ پروژه)، مدیریت حذفی/اضافی محموله ارسالی و ثبت رسمی شماره نامه جهت ارجاع به مرحله ۷</span>
+                    <span x-show="letterType === 'decile'" x-cloak>انتخاب پرونده‌های مشمول وام دهک، صدور برگه و اکسل معرفی به بانک دهک و ثبت رسمی شماره و تاریخ نامه بانک دهک در بخش ۱۰ پرونده</span>
                 </p>
+                <!-- Letter Type Switcher -->
+                <div style="display: flex; gap: 0.55rem; flex-wrap: wrap;">
+                    <button type="button" x-show="canSendBank || letterType === 'bank'" @click="switchLetterType('bank')"
+                            :style="letterType === 'bank' ? 'background: #38bdf8; color: #0f2744; border-color: #38bdf8;' : 'background: rgba(255,255,255,0.1); color: #e2e8f0; border-color: rgba(255,255,255,0.25);'"
+                            style="padding: 6px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 900; border: 1.5px solid; cursor: pointer;">
+                        🏦 نامه بانک (راه و شهرسازی به بانک عامل — مرحله ۶)
+                    </button>
+                    <button type="button" x-show="canSendDecile || letterType === 'decile'" @click="switchLetterType('decile')"
+                            :style="letterType === 'decile' ? 'background: #f59e0b; color: #0f172a; border-color: #fbbf24;' : 'background: rgba(255,255,255,0.1); color: #e2e8f0; border-color: rgba(255,255,255,0.25);'"
+                            style="padding: 6px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 900; border: 1.5px solid; cursor: pointer;">
+                        🧾 نامه بانک دهک (راه و شهرسازی به بانک دهک — بخش ۱۰)
+                    </button>
+                </div>
                 <!-- Totals KPI Strip -->
                 <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; margin-top: 0.85rem;">
                     <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); border-radius: 8px; padding: 4px 12px; font-size: 0.78rem; display: flex; align-items: center; gap: 6px;">
@@ -459,9 +530,13 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     <span>دانلود یکجای ۵ فایل اکسل (ZIP)</span>
                 </button>
+                <button type="button" @click="downloadBankExcel('all')" x-show="letterType === 'decile'" x-cloak class="btn btn-outline" style="background: #fef3c7; color: #92400e; border-color: #fbbf24; font-weight: 900; display: flex; align-items: center; gap: 0.45rem;">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>دانلود اکسل نامه بانک دهک</span>
+                </button>
                 <button type="button" @click="activeTab = 'register'" class="btn btn-primary" style="background: #10b981; border-color: #059669; color: #ffffff; font-weight: 900; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span>ثبت شماره نامه بانک (انتقال به مرحله ۷)</span>
+                    <span x-text="letterType === 'decile' ? 'ثبت شماره نامه بانک دهک (بخش ۱۰)' : 'ثبت شماره نامه بانک (انتقال به مرحله ۷)'"></span>
                 </button>
             </div>
         </div>
@@ -483,7 +558,7 @@
                 :style="activeTab === 'register' ? 'background: #0f2744; color: #ffffff; border-color: #0f2744;' : 'background: #ffffff; color: #334155; border-color: #cbd5e1;'"
                 style="padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; border: 1.5px solid; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            <span>ثبت رسمی شماره و تاریخ نامه بانک (روز بعد)</span>
+            <span x-text="letterType === 'decile' ? 'ثبت رسمی شماره و تاریخ نامه بانک دهک' : 'ثبت رسمی شماره و تاریخ نامه بانک (روز بعد)'"></span>
         </button>
 
         <button type="button" 
@@ -649,11 +724,9 @@
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 </div>
                 <div>
-                    <h3 style="font-size: 1.15rem; font-weight: 900; color: #0f172a; margin: 0 0 2px 0;">
-                        ثبت رسمی شماره نامه و تاریخ بانک 
+                    <h3 style="font-size: 1.15rem; font-weight: 900; color: #0f172a; margin: 0 0 2px 0;" x-text="letterType === 'decile' ? 'ثبت رسمی شماره و تاریخ نامه بانک دهک' : 'ثبت رسمی شماره نامه و تاریخ بانک'">
                     </h3>
-                    <div style="font-size: 0.8rem; color: #64748b;">
-                        پس از دریافت شماره نامه فیزیکی از سوی بانک، اطلاعات را در این بخش ثبت کنید تا پرونده‌ها به مرحله ۷ ارجاع شوند.
+                    <div style="font-size: 0.8rem; color: #64748b;" x-text="letterType === 'decile' ? 'پس از صدور نامه راه و شهرسازی به بانک دهک، شماره و تاریخ را ثبت کنید تا مستقیماً در بخش ۱۰ پرونده‌های انتخابی درج شود.' : 'پس از دریافت شماره نامه فیزیکی از سوی بانک، اطلاعات را در این بخش ثبت کنید تا پرونده‌ها به مرحله ۷ ارجاع شوند.'">
                     </div>
                 </div>
             </div>
@@ -706,7 +779,7 @@
                 <!-- Letter Number Input -->
                 <div class="field-group">
                     <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
-                        <span>شماره نامه رسمی معرفی به بانک (اختیاری):</span>
+                        <span x-text="letterType === 'decile' ? 'شماره نامه رسمی بانک دهک (اختیاری):' : 'شماره نامه رسمی معرفی به بانک (اختیاری):'"></span>
                     </label>
                     <input type="text" x-model="letterNumber" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="در صورت صدور شماره نامه درج نمایید">
                 </div>
@@ -714,7 +787,7 @@
                 <!-- Letter Date Input -->
                 <div class="field-group">
                     <label class="field-label" style="font-weight: 800; color: #1e3a8a;">
-                        <span>تاریخ نامه بانک (اختیاری):</span>
+                        <span x-text="letterType === 'decile' ? 'تاریخ نامه بانک دهک (اختیاری):' : 'تاریخ نامه بانک (اختیاری):'"></span>
                     </label>
                     <input type="text" x-model="letterDate" class="input-control fa-num" style="font-weight: 900; color: #0f172a; font-size: 0.95rem; height: 42px;" placeholder="در صورت صدور تاریخ درج نمایید">
                 </div>
@@ -745,7 +818,7 @@
                 </button>
                 <button type="button" @click="submitBankLetter()" :disabled="isSubmitting" class="btn btn-primary" style="background: #10b981; border-color: #059669; color: #ffffff; font-weight: 900; padding: 0.65rem 1.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    <span x-text="isSubmitting ? 'در حال ثبت و ارجاع...' : 'ثبت قطعی شماره نامه و انتقال پرونده‌ها به مرحله ۷'"></span>
+                    <span x-text="isSubmitting ? 'در حال ثبت...' : (letterType === 'decile' ? 'ثبت قطعی شماره نامه بانک دهک در پرونده‌ها' : 'ثبت قطعی شماره نامه و انتقال پرونده‌ها به مرحله ۷')"></span>
                 </button>
             </div>
 
@@ -798,12 +871,21 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                     <span>فهرست نامه‌های معرفی متقاضیان به بانک‌های عامل</span>
                 </div>
-                <div style="min-width: 300px; flex: 1; max-width: 480px;">
+                <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center;">
+                    <button type="button" @click="letterHistoryFilter = 'all'"
+                            :style="letterHistoryFilter === 'all' ? 'background: #0f172a; color: #fff; border-color: #0f172a;' : 'background: #fff; color: #334155; border-color: #cbd5e1;'"
+                            style="padding: 5px 11px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; border: 1.5px solid; cursor: pointer;">همه</button>
+                    <button type="button" @click="letterHistoryFilter = 'bank'"
+                            :style="letterHistoryFilter === 'bank' ? 'background: #1d4ed8; color: #fff; border-color: #1d4ed8;' : 'background: #fff; color: #1d4ed8; border-color: #bfdbfe;'"
+                            style="padding: 5px 11px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; border: 1.5px solid; cursor: pointer;">نامه بانک</button>
+                    <button type="button" @click="letterHistoryFilter = 'decile'"
+                            :style="letterHistoryFilter === 'decile' ? 'background: #b45309; color: #fff; border-color: #b45309;' : 'background: #fff; color: #b45309; border-color: #fde68a;'"
+                            style="padding: 5px 11px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; border: 1.5px solid; cursor: pointer;">نامه بانک دهک</button>
                     <input type="text" 
                            x-model="historySearch" 
                            placeholder="جستجو در سوابق (شماره نامه، تاریخ، نام پروژه، بانک، نام متقاضی یا کدملی)..."
                            class="input-control fa-num" 
-                           style="height: 40px; font-size: 0.82rem;">
+                           style="height: 40px; font-size: 0.82rem; min-width: 260px;">
                 </div>
             </div>
 
@@ -829,10 +911,15 @@
                                 :style="expandedLetterId === item.id ? 'background: #f8fafc;' : (hIdx % 2 === 0 ? 'background: #ffffff;' : 'background: #fdfdfd;')">
                                 <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: #64748b;" class="fa-num" x-text="hIdx + 1"></td>
                                 <td style="padding: 10px 10px; font-weight: 800;">
-                                    <span style="background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 6px; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px;" class="fa-num">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                                        <span x-text="item.letter_number"></span>
-                                    </span>
+                                    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                                        <span style="background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 6px; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px;" class="fa-num">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                            <span x-text="item.letter_number"></span>
+                                        </span>
+                                        <span style="font-size: 0.7rem; padding: 1px 7px; border-radius: 999px; font-weight: 800;"
+                                              :style="(item.letter_type || 'bank') === 'decile' ? 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;' : 'background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;'"
+                                              x-text="(item.letter_type || 'bank') === 'decile' ? 'نامه بانک دهک' : 'نامه بانک'"></span>
+                                    </div>
                                 </td>
                                 <td style="padding: 10px 10px; font-weight: 700; color: #334155;" class="fa-num" x-text="item.letter_date"></td>
                                 <td style="padding: 10px 10px; font-weight: 800;">
@@ -1076,8 +1163,11 @@
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         <span x-text="isSearchingManual ? 'در حال جستجو...' : 'افزودن به محموله'"></span>
                     </button>
-                    <button type="button" @click="addAllStage6()" class="btn btn-outline" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; height: 38px; font-weight: 800;">
+                    <button type="button" x-show="letterType === 'bank'" @click="addAllStage6()" class="btn btn-outline" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; height: 38px; font-weight: 800;">
                         <span>+ افزودن پرونده‌های مرحله ۶</span>
+                    </button>
+                    <button type="button" x-show="letterType === 'decile'" x-cloak @click="addAllDecileStage()" class="btn btn-outline" style="background: #fffbeb; color: #b45309; border-color: #fde68a; height: 38px; font-weight: 800;">
+                        <span>+ افزودن پرونده‌های وام دهک</span>
                     </button>
                     <button type="button" @click="addBySelectedProject()" x-show="selectedProject" class="btn btn-outline" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; height: 38px; font-weight: 800;">
                         <span>+ افزودن پرونده‌های این پروژه</span>
@@ -1113,9 +1203,9 @@
              ========================================================================= -->
         <div id="official-sheet-section" class="bank-letter-sheet-container" style="background: #ffffff; border: 1.5px solid #000000; border-radius: 4px; padding: 0.5rem; overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
             
-            <!-- Header Banner matching the photo: محاسبه قیمت تمام شده انتخاب واحد پروژه ... -->
+            <!-- Header Banner -->
             <div class="bank-sheet-banner" style="background: #e2e8f0; border: 1.5px solid #000000; text-align: center; padding: 0.65rem 1rem; font-weight: 900; font-size: 1.05rem; color: #000000; margin-bottom: 0.35rem; letter-spacing: 0.3px;">
-                محاسبه قیمت تمام شده انتخاب واحد پروژه <span x-text="selectedProject || 'پروژه‌های مسکونی استان قم'"></span>
+                <span x-text="letterType === 'decile' ? 'معرفی‌نامه تسهیلات قرض‌الحسنه دهک‌های درآمدی — پروژه ' : 'محاسبه قیمت تمام شده انتخاب واحد پروژه '"></span><span x-text="selectedProject || 'پروژه‌های مسکونی استان قم'"></span>
                 <span x-show="activeBankFilter !== 'all'"> (<span x-text="getBankName(activeBankFilter)"></span>)</span>
             </div>
 

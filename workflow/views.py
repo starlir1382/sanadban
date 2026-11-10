@@ -119,6 +119,10 @@ from .field_permissions import (
     filter_allowed_updates,
 
 )
+from .project_catalog import (
+    get_projects_catalog_payload,
+    validate_catalog_updates,
+)
 
 from .models import DossierSignature
 
@@ -150,7 +154,11 @@ DOSSIER_FIELD_LABELS = {
 
     "selection_rank": "رتبه انتخاب واحد",
 
-    "form_j_questionnaire_number": "شماره پرسش نامه فرم ج",
+    "form_j_questionnaire_number": "شماره پرسش نامه / رسمی فرم ج",
+
+    "form_j_number": "شماره رسمی / پرسش نامه فرم ج",
+
+    "computer_code": "کد کامپیوتری",
 
     "applicant_form_j_status": "وضعیت استعلام فرم ج متقاضی",
 
@@ -311,6 +319,10 @@ DOSSIER_FIELD_LABELS = {
 
     "decile_loan_bank": "بانک عامل وام دهک",
 
+    "decile_bank_letter_number": "شماره نامه بانک دهک",
+
+    "decile_bank_letter_date": "تاریخ نامه بانک دهک (شمسی)",
+
     "supported_institution": "نهاد تحت حمایت متقاضی",
 
     "check_count": "تعداد چک‌های تسهیلات دهک",
@@ -457,6 +469,10 @@ def get_token_search_condition(token: str):
 
             models.Q(bank_letter_number__icontains=term) |
 
+            models.Q(decile_bank_letter_number__icontains=term) |
+
+            models.Q(notary_letter_number__icontains=term) |
+
             models.Q(registration_section__icontains=term)
 
         )
@@ -489,6 +505,110 @@ def get_token_search_condition(token: str):
 
     return cond
 
+
+
+def _fmt_jalali_date_short(val) -> str:
+    if not val:
+        return ""
+    try:
+        import datetime
+        import jdatetime
+        if isinstance(val, datetime.datetime):
+            if timezone.is_aware(val):
+                val = timezone.localtime(val)
+            return jdatetime.datetime.fromgregorian(datetime=val).strftime("%Y/%m/%d")
+        if isinstance(val, datetime.date):
+            return jdatetime.date.fromgregorian(date=val).strftime("%Y/%m/%d")
+    except Exception:
+        pass
+    s = str(val).strip().translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+    m = re.search(r"(\d{4}/\d{1,2}/\d{1,2})", s)
+    if m:
+        return m.group(1)
+    return s.split()[0] if s else ""
+
+
+def _attach_dossier_list_extras(dossiers) -> None:
+    dossier_list = list(dossiers)
+    if not dossier_list:
+        return
+
+    ids = [d.id for d in dossier_list]
+    _fa_to_en = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+    # Batch-fetch Stage 17 / 18 signatures from DossierSignature (1 query)
+    sig_slots_by_dossier = {}
+    for row in DossierSignature.objects.filter(
+        dossier_id__in=ids,
+        slot_key__in=["decile_facility", "revenue"],
+    ).values("dossier_id", "slot_key", "signer_name", "signed_date"):
+        has_sig = bool((row.get("signer_name") or "").strip() or (row.get("signed_date") or "").strip())
+        if has_sig:
+            sig_slots_by_dossier.setdefault(row["dossier_id"], {})[row["slot_key"]] = _fmt_jalali_date_short(row.get("signed_date"))
+
+    # Batch-fetch WorkflowSignatureLog for active stage sign dates accounting for returns (1 query)
+    sign_dates_by_dossier = {}
+    for log in WorkflowSignatureLog.objects.filter(
+        dossier_id__in=ids,
+        action__in=["SIGN", "APPROVE", "SIGN_EXCEL", "RETURN"],
+    ).values("dossier_id", "action", "from_stage", "to_stage", "action_label", "timestamp").order_by("timestamp", "id"):
+        did = log["dossier_id"]
+        d_map = sign_dates_by_dossier.setdefault(did, {})
+        if log["action"] in ("SIGN", "APPROVE", "SIGN_EXCEL"):
+            src = (log.get("from_stage") or "").translate(_fa_to_en)
+            m = re.search(r"مرحله\s*(\d+)", src)
+            if not m:
+                lbl = (log.get("action_label") or "").translate(_fa_to_en)
+                if "مرحله" in lbl:
+                    m = re.search(r"مرحله\s*(\d+)", lbl)
+            if m:
+                try:
+                    stg = int(m.group(1))
+                    if stg in (17, 18):
+                        d_map[stg] = _fmt_jalali_date_short(log.get("timestamp"))
+                except ValueError:
+                    pass
+        elif log["action"] == "RETURN":
+            dst = (log.get("to_stage") or "").translate(_fa_to_en)
+            m = re.search(r"مرحله\s*(\d+)", dst)
+            if m:
+                try:
+                    target_stg = int(m.group(1))
+                    for s in list(d_map.keys()):
+                        if s >= target_stg:
+                            del d_map[s]
+                except ValueError:
+                    pass
+
+    for d in dossier_list:
+        stg_dates = sign_dates_by_dossier.get(d.id, {})
+        slots = sig_slots_by_dossier.get(d.id, {})
+
+        bank_code = (d.bank_letter_number or d.bank_sent_letter_number or "").strip()
+        bank_date = _fmt_jalali_date_short(d.bank_letter_date or d.bank_sent_date or "") if bank_code else ""
+        d.list_bank_letter_code = bank_code
+        d.list_bank_letter_date = bank_date
+
+        decile_confirmed_dt = _fmt_jalali_date_short(d.loan_checks_confirmed_at)
+        decile_signed = (17 in stg_dates) or ("decile_facility" in slots)
+        d.list_decile_paid = bool(d.is_decile_loan_confirmed or decile_signed)
+        d.list_decile_paid_date = (
+            decile_confirmed_dt or stg_dates.get(17, "") or slots.get("decile_facility", "")
+            if d.list_decile_paid else ""
+        )
+
+        prep_confirmed_dt = _fmt_jalali_date_short(d.prep_checks_confirmed_at)
+        prep_signed = (18 in stg_dates) or ("revenue" in slots)
+        d.list_prep_paid = bool(d.is_preparation_checks_confirmed or prep_signed)
+        d.list_prep_paid_date = (
+            prep_confirmed_dt or stg_dates.get(18, "") or slots.get("revenue", "")
+            if d.list_prep_paid else ""
+        )
+
+        notary_code = (getattr(d, "notary_letter_number", "") or "").strip()
+        notary_date = _fmt_jalali_date_short(getattr(d, "notary_letter_date", "") or "") if notary_code else ""
+        d.list_notary_letter_code = notary_code
+        d.list_notary_letter_date = notary_date
 
 
 @login_required(login_url='login')
@@ -901,6 +1021,8 @@ def dossier_list_view(request):
 
     setattr(page_obj, 'count', paginator.count)
 
+    _attach_dossier_list_extras(page_obj.object_list)
+
 
 
     context = {
@@ -969,7 +1091,290 @@ def dossier_list_view(request):
     return render(request, "dossiers/list.html", context)
 
 
+_SIGNED_HISTORY_ACTIONS = ("SIGN", "SIGN_EXCEL", "ARCHIVE", "SUBMIT")
 
+
+def _format_sig_date_time(dt=None, ds_obj=None):
+    """Return ``(jalali_date, time_hhmm)`` strings from a datetime or DossierSignature."""
+    if ds_obj is not None:
+        d_part = (ds_obj.date_part or "").strip()
+        t_part = (ds_obj.time_part or "").strip()
+        if d_part:
+            if not t_part and dt is not None:
+                t_part = to_jalali_str(dt, "%H:%M")
+            return d_part, t_part
+    if dt is not None:
+        return to_jalali_str(dt, "%Y/%m/%d"), to_jalali_str(dt, "%H:%M")
+    return "", ""
+
+
+def _resolve_user_signature_map(dossier_ids, target_actors, include_fallback=False):
+    """Map dossier_id -> viewer signature date/time dict, with optional admin fallback."""
+    if not dossier_ids:
+        return {}
+
+    logs_qs = WorkflowSignatureLog.objects.filter(
+        dossier_id__in=dossier_ids,
+        action__in=_SIGNED_HISTORY_ACTIONS,
+    )
+    if not include_fallback:
+        logs_qs = logs_qs.filter(actor__in=target_actors)
+    logs_qs = logs_qs.order_by("timestamp", "id")
+
+    target_logs = {}
+    fallback_logs = {}
+    for slog in logs_qs:
+        if slog.actor in target_actors:
+            target_logs[slog.dossier_id] = slog
+        if include_fallback:
+            fallback_logs[slog.dossier_id] = slog
+
+    missing_target_ids = [did for did in dossier_ids if did not in target_logs]
+    target_ds = {}
+    fallback_ds = {}
+    if missing_target_ids:
+        ds_qs = DossierSignature.objects.filter(dossier_id__in=missing_target_ids)
+        if not include_fallback:
+            ds_qs = ds_qs.filter(
+                models.Q(signer_name__in=target_actors) | models.Q(uploaded_by__in=target_actors)
+            )
+        else:
+            ds_qs = ds_qs.exclude(signer_name="")
+        for ds_obj in ds_qs.order_by("uploaded_at", "id"):
+            if ds_obj.signer_name in target_actors or ds_obj.uploaded_by in target_actors:
+                target_ds[ds_obj.dossier_id] = ds_obj
+            if include_fallback and ds_obj.signer_name:
+                fallback_ds[ds_obj.dossier_id] = ds_obj
+
+    resolved = {}
+    for did in dossier_ids:
+        if did in target_logs:
+            slog = target_logs[did]
+            d_str, t_str = _format_sig_date_time(dt=slog.timestamp)
+            resolved[did] = {
+                "date": d_str,
+                "time": t_str,
+                "actor": slog.actor,
+                "not_signed_by_viewer": False,
+            }
+        elif did in target_ds:
+            ds_obj = target_ds[did]
+            d_str, t_str = _format_sig_date_time(dt=ds_obj.uploaded_at, ds_obj=ds_obj)
+            resolved[did] = {
+                "date": d_str,
+                "time": t_str,
+                "actor": ds_obj.signer_name or ds_obj.uploaded_by,
+                "not_signed_by_viewer": False,
+            }
+        elif include_fallback and did in fallback_logs:
+            slog = fallback_logs[did]
+            d_str, t_str = _format_sig_date_time(dt=slog.timestamp)
+            resolved[did] = {
+                "date": d_str,
+                "time": t_str,
+                "actor": slog.actor,
+                "not_signed_by_viewer": True,
+            }
+        elif include_fallback and did in fallback_ds:
+            ds_obj = fallback_ds[did]
+            d_str, t_str = _format_sig_date_time(dt=ds_obj.uploaded_at, ds_obj=ds_obj)
+            resolved[did] = {
+                "date": d_str,
+                "time": t_str,
+                "actor": ds_obj.signer_name or ds_obj.uploaded_by,
+                "not_signed_by_viewer": True,
+            }
+    return resolved
+
+
+@login_required(login_url='login')
+@ensure_csrf_cookie
+def signed_dossiers_list_view(request):
+    """
+    Second Home Screen: History of signed documents/dossiers for users and admins.
+    Shows dossiers where the user (or anyone in system for admin) has executed a signature.
+    Strictly view-only mode.
+    """
+    from django.db.models import OuterRef, Subquery
+    from django.db.models.functions import Coalesce
+
+    profile = getattr(request.user, 'profile', None)
+    is_super = request.user.is_superuser
+    is_staff = request.user.is_staff
+    is_chief = bool(profile and profile.is_housing_chief)
+    is_system = bool(profile and profile.organization == 'system')
+    is_all_stages = bool(profile and profile.allowed_stages == 'all')
+    is_full_admin = is_super or is_staff or is_chief or is_system or is_all_stages
+
+    actor_names = {u.strip() for u in [getattr(profile, 'full_name', ''), request.user.get_full_name(), request.user.username] if u and u.strip()}
+
+    signer_filter = request.GET.get('signer', '').strip()
+
+    if is_full_admin:
+        if signer_filter:
+            signed_dossier_ids = set(
+                WorkflowSignatureLog.objects.filter(
+                    actor=signer_filter,
+                    action__in=_SIGNED_HISTORY_ACTIONS,
+                ).values_list('dossier_id', flat=True).distinct()
+            )
+        else:
+            signed_dossier_ids = set(
+                WorkflowSignatureLog.objects.filter(
+                    action__in=_SIGNED_HISTORY_ACTIONS,
+                ).values_list('dossier_id', flat=True).distinct()
+            )
+            dossier_sig_ids = set(
+                DossierSignature.objects.exclude(signer_name="").values_list('dossier_id', flat=True).distinct()
+            )
+            signed_dossier_ids = signed_dossier_ids.union(dossier_sig_ids)
+
+        all_signers = list(
+            WorkflowSignatureLog.objects.filter(action__in=_SIGNED_HISTORY_ACTIONS)
+            .values_list('actor', flat=True)
+            .distinct()
+        )
+        all_signers = sorted([s for s in all_signers if s and s.strip()])
+    else:
+        signed_dossier_ids = set(
+            WorkflowSignatureLog.objects.filter(
+                actor__in=actor_names,
+                action__in=_SIGNED_HISTORY_ACTIONS,
+            ).values_list('dossier_id', flat=True).distinct()
+        )
+        dossier_sig_ids = set(
+            DossierSignature.objects.filter(
+                models.Q(signer_name__in=actor_names) | models.Q(uploaded_by__in=actor_names)
+            ).values_list('dossier_id', flat=True).distinct()
+        )
+        signed_dossier_ids = signed_dossier_ids.union(dossier_sig_ids)
+        all_signers = []
+
+    target_actors = {signer_filter} if (is_full_admin and signer_filter) else actor_names
+    include_fallback = bool(is_full_admin and not signer_filter)
+
+    target_log_ts = WorkflowSignatureLog.objects.filter(
+        dossier=OuterRef('pk'),
+        actor__in=target_actors,
+        action__in=_SIGNED_HISTORY_ACTIONS,
+    ).order_by('-timestamp', '-id').values('timestamp')[:1]
+    target_ds_ts = DossierSignature.objects.filter(
+        dossier=OuterRef('pk'),
+    ).filter(
+        models.Q(signer_name__in=target_actors) | models.Q(uploaded_by__in=target_actors)
+    ).order_by('-uploaded_at', '-id').values('uploaded_at')[:1]
+
+    if include_fallback:
+        any_log_ts = WorkflowSignatureLog.objects.filter(
+            dossier=OuterRef('pk'),
+            action__in=_SIGNED_HISTORY_ACTIONS,
+        ).order_by('-timestamp', '-id').values('timestamp')[:1]
+        any_ds_ts = DossierSignature.objects.filter(
+            dossier=OuterRef('pk'),
+        ).exclude(signer_name="").order_by('-uploaded_at', '-id').values('uploaded_at')[:1]
+        signed_sort_expr = Coalesce(
+            Subquery(target_log_ts),
+            Subquery(target_ds_ts),
+            Subquery(any_log_ts),
+            Subquery(any_ds_ts),
+            models.F('updated_at'),
+        )
+    else:
+        signed_sort_expr = Coalesce(
+            Subquery(target_log_ts),
+            Subquery(target_ds_ts),
+            models.F('updated_at'),
+        )
+
+    dossiers = HousingDossier.objects.filter(id__in=signed_dossier_ids).annotate(
+        signed_sort_at=signed_sort_expr
+    )
+
+    query = request.GET.get('q', '').strip()
+    sort = request.GET.get('sort', 'date_desc').strip()
+
+    if query:
+        whole_cond = get_token_search_condition(query)
+        tokens = [t for t in query.split() if t.strip()]
+        meaningful_tokens = [t for t in tokens if t != "مرحله"]
+
+        if len(meaningful_tokens) > 1:
+            token_cond = models.Q()
+            for t in meaningful_tokens:
+                token_cond &= get_token_search_condition(t)
+            combined = token_cond
+        else:
+            combined = whole_cond
+
+        dossiers = dossiers.filter(combined).distinct()
+
+    if sort == 'stage_asc':
+        dossiers = dossiers.order_by('current_stage', 'archive_number')
+    elif sort == 'stage_desc':
+        dossiers = dossiers.order_by('-current_stage', 'archive_number')
+    elif sort == 'archive_asc':
+        dossiers = dossiers.order_by('archive_number')
+    elif sort == 'archive_desc':
+        dossiers = dossiers.order_by('-archive_number')
+    elif sort == 'name_asc':
+        dossiers = dossiers.order_by('full_name')
+    elif sort in ('date_asc', 'signed_asc'):
+        dossiers = dossiers.order_by('signed_sort_at', 'archive_number')
+    else:
+        dossiers = dossiers.order_by('-signed_sort_at', '-archive_number')
+
+    total_count = dossiers.count()
+    completed_count = dossiers.filter(models.Q(current_stage=22) | models.Q(is_locked=True)).count()
+    in_progress_count = total_count - completed_count
+
+    paginator = Paginator(dossiers, 50)
+    page_number = request.GET.get('page', 1)
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    setattr(page_obj, 'count', paginator.count)
+
+    page_dossier_ids = [d.id for d in page_obj]
+    user_sig_map = _resolve_user_signature_map(
+        page_dossier_ids,
+        target_actors=target_actors,
+        include_fallback=include_fallback,
+    )
+    for d in page_obj:
+        d.user_sig_info = user_sig_map.get(d.id, None)
+
+    context = {
+        "dossiers": page_obj,
+        "page_obj": page_obj,
+        "paginator": paginator,
+        "dossiers_count": paginator.count,
+        "current_sort": sort,
+        "query": query,
+        "signer_filter": signer_filter,
+        "all_signers": all_signers,
+        "is_full_admin": is_full_admin,
+        "user_profile": profile,
+        "total_signed_count": total_count,
+        "completed_count": completed_count,
+        "in_progress_count": in_progress_count,
+        "elided_page_range": getattr(paginator, "get_elided_page_range")(number=page_obj.number, on_each_side=2, on_ends=1),
+        "is_signed_history": True,
+    }
+
+    if request.GET.get('ajax') == '1':
+        from django.template.loader import render_to_string
+        html = render_to_string("dossiers/partials/signed_table_rows.html", {
+            "dossiers": page_obj,
+            "is_full_admin": is_full_admin,
+            "signer_filter": signer_filter,
+        }, request=request)
+        return JsonResponse({"status": "success", "html": html, "count": paginator.count})
+
+    return render(request, "dossiers/signed_list.html", context)
 
 
 def _get_dossier_by_pk(pk):
@@ -1014,21 +1419,30 @@ def dossier_detail_view(request, pk):
 
 
 
+    view_only = request.GET.get('view_only') == '1' or request.GET.get('read_only') == '1'
+    actor_names = {u.strip() for u in [getattr(profile, 'full_name', ''), request.user.get_full_name(), request.user.username] if u and u.strip()}
+    has_signed_dossier = False
+    if not is_full_admin:
+        has_signed_dossier = WorkflowSignatureLog.objects.filter(
+            dossier=dossier,
+            actor__in=actor_names,
+            action__in=["SIGN", "SIGN_EXCEL", "ARCHIVE", "SUBMIT"]
+        ).exists() or DossierSignature.objects.filter(
+            dossier=dossier,
+            signer_name__in=actor_names
+        ).exists()
+
     if not is_full_admin and not dossier.is_locked:
-
         user_allowed = [int(s.strip()) for s in profile.allowed_stages.split(',') if s.strip().isdigit()] if profile and profile.allowed_stages else []
-
         if dossier.current_stage not in user_allowed:
-
-            messages.warning(
-
-                request,
-
-                f"عدم دسترسی: پرونده شماره #{dossier.archive_number} هم‌اکنون در مرحله {dossier.current_stage} ({dossier.current_stage_title}) متوقف است. شما صرفاً مجاز به کار بر روی پرونده‌های متوقف در مراحل تخصصی خود ({profile.allowed_stages if profile else 'هیچکدام'}) می‌باشید."
-
-            )
-
-            return redirect("dossier_list")
+            if view_only or has_signed_dossier:
+                view_only = True
+            else:
+                messages.warning(
+                    request,
+                    f"عدم دسترسی: پرونده شماره #{dossier.archive_number} هم‌اکنون در مرحله {dossier.current_stage} ({dossier.current_stage_title}) متوقف است. شما صرفاً مجاز به کار بر روی پرونده‌های متوقف در مراحل تخصصی خود ({profile.allowed_stages if profile else 'هیچکدام'}) می‌باشید."
+                )
+                return redirect("dossier_list")
 
     attachments = dossier.attachments.all().order_by("stage", "-uploaded_at")
 
@@ -1256,7 +1670,9 @@ def dossier_detail_view(request, pk):
 
             "selection_rank": dossier.selection_rank,
 
-            "form_j_questionnaire_number": dossier.form_j_questionnaire_number or "",
+            "form_j_questionnaire_number": (dossier.form_j_number or dossier.form_j_questionnaire_number or "").strip(),
+
+            "computer_code": getattr(dossier, "computer_code", "") or "",
 
             "applicant_form_j_status": dossier.applicant_form_j_status or "سبز (استعلام شده)",
 
@@ -1381,7 +1797,7 @@ def dossier_detail_view(request, pk):
 
             "bank_sent_letter_number": dossier.bank_sent_letter_number or "",
 
-            "form_j_number": dossier.form_j_number or "",
+            "form_j_number": (dossier.form_j_number or dossier.form_j_questionnaire_number or "").strip(),
 
             "has_installment_booklet": dossier.has_installment_booklet,
 
@@ -1426,6 +1842,10 @@ def dossier_detail_view(request, pk):
             "loan_checks_confirmed_at": dossier.loan_checks_confirmed_at_jalali,
 
             "decile_loan_bank": dossier.decile_loan_bank or "بانک مسکن",
+
+            "decile_bank_letter_number": dossier.decile_bank_letter_number or "",
+
+            "decile_bank_letter_date": dossier.decile_bank_letter_date or "",
 
             "supported_institution": dossier.supported_institution or "هیچکدام",
 
@@ -1519,7 +1939,10 @@ def dossier_detail_view(request, pk):
 
     is_check_admin = request.user.is_superuser or is_chief or bool(profile and getattr(profile, 'is_check_admin', False))
 
-    user_can_action = request.user.is_superuser or is_chief or (profile and profile.can_action_stage(dossier.current_stage))
+    if view_only:
+        user_can_action = False
+    else:
+        user_can_action = request.user.is_superuser or is_chief or (profile and profile.can_action_stage(dossier.current_stage))
 
     can_view_audit = is_full_admin or request.user.is_superuser or is_chief or (profile and profile.can_view_all_audit_logs())
 
@@ -1608,6 +2031,7 @@ def dossier_detail_view(request, pk):
     dossier_data["stage_signatures"] = stage_signatures
 
     dossier_data["user_can_action"] = user_can_action
+    dossier_data["is_view_only"] = view_only
 
     dossier_data["is_chief"] = is_chief
 
@@ -1629,6 +2053,15 @@ def dossier_detail_view(request, pk):
     dossier_data["is_staff"] = request.user.is_staff
 
     dossier_data["stage_details"] = HousingDossier.STAGE_DETAILS
+    dossier_data["projects_catalog"] = get_projects_catalog_payload()
+    from .land_rates import get_rate as _get_land_rate, serialize_rate_breakdown as _serialize_land_rate
+    _matched_rate = _get_land_rate(
+        code=dossier.renovation_code,
+        project=dossier.project,
+        plot=dossier.plot_number,
+        block=dossier.block_name or dossier.block_code,
+    )
+    dossier_data["land_rate_info"] = _serialize_land_rate(_matched_rate)
     dossier_data["is_full_admin"] = is_full_admin
     dossier_data["can_view_audit"] = can_view_audit
 
@@ -1657,6 +2090,8 @@ def dossier_detail_view(request, pk):
         "dossier_json": json.dumps(dossier_data, ensure_ascii=False),
 
         "user_can_action": user_can_action,
+        "is_view_only": view_only,
+        "is_readonly": view_only,
 
         "is_chief": is_chief,
 
@@ -1786,7 +2221,7 @@ def save_dossier_draft_view(request, pk):
 
         "full_name", "father_name", "birth_date", "applicant_phone",
 
-        "form_j_questionnaire_number",
+        "form_j_questionnaire_number", "computer_code",
 
         "applicant_form_j_status", "applicant_form_j_directorate_status", "applicant_form_j_red_description",
 
@@ -1804,7 +2239,7 @@ def save_dossier_draft_view(request, pk):
 
         "bank_letter_number", "bank_letter_date", "land_lease_year",
 
-        "decile_loan_bank", "supported_institution", "commitment_number", "commitment_date",
+        "decile_loan_bank", "decile_bank_letter_number", "decile_bank_letter_date", "supported_institution", "commitment_number", "commitment_date",
 
         "tenant_code", "prepayment_code", "rah_letter", "rah_letter_date",
 
@@ -1952,6 +2387,34 @@ def save_dossier_draft_view(request, pk):
     # Enforce role-based field restrictions: everyone can only change what is related to him
 
     parsed_updates = filter_allowed_updates(request.user, parsed_updates)
+
+    catalog_err = validate_catalog_updates(dossier, parsed_updates)
+    if catalog_err:
+        return JsonResponse({"status": "error", "message": catalog_err}, status=400)
+
+    # Sync "شماره رسمی فرم «ج»" (form_j_number) and "شماره پرسشنامه فرم ج" (form_j_questionnaire_number)
+    if "form_j_number" in parsed_updates or "form_j_questionnaire_number" in parsed_updates:
+        old_fn = (dossier.form_j_number or "").strip()
+        old_fq = (dossier.form_j_questionnaire_number or "").strip()
+        has_fn = "form_j_number" in parsed_updates
+        has_fq = "form_j_questionnaire_number" in parsed_updates
+        if has_fn and not has_fq:
+            canonical_fj = parsed_updates["form_j_number"]
+        elif has_fq and not has_fn:
+            canonical_fj = parsed_updates["form_j_questionnaire_number"]
+        else:
+            new_fn = parsed_updates["form_j_number"]
+            new_fq = parsed_updates["form_j_questionnaire_number"]
+            if new_fn == new_fq:
+                canonical_fj = new_fn
+            elif new_fn != old_fn and new_fq == old_fq:
+                canonical_fj = new_fn
+            elif new_fq != old_fq and new_fn == old_fn:
+                canonical_fj = new_fq
+            else:
+                canonical_fj = new_fq or new_fn
+        parsed_updates["form_j_number"] = canonical_fj
+        parsed_updates["form_j_questionnaire_number"] = canonical_fj
 
     # Audit log and track timestamps / confirmers for check confirmations
     now_ts = timezone.now()
@@ -2364,6 +2827,28 @@ def set_dossier_stage_view(request, pk):
 
 
 
+def get_stage_sign_missing_fields(dossier, stage_idx: int) -> list[str]:
+    """Return Persian field labels missing before signing stage_idx."""
+    if int(stage_idx) != 8:
+        return []
+    missing = []
+    if not (getattr(dossier, "registration_section", "") or "").strip():
+        missing.append("ثبتی (بخش ثبتی)")
+    for field_name, label in [
+        ("main_plaque", "اصلی (پلاک اصلی)"),
+        ("separated_plaque", "مفروز (پلاک مفروز)"),
+        ("sub_plaque", "فرعی (فرعی از)"),
+        ("plot_number", "قطعه (شماره قطعه)"),
+    ]:
+        val = getattr(dossier, field_name, None)
+        if val is None or str(val).strip() == "":
+            missing.append(label)
+    cost_val = getattr(dossier, "base_cost_without_loan", None)
+    if cost_val is None or int(cost_val) <= 0:
+        missing.append("قیمت تمام‌شده بدون وام بانکی")
+    return missing
+
+
 @transaction.atomic
 def execute_dossier_sign(dossier, user, notes="تایید و امضای الکترونیکی با موفقیت انجام شد.", action="SIGN", target_stage=None):
     """
@@ -2387,6 +2872,13 @@ def execute_dossier_sign(dossier, user, notes="تایید و امضای الکت
 
     if profile and not profile.can_sign:
         return False, "حق امضای الکترونیکی برای حساب کاربری شما فعال نیست."
+
+    missing_fields = get_stage_sign_missing_fields(dossier, current_idx)
+    if missing_fields:
+        return False, (
+            "امکان تایید و امضای مرحله ۸ وجود ندارد؛ لطفاً ابتدا فیلدهای الزامی زیر را تکمیل نمایید: "
+            + "، ".join(missing_fields)
+        )
 
     current_role = dossier.STAGE_ROLES.get(current_idx, ("-", "-", "-"))[1]
     current_title = dossier.STAGE_ROLES.get(current_idx, ("-", "-", f"مرحله {current_idx}"))[2]
@@ -2518,9 +3010,11 @@ def electronic_sign_action(request, pk):
         or "تایید و امضای الکترونیکی با موفقیت انجام شد."
     )
 
+    prev_stage = dossier.current_stage
     ok, result = execute_dossier_sign(dossier, request.user, notes=notes)
     if not ok:
-        return JsonResponse({"status": "error", "message": result}, status=403)
+        status_code = 400 if "فیلدهای الزامی" in str(result) else 403
+        return JsonResponse({"status": "error", "message": result}, status=status_code)
 
     profile = getattr(request.user, "profile", None)
     is_full_admin = (
@@ -2537,6 +3031,11 @@ def electronic_sign_action(request, pk):
         try:
             if dossier.is_locked:
                 messages.success(request, f"پرونده #{dossier.archive_number} تایید و به بایگانی نهایی منتقل گردید.")
+            elif prev_stage == 7 and dossier.current_stage >= 8:
+                messages.success(
+                    request,
+                    f"امضای مرحله ۷ برای «{dossier.full_name}» ثبت شد — شماره بایگانی رسمی پرونده: {dossier.archive_number} (ارسال به مرحله {dossier.current_stage}).",
+                )
             else:
                 messages.success(
                     request,
@@ -2558,7 +3057,11 @@ def electronic_sign_action(request, pk):
             pass
         return JsonResponse({
             "status": "success",
+            "prev_stage": prev_stage,
             "new_stage": dossier.current_stage,
+            "archive_number": dossier.archive_number,
+            "full_name": dossier.full_name,
+            "national_id": dossier.national_id,
             "dossier_status": dossier.status,
             "is_locked": dossier.is_locked,
             "hash": last_log.signature_hash if last_log else "",
@@ -2568,11 +3071,19 @@ def electronic_sign_action(request, pk):
 
     return JsonResponse({
         "status": "success",
+        "prev_stage": prev_stage,
         "new_stage": dossier.current_stage,
+        "archive_number": dossier.archive_number,
+        "full_name": dossier.full_name,
+        "national_id": dossier.national_id,
         "is_locked": dossier.is_locked,
         "hash": last_log.signature_hash if last_log else "",
         "redirect_url": redirect_url,
-        "message": f"پرونده با موفقیت به مرحله {dossier.current_stage} منتقل گردید.",
+        "message": (
+            f"امضای مرحله ۷ ثبت شد. شماره بایگانی پرونده: {dossier.archive_number}"
+            if prev_stage == 7 and dossier.current_stage >= 8
+            else f"پرونده با موفقیت به مرحله {dossier.current_stage} منتقل گردید."
+        ),
     })
 
 
@@ -2861,6 +3372,10 @@ def lookup_preselected_unit_api(request):
             "selection_rank": unit.selection_rank,
 
             "form_j_questionnaire_number": getattr(unit, "form_j_questionnaire_number", "") or "",
+
+            "form_j_number": getattr(unit, "form_j_questionnaire_number", "") or "",
+
+            "computer_code": getattr(unit, "computer_code", "") or "",
 
             "applicant_form_j_status": unit.applicant_form_j_status,
 
@@ -4157,8 +4672,40 @@ def archive_check_receipt_api(request, pk):
 
 
 
-@login_required(login_url='login')
+def _begin_upload_token(dossier_id: int, upload_token: str):
+    """Check idempotency cache and acquire in-flight lock for a scan upload_token."""
+    if not upload_token:
+        return None, None
+    from django.core.cache import cache
+    done_key = f"scan_upload_done_{dossier_id}_{upload_token}"
+    cached_resp = cache.get(done_key)
+    if cached_resp is not None:
+        return JsonResponse(cached_resp), None
+    inflight_key = f"scan_upload_inflight_{dossier_id}_{upload_token}"
+    if not cache.add(inflight_key, True, timeout=60):
+        return JsonResponse(
+            {"status": "error", "message": "این بارگذاری هم‌اکنون در حال پردازش است؛ لطفاً چند لحظه منتظر بمانید."},
+            status=409,
+        ), None
+    return None, inflight_key
 
+
+def _finish_upload_token(dossier_id: int, upload_token: str, payload: dict):
+    """Cache completed scan upload payload so retries/double-clicks return the same attachments."""
+    if not upload_token:
+        return
+    from django.core.cache import cache
+    cache.set(f"scan_upload_done_{dossier_id}_{upload_token}", payload, timeout=180)
+
+
+def _release_upload_token(inflight_key: str | None):
+    if not inflight_key:
+        return
+    from django.core.cache import cache
+    cache.delete(inflight_key)
+
+
+@login_required(login_url='login')
 @csrf_exempt
 
 def upload_check_scan_and_create_receipt_view(request, pk):
@@ -4233,271 +4780,280 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
 
 
-    nat_id = dossier.national_id or "general"
+    upload_token = (request.POST.get("upload_token") or "").strip()[:64]
+    cached_resp, inflight_key = _begin_upload_token(dossier.id, upload_token)
+    if cached_resp is not None:
+        return cached_resp
+    try:
+        nat_id = dossier.national_id or "general"
 
-    upload_dir = os.path.join(settings.MEDIA_ROOT, nat_id, "check_scans")
+        upload_dir = os.path.join(settings.MEDIA_ROOT, nat_id, "check_scans")
 
-    os.makedirs(upload_dir, exist_ok=True)
-
-
-
-    # Count existing physical scans for this doc_type
-
-    existing_count = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").count()
-
+        os.makedirs(upload_dir, exist_ok=True)
 
 
-    for idx, file_obj in enumerate(uploaded_files):
 
-        page_num = existing_count + idx + 1
+        # Count existing physical scans for this doc_type
 
-        raw_name = os.path.basename(file_obj.name)
+        existing_count = dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").count()
 
-        _, ext = os.path.splitext(raw_name)
 
-        clean_ext = (ext or ".jpg").lower()
 
-        if check_type_norm == "prep":
+        for idx, file_obj in enumerate(uploaded_files):
 
-            clean_name = f"{nat_id}_prep_check_{page_num}{clean_ext}"
+            page_num = existing_count + idx + 1
 
-            scan_title = f"چک آماده‌سازی ({nat_id}) - برگه {page_num}"
+            raw_name = os.path.basename(file_obj.name)
+
+            _, ext = os.path.splitext(raw_name)
+
+            clean_ext = (ext or ".jpg").lower()
+
+            if check_type_norm == "prep":
+
+                clean_name = f"{nat_id}_prep_check_{page_num}{clean_ext}"
+
+                scan_title = f"چک آماده‌سازی ({nat_id}) - برگه {page_num}"
+
+            else:
+
+                clean_name = f"{nat_id}_loan_check_{page_num}{clean_ext}"
+
+                scan_title = f"چک تسهیلات دهک ({nat_id}) - برگه {page_num}"
+
+            save_path = os.path.join(upload_dir, clean_name)
+
+            with open(save_path, 'wb+') as destination:
+
+                for chunk in file_obj.chunks():
+
+                    destination.write(chunk)
+
+            saved_url = f"{settings.MEDIA_URL}{nat_id}/check_scans/{clean_name}"
+
+            file_sha = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-{clean_name}-{idx}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
+
+            scan_att = DossierAttachment.objects.create(
+
+                dossier=dossier,
+
+                stage=target_chk_stage,
+
+                doc_type=doc_type,
+
+                title=scan_title,
+
+                file_name=clean_name,
+
+                file_sha256=file_sha,
+
+                uploaded_by=uploader_name,
+
+                preview_url=saved_url
+
+            )
+
+            created_attachments.append(scan_att)
+
+
+
+        # Total check scans available after this upload
+
+        all_check_scans = list(dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("id"))
+
+        total_scans_count = len(all_check_scans)
+
+
+
+        # Generate or update the official checks receipt attachment
+
+        if total_scans_count > 1:
+
+            receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} ({total_scans_count} برگ اسکن با سربرگ و امضاء)"
+
+        elif total_scans_count == 1:
+
+            receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} (با تصویر اسکن)"
 
         else:
 
-            clean_name = f"{nat_id}_loan_check_{page_num}{clean_ext}"
-
-            scan_title = f"چک تسهیلات دهک ({nat_id}) - برگه {page_num}"
-
-        save_path = os.path.join(upload_dir, clean_name)
-
-        with open(save_path, 'wb+') as destination:
-
-            for chunk in file_obj.chunks():
-
-                destination.write(chunk)
-
-        saved_url = f"{settings.MEDIA_URL}{nat_id}/check_scans/{clean_name}"
-
-        file_sha = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-{clean_name}-{idx}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
-
-        scan_att = DossierAttachment.objects.create(
-
-            dossier=dossier,
-
-            stage=target_chk_stage,
-
-            doc_type=doc_type,
-
-            title=scan_title,
-
-            file_name=clean_name,
-
-            file_sha256=file_sha,
-
-            uploaded_by=uploader_name,
-
-            preview_url=saved_url
-
-        )
-
-        created_attachments.append(scan_att)
+            receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label}"
 
 
 
-    # Total check scans available after this upload
+        receipt_filename = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
 
-    all_check_scans = list(dossier.attachments.filter(doc_type=doc_type).exclude(preview_url__contains="/print/checks/").order_by("id"))
-
-    total_scans_count = len(all_check_scans)
-
-
-
-    # Generate or update the official checks receipt attachment
-
-    if total_scans_count > 1:
-
-        receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} ({total_scans_count} برگ اسکن با سربرگ و امضاء)"
-
-    elif total_scans_count == 1:
-
-        receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label} (با تصویر اسکن)"
-
-    else:
-
-        receipt_title = f"رسید رسمی و برگه تحویل چک‌های {type_label}"
-
-
-
-    receipt_filename = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
-
-    receipt_hash = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
+        receipt_hash = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
 
     
 
-    preview_query = f"?type={check_type_norm}&auto_archive=0"
+        preview_query = f"?type={check_type_norm}&auto_archive=0"
 
-    print_preview_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}"
-
-
-
-    receipt_att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.archive_number}/print/checks/").filter(doc_type=doc_type).first()
-
-    if receipt_att:
-
-        receipt_att.title = receipt_title
-
-        receipt_att.stage = target_chk_stage
-
-        receipt_att.file_name = receipt_filename
-
-        receipt_att.file_sha256 = receipt_hash
-
-        receipt_att.preview_url = print_preview_url
-
-        receipt_att.save()
-
-    else:
-
-        receipt_att = DossierAttachment.objects.create(
-
-            dossier=dossier,
-
-            stage=target_chk_stage,
-
-            doc_type=doc_type,
-
-            title=receipt_title,
-
-            file_name=receipt_filename,
-
-            file_sha256=receipt_hash,
-
-            uploaded_by=uploader_name,
-
-            preview_url=print_preview_url
-
-        )
+        print_preview_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}"
 
 
 
-    scan_label_count = len(created_attachments) if created_attachments else total_scans_count
+        receipt_att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.archive_number}/print/checks/").filter(doc_type=doc_type).first()
 
-    WorkflowSignatureLog.objects.create(
+        if receipt_att:
 
-        dossier=dossier,
+            receipt_att.title = receipt_title
 
-        from_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
+            receipt_att.stage = target_chk_stage
 
-        to_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
+            receipt_att.file_name = receipt_filename
 
-        actor=uploader_name,
+            receipt_att.file_sha256 = receipt_hash
 
-        role=uploader_role,
+            receipt_att.preview_url = print_preview_url
 
-        action="SUBMIT_AND_PRINT",
+            receipt_att.save()
 
-        action_label=f"بارگذاری اسکن و صدور رسید چک‌های {type_label}",
+        else:
 
-        signature_hash=receipt_hash,
+            receipt_att = DossierAttachment.objects.create(
 
-        notes=f"تعداد {scan_label_count} برگ اسکن چک‌های {type_label} ثبت گردید. سربرگ متمرکز اطلاعات، خلاصه مالی و کادر امضاء بر روی کلیه صفحات اعمال شد."
+                dossier=dossier,
 
-    )
+                stage=target_chk_stage,
+
+                doc_type=doc_type,
+
+                title=receipt_title,
+
+                file_name=receipt_filename,
+
+                file_sha256=receipt_hash,
+
+                uploaded_by=uploader_name,
+
+                preview_url=print_preview_url
+
+            )
 
 
 
-    client_ip = request.META.get('REMOTE_ADDR')
+        scan_label_count = len(created_attachments) if created_attachments else total_scans_count
 
-    for att_item in created_attachments:
-
-        DossierFieldChangeLog.objects.create(
+        WorkflowSignatureLog.objects.create(
 
             dossier=dossier,
 
-            field_name="attachment",
+            from_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
 
-            field_label=f"بارگذاری اسکن اصل چک {type_label}",
+            to_stage=f"مرحله {target_chk_stage}: دریافت چک‌های {type_label}",
 
-            old_value="-",
-
-            new_value=f"{att_item.title} ({att_item.file_name})",
-
-            changed_by=uploader_name,
+            actor=uploader_name,
 
             role=uploader_role,
 
-            stage=target_chk_stage,
+            action="SUBMIT_AND_PRINT",
 
-            ip_address=client_ip
+            action_label=f"بارگذاری اسکن و صدور رسید چک‌های {type_label}",
+
+            signature_hash=receipt_hash,
+
+            notes=f"تعداد {scan_label_count} برگ اسکن چک‌های {type_label} ثبت گردید. سربرگ متمرکز اطلاعات، خلاصه مالی و کادر امضاء بر روی کلیه صفحات اعمال شد."
 
         )
 
 
 
-    print_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}&auto_print=1"
+        client_ip = request.META.get('REMOTE_ADDR')
+
+        for att_item in created_attachments:
+
+            DossierFieldChangeLog.objects.create(
+
+                dossier=dossier,
+
+                field_name="attachment",
+
+                field_label=f"بارگذاری اسکن اصل چک {type_label}",
+
+                old_value="-",
+
+                new_value=f"{att_item.title} ({att_item.file_name})",
+
+                changed_by=uploader_name,
+
+                role=uploader_role,
+
+                stage=target_chk_stage,
+
+                ip_address=client_ip
+
+            )
 
 
 
-    def _serialize_att(att):
+        print_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}&auto_print=1"
 
-        if not att:
 
-            return None
 
-        return {
+        def _serialize_att(att):
 
-            "id": att.id,
+            if not att:
 
-            "stage": att.stage,
+                return None
 
-            "type": att.doc_type,
+            return {
 
-            "doc_type": att.doc_type,
+                "id": att.id,
 
-            "title": att.title,
+                "stage": att.stage,
 
-            "fileName": att.file_name,
+                "type": att.doc_type,
 
-            "file_name": att.file_name,
+                "doc_type": att.doc_type,
 
-            "uploader": att.uploaded_by,
+                "title": att.title,
 
-            "uploaded_by": att.uploaded_by,
+                "fileName": att.file_name,
 
-            "uploadDate": to_jalali_str(att.uploaded_at, "%Y/%m/%d") if att.uploaded_at else "",
+                "file_name": att.file_name,
 
-            "sha256": att.file_sha256,
+                "uploader": att.uploaded_by,
 
-            "file_sha256": att.file_sha256,
+                "uploaded_by": att.uploaded_by,
 
-            "preview_url": att.preview_url,
+                "uploadDate": to_jalali_str(att.uploaded_at, "%Y/%m/%d") if att.uploaded_at else "",
 
-            "immutable": True if att.preview_url.startswith("/print/") else False
+                "sha256": att.file_sha256,
+
+                "file_sha256": att.file_sha256,
+
+                "preview_url": att.preview_url,
+
+                "immutable": True if att.preview_url.startswith("/print/") else False
+
+            }
+
+
+
+        serialized_scans = [_serialize_att(a) for a in created_attachments]
+
+        serialized_receipt = _serialize_att(receipt_att)
+
+
+
+        resp_payload = {
+
+            "status": "success",
+
+            "attachments": serialized_scans + ([serialized_receipt] if serialized_receipt else []),
+
+            "attachment": serialized_receipt,
+
+            "scan_count": total_scans_count,
+
+            "print_url": print_url
 
         }
-
-
-
-    serialized_scans = [_serialize_att(a) for a in created_attachments]
-
-    serialized_receipt = _serialize_att(receipt_att)
-
-
-
-    return JsonResponse({
-
-        "status": "success",
-
-        "attachments": serialized_scans + ([serialized_receipt] if serialized_receipt else []),
-
-        "attachment": serialized_receipt,
-
-        "scan_count": total_scans_count,
-
-        "print_url": print_url
-
-    })
+        _finish_upload_token(dossier.id, upload_token, resp_payload)
+        return JsonResponse(resp_payload)
+    finally:
+        _release_upload_token(inflight_key)
 
 
 
@@ -5113,10 +5669,13 @@ def upload_scan_attachment_view(request, pk):
 
 
     if not request.user.is_authenticated:
-
         return JsonResponse({"status": "error", "message": "عدم دسترسی اقدام: لطفاً ابتدا وارد سامانه شوید."}, status=403)
 
     profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
+
+    user_can_action = request.user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(dossier.current_stage))
+    if not user_can_action:
+        return JsonResponse({"status": "error", "message": "عدم دسترسی: شما در مرحله فعلی این پرونده مجاز به بارگذاری مدارک نیستید."}, status=403)
 
 
 
@@ -5148,318 +5707,327 @@ def upload_scan_attachment_view(request, pk):
 
 
 
-    created_attachments = []
+    upload_token = (request.POST.get("upload_token") or "").strip()[:64]
+    cached_resp, inflight_key = _begin_upload_token(dossier.id, upload_token)
+    if cached_resp is not None:
+        return cached_resp
+    try:
+        created_attachments = []
 
-    timestamp_prefix = timezone.now().strftime('%Y%m%d_%H%M%S')
-
-
-
-    if uploaded_files:
-
-        total_files = len(uploaded_files)
-
-        for idx, up_file in enumerate(uploaded_files, start=1):
-
-            orig_name = up_file.name
-
-            name_base, ext = os.path.splitext(orig_name)
-
-            clean_ext = (ext or ".jpg").lower()
-
-            if doc_type == "TITLE_DEED":
-                standard_name = f"{nat_id}_arse{clean_ext}" if total_files == 1 else f"{nat_id}_arse_{idx}{clean_ext}"
-                default_title = f"اسکن سند عرصه - {nat_id}" if total_files == 1 else f"اسکن سند عرصه ({nat_id}) - برگه {idx}"
-            elif doc_type == "AFFIDAVIT":
-                standard_name = f"{nat_id}_affidavit{clean_ext}" if total_files == 1 else f"{nat_id}_affidavit_{idx}{clean_ext}"
-                default_title = f"اسکن اقرارنامه - {nat_id}" if total_files == 1 else f"اسکن اقرارنامه ({nat_id}) - برگه {idx}"
-            elif doc_type == "INFO_FORM":
-                standard_name = f"{nat_id}_info_form{clean_ext}" if total_files == 1 else f"{nat_id}_info_form_{idx}{clean_ext}"
-                default_title = f"اسکن فرم اطلاعات - {nat_id}" if total_files == 1 else f"اسکن فرم اطلاعات ({nat_id}) - برگه {idx}"
-            elif doc_type == "PREP_CHECK":
-                standard_name = f"{nat_id}_prep_check_{idx}{clean_ext}"
-                default_title = f"چک آماده‌سازی ({nat_id}) - برگه {idx}"
-            elif doc_type == "LOAN_CHECK":
-                standard_name = f"{nat_id}_loan_check_{idx}{clean_ext}"
-                default_title = f"چک تسهیلات دهک ({nat_id}) - برگه {idx}"
-            else:
-                standard_name = orig_name
-                default_title = name_base or f"برگه اسکن {idx}"
-
-            safe_name = f"{timestamp_prefix}_{standard_name}" if os.path.exists(os.path.join(nat_id_dir, standard_name)) else standard_name
-
-            file_path = os.path.join(nat_id_dir, safe_name)
+        timestamp_prefix = timezone.now().strftime('%Y%m%d_%H%M%S')
 
 
 
-            hasher = hashlib.sha256()
+        if uploaded_files:
 
-            with open(file_path, "wb") as f:
+            total_files = len(uploaded_files)
 
-                for chunk in up_file.chunks():
+            for idx, up_file in enumerate(uploaded_files, start=1):
 
-                    hasher.update(chunk)
+                orig_name = up_file.name
 
-                    f.write(chunk)
+                name_base, ext = os.path.splitext(orig_name)
 
-            file_hash = "SHA256: " + hasher.hexdigest()[:24]
+                clean_ext = (ext or ".jpg").lower()
 
-            saved_url = f"/uploads/{nat_id}/{safe_name}"
+                if doc_type == "TITLE_DEED":
+                    standard_name = f"{nat_id}_arse{clean_ext}" if total_files == 1 else f"{nat_id}_arse_{idx}{clean_ext}"
+                    default_title = f"اسکن سند عرصه - {nat_id}" if total_files == 1 else f"اسکن سند عرصه ({nat_id}) - برگه {idx}"
+                elif doc_type == "AFFIDAVIT":
+                    standard_name = f"{nat_id}_affidavit{clean_ext}" if total_files == 1 else f"{nat_id}_affidavit_{idx}{clean_ext}"
+                    default_title = f"اسکن اقرارنامه - {nat_id}" if total_files == 1 else f"اسکن اقرارنامه ({nat_id}) - برگه {idx}"
+                elif doc_type == "INFO_FORM":
+                    standard_name = f"{nat_id}_info_form{clean_ext}" if total_files == 1 else f"{nat_id}_info_form_{idx}{clean_ext}"
+                    default_title = f"اسکن فرم اطلاعات - {nat_id}" if total_files == 1 else f"اسکن فرم اطلاعات ({nat_id}) - برگه {idx}"
+                elif doc_type == "PREP_CHECK":
+                    standard_name = f"{nat_id}_prep_check_{idx}{clean_ext}"
+                    default_title = f"چک آماده‌سازی ({nat_id}) - برگه {idx}"
+                elif doc_type == "LOAN_CHECK":
+                    standard_name = f"{nat_id}_loan_check_{idx}{clean_ext}"
+                    default_title = f"چک تسهیلات دهک ({nat_id}) - برگه {idx}"
+                else:
+                    standard_name = orig_name
+                    default_title = name_base or f"برگه اسکن {idx}"
 
+                safe_name = f"{timestamp_prefix}_{standard_name}" if os.path.exists(os.path.join(nat_id_dir, standard_name)) else standard_name
 
-
-            if custom_title:
-
-                item_title = f"{custom_title} (برگه {idx})" if total_files > 1 else custom_title
-
-            else:
-
-                item_title = default_title
-
-
-
-            att = DossierAttachment.objects.create(
-
-                dossier=dossier,
-
-                stage=dossier.current_stage,
-
-                doc_type=doc_type,
-
-                title=item_title,
-
-                file_name=safe_name,
-
-                file_sha256=file_hash,
-
-                uploaded_by=uploader_name,
-
-                preview_url=saved_url
-
-            )
-
-            created_attachments.append(att)
+                file_path = os.path.join(nat_id_dir, safe_name)
 
 
 
-    elif preview_urls:
+                hasher = hashlib.sha256()
 
-        total_previews = len(preview_urls)
+                with open(file_path, "wb") as f:
 
-        for idx, p_url in enumerate(preview_urls, start=1):
+                    for chunk in up_file.chunks():
 
-            clean_ext = ".jpg"
-            if doc_type == "TITLE_DEED":
-                standard_name = f"{nat_id}_arse{clean_ext}" if total_previews == 1 else f"{nat_id}_arse_{idx}{clean_ext}"
-                default_title = f"اسکن سند عرصه - {nat_id}" if total_previews == 1 else f"اسکن سند عرصه ({nat_id}) - برگه {idx}"
-            elif doc_type == "AFFIDAVIT":
-                standard_name = f"{nat_id}_affidavit{clean_ext}" if total_previews == 1 else f"{nat_id}_affidavit_{idx}{clean_ext}"
-                default_title = f"اسکن اقرارنامه - {nat_id}" if total_previews == 1 else f"اسکن اقرارنامه ({nat_id}) - برگه {idx}"
-            elif doc_type == "INFO_FORM":
-                standard_name = f"{nat_id}_info_form{clean_ext}" if total_previews == 1 else f"{nat_id}_info_form_{idx}{clean_ext}"
-                default_title = f"اسکن فرم اطلاعات - {nat_id}" if total_previews == 1 else f"اسکن فرم اطلاعات ({nat_id}) - برگه {idx}"
-            elif doc_type == "PREP_CHECK":
-                standard_name = f"{nat_id}_prep_check_{idx}{clean_ext}"
-                default_title = f"چک آماده‌سازی ({nat_id}) - برگه {idx}"
-            elif doc_type == "LOAN_CHECK":
-                standard_name = f"{nat_id}_loan_check_{idx}{clean_ext}"
-                default_title = f"چک تسهیلات دهک ({nat_id}) - برگه {idx}"
-            else:
-                standard_name = f"scan_{timestamp_prefix}_{idx}.jpg"
-                default_title = f"اسکن مدرک پرونده (برگه {idx})"
+                        hasher.update(chunk)
 
-            file_name = f"{timestamp_prefix}_{standard_name}" if os.path.exists(os.path.join(nat_id_dir, standard_name)) else standard_name
+                        f.write(chunk)
 
-            file_path = os.path.join(nat_id_dir, file_name)
+                file_hash = "SHA256: " + hasher.hexdigest()[:24]
 
-            saved_url = f"/uploads/{nat_id}/{file_name}"
+                saved_url = f"/uploads/{nat_id}/{safe_name}"
 
 
 
-            if p_url.startswith("data:"):
+                if custom_title:
 
-                try:
+                    item_title = f"{custom_title} (برگه {idx})" if total_files > 1 else custom_title
 
-                    import base64
+                else:
 
-                    _, encoded = p_url.split(",", 1)
+                    item_title = default_title
 
-                    file_bytes = base64.b64decode(encoded)
 
-                    with open(file_path, "wb") as f:
 
-                        f.write(file_bytes)
+                att = DossierAttachment.objects.create(
 
-                    file_hash = "SHA256: " + hashlib.sha256(file_bytes).hexdigest()[:24]
+                    dossier=dossier,
 
-                except Exception:
+                    stage=dossier.current_stage,
+
+                    doc_type=doc_type,
+
+                    title=item_title,
+
+                    file_name=safe_name,
+
+                    file_sha256=file_hash,
+
+                    uploaded_by=uploader_name,
+
+                    preview_url=saved_url
+
+                )
+
+                created_attachments.append(att)
+
+
+
+        elif preview_urls:
+
+            total_previews = len(preview_urls)
+
+            for idx, p_url in enumerate(preview_urls, start=1):
+
+                clean_ext = ".jpg"
+                if doc_type == "TITLE_DEED":
+                    standard_name = f"{nat_id}_arse{clean_ext}" if total_previews == 1 else f"{nat_id}_arse_{idx}{clean_ext}"
+                    default_title = f"اسکن سند عرصه - {nat_id}" if total_previews == 1 else f"اسکن سند عرصه ({nat_id}) - برگه {idx}"
+                elif doc_type == "AFFIDAVIT":
+                    standard_name = f"{nat_id}_affidavit{clean_ext}" if total_previews == 1 else f"{nat_id}_affidavit_{idx}{clean_ext}"
+                    default_title = f"اسکن اقرارنامه - {nat_id}" if total_previews == 1 else f"اسکن اقرارنامه ({nat_id}) - برگه {idx}"
+                elif doc_type == "INFO_FORM":
+                    standard_name = f"{nat_id}_info_form{clean_ext}" if total_previews == 1 else f"{nat_id}_info_form_{idx}{clean_ext}"
+                    default_title = f"اسکن فرم اطلاعات - {nat_id}" if total_previews == 1 else f"اسکن فرم اطلاعات ({nat_id}) - برگه {idx}"
+                elif doc_type == "PREP_CHECK":
+                    standard_name = f"{nat_id}_prep_check_{idx}{clean_ext}"
+                    default_title = f"چک آماده‌سازی ({nat_id}) - برگه {idx}"
+                elif doc_type == "LOAN_CHECK":
+                    standard_name = f"{nat_id}_loan_check_{idx}{clean_ext}"
+                    default_title = f"چک تسهیلات دهک ({nat_id}) - برگه {idx}"
+                else:
+                    standard_name = f"scan_{timestamp_prefix}_{idx}.jpg"
+                    default_title = f"اسکن مدرک پرونده (برگه {idx})"
+
+                file_name = f"{timestamp_prefix}_{standard_name}" if os.path.exists(os.path.join(nat_id_dir, standard_name)) else standard_name
+
+                file_path = os.path.join(nat_id_dir, file_name)
+
+                saved_url = f"/uploads/{nat_id}/{file_name}"
+
+
+
+                if p_url.startswith("data:"):
+
+                    try:
+
+                        import base64
+
+                        _, encoded = p_url.split(",", 1)
+
+                        file_bytes = base64.b64decode(encoded)
+
+                        with open(file_path, "wb") as f:
+
+                            f.write(file_bytes)
+
+                        file_hash = "SHA256: " + hashlib.sha256(file_bytes).hexdigest()[:24]
+
+                    except Exception:
+
+                        file_hash = "SHA256: " + hashlib.sha256(f"{file_name}-{timezone.now().isoformat()}".encode()).hexdigest()[:24]
+
+                else:
 
                     file_hash = "SHA256: " + hashlib.sha256(f"{file_name}-{timezone.now().isoformat()}".encode()).hexdigest()[:24]
 
-            else:
-
-                file_hash = "SHA256: " + hashlib.sha256(f"{file_name}-{timezone.now().isoformat()}".encode()).hexdigest()[:24]
 
 
+                if custom_title:
 
-            if custom_title:
+                    item_title = f"{custom_title} (برگه {idx})" if total_previews > 1 else custom_title
 
-                item_title = f"{custom_title} (برگه {idx})" if total_previews > 1 else custom_title
+                else:
 
-            else:
-
-                item_title = default_title
+                    item_title = default_title
 
 
 
-            att = DossierAttachment.objects.create(
+                att = DossierAttachment.objects.create(
 
-                dossier=dossier,
+                    dossier=dossier,
 
-                stage=dossier.current_stage,
+                    stage=dossier.current_stage,
 
-                doc_type=doc_type,
+                    doc_type=doc_type,
 
-                title=item_title,
+                    title=item_title,
 
-                file_name=file_name,
+                    file_name=file_name,
 
-                file_sha256=file_hash,
+                    file_sha256=file_hash,
 
-                uploaded_by=uploader_name,
+                    uploaded_by=uploader_name,
 
-                preview_url=saved_url
+                    preview_url=saved_url
 
-            )
+                )
 
-            created_attachments.append(att)
+                created_attachments.append(att)
 
-    else:
+        else:
 
-        return JsonResponse({"status": "error", "message": "هیچ فایل یا برگه اسکنی جهت بارگذاری ارسال نشده است."}, status=400)
-
-
-
-    # Consolidated audit log
-
-    if len(created_attachments) == 1:
-
-        single_att = created_attachments[0]
-
-        action_label = f"بارگذاری سند: {single_att.title}"
-
-        notes_str = f"سند «{single_att.title}» با موفقیت اسکن و در پوشه اختصاصی کد ملی {nat_id} ذخیره گردید."
-
-        log_hash = single_att.file_sha256
-
-    else:
-
-        action_label = f"بارگذاری دسته‌جمعی {len(created_attachments)} برگ سند"
-
-        notes_str = f"تعداد {len(created_attachments)} برگ سند اسکن‌شده با موفقیت در پوشه اختصاصی کد ملی {nat_id} ثبت و بایگانی گردید."
-
-        log_hash = created_attachments[0].file_sha256
+            return JsonResponse({"status": "error", "message": "هیچ فایل یا برگه اسکنی جهت بارگذاری ارسال نشده است."}, status=400)
 
 
 
-    WorkflowSignatureLog.objects.create(
+        # Consolidated audit log
 
-        dossier=dossier,
+        if len(created_attachments) == 1:
 
-        from_stage=f"مرحله {dossier.current_stage}",
+            single_att = created_attachments[0]
 
-        to_stage=f"مرحله {dossier.current_stage}",
+            action_label = f"بارگذاری سند: {single_att.title}"
 
-        actor=uploader_name,
+            notes_str = f"سند «{single_att.title}» با موفقیت اسکن و در پوشه اختصاصی کد ملی {nat_id} ذخیره گردید."
 
-        role=uploader_role,
+            log_hash = single_att.file_sha256
 
-        action="SUBMIT",
+        else:
 
-        action_label=action_label,
+            action_label = f"بارگذاری دسته‌جمعی {len(created_attachments)} برگ سند"
 
-        signature_hash=log_hash,
+            notes_str = f"تعداد {len(created_attachments)} برگ سند اسکن‌شده با موفقیت در پوشه اختصاصی کد ملی {nat_id} ثبت و بایگانی گردید."
 
-        notes=notes_str
-
-    )
+            log_hash = created_attachments[0].file_sha256
 
 
 
-    client_ip = request.META.get('REMOTE_ADDR')
-
-    for att_item in created_attachments:
-
-        DossierFieldChangeLog.objects.create(
+        WorkflowSignatureLog.objects.create(
 
             dossier=dossier,
 
-            field_name="attachment",
+            from_stage=f"مرحله {dossier.current_stage}",
 
-            field_label="بارگذاری و الصاق سند",
+            to_stage=f"مرحله {dossier.current_stage}",
 
-            old_value="-",
-
-            new_value=f"{att_item.title} ({att_item.file_name})",
-
-            changed_by=uploader_name,
+            actor=uploader_name,
 
             role=uploader_role,
 
-            stage=dossier.current_stage,
+            action="SUBMIT",
 
-            ip_address=client_ip
+            action_label=action_label,
+
+            signature_hash=log_hash,
+
+            notes=notes_str
 
         )
 
 
 
-    att_payloads = [
+        client_ip = request.META.get('REMOTE_ADDR')
 
-        {
+        for att_item in created_attachments:
 
-            "id": a.id,
+            DossierFieldChangeLog.objects.create(
 
-            "stage": a.stage,
+                dossier=dossier,
 
-            "type": a.doc_type,
+                field_name="attachment",
 
-            "doc_type": a.doc_type,
+                field_label="بارگذاری و الصاق سند",
 
-            "title": a.title,
+                old_value="-",
 
-            "fileName": a.file_name,
+                new_value=f"{att_item.title} ({att_item.file_name})",
 
-            "uploader": a.uploaded_by,
+                changed_by=uploader_name,
 
-            "uploadDate": to_jalali_str(timezone.now(), "%Y/%m/%d %H:%M"),
+                role=uploader_role,
 
-            "sha256": a.file_sha256,
+                stage=dossier.current_stage,
 
-            "preview_url": a.preview_url,
+                ip_address=client_ip
 
-            "immutable": True
+            )
+
+
+
+        att_payloads = [
+
+            {
+
+                "id": a.id,
+
+                "stage": a.stage,
+
+                "type": a.doc_type,
+
+                "doc_type": a.doc_type,
+
+                "title": a.title,
+
+                "fileName": a.file_name,
+
+                "uploader": a.uploaded_by,
+
+                "uploadDate": to_jalali_str(timezone.now(), "%Y/%m/%d %H:%M"),
+
+                "sha256": a.file_sha256,
+
+                "preview_url": a.preview_url,
+
+                "immutable": True
+
+            }
+
+            for a in created_attachments
+
+        ]
+
+
+
+        resp_payload = {
+
+            "status": "success",
+
+            "count": len(created_attachments),
+
+            "message": f"{len(created_attachments)} برگ سند با موفقیت بارگذاری و الصاق شد.",
+
+            "attachments": att_payloads,
+
+            "attachment": att_payloads[0] if att_payloads else None
 
         }
-
-        for a in created_attachments
-
-    ]
-
-
-
-    return JsonResponse({
-
-        "status": "success",
-
-        "count": len(created_attachments),
-
-        "message": f"{len(created_attachments)} برگ سند با موفقیت بارگذاری و الصاق شد.",
-
-        "attachments": att_payloads,
-
-        "attachment": att_payloads[0] if att_payloads else None
-
-    })
+        _finish_upload_token(dossier.id, upload_token, resp_payload)
+        return JsonResponse(resp_payload)
+    finally:
+        _release_upload_token(inflight_key)
 
 
 
@@ -5498,10 +6066,13 @@ def delete_scan_attachment_view(request, pk, attachment_id):
 
 
     if not request.user.is_authenticated:
-
         return JsonResponse({"status": "error", "message": "شما مجوز حذف مدارک در این پرونده را ندارید."}, status=403)
 
     profile = getattr(request.user, 'profile', None) if request.user.is_authenticated else None
+
+    user_can_action = request.user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(dossier.current_stage))
+    if not user_can_action:
+        return JsonResponse({"status": "error", "message": "عدم دسترسی: شما در مرحله فعلی این پرونده مجاز به حذف مدارک نیستید."}, status=403)
 
 
 
@@ -7486,19 +8057,118 @@ def project_bank_mapping_api(request):
 
 
 
+def _serialize_bank_letter_dossier(d, b_code, b_name, include_financials=False):
+
+    fn, ln = split_persian_name(d.full_name)
+
+    data = {
+
+        "id": d.id,
+
+        "archive_number": d.archive_number,
+
+        "national_id": d.national_id or "",
+
+        "first_name": fn,
+
+        "last_name": ln,
+
+        "full_name": d.full_name or "",
+
+        "selection_rank": d.selection_rank or "-",
+
+        "applicant_phone": d.applicant_phone or "",
+
+        "block_code": d.block_code or d.block_name or "-",
+
+        "floor_number": d.floor_number or "-",
+
+        "unit_code": d.unit_number or d.unit_code or "-",
+
+        "unit_number": d.unit_number or d.unit_code or "-",
+
+        "parking_area": str(d.parking_area or "-"),
+
+        "parking_number": str(d.parking_number or "-"),
+
+        "storage_area": str(d.storage_area or "-"),
+
+        "storage_number": str(d.storage_number or "-"),
+
+        "bedroom_count": str(d.bedroom_count or "-"),
+
+        "common_area": str(d.common_area or "-"),
+
+        "net_unit_area": str(d.net_unit_area or "-"),
+
+        "unit_direction": d.unit_direction or "-",
+
+        "total_area": str(d.total_area or "-"),
+
+        "project": d.project or "",
+
+        "site": d.site or "",
+
+        "bank_code": b_code,
+
+        "bank_name": b_name,
+
+        "current_stage": d.current_stage,
+
+        "current_stage_title": d.current_stage_title,
+
+        "is_sent_to_bank": d.is_sent_to_bank,
+
+        "is_equity_funded": d.is_equity_funded,
+
+        "is_added_to_bank_shipment_list": d.is_added_to_bank_shipment_list,
+
+        "bank_letter_number": d.bank_letter_number or d.bank_sent_letter_number or "",
+
+        "bank_letter_date": d.bank_letter_date or d.bank_sent_date or "",
+
+        "decile_loan_amount": d.decile_loan_amount or 0,
+
+        "decile_loan_bank": d.decile_loan_bank or "",
+
+        "decile_bank_letter_number": d.decile_bank_letter_number or "",
+
+        "decile_bank_letter_date": d.decile_bank_letter_date or "",
+
+    }
+
+    if include_financials:
+
+        base_cost = d.base_cost_without_loan or 0
+
+        total_loans = (d.fund_loan_amount or 0) + (d.decile_loan_amount or 0)
+
+        is_funded = (total_loans >= base_cost and base_cost > 0) or d.is_equity_funded or d.is_sent_to_bank or (d.current_stage >= 6)
+
+        data.update({
+
+            "is_fully_funded": is_funded,
+
+            "base_cost_without_loan": base_cost,
+
+            "total_loans": total_loans,
+
+            "applicant_equity": d.applicant_equity,
+
+        })
+
+    return data
+
+
 @login_required(login_url='login')
 
 def bank_letter_sender_view(request):
 
     """
 
-    Admin component to prepare, preview and send official Bank Introduction Letter batches.
+    Admin component to prepare, preview and send official Bank Introduction Letter
 
-    Displays the list of eligible dossiers (who reach full payment through loans + cash / Stage 6).
-
-    Supports multi-project sheet export for 5 banks (Melli, Mellat, Maskan, Saderat, Tejarat)
-
-    covering all 96 projects.
+    and Decile Bank Letter (نامه بانک دهک) batches.
 
     """
 
@@ -7508,11 +8178,11 @@ def bank_letter_sender_view(request):
 
     can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(10))
 
-    
+    can_action_decile_bank = profile and (profile.can_action_stage(17) or profile.can_action_stage(18))
 
-    if not (is_chief_or_admin or can_action_bank):
+    if not (is_chief_or_admin or can_action_bank or can_action_decile_bank):
 
-        messages.error(request, "دسترسی به بخش ارسال نامه بانک نیازمند مجوز کارشناس بانک یا مدیر سیستم است.")
+        messages.error(request, "دسترسی به بخش ارسال نامه بانک نیازمند مجوز کارشناس بانک، کارشناس دهک یا مدیر سیستم است.")
 
         return redirect("dossier_list")
 
@@ -7568,7 +8238,7 @@ def bank_letter_sender_view(request):
 
 
 
-    # Sync any sent dossiers into BankLetter if not already present
+    # Sync sent regular bank letters & decile bank letters into BankLetter archive
 
     sent_dossiers = HousingDossier.objects.filter(is_sent_to_bank=True).exclude(bank_letter_number="")
 
@@ -7590,6 +8260,8 @@ def bank_letter_sender_view(request):
 
                 defaults={
 
+                    "letter_type": "bank",
+
                     "letter_date": d.bank_letter_date or d.bank_sent_date or today_jalali,
 
                     "bank_code": b_code,
@@ -7606,7 +8278,51 @@ def bank_letter_sender_view(request):
 
             )
 
-            if not bl_obj.dossiers.filter(id=d.id).exists():
+            if bl_obj.letter_type == "bank" and not bl_obj.dossiers.filter(id=d.id).exists():
+
+                bl_obj.dossiers.add(d)
+
+
+
+    decile_dossiers_with_letter = HousingDossier.objects.exclude(decile_bank_letter_number="")
+
+    for d in decile_dossiers_with_letter:
+
+        d_num = (d.decile_bank_letter_number or "").strip()
+
+        if d_num:
+
+            m_bank = existing_meta.get(d.project, {})
+
+            b_code = m_bank.get("bank_code", "maskan")
+
+            b_name = (d.decile_loan_bank or "").strip() or m_bank.get("bank_name", "بانک مسکن")
+
+            bl_obj, _ = BankLetter.objects.get_or_create(
+
+                letter_number=d_num,
+
+                defaults={
+
+                    "letter_type": "decile",
+
+                    "letter_date": d.decile_bank_letter_date or today_jalali,
+
+                    "bank_code": b_code,
+
+                    "bank_name": b_name,
+
+                    "project_name": d.project or "پروژه مسکونی",
+
+                    "sender_name": "کارشناس وام دهک",
+
+                    "sender_role": "واحد تسهیلات قرض‌الحسنه دهک",
+
+                }
+
+            )
+
+            if bl_obj.letter_type == "decile" and not bl_obj.dossiers.filter(id=d.id).exists():
 
                 bl_obj.dossiers.add(d)
 
@@ -7634,9 +8350,15 @@ def bank_letter_sender_view(request):
 
 
 
+        l_type = l.letter_type or "bank"
+
         letter_history_list.append({
 
             "id": l.id,
+
+            "letter_type": l_type,
+
+            "letter_type_display": "نامه بانک دهک" if l_type == "decile" else "نامه بانک",
 
             "letter_number": l.letter_number,
 
@@ -7662,26 +8384,17 @@ def bank_letter_sender_view(request):
 
             "dossiers": [
 
-                {
+                _serialize_bank_letter_dossier(
 
-                    "archive_number": d.archive_number,
+                    d,
 
-                    "full_name": d.full_name or "-",
+                    existing_meta.get(d.project, {}).get("bank_code", l.bank_code or "maskan"),
 
-                    "national_id": d.national_id or "-",
+                    existing_meta.get(d.project, {}).get("bank_name", l.bank_name or "بانک مسکن"),
 
-                    "block_code": d.block_code or d.block_name or "-",
+                    include_financials=False,
 
-                    "floor_number": d.floor_number or "-",
-
-                    "unit_code": d.unit_number or d.unit_code or "-",
-            "unit_number": d.unit_number or d.unit_code or "-",
-
-                    "total_area": str(d.total_area or "-"),
-
-                    "applicant_phone": d.applicant_phone or "-",
-
-                }
+                )
 
                 for d in d_objs
 
@@ -7769,7 +8482,7 @@ def bank_letter_sender_view(request):
 
 
 
-    # Active Dossiers: Priority Stage 6, Stage 5, Equity Funded, Added to Shipment, or Sent dossiers
+    # Active Dossiers: Priority Stage 5/6/7/bank shipment AND Decile loan eligible (Stages 16/17/18)
 
     priority_qs = HousingDossier.objects.filter(
 
@@ -7783,9 +8496,29 @@ def bank_letter_sender_view(request):
 
     ).order_by("archive_number")
 
+    decile_qs = HousingDossier.objects.filter(
+
+        models.Q(current_stage__in=[16, 17, 18]) |
+
+        models.Q(decile_loan_amount__gt=0) |
+
+        models.Q(decile_bank_letter_number__gt="")
+
+    ).order_by("archive_number")
 
 
-    initial_dossiers = list(priority_qs[:500])
+
+    initial_dossiers = []
+
+    seen_ids = set()
+
+    for d in list(priority_qs[:500]) + list(decile_qs[:500]):
+
+        if d.id not in seen_ids:
+
+            seen_ids.add(d.id)
+
+            initial_dossiers.append(d)
 
 
 
@@ -7793,99 +8526,25 @@ def bank_letter_sender_view(request):
 
     for d in initial_dossiers:
 
-        fn, ln = split_persian_name(d.full_name)
-
-        base_cost = d.base_cost_without_loan or 0
-
-        total_loans = (d.fund_loan_amount or 0) + (d.decile_loan_amount or 0)
-
-        is_funded = (total_loans >= base_cost and base_cost > 0) or d.is_equity_funded or d.is_sent_to_bank or (d.current_stage >= 6)
-
-
-
         m_info = existing_meta.get(d.project, {})
 
         b_code = m_info.get("bank_code", "maskan")
 
         b_name = m_info.get("bank_name", "بانک مسکن")
 
-
-
-        dossiers_json_list.append({
-
-            "id": d.id,
-
-            "archive_number": d.archive_number,
-
-            "national_id": d.national_id or "",
-
-            "first_name": fn,
-
-            "last_name": ln,
-
-            "full_name": d.full_name or "",
-
-            "selection_rank": d.selection_rank or "-",
-
-            "applicant_phone": d.applicant_phone or "",
-
-            "block_code": d.block_code or d.block_name or "-",
-
-            "floor_number": d.floor_number or "-",
-
-            "unit_code": d.unit_number or d.unit_code or "-",
-            "unit_number": d.unit_number or d.unit_code or "-",
-
-
-            "parking_number": str(d.parking_number or "-"),
-
-            "storage_area": str(d.storage_area or "-"),
-
-            "storage_number": str(d.storage_number or "-"),
-
-            "bedroom_count": str(d.bedroom_count or "-"),
-
-            "common_area": str(d.common_area or "-"),
-
-            "net_unit_area": str(d.net_unit_area or "-"),
-
-            "unit_direction": d.unit_direction or "-",
-
-            "total_area": str(d.total_area or "-"),
-
-            "project": d.project or "",
-
-            "site": d.site or "",
-
-            "bank_code": b_code,
-
-            "bank_name": b_name,
-
-            "current_stage": d.current_stage,
-
-            "current_stage_title": d.current_stage_title,
-
-            "is_sent_to_bank": d.is_sent_to_bank,
-
-            "is_fully_funded": is_funded,
-
-            "base_cost_without_loan": base_cost,
-
-            "total_loans": total_loans,
-
-            "applicant_equity": d.applicant_equity,
-
-            "is_equity_funded": d.is_equity_funded,
-
-            "bank_letter_number": d.bank_letter_number or d.bank_sent_letter_number or "",
-
-            "bank_letter_date": d.bank_letter_date or d.bank_sent_date or "",
-
-        })
+        dossiers_json_list.append(_serialize_bank_letter_dossier(d, b_code, b_name, include_financials=True))
 
 
 
     initial_letter = request.GET.get("letter", "").strip()
+
+    req_type = request.GET.get("type", "").strip().lower()
+
+    can_send_bank = bool(is_chief_or_admin or can_action_bank)
+
+    can_send_decile = bool(is_chief_or_admin or can_action_decile_bank)
+
+    default_letter_type = "decile" if (req_type == "decile" or (can_send_decile and not can_send_bank)) else "bank"
 
 
 
@@ -7916,6 +8575,12 @@ def bank_letter_sender_view(request):
         "default_project": projects[0] if projects else "پروژه مسکونی",
 
         "initial_letter": initial_letter,
+
+        "default_letter_type": default_letter_type,
+
+        "can_send_bank": can_send_bank,
+
+        "can_send_decile": can_send_decile,
 
     }
 
@@ -7977,73 +8642,9 @@ def bank_letter_lookup_api(request):
 
     for d in dossiers:
 
-        fn, ln = split_persian_name(d.full_name)
-
         b_code, b_name = existing_maps.get(d.project, ("maskan", "بانک مسکن"))
 
-        results.append({
-
-            "id": d.id,
-
-            "archive_number": d.archive_number,
-
-            "national_id": d.national_id or "",
-
-            "first_name": fn,
-
-            "last_name": ln,
-
-            "full_name": d.full_name or "",
-
-            "selection_rank": d.selection_rank or "-",
-
-            "applicant_phone": d.applicant_phone or "",
-
-            "block_code": d.block_code or d.block_name or "-",
-
-            "floor_number": d.floor_number or "-",
-
-            "unit_code": d.unit_number or d.unit_code or "-",
-            "unit_number": d.unit_number or d.unit_code or "-",
-
-
-            "parking_number": str(d.parking_number or "-"),
-
-            "storage_area": str(d.storage_area or "-"),
-
-            "storage_number": str(d.storage_number or "-"),
-
-            "bedroom_count": str(d.bedroom_count or "-"),
-
-            "common_area": str(d.common_area or "-"),
-
-            "net_unit_area": str(d.net_unit_area or "-"),
-
-            "unit_direction": d.unit_direction or "-",
-
-            "total_area": str(d.total_area or "-"),
-
-            "project": d.project or "",
-
-            "site": d.site or "",
-
-            "bank_code": b_code,
-
-            "bank_name": b_name,
-
-            "current_stage": d.current_stage,
-
-            "current_stage_title": d.current_stage_title,
-
-            "is_sent_to_bank": d.is_sent_to_bank,
-
-            "is_equity_funded": d.is_equity_funded,
-
-            "bank_letter_number": d.bank_letter_number or d.bank_sent_letter_number or "",
-
-            "bank_letter_date": d.bank_letter_date or d.bank_sent_date or "",
-
-        })
+        results.append(_serialize_bank_letter_dossier(d, b_code, b_name, include_financials=False))
 
 
 
@@ -8059,11 +8660,11 @@ def bank_letter_submit_api(request):
 
     """
 
-    Processes the batch Bank Letter submission:
+    Processes the batch Bank Letter or Decile Bank Letter submission:
 
-    Updates is_sent_to_bank, bank_letter_number and bank_letter_date,
+    - letter_type='bank': Updates is_sent_to_bank, bank_letter_number/date, and advances Stage 6 -> 7.
 
-    creates BankLetter archive entity with bank details, and advances Stage 6 dossiers to Stage 7.
+    - letter_type='decile': Updates decile_bank_letter_number and decile_bank_letter_date without altering Stage 6->7.
 
     """
 
@@ -8073,11 +8674,7 @@ def bank_letter_submit_api(request):
 
     can_action_bank = profile and (profile.can_action_stage(6) or profile.can_action_stage(10))
 
-    
-
-    if not (is_chief_or_admin or can_action_bank):
-
-        return JsonResponse({"status": "error", "message": "دسترسی غیرمجاز."}, status=403)
+    can_action_decile_bank = profile and (profile.can_action_stage(17) or profile.can_action_stage(18))
 
 
 
@@ -8091,9 +8688,27 @@ def bank_letter_submit_api(request):
 
 
 
+    letter_type = "decile" if (body.get("letter_type") or "bank").strip().lower() == "decile" else "bank"
+
+    if letter_type == "decile":
+
+        if not (is_chief_or_admin or can_action_decile_bank):
+
+            return JsonResponse({"status": "error", "message": "دسترسی ثبت نامه بانک دهک مختص کارشناس مراحل ۱۷ و ۱۸ یا مدیر سیستم است."}, status=403)
+
+    else:
+
+        if not (is_chief_or_admin or can_action_bank):
+
+            return JsonResponse({"status": "error", "message": "دسترسی غیرمجاز."}, status=403)
+
+
+
     archive_numbers = body.get("archive_numbers", [])
 
-    letter_number = (body.get("letter_number") or "").strip()
+    raw_letter_number = (body.get("letter_number") or "").strip()
+
+    letter_number = raw_letter_number
 
     letter_date = (body.get("letter_date") or "").strip()
 
@@ -8115,11 +8730,17 @@ def bank_letter_submit_api(request):
 
         batch_cnt = BankLetter.objects.count() + 1
 
-        letter_number = f"معرفی به بانک ({today_j} - دسته {batch_cnt})"
+        prefix = "معرفی به بانک دهک" if letter_type == "decile" else "معرفی به بانک"
+
+        letter_number = f"{prefix} ({today_j} - دسته {batch_cnt})"
 
     if not letter_date:
 
         letter_date = today_j
+
+    if BankLetter.objects.filter(letter_number=letter_number).exclude(letter_type=letter_type).exists():
+
+        return JsonResponse({"status": "error", "message": "این شماره نامه قبلاً برای نوع نامه دیگری ثبت شده است."}, status=400)
 
 
 
@@ -8181,37 +8802,59 @@ def bank_letter_submit_api(request):
 
     for d in dossiers:
 
-        d.is_sent_to_bank = True
-
-        d.bank_letter_number = (body.get("letter_number") or "").strip()
-
-        d.bank_letter_date = (body.get("letter_date") or "").strip()
-
-        d.bank_sent_letter_number = letter_number
-
-        d.bank_sent_date = letter_date
-
-        d.is_added_to_bank_shipment_list = True
-
-        d.bank_shipment_list_added_at = timezone.now()
-
-
-
         from_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
 
-        if d.current_stage == 6:
+        if letter_type == "decile":
 
-            d.current_stage = 7
+            d.decile_bank_letter_number = raw_letter_number or letter_number
 
-            to_stage_str = f"مرحله ۷: اسکن مدارک و دفترچه اقساط"
+            d.decile_bank_letter_date = letter_date
+
+            to_stage_str = from_stage_str
+
+            d.save(update_fields=["decile_bank_letter_number", "decile_bank_letter_date", "updated_at"])
+
+            action_label = f"صدور نامه بانک دهک ({d.decile_loan_bank or bank_name})"
+
+            action_notes = f"نامه راه و شهرسازی به بانک دهک به شماره {d.decile_bank_letter_number} مورخ {letter_date}. {notes}".strip()
+
+            sig_hash = f"DECILE-BANK-LETTER-{d.archive_number}-{letter_number}"
 
         else:
 
-            to_stage_str = f"مرحله {d.current_stage}: {d.current_stage_title}"
+            d.is_sent_to_bank = True
+
+            d.bank_letter_number = raw_letter_number
+
+            d.bank_letter_date = (body.get("letter_date") or "").strip()
+
+            d.bank_sent_letter_number = letter_number
+
+            d.bank_sent_date = letter_date
+
+            d.is_added_to_bank_shipment_list = True
+
+            d.bank_shipment_list_added_at = timezone.now()
+
+            if d.current_stage == 6:
+
+                d.current_stage = 7
+
+                to_stage_str = "مرحله ۷: اسکن مدارک و دفترچه اقساط"
+
+            else:
+
+                to_stage_str = from_stage_str
+
+            d.save()
+
+            action_label = f"ارسال نامه معرفی به {bank_name}"
+
+            action_notes = f"نامه معرفی به {bank_name} صادره به شماره {letter_number} مورخ {letter_date}. {notes}".strip()
+
+            sig_hash = f"BANK-LETTER-{d.archive_number}-{letter_number}"
 
 
-
-        d.save()
 
         updated_count += 1
 
@@ -8233,11 +8876,11 @@ def bank_letter_submit_api(request):
 
             action="BANK_LETTER",
 
-            action_label=f"ارسال نامه معرفی به {bank_name}",
+            action_label=action_label,
 
-            notes=f"نامه معرفی به {bank_name} صادره به شماره {letter_number} مورخ {letter_date}. {notes}".strip(),
+            notes=action_notes,
 
-            signature_hash=f"BANK-LETTER-{d.archive_number}-{letter_number}"
+            signature_hash=sig_hash,
 
         )
 
@@ -8252,6 +8895,8 @@ def bank_letter_submit_api(request):
         letter_number=letter_number,
 
         defaults={
+
+            "letter_type": letter_type,
 
             "letter_date": letter_date,
 
@@ -8273,6 +8918,8 @@ def bank_letter_submit_api(request):
 
     )
 
+    bank_letter.letter_type = letter_type
+
     bank_letter.letter_date = letter_date
 
     bank_letter.bank_code = bank_code
@@ -8293,15 +8940,27 @@ def bank_letter_submit_api(request):
 
 
 
+    success_msg = (
+
+        f"نامه بانک دهک با شماره {letter_number} برای {updated_count} پرونده با موفقیت ثبت گردید."
+
+        if letter_type == "decile"
+
+        else f"نامه {bank_name} با شماره {letter_number} برای {updated_count} پرونده با موفقیت ثبت گردید و پرونده‌ها به مرحله ۷ ارجاع شدند."
+
+    )
+
     return JsonResponse({
 
         "status": "success",
 
-        "message": f"نامه {bank_name} با شماره {letter_number} برای {updated_count} پرونده با موفقیت ثبت گردید و پرونده‌ها به مرحله ۷ ارجاع شدند.",
+        "message": success_msg,
 
         "updated_count": updated_count,
 
         "updated_archives": updated_archives,
+
+        "letter_type": letter_type,
 
         "letter_number": letter_number,
 
@@ -8599,6 +9258,16 @@ def bank_letter_export_excel(request):
 
     letter_number = request.GET.get("letter", "").strip()
 
+    letter_type = request.GET.get("letter_type", "bank").strip().lower()
+
+    if letter_number and letter_type != "decile":
+
+        bl_type = BankLetter.objects.filter(letter_number=letter_number).values_list("letter_type", flat=True).first()
+
+        if bl_type == "decile":
+
+            letter_type = "decile"
+
 
 
     # Queryset
@@ -8611,7 +9280,21 @@ def bank_letter_export_excel(request):
 
     elif letter_number:
 
-        dossiers_qs = HousingDossier.objects.filter(bank_letter_number=letter_number)
+        if letter_type == "decile":
+
+            dossiers_qs = HousingDossier.objects.filter(decile_bank_letter_number=letter_number)
+
+        else:
+
+            dossiers_qs = HousingDossier.objects.filter(bank_letter_number=letter_number)
+
+    elif letter_type == "decile":
+
+        dossiers_qs = HousingDossier.objects.filter(
+
+            models.Q(current_stage__in=[16, 17, 18]) | models.Q(decile_loan_amount__gt=0) | models.Q(decile_bank_letter_number__gt="")
+
+        )
 
     else:
 
@@ -8713,13 +9396,15 @@ def bank_letter_export_excel(request):
 
     ws = wb.active
 
+    sheet_tab_title = "نامه بانک دهک" if letter_type == "decile" else "نامه بانک"
+
     if ws is None:
 
-        ws = wb.create_sheet(title="نامه بانک")
+        ws = wb.create_sheet(title=sheet_tab_title)
 
     else:
 
-        ws.title = "نامه بانک"
+        ws.title = sheet_tab_title
 
     ws.views.sheetView[0].rightToLeft = True
 
@@ -8727,15 +9412,25 @@ def bank_letter_export_excel(request):
 
     letter_date = request.GET.get("date", "").strip()
 
-    sheet_title = f"محاسبه قیمت تمام شده انتخاب واحد پروژه {project_title}"
+    if letter_type == "decile":
 
-    if letter_number:
+        sheet_title = f"معرفی‌نامه تسهیلات قرض‌الحسنه دهک‌های درآمدی پروژه {project_title}"
 
-        sheet_title += f" (نامه رسمی بانک: {letter_number} مورخ {letter_date})"
+        if letter_number:
 
+            sheet_title += f" (شماره نامه بانک دهک: {letter_number} مورخ {letter_date})"
 
+        ws.merge_cells("A1:U1")
 
-    ws.merge_cells("A1:R1")
+    else:
+
+        sheet_title = f"محاسبه قیمت تمام شده انتخاب واحد پروژه {project_title}"
+
+        if letter_number:
+
+            sheet_title += f" (نامه رسمی بانک: {letter_number} مورخ {letter_date})"
+
+        ws.merge_cells("A1:R1")
 
     title_cell = ws["A1"]
 
@@ -8761,7 +9456,7 @@ def bank_letter_export_excel(request):
 
         "جهت", "جمع متراژ"
 
-    ]
+    ] + (["بانک عامل دهک", "مبلغ وام دهک (ریال)", "شماره نامه بانک دهک"] if letter_type == "decile" else [])
 
     thin_border = Border(
 
@@ -8835,7 +9530,15 @@ def bank_letter_export_excel(request):
 
             float(d.total_area) if d.total_area else "",
 
-        ]
+        ] + ([
+
+            d.decile_loan_bank or "",
+
+            int(d.decile_loan_amount) if d.decile_loan_amount else "",
+
+            d.decile_bank_letter_number or "",
+
+        ] if letter_type == "decile" else [])
 
         for col_idx, val in enumerate(row_vals, 1):
 
@@ -8853,7 +9556,7 @@ def bank_letter_export_excel(request):
 
 
 
-    col_widths = [8, 16, 18, 8, 14, 15, 12, 8, 10, 16, 14, 14, 14, 12, 12, 12, 12, 12]
+    col_widths = [8, 16, 18, 8, 14, 15, 12, 8, 10, 16, 14, 14, 14, 12, 12, 12, 12, 12] + ([18, 18, 22] if letter_type == "decile" else [])
 
     for col_idx, w in enumerate(col_widths, 1):
 
@@ -8871,7 +9574,9 @@ def bank_letter_export_excel(request):
 
     resp = HttpResponse(output.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-    resp["Content-Disposition"] = 'attachment; filename="Nameh_Bank.xlsx"'
+    dl_name = "Nameh_Bank_Dehak.xlsx" if letter_type == "decile" else "Nameh_Bank.xlsx"
+
+    resp["Content-Disposition"] = f'attachment; filename="{dl_name}"'
 
     return resp
 

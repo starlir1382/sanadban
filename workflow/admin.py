@@ -57,7 +57,8 @@ class WorkflowSignatureLogAdmin(admin.ModelAdmin):
 
 @admin.register(BankLetter)
 class BankLetterAdmin(admin.ModelAdmin):
-    list_display = ("letter_number", "letter_date", "project_name", "sender_name", "created_at")
+    list_display = ("letter_number", "letter_type", "letter_date", "bank_name", "project_name", "sender_name", "created_at")
+    list_filter = ("letter_type", "bank_name")
     search_fields = ("letter_number", "project_name", "sender_name")
     filter_horizontal = ("dossiers",)
 

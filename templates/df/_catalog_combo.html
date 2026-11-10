@@ -1,0 +1,60 @@
+{% comment %}
+Strict searchable catalog dropdown bound to form.<name>.
+Restricts selection strictly to approved catalog entries and suggests matches on input.
+Params: name, kind (site|project|code|bank|branch), label, cols(3), sfx, ph, num, ltr
+{% endcomment %}<div class="df-field df-col-{{ cols|default:'3' }}"
+     :class="{'is-locked': !isFieldEditable('{{ name }}')}"
+     x-data="{ open: false, hi: 0, typing: false, prev: '', blurTimer: null }">
+    <label class="df-label" for="f_{{ name }}{{ sfx }}">{{ label }}</label>
+    <div class="df-combo">
+        <input id="f_{{ name }}{{ sfx }}"
+               type="text"
+               class="df-input df-combo-input{% if num %} fa-num{% endif %}{% if ltr %} df-ltr{% endif %}"
+               autocomplete="off"
+               role="combobox"
+               aria-autocomplete="list"
+               :aria-expanded="open"
+               x-model="form.{{ name }}"
+               :readonly="!isFieldEditable('{{ name }}')"
+               @focus="if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } if (isFieldEditable('{{ name }}')) { prev = form.{{ name }} || ''; typing = false; open = true; hi = 0; }"
+               @click="if (isFieldEditable('{{ name }}') && !open) { prev = form.{{ name }} || ''; typing = false; open = true; hi = 0; }"
+               @input="if (isFieldEditable('{{ name }}')) { typing = true; open = true; hi = 0; }"
+               @blur="blurTimer = setTimeout(() => { if (open) { open = false; prev = commitCatalogInput('{{ kind }}', '{{ name }}', typing, prev); typing = false; } }, 140)"
+               @click.outside="if (open) { open = false; prev = commitCatalogInput('{{ kind }}', '{{ name }}', typing, prev); typing = false; }"
+               @keydown.escape.prevent="open = false; form.{{ name }} = prev; typing = false;"
+               @keydown.arrow-down.prevent="if (isFieldEditable('{{ name }}')) { if (!open) { prev = form.{{ name }} || ''; typing = false; open = true; hi = 0; } else { const len = getCatalogItems('{{ kind }}', form.{{ name }}, typing).length; if (len) hi = Math.min(hi + 1, len - 1); } }"
+               @keydown.arrow-up.prevent="hi = Math.max(hi - 1, 0)"
+               @keydown.enter.prevent="if (open) { const items = getCatalogItems('{{ kind }}', form.{{ name }}, typing); const pick = items[hi >= 0 ? hi : 0]; if (pick) { selectCatalogItem('{{ kind }}', pick); prev = form.{{ name }} || ''; open = false; typing = false; } }"
+               placeholder="{{ ph|default:'جستجو و انتخاب از لیست...' }}">
+        <button type="button"
+                class="df-combo-arrow"
+                tabindex="-1"
+                x-show="isFieldEditable('{{ name }}')"
+                aria-label="باز کردن لیست {{ label }}"
+                @mousedown.prevent="if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } if (open) { open = false; prev = commitCatalogInput('{{ kind }}', '{{ name }}', typing, prev); typing = false; } else { prev = form.{{ name }} || ''; typing = false; open = true; hi = 0; $el.previousElementSibling.focus(); }">
+            <svg viewBox="0 0 24 24" :style="open ? 'transform:rotate(180deg)' : ''"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="df-combo-list"
+             role="listbox"
+             x-show="open && isFieldEditable('{{ name }}')"
+             x-cloak>
+            <template x-for="(item, i) in getCatalogItems('{{ kind }}', form.{{ name }}, typing)" :key="item.key">
+                <div class="df-combo-item"
+                     role="option"
+                     :class="{'is-hi': i === hi, 'is-selected': form.{{ name }} === item.value}"
+                     @mouseenter="hi = i"
+                     @mousedown.prevent="if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; } selectCatalogItem('{{ kind }}', item); prev = form.{{ name }} || ''; open = false; typing = false;">
+                    <div>
+                        <strong x-text="item.primary"></strong>
+                        <small x-show="item.secondary" x-text="item.secondary"></small>
+                    </div>
+                    <span class="df-combo-code fa-num" x-show="item.badge" x-text="item.badge"></span>
+                </div>
+            </template>
+            <div class="df-combo-empty"
+                 x-show="getCatalogItems('{{ kind }}', form.{{ name }}, typing).length === 0">
+                موردی در لیست مصوب یافت نشد
+            </div>
+        </div>
+    </div>
+</div>

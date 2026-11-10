@@ -181,6 +181,11 @@ class WorkflowExecutionTestCase(TestCase):
             full_name="متقاضی آزمایشی",
             site="سایت نمونه",
             project="پروژه نمونه",
+            registration_section="1",
+            main_plaque=120,
+            separated_plaque=3,
+            sub_plaque=45,
+            plot_number=12,
         )
         self.assertEqual(dossier.current_stage, 1)
         self.assertEqual(dossier.archive_number, 100001)

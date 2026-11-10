@@ -1,0 +1,88 @@
+{% for d in dossiers %}
+<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }}">
+  
+  <!-- 1. Archive Number -->
+  <td class="t-center fa-num">
+    <span class="dl-id" title="شماره بایگانی رسمی پرونده">{{ d.archive_number }}</span>
+  </td>
+
+  <!-- 2. Applicant -->
+  <td>
+    <div class="dl-person">
+      <div class="dl-person-info">
+        <div class="dl-name" title="{{ d.full_name }}">{{ d.full_name }}</div>
+        <div class="dl-subline fa-num">
+          <span>کدملی: <span class="dl-nid">{{ d.national_id }}</span></span>
+          {% if d.father_name %}<span style="margin-right: 6px; color: #64748b;">(نام پدر: {{ d.father_name }})</span>{% endif %}
+        </div>
+      </div>
+    </div>
+  </td>
+
+  <!-- 3. Project & Site -->
+  <td>
+    <div class="dl-project" title="{{ d.project }}">{{ d.project }}</div>
+    {% if d.site %}
+    <div class="dl-subline fa-num">
+      <span>سایت {{ d.site }}</span>
+    </div>
+    {% endif %}
+  </td>
+
+  <!-- 4. Current Stage & Workflow Status -->
+  <td class="t-center fa-num">
+    <div class="dl-stage">
+      <span class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله فعلی در گردش کار: مرحله {{ d.current_stage }} ({{ d.current_stage_title }})">
+        <span class="lbl">مرحله فعلی</span>
+        <span class="no fa-num">{{ d.current_stage }}</span>
+      </span>
+
+      <span class="dl-stage-title" title="{{ d.current_stage_title }}">{{ d.current_stage_title }}</span>
+
+      {% if d.current_stage == 22 or d.is_locked %}
+      <div class="dl-stage-meta">
+        <span class="dl-status green" title="پرونده نهایی و بایگانی قطعی شده است">✓ مختومه و بایگانی</span>
+      </div>
+      {% elif d.status == 'REJECTED_RED' %}
+      <div class="dl-stage-meta">
+        <span class="dl-status red" title="رد صلاحیت">⛔ رد صلاحیت فرم ج</span>
+      </div>
+      {% endif %}
+    </div>
+  </td>
+
+  <!-- 5. User Signature Date & Time -->
+  <td class="t-center fa-num" style="min-width: 175px;">
+    {% if d.user_sig_info %}
+    <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 3px; line-height: 1.4;">
+      {% if d.user_sig_info.not_signed_by_viewer %}
+      <span style="color: #94a3b8; font-size: 0.74rem; font-weight: 600;">توسط شما امضا نشده</span>
+      <span style="color: #64748b; font-size: 0.72rem;" title="امضای ثبت‌شده در سامانه">{{ d.user_sig_info.actor|truncatechars:20 }} • {{ d.user_sig_info.date }}{% if d.user_sig_info.time %} ({{ d.user_sig_info.time }}){% endif %}</span>
+      {% else %}
+      <span class="dl-sig-date">{{ d.user_sig_info.date }}</span>
+        {% if d.user_sig_info.time %}
+        <span class="dl-sig-time-pill" title="زمان ثبت امضا">ساعت {{ d.user_sig_info.time }}</span>
+        {% endif %}
+        {% if signer_filter and d.user_sig_info.actor %}
+        <span style="color: #64748b; font-size: 0.72rem;">{{ d.user_sig_info.actor|truncatechars:22 }}</span>
+        {% endif %}
+      {% endif %}
+    </div>
+    {% else %}
+    <span style="color: #94a3b8; font-size: 0.78rem;">تایید الکترونیکی</span>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="5">
+    <div class="dl-empty" style="padding: 3rem 1.5rem; text-align: center; color: var(--color-text-muted, #64748b);">
+      <div class="dl-empty-ic" style="width: 52px; height: 52px; border-radius: 50%; background: #f1f5f9; border: 1px solid #cbd5e1; color: #94a3b8; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><polyline points="9 15 11 17 15 13"></polyline></svg>
+      </div>
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #1e293b; margin-bottom: 0.35rem;">هیچ پرونده امضا شده‌ای منطبق با جستجو یافت نشد</h3>
+      <p style="font-size: 0.85rem; color: #64748b; margin: 0;">{% if query %}عبارت جستجو شده: «{{ query }}»{% else %}هنوز سابقه‌ای در این بخش ثبت نشده است.{% endif %}</p>
+    </div>
+  </td>
+</tr>
+{% endfor %}

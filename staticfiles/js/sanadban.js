@@ -4,7 +4,7 @@ const SECTION_STAGE_MAP = {
   "section-form-j": [3, 11],
   "section-spouse": [1, 8, 9],
   "section-plot": [2, 8, 9, 12, 13, 14, 15],
-  "section-cost": [2, 19],
+  "section-cost": [2, 8, 9, 19],
   "section-loans": [4, 19],
   "section-equity": [5],
   "section-applicant-equity": [5],
@@ -47,7 +47,7 @@ const FIELD_STAGE_MAP = {
   spouse_birth_place: [1, 8, 9],
   site: [1, 8, 9],
   project: [1, 8, 9],
-  project_code: [1, 8, 9],
+  project_code: [1, 2, 3, 8, 9, 10, 11],
   bank_name: [1, 6, 8, 9],
   bank_branch: [1, 6, 8, 9],
   construction_type: [1, 8, 9],
@@ -73,7 +73,9 @@ const FIELD_STAGE_MAP = {
   plot_number: [2, 8, 9, 12, 13, 14],
   renovation_code: [2, 8, 9, 12, 13, 14],
   base_cost_without_loan: [2, 8, 9, 19],
+  form_j_registration_type: [3, 10, 11],
   form_j_questionnaire_number: [1, 3, 7, 8, 11],
+  computer_code: [11],
   applicant_form_j_status: [1, 3, 8, 11],
   applicant_form_j_directorate_status: [1, 3, 8, 11],
   applicant_form_j_red_description: [1, 3, 8, 11],
@@ -94,7 +96,7 @@ const FIELD_STAGE_MAP = {
   is_sent_to_bank: [6, 10],
   bank_sent_date: [6, 10],
   bank_sent_letter_number: [6, 10],
-  form_j_number: [7, 8, 11],
+  form_j_number: [1, 3, 7, 8, 11],
   has_installment_booklet: [7, 8],
   has_info_form: [7, 8],
   has_form_j: [7, 8],
@@ -107,6 +109,8 @@ const FIELD_STAGE_MAP = {
   land_lease_year: [16],
   preparation_cost: [16],
   decile_loan_bank: [17],
+  decile_bank_letter_number: [17, 18],
+  decile_bank_letter_date: [17, 18],
   supported_institution: [17],
   check_count: [17],
   check_amount: [17],
@@ -128,8 +132,8 @@ const FIELD_STAGE_MAP = {
   total_preparation_check_amount: [17, 18],
   preparation_check_entries_json: [17, 18],
   is_preparation_checks_confirmed: [17, 18],
-  rah_letter: [20],
-  rah_letter_date: [20],
+  rah_letter: [2, 8, 9, 12, 13, 14, 20],
+  rah_letter_date: [2, 8, 9, 12, 13, 14, 20],
   deed_number: [13],
   deed_date: [13],
   is_land_deed_confirmed: [13],
@@ -478,20 +482,20 @@ const STAGE_GUIDANCE = {
   8: {
     actionTitle: "بازبینی، ممیزی و کنترل پرونده ره آزرم",
     actionSummary:
-      "کنترل و بازبینی دقیق سایر فیلدهای اطلاعاتی پرونده، مدارک هویتی، واحد و مبالغ پیش از ارسال به رئیس کارگزاری.",
+      "کنترل و بازبینی دقیق بخش‌های ۱، ۲ و ۴، مدارک هویتی، پلاک‌های ثبتی و قیمت تمام‌شده بدون وام پیش از ارسال به مدیر کارگزاری.",
     items: [
-      "کنترل و تطبیق فیلدهای پرونده و مدارک هویتی متقاضی و همسر",
-      "بازبینی ارقام مالی، استعلامات و چک‌باکس‌های مدارک",
+      "کنترل تکمیل بخش ثبتی، پلاک اصلی، مفروز، فرعی، شماره قطعه و قیمت تمام‌شده بدون وام",
+      "کنترل و تطبیق فیلدهای بخش‌های ۱، ۲ و ۴ و مدارک هویتی متقاضی و همسر",
       "تایید ممیزی جهت ارسال به مدیرعامل کارگزاری ره آزرم",
     ],
-    targetSection: "#audit-timeline-section",
+    targetSection: "#section-plot",
   },
   9: {
     actionTitle: "تأیید و امضای مدیرعامل کارگزاری ره آزرم",
     actionSummary:
-      "بازبینی کامل پرونده، بررسی صحت مبالغ و مدارک کارگزاری، و تایید نهایی توسط مدیرعامل کارگزاری.",
+      "بازبینی کامل بخش‌های ۱، ۲ و ۴ پرونده، بررسی صحت مبالغ و مدارک کارگزاری، و تایید نهایی توسط مدیرعامل کارگزاری.",
     items: [
-      "کنترل رعایت کلیه ضوابط اجرایی مراحل ۱ تا ۸",
+      "کنترل کلیه بخش‌های ۱، ۲ و ۴ و ضوابط اجرایی مراحل ۱ تا ۸",
       "بررسی تاییدیه مالی و گزارش ممیزی کارشناس ره آزرم",
       "ثبت امضای الکترونیک مدیرعامل کارگزاری جهت ارسال به اداره کل",
     ],
@@ -511,11 +515,11 @@ const STAGE_GUIDANCE = {
   11: {
     actionTitle: "ثبت و بارگذاری استعلام فرم ج اداره کل",
     actionSummary:
-      "بارگذاری اسکن برگه استعلام رسمی فرم «ج» تاییدشده متقاضی و همسر از سامانه نهضت ملی اداره کل.",
+      "تکمیل اطلاعات فرم «ج»، شماره پرسش‌نامه، کد کامپیوتری و بارگذاری اسکن تاییدیه رسمی اداره کل.",
     items: [
+      "ثبت کد کامپیوتری و ویرایش/تایید اطلاعات فرم ج و شماره پرسش‌نامه",
       "بارگذاری اسکن تاییدیه نهایی فرم جیم صادره اداره کل",
-      "تطبیق وضعیت سبز قطعی متقاضی و همسر",
-      "ثبت امضای دیجیتال کارشناس فرم ج",
+      "تطبیق وضعیت سبز قطعی متقاضی و همسر و ثبت امضای دیجیتال",
     ],
     targetSection: "#section-form-j",
   },
@@ -656,6 +660,7 @@ document.addEventListener("alpine:init", () => {
     isLoaded: false,
     isLocked: false,
     userCanAction: true,
+    isViewOnly: false,
     isChief: false,
     showRoadmap: false,
     stageDetails: {},
@@ -773,6 +778,15 @@ document.addEventListener("alpine:init", () => {
       this.isAlbumMaximized = !this.isAlbumMaximized;
     },
     showSignatureModal: false,
+    showArchiveIssuedModal: false,
+    archiveCopied: false,
+    issuedArchiveInfo: {
+      archive_number: "",
+      full_name: "",
+      national_id: "",
+      new_stage: 8,
+      redirect_url: "",
+    },
     showReturnModal: false,
     showScanViewerModal: false,
     showGuidanceModal: false,
@@ -782,6 +796,16 @@ document.addEventListener("alpine:init", () => {
     activeScanIndex: 0,
     showUploadModal: false,
     isScanning: false,
+    isUploadingScan: false,
+    scanUploadProgress: 0,
+    scanUploadPhase: "",
+    scanUploadStatus: "",
+    scanUploadDetails: "",
+    isUploadingInlineScan: false,
+    inlineUploadProgress: 0,
+    projectsList: [],
+    projectsCatalog: { projects: [], sites: [], banks: [], branches: [] },
+    landRateInfo: null,
     isSaving: false,
     showToast: false,
     toastMessage: "",
@@ -836,6 +860,8 @@ document.addEventListener("alpine:init", () => {
       applicant_id_serial: "",
       selection_rank: null,
       form_j_questionnaire_number: "",
+      form_j_number: "",
+      computer_code: "",
       applicant_form_j_status: "سبز (استعلام شده)",
       applicant_form_j_directorate_status: "تایید نهایی اداره کل",
       applicant_form_j_red_description: "",
@@ -914,6 +940,8 @@ document.addEventListener("alpine:init", () => {
 
       // Stage 18: BankCheckTracker & TashilatCheck Fields (وام دهک، چک‌ها، آماده‌سازی و اجاره)
       decile_loan_bank: "بانک مسکن",
+      decile_bank_letter_number: "",
+      decile_bank_letter_date: "",
       supported_institution: "هیچکدام",
       check_count: 0,
       check_amount: 0,
@@ -1095,6 +1123,8 @@ document.addEventListener("alpine:init", () => {
             this.returnFromStage = serverData.return_from_stage;
           if (typeof serverData.user_can_action !== "undefined")
             this.userCanAction = Boolean(serverData.user_can_action);
+          if (typeof serverData.is_view_only !== "undefined")
+            this.isViewOnly = Boolean(serverData.is_view_only);
           if (typeof serverData.is_chief !== "undefined")
             this.isChief = Boolean(serverData.is_chief);
           if (typeof serverData.is_superuser !== "undefined")
@@ -1113,6 +1143,15 @@ document.addEventListener("alpine:init", () => {
             this.isRedFormJ = Boolean(serverData.is_red_form_j);
           if (serverData.stage_details)
             this.stageDetails = serverData.stage_details;
+          if (serverData.land_rate_info)
+            this.landRateInfo = serverData.land_rate_info;
+          if (serverData.projects_catalog) {
+            this.projectsCatalog = serverData.projects_catalog;
+            if (Array.isArray(serverData.projects_catalog.projects)) {
+              this.projectsList = serverData.projects_catalog.projects;
+              window.ALL_PROJECTS = this.projectsList;
+            }
+          }
           if (serverData.rejection_letter_number)
             this.rejectionLetterNumber = serverData.rejection_letter_number;
           if (serverData.rejection_letter_date)
@@ -1131,6 +1170,13 @@ document.addEventListener("alpine:init", () => {
           if (serverData.form) {
             this.form = Object.assign({}, this.form, serverData.form);
           }
+          const canonicalFormJ = String(
+            this.form.form_j_number ||
+              this.form.form_j_questionnaire_number ||
+              "",
+          ).trim();
+          this.form.form_j_number = canonicalFormJ;
+          this.form.form_j_questionnaire_number = canonicalFormJ;
           if (Array.isArray(serverData.attachments)) {
             this.attachments = serverData.attachments;
           }
@@ -1148,6 +1194,20 @@ document.addEventListener("alpine:init", () => {
         }
       }
       this.recalculateEquity();
+
+      // Two-way sync between "شماره رسمی فرم «ج»" (form_j_number) and "شماره پرسش‌نامه فرم ج" (form_j_questionnaire_number)
+      this.$watch("form.form_j_number", (val) => {
+        const nextVal = val == null ? "" : String(val);
+        if (this.form.form_j_questionnaire_number !== nextVal) {
+          this.form.form_j_questionnaire_number = nextVal;
+        }
+      });
+      this.$watch("form.form_j_questionnaire_number", (val) => {
+        const nextVal = val == null ? "" : String(val);
+        if (this.form.form_j_number !== nextVal) {
+          this.form.form_j_number = nextVal;
+        }
+      });
 
       if (
         !this.form.check_entries ||
@@ -1378,6 +1438,10 @@ document.addEventListener("alpine:init", () => {
 
     // Save Dossier Draft Directly to Database
     async saveDossierDraft(notify = true) {
+      if (this.isViewOnly || this.isLocked) {
+        if (notify) this.triggerToast("امکان تغییر اطلاعات در حالت فقط خواندنی وجود ندارد.", "warning");
+        return false;
+      }
       this.isSaving = true;
       try {
         const csrfToken = this.getCSRFToken();
@@ -1492,8 +1556,8 @@ document.addEventListener("alpine:init", () => {
     },
 
     async rotateAttachment(item, degrees = 90) {
-      if (this.isLocked) {
-        alert("این پرونده مختومه و قفل است.");
+      if (this.isLocked || this.isViewOnly) {
+        this.triggerToast("این پرونده در حالت فقط خواندنی است و امکان ویرایش تصویر وجود ندارد.", "warning");
         return;
       }
       try {
@@ -1640,10 +1704,79 @@ document.addEventListener("alpine:init", () => {
       });
     },
 
+    _makeUploadToken() {
+      return (
+        "up_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9)
+      );
+    },
+
+    _postFormDataWithProgress(url, formData, callbacks = {}) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const startTime = Date.now();
+        const csrfToken = this.getCSRFToken();
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && e.total > 0 && callbacks.onProgress) {
+            const elapsed = Math.max(0.05, (Date.now() - startTime) / 1000);
+            const pct = Math.min(100, Math.round((e.loaded / e.total) * 100));
+            const speedBps = e.loaded / elapsed;
+            const speedStr =
+              speedBps > 1024 * 1024
+                ? (speedBps / (1024 * 1024)).toFixed(1) + " MB/s"
+                : Math.round(speedBps / 1024) + " KB/s";
+            const loadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
+            const totalMb = (e.total / (1024 * 1024)).toFixed(1);
+            callbacks.onProgress({
+              percent: pct,
+              loadedMb,
+              totalMb,
+              speedStr,
+            });
+          }
+        };
+
+        xhr.upload.onload = () => {
+          if (callbacks.onUploadDone) {
+            callbacks.onUploadDone();
+          }
+        };
+
+        xhr.onload = () => {
+          let data = {};
+          try {
+            data = JSON.parse(xhr.responseText || "{}");
+          } catch (e) {
+            data = {};
+          }
+          resolve({
+            ok: xhr.status >= 200 && xhr.status < 300,
+            status: xhr.status,
+            data,
+          });
+        };
+
+        xhr.onerror = () => {
+          reject(new Error("خطای ارتباط با سرور"));
+        };
+        xhr.onabort = () => {
+          reject(new Error("بارگذاری لغو شد"));
+        };
+
+        xhr.open("POST", url, true);
+        if (csrfToken) xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        xhr.send(formData);
+      });
+    },
+
     async uploadSectionAttachment(docType, defaultTitle, event) {
+      if (this.isUploadingInlineScan) return;
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
+      this.isUploadingInlineScan = true;
+      this.inlineUploadProgress = 0;
       this.triggerToast(
         `در حال بارگذاری «${defaultTitle || file.name}»...`,
         "info",
@@ -1654,18 +1787,18 @@ document.addEventListener("alpine:init", () => {
         formData.append("title", defaultTitle || file.name);
         formData.append("doc_type", docType || "OTHER");
         formData.append("file", file);
+        formData.append("upload_token", this._makeUploadToken());
 
-        const csrfToken = this.getCSRFToken();
-        const res = await fetch(`/dossier/${this.archiveNumber}/upload-scan/`, {
-          method: "POST",
-          headers: {
-            "X-CSRFToken": csrfToken,
+        const { ok, data } = await this._postFormDataWithProgress(
+          `/dossier/${this.archiveNumber}/upload-scan/`,
+          formData,
+          {
+            onProgress: ({ percent }) => {
+              this.inlineUploadProgress = percent;
+            },
           },
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (res.ok && data.status === "success") {
+        );
+        if (ok && data.status === "success") {
           if (data.attachment) {
             const exists = this.attachments.some(
               (a) => a.id === data.attachment.id,
@@ -1721,11 +1854,17 @@ document.addEventListener("alpine:init", () => {
           "error",
         );
       } finally {
-        event.target.value = "";
+        this.isUploadingInlineScan = false;
+        this.inlineUploadProgress = 0;
+        if (event && event.target) event.target.value = "";
       }
     },
 
     async deleteAttachment(attId) {
+      if (this.isLocked || this.isViewOnly) {
+        this.triggerToast("امکان حذف اسناد در حالت فقط خواندنی وجود ندارد.", "error");
+        return;
+      }
       if (!confirm("آیا از حذف این مدرک از پرونده اطمینان دارید؟")) return;
 
       try {
@@ -2026,12 +2165,30 @@ document.addEventListener("alpine:init", () => {
       );
     },
 
+    _upsertAttachments(items) {
+      (items || []).forEach((att) => {
+        if (!att) return;
+        const idx = this.attachments.findIndex((a) => a.id === att.id);
+        if (idx >= 0) {
+          this.attachments.splice(idx, 1, att);
+        } else {
+          this.attachments.unshift(att);
+        }
+      });
+    },
+
     async handleCheckScanUploadAndReceipt(event, type = "loan") {
-      const file = event.target.files[0];
+      if (this.isUploadingInlineScan) {
+        if (event && event.target) event.target.value = "";
+        return;
+      }
+      const file = event.target.files && event.target.files[0];
       if (!file) return;
 
       const typeLabel =
         type === "prep" ? "اقساط آماده‌سازی" : "تسهیلات وام دهک";
+      this.isUploadingInlineScan = true;
+      this.inlineUploadProgress = 0;
       this.triggerToast(
         `در حال بارگذاری اسکن و تولید برگه رسید چک‌های ${typeLabel}...`,
         "info",
@@ -2041,28 +2198,20 @@ document.addEventListener("alpine:init", () => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("check_type", type);
+        formData.append("upload_token", this._makeUploadToken());
 
-        const csrfToken = this.getCSRFToken();
-        const res = await fetch(
+        const { ok, data } = await this._postFormDataWithProgress(
           `/dossier/${this.archiveNumber}/checks/upload-scan-and-create-receipt/`,
+          formData,
           {
-            method: "POST",
-            headers: {
-              "X-CSRFToken": csrfToken,
+            onProgress: ({ percent }) => {
+              this.inlineUploadProgress = percent;
             },
-            body: formData,
           },
         );
-
-        const data = await res.json();
-        if (res.ok && data.status === "success") {
+        if (ok && data.status === "success") {
           if (data.attachment) {
-            const exists = this.attachments.some(
-              (a) => a.id === data.attachment.id,
-            );
-            if (!exists) {
-              this.attachments.unshift(data.attachment);
-            }
+            this._upsertAttachments([data.attachment]);
           }
           this.triggerToast(
             "تصویر اسکن دریافت، سربرگ و امضاها افزوده و به عنوان رسید چک‌ها ذخیره گردید ✓",
@@ -2080,7 +2229,9 @@ document.addEventListener("alpine:init", () => {
         console.error("Error uploading check scan and creating receipt:", err);
         this.triggerToast("خطا در ارتباط با سرور جهت تولید رسید چک.", "error");
       } finally {
-        event.target.value = "";
+        this.isUploadingInlineScan = false;
+        this.inlineUploadProgress = 0;
+        if (event && event.target) event.target.value = "";
       }
     },
 
@@ -2103,12 +2254,18 @@ document.addEventListener("alpine:init", () => {
     },
 
     async handleMultiCheckScanUpload(event, type = "prep") {
+      if (this.isUploadingInlineScan) {
+        if (event && event.target) event.target.value = "";
+        return;
+      }
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
       const count = files.length;
       const typeLabel =
         type === "prep" ? "اقساط آماده‌سازی" : "تسهیلات وام دهک";
+      this.isUploadingInlineScan = true;
+      this.inlineUploadProgress = 0;
       this.triggerToast(
         `در حال بارگذاری ${count} برگ اسکن و تولید صفحات متوالی چاپ چک‌های ${typeLabel}...`,
         "info",
@@ -2117,42 +2274,25 @@ document.addEventListener("alpine:init", () => {
       try {
         const formData = new FormData();
         formData.append("check_type", type);
+        formData.append("upload_token", this._makeUploadToken());
         for (let i = 0; i < files.length; i++) {
           formData.append("files", files[i]);
         }
 
-        const csrfToken = this.getCSRFToken();
-        const res = await fetch(
+        const { ok, data } = await this._postFormDataWithProgress(
           `/dossier/${this.archiveNumber}/checks/upload-scan-and-create-receipt/`,
+          formData,
           {
-            method: "POST",
-            headers: {
-              "X-CSRFToken": csrfToken,
+            onProgress: ({ percent }) => {
+              this.inlineUploadProgress = percent;
             },
-            body: formData,
           },
         );
-
-        const data = await res.json();
-        if (res.ok && data.status === "success") {
+        if (ok && data.status === "success") {
           if (data.attachments && Array.isArray(data.attachments)) {
-            data.attachments.forEach((att) => {
-              const idx = this.attachments.findIndex((a) => a.id === att.id);
-              if (idx >= 0) {
-                this.attachments.splice(idx, 1, att);
-              } else {
-                this.attachments.unshift(att);
-              }
-            });
+            this._upsertAttachments(data.attachments);
           } else if (data.attachment) {
-            const idx = this.attachments.findIndex(
-              (a) => a.id === data.attachment.id,
-            );
-            if (idx >= 0) {
-              this.attachments.splice(idx, 1, data.attachment);
-            } else {
-              this.attachments.unshift(data.attachment);
-            }
+            this._upsertAttachments([data.attachment]);
           }
 
           this.triggerToast(
@@ -2174,7 +2314,9 @@ document.addEventListener("alpine:init", () => {
           "error",
         );
       } finally {
-        event.target.value = "";
+        this.isUploadingInlineScan = false;
+        this.inlineUploadProgress = 0;
+        if (event && event.target) event.target.value = "";
       }
     },
 
@@ -2259,9 +2401,10 @@ document.addEventListener("alpine:init", () => {
 
     // Upload & Scanner Controller Methods
     openUploadScanModal(docType = null, defaultTitle = null) {
-      if (this.isLocked) {
+      if (this.isUploadingScan) return;
+      if (this.isLocked || this.isViewOnly) {
         this.triggerToast(
-          "این پرونده نهایی و بایگانی شده است و امکان بارگذاری مدارک جدید وجود ندارد.",
+          "در حالت فقط خواندنی امکان بارگذاری مدارک جدید وجود ندارد.",
           "error",
         );
         return;
@@ -2310,6 +2453,11 @@ document.addEventListener("alpine:init", () => {
         filesList: [],
       };
       this.isScanning = false;
+      this.isUploadingScan = false;
+      this.scanUploadProgress = 0;
+      this.scanUploadPhase = "";
+      this.scanUploadStatus = "";
+      this.scanUploadDetails = "";
       this.showUploadModal = true;
     },
 
@@ -2432,6 +2580,10 @@ document.addEventListener("alpine:init", () => {
     },
 
     async submitScanUpload() {
+      if (this.isUploadingScan) {
+        return;
+      }
+
       if (
         !this.uploadForm.filesList ||
         this.uploadForm.filesList.length === 0
@@ -2454,12 +2606,20 @@ document.addEventListener("alpine:init", () => {
       const totalCount = this.uploadForm.filesList.length;
       const customTitle = (this.uploadForm.title || "").trim();
 
+      this.isUploadingScan = true;
+      this.scanUploadProgress = 0;
+      this.scanUploadPhase = "uploading";
+      this.scanUploadStatus = `در حال ارسال ${totalCount} برگ مدرک به سرور...`;
+      this.scanUploadDetails =
+        "لطفاً تا پایان ذخیره منتظر بمانید و مجدداً کلیک نکنید.";
+
       try {
         const formData = new FormData();
         if (customTitle) {
           formData.append("title", customTitle);
         }
         formData.append("doc_type", this.uploadForm.doc_type || "OTHER");
+        formData.append("upload_token", this._makeUploadToken());
 
         this.uploadForm.filesList.forEach((item) => {
           if (item.file) {
@@ -2469,31 +2629,42 @@ document.addEventListener("alpine:init", () => {
           }
         });
 
-        const csrfToken =
-          document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
-
-        const response = await fetch(
-          `/dossier/${this.archiveNumber}/upload-scan/`,
-          {
-            method: "POST",
-            headers: {
-              "X-CSRFToken": csrfToken,
+        const { ok: responseOk, data: resData } =
+          await this._postFormDataWithProgress(
+            `/dossier/${this.archiveNumber}/upload-scan/`,
+            formData,
+            {
+              onProgress: ({ percent, loadedMb, totalMb, speedStr }) => {
+                this.scanUploadProgress = percent;
+                if (percent < 100) {
+                  this.scanUploadPhase = "uploading";
+                  this.scanUploadStatus = `در حال ارسال ${totalCount} برگ مدرک به سرور...`;
+                  this.scanUploadDetails = `${loadedMb} از ${totalMb} مگابایت (${speedStr})`;
+                } else {
+                  this.scanUploadPhase = "saving";
+                  this.scanUploadStatus =
+                    "فایل‌ها ارسال شدند؛ در حال ثبت نهایی در پرونده...";
+                  this.scanUploadDetails = "لطفاً صفحه را نبندید.";
+                }
+              },
+              onUploadDone: () => {
+                this.scanUploadProgress = 100;
+                this.scanUploadPhase = "saving";
+                this.scanUploadStatus =
+                  "در حال بهینه‌سازی تصاویر و ثبت در سامانه...";
+                this.scanUploadDetails = "چند لحظه تا تکمیل بایگانی...";
+              },
             },
-            body: formData,
-          },
-        );
+          );
 
-        const resData = await response.json();
-
-        if (response.ok && resData.status === "success") {
+        if (responseOk && resData.status === "success") {
           const newAttachments =
             resData.attachments ||
             (resData.attachment ? [resData.attachment] : []);
 
-          // Prepend new attachments to UI list
-          newAttachments.forEach((att) => {
-            this.attachments.unshift(att);
-          });
+          this.scanUploadPhase = "done";
+          // Prepend new attachments to UI list without duplicates
+          this._upsertAttachments(newAttachments);
 
           const nowStr =
             "۱۴۰۳/۰۵/۲۲ " +
@@ -2552,6 +2723,12 @@ document.addEventListener("alpine:init", () => {
           "خطای ارتباط با سرور در هنگام بارگذاری مدارک.",
           "error",
         );
+      } finally {
+        this.isUploadingScan = false;
+        this.scanUploadProgress = 0;
+        this.scanUploadPhase = "";
+        this.scanUploadStatus = "";
+        this.scanUploadDetails = "";
       }
     },
 
@@ -2622,32 +2799,260 @@ document.addEventListener("alpine:init", () => {
       // For archived/locked dossiers, keep all sections expanded and viewable
       if (this.isLocked || Number(this.currentStage) >= 22) return true;
       if (this.isChief || this.isSuperuser) return true;
-      return this.isSectionActive(sectionId);
+      if (this.isSectionActive(sectionId)) return true;
+      const allowed = Array.isArray(this.userAllowedStages)
+        ? this.userAllowedStages.map(Number)
+        : [];
+      const mapping = SECTION_STAGE_MAP[sectionId] || [];
+      return allowed.some((stg) => mapping.includes(stg));
     },
 
     // Helper to safely get stage metadata by ID
 
     // --------------------------------------------------------------------------
-    // Project Autocomplete & Middle-word Substring Search
+    // Strict Catalog Searchable Dropdowns (Sites, Projects, Codes, Banks, Branches)
     // --------------------------------------------------------------------------
+    normalizeCatalogText(val) {
+      if (val === null || val === undefined) return "";
+      const faDigits = "۰۱۲۳۴۵۶۷۸۹";
+      const arDigits = "٠١٢٣٤٥٦٧٨٩";
+      return String(val)
+        .replace(/[۰-۹]/g, (d) => String(faDigits.indexOf(d)))
+        .replace(/[٠-٩]/g, (d) => String(arDigits.indexOf(d)))
+        .replace(/ي/g, "ی")
+        .replace(/ك/g, "ک")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    },
+
+    _catalogProjects() {
+      const cat = this.projectsCatalog || {};
+      if (Array.isArray(cat.projects) && cat.projects.length) return cat.projects;
+      return this.projectsList || window.ALL_PROJECTS || [];
+    },
+
+    getCatalogItems(kind, query, typing = true) {
+      const cat = this.projectsCatalog || {};
+      const q = typing ? this.normalizeCatalogText(query) : "";
+      const norm = (v) => this.normalizeCatalogText(v);
+
+      if (kind === "site") {
+        const list = Array.isArray(cat.sites) ? cat.sites : [];
+        return list
+          .filter(
+            (s) =>
+              !q ||
+              norm(s.value).includes(q) ||
+              norm(s.csv_label).includes(q) ||
+              norm(s.city).includes(q),
+          )
+          .map((s) => ({
+            key: `site-${s.value}`,
+            value: s.value,
+            primary: s.value,
+            secondary: s.csv_label && s.csv_label !== s.value ? s.csv_label : "",
+            badge: "",
+            aliases: [s.value, s.csv_label],
+            raw: s,
+          }));
+      }
+
+      if (kind === "bank") {
+        const list = Array.isArray(cat.banks) ? cat.banks : [];
+        return list
+          .filter(
+            (b) =>
+              !q || norm(b.value).includes(q) || norm(b.csv_label).includes(q),
+          )
+          .map((b) => ({
+            key: `bank-${b.value}`,
+            value: b.value,
+            primary: b.value,
+            secondary: b.csv_label && b.csv_label !== b.value ? b.csv_label : "",
+            badge: "",
+            aliases: [b.value, b.csv_label],
+            raw: b,
+          }));
+      }
+
+      if (kind === "branch") {
+        let list = Array.isArray(cat.branches) ? cat.branches.slice() : [];
+        const activeBank = norm(this.form.bank_name);
+        if (!q && activeBank) {
+          list.sort((a, b) => {
+            const am = norm(a.bank_name) === activeBank ? 0 : 1;
+            const bm = norm(b.bank_name) === activeBank ? 0 : 1;
+            return am - bm;
+          });
+        }
+        return list
+          .filter(
+            (br) =>
+              !q ||
+              norm(br.branch_name).includes(q) ||
+              norm(br.branch_code).includes(q) ||
+              norm(br.bank_name).includes(q),
+          )
+          .map((br) => ({
+            key: `branch-${br.branch_code}-${br.bank_name}-${br.branch_name}`,
+            value: br.branch_name,
+            primary: br.branch_name,
+            secondary: br.bank_name,
+            badge: br.branch_code,
+            aliases: [br.branch_name, br.branch_code],
+            raw: br,
+          }));
+      }
+
+      if (kind === "code") {
+        const list = this._catalogProjects();
+        return list
+          .filter(
+            (p) =>
+              !q ||
+              norm(p.code).includes(q) ||
+              norm(p.name).includes(q) ||
+              norm(p.site).includes(q),
+          )
+          .map((p) => ({
+            key: `code-${p.code}`,
+            value: p.code,
+            primary: p.code,
+            secondary: p.name,
+            badge: p.site,
+            aliases: [p.code],
+            raw: p,
+          }));
+      }
+
+      // Default: 'project'
+      let projects = this._catalogProjects().slice();
+      const activeSite = norm(this.form.site);
+      if (!q && activeSite) {
+        projects.sort((a, b) => {
+          const am = norm(a.site) === activeSite ? 0 : 1;
+          const bm = norm(b.site) === activeSite ? 0 : 1;
+          return am - bm;
+        });
+      }
+      return projects
+        .filter(
+          (p) =>
+            !q ||
+            norm(p.name).includes(q) ||
+            norm(p.code).includes(q) ||
+            norm(p.site).includes(q) ||
+            norm(p.bank_name).includes(q) ||
+            norm(p.branch_name).includes(q),
+        )
+        .map((p) => ({
+          key: `proj-${p.code}-${p.name}`,
+          value: p.name,
+          primary: p.name,
+          secondary: [p.site, p.bank_name, p.branch_name ? `شعبه ${p.branch_name}` : ""]
+            .filter(Boolean)
+            .join(" • "),
+          badge: p.code,
+          aliases: [p.name],
+          raw: p,
+        }));
+    },
+
+    findExactCatalogItem(kind, rawVal) {
+      const target = this.normalizeCatalogText(rawVal);
+      if (!target) return null;
+      const items = this.getCatalogItems(kind, "", false);
+      return (
+        items.find((it) => {
+          if (this.normalizeCatalogText(it.value) === target) return true;
+          return Array.isArray(it.aliases)
+            ? it.aliases.some((a) => this.normalizeCatalogText(a) === target)
+            : false;
+        }) || null
+      );
+    },
+
+    selectCatalogItem(kind, item) {
+      if (!item) return;
+      if (kind === "project" || kind === "code") {
+        this.selectProject(item.raw);
+        return;
+      }
+      if (kind === "site") {
+        this.form.site = item.value;
+        return;
+      }
+      if (kind === "bank") {
+        this.form.bank_name = item.value;
+        const curBranch = this.normalizeCatalogText(this.form.bank_branch);
+        if (curBranch && this.isFieldEditable("bank_branch")) {
+          const branches = (this.projectsCatalog && this.projectsCatalog.branches) || [];
+          const matchesBank = branches.some(
+            (b) =>
+              this.normalizeCatalogText(b.branch_name) === curBranch &&
+              this.normalizeCatalogText(b.bank_name) ===
+                this.normalizeCatalogText(item.value),
+          );
+          if (!matchesBank) this.form.bank_branch = "";
+        }
+        return;
+      }
+      if (kind === "branch") {
+        this.form.bank_branch = item.value;
+        if (
+          item.raw &&
+          item.raw.bank_name &&
+          this.isFieldEditable("bank_name")
+        ) {
+          this.form.bank_name = item.raw.bank_name;
+        }
+      }
+    },
+
+    commitCatalogInput(kind, fieldName, wasTyping, prevVal) {
+      if (!this.isFieldEditable(fieldName)) return this.form[fieldName] || "";
+      const cur = String(this.form[fieldName] || "").trim();
+      const prevClean = String(prevVal || "").trim();
+      if (!wasTyping && cur === prevClean) return prevClean;
+      if (!cur) {
+        this.form[fieldName] = "";
+        return "";
+      }
+      const exact = this.findExactCatalogItem(kind, cur);
+      if (exact) {
+        this.selectCatalogItem(kind, exact);
+        return this.form[fieldName] || exact.value;
+      }
+      this.form[fieldName] = prevClean;
+      this.triggerToast(
+        "تنها امکان انتخاب از گزینه‌های لیست مصوب وجود دارد.",
+        "warning",
+      );
+      return prevClean;
+    },
+
     getFilteredProjects(query) {
-      const list = this.projectsList || window.ALL_PROJECTS || [];
-      if (!list.length) return [];
-      if (!query || !String(query).trim()) return list.slice(0, 15);
-      const q = String(query).trim().toLowerCase();
-      // Match query anywhere in project name (including middle of word)
-      return list
-        .filter((p) => p.name && p.name.toLowerCase().includes(q))
-        .slice(0, 20);
+      return this.getCatalogItems("project", query, true).map((it) => it.raw);
     },
 
     selectProject(p) {
       if (!p) return;
-      this.form.project = p.name || "";
-      if (p.code) this.form.project_code = p.code;
-      if (p.bank_name) this.form.bank_name = p.bank_name;
-      if (p.branch_name) this.form.bank_branch = p.branch_name;
-      this.markDirty();
+      if (this.isFieldEditable("project")) {
+        this.form.project = p.name || "";
+      }
+      if (p.code && this.isFieldEditable("project_code")) {
+        this.form.project_code = p.code;
+      }
+      if (p.site && this.isFieldEditable("site")) {
+        this.form.site = p.site;
+      }
+      if (p.bank_name && this.isFieldEditable("bank_name")) {
+        this.form.bank_name = p.bank_name;
+      }
+      if (p.branch_name && this.isFieldEditable("bank_branch")) {
+        this.form.bank_branch = p.branch_name;
+      }
     },
 
     getStage(id) {
@@ -2663,12 +3068,13 @@ document.addEventListener("alpine:init", () => {
 
     // Permission Checker: all fields are editable across stages if user has permission, locked upon final archive
     isFieldEditable(fieldName) {
-      if (this.isLocked) return false;
+      if (this.isLocked || this.isViewOnly) return false;
       if (
         this.isSuperuser ||
         this.isChief ||
         this.userAllowedStages === "all"
       ) {
+        if (this.isViewOnly) return false;
         return true;
       }
       if (typeof this.userCanAction !== "undefined" && !this.userCanAction) {
@@ -2682,6 +3088,69 @@ document.addEventListener("alpine:init", () => {
         ? this.userAllowedStages
         : [];
       return fieldStages.some((stg) => allowed.includes(stg));
+    },
+
+    canSeeFullSection1() {
+      if (
+        this.isSuperuser ||
+        this.isChief ||
+        this.userAllowedStages === "all"
+      ) {
+        return true;
+      }
+      const allowed = Array.isArray(this.userAllowedStages)
+        ? this.userAllowedStages.map(Number)
+        : [];
+      if (
+        allowed.includes(1) ||
+        allowed.includes(8) ||
+        allowed.includes(9)
+      ) {
+        return true;
+      }
+      return [8, 9].includes(Number(this.currentStage));
+    },
+
+    getStage8MissingFields() {
+      if (Number(this.currentStage) !== 8 || !this.form) return [];
+      const isEmpty = (v) =>
+        v === null || v === undefined || String(v).trim() === "";
+      const missing = [];
+      if (isEmpty(this.form.registration_section)) missing.push("بخش ثبتی");
+      if (isEmpty(this.form.main_plaque)) missing.push("پلاک اصلی");
+      if (isEmpty(this.form.separated_plaque)) missing.push("پلاک مفروز");
+      if (isEmpty(this.form.sub_plaque)) missing.push("فرعی از");
+      if (isEmpty(this.form.plot_number)) missing.push("شماره قطعه");
+      const baseCost = Number(this.form.base_cost_without_loan);
+      if (
+        isEmpty(this.form.base_cost_without_loan) ||
+        Number.isNaN(baseCost) ||
+        baseCost <= 0
+      ) {
+        missing.push("قیمت تمام‌شده بدون وام بانکی");
+      }
+      return missing;
+    },
+
+    _validateBeforeSign() {
+      if (Number(this.currentStage) === 8) {
+        const missing = this.getStage8MissingFields();
+        if (missing.length > 0) {
+          this.triggerToast(
+            `امکان امضای مرحله ۸ وجود ندارد؛ لطفاً ابتدا فیلدهای الزامی زیر را تکمیل نمایید: ${missing.join("، ")}`,
+            "error",
+          );
+          const targetId =
+            missing.length === 1 &&
+            missing[0].includes("قیمت")
+              ? "#section-cost"
+              : "#section-plot";
+          this.tab = "form";
+          this.$nextTick(() => this.scrollToActiveSection(targetId));
+          return false;
+        }
+      }
+      return true;
     },
 
     isStage8User() {
@@ -2698,7 +3167,7 @@ document.addEventListener("alpine:init", () => {
     },
 
     canSignCurrentStage() {
-      if (this.isLocked || this.isRejected || this.isRedJ) return false;
+      if (this.isLocked || this.isRejected || this.isRedJ || this.isViewOnly) return false;
       if (!this.userCanAction) return false;
       if ([17, 18].includes(Number(this.currentStage))) {
         return Boolean(
@@ -3219,12 +3688,19 @@ document.addEventListener("alpine:init", () => {
 
     // Forward & Sign
     openSignatureModal() {
+      if (!this._validateBeforeSign()) {
+        return;
+      }
       this.signerPin = "";
       this.signAgreement = true;
       this.showSignatureModal = true;
     },
 
     async confirmElectronicSignature() {
+      if (!this._validateBeforeSign()) {
+        this.showSignatureModal = false;
+        return;
+      }
       // First save current form edits to database
       const saved = await this.saveDossierDraft(false);
       if (!saved) {
@@ -3252,8 +3728,8 @@ document.addEventListener("alpine:init", () => {
 
         if (res.ok) {
           const data = await res.json();
-          const prevStage = this.currentStage;
-          this.currentStage = data.new_stage;
+          const prevStage = Number(this.currentStage);
+          this.currentStage = Number(data.new_stage);
           if (data.is_locked) this.isLocked = true;
 
           const fromInfo = this.getStage(prevStage);
@@ -3281,6 +3757,26 @@ document.addEventListener("alpine:init", () => {
             notes: `تایید و امضای الکترونیکی مرحله ${prevStage} با موفقیت در سامانه ثبت شد.`,
           });
 
+          if (
+            prevStage === 7 &&
+            Number(data.new_stage) >= 8 &&
+            data.dossier_status !== "REJECT_RED_PENDING"
+          ) {
+            this.issuedArchiveInfo = {
+              archive_number: data.archive_number || this.archiveNumber,
+              full_name:
+                (this.form && this.form.full_name) || data.full_name || "",
+              national_id:
+                (this.form && this.form.national_id) || data.national_id || "",
+              new_stage: Number(data.new_stage),
+              redirect_url: data.redirect_url || "",
+            };
+            this.archiveCopied = false;
+            this.showSignatureModal = false;
+            this.showArchiveIssuedModal = true;
+            return;
+          }
+
           this.triggerToast(
             data.message || `پرونده به مرحله ${this.currentStage} منتقل شد.`,
             "success",
@@ -3304,6 +3800,45 @@ document.addEventListener("alpine:init", () => {
         this.triggerToast("خطا در ارسال درخواست امضا به سرور.", "error");
       } finally {
         this.showSignatureModal = false;
+      }
+    },
+
+    copyIssuedArchiveNumber() {
+      const val = String(
+        this.issuedArchiveInfo.archive_number || this.archiveNumber || "",
+      );
+      if (!val) return;
+      const onCopied = () => {
+        this.archiveCopied = true;
+        this.triggerToast(`شماره بایگانی ${val} کپی شد.`, "success");
+        setTimeout(() => {
+          this.archiveCopied = false;
+        }, 2500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(val).then(onCopied).catch(() => {});
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = val;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          onCopied();
+        } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    },
+
+    closeArchiveIssuedModal() {
+      const target = this.issuedArchiveInfo.redirect_url;
+      this.showArchiveIssuedModal = false;
+      if (target) {
+        window.location.href = target;
+      } else {
+        window.location.reload();
       }
     },
 
@@ -3691,6 +4226,18 @@ document.addEventListener("alpine:init", () => {
           this.form.preparation_cost = d.preparation_cost;
           this.form.past_years_rent = d.past_years_rent;
           this.form.current_year_rent = d.current_year_rent;
+          this.landRateInfo = {
+            renovation_code: d.renovation_code || "",
+            project_name: d.project_name || "",
+            block_name: d.block_name || "",
+            plot_number: d.plot_number || "",
+            share_land: d.share_land || "0",
+            share_common: d.share_common || "0",
+            share_coefficient: d.share_coefficient || "0",
+            rent_current_per_m2: Number(d.rent_current_per_m2 || 0),
+            rent_to_date_per_m2: Number(d.rent_to_date_per_m2 || 0),
+            prep_per_m2: Number(d.prep_per_m2 || 0),
+          };
           if (!this.form.renovation_code && d.renovation_code) {
             this.form.renovation_code = d.renovation_code;
           }
@@ -3708,6 +4255,55 @@ document.addEventListener("alpine:init", () => {
         console.error("Calculate land rates error:", err);
         this.triggerToast("خطا در محاسبه آنلاین: " + err.message, "error");
       }
+    },
+
+    getValuationNetArea() {
+      return Number(this.form.net_unit_area || this.form.unit_area || 0) || 0;
+    },
+
+    getValuationStorageArea() {
+      return Number(this.form.storage_area || 0) || 0;
+    },
+
+    getValuationParkingArea() {
+      return Number(this.form.parking_area || 0) || 0;
+    },
+
+    getValuationTotalArea() {
+      return (
+        this.getValuationNetArea() +
+        this.getValuationStorageArea() +
+        this.getValuationParkingArea()
+      );
+    },
+
+    fmtFormulaNumber(val, decimals = 2) {
+      const n = Number(val || 0);
+      if (Number.isNaN(n)) return "0";
+      return String(Number(n.toFixed(decimals)));
+    },
+
+    getValuationComputedShare() {
+      if (this.landRateInfo && this.landRateInfo.share_coefficient) {
+        const coeff = Number(this.landRateInfo.share_coefficient || 0);
+        if (!Number.isNaN(coeff)) {
+          return Math.round(this.getValuationTotalArea() * coeff * 100) / 100;
+        }
+      }
+      return Number(this.form.total_land_share || 0) || 0;
+    },
+
+    getValuationActiveShare() {
+      const saved = Number(this.form.total_land_share);
+      if (!Number.isNaN(saved) && saved > 0) return saved;
+      return this.getValuationComputedShare();
+    },
+
+    getValuationRateAmount(rateKey) {
+      if (!this.landRateInfo) return 0;
+      const perM2 = Number(this.landRateInfo[rateKey] || 0);
+      if (Number.isNaN(perM2)) return 0;
+      return Math.round(this.getValuationActiveShare() * perM2);
     },
 
     toWords(num) {

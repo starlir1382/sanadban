@@ -1,7 +1,7 @@
 {% comment %}
 Currency input bound to form.<name> (thousands separators, "ریال" unit, optional amount in words).
 Params: sfx (id suffix when the same field appears twice), name, label, cols(4), req, ph(۰), ed (editable key, defaults to name), on (JS run after each input),
-        onblur (JS run after blur), words (show amount in words), show (x-show expression)
+        onblur (JS run after blur), words (show amount in words), show (x-show expression), invalid (JS expression)
 {% endcomment %}<div class="df-field df-col-{{ cols|default:'4' }}" {% if show %}x-show="{{ show }}" {% endif %}:class="{'is-locked': !isFieldEditable('{{ ed|default:name }}')}">
     <label class="df-label" for="f_{{ name }}{{ sfx }}">{% if req %}<b class="df-req">*</b>{% endif %}{{ label }}</label>
     <div class="df-money">
@@ -9,7 +9,7 @@ Params: sfx (id suffix when the same field appears twice), name, label, cols(4),
                :value="form.{{ name }} ? formatNumber(form.{{ name }}) : ''"
                @input="updateFormattedAmount(form, '{{ name }}', $event){% if on %}; {{ on }}{% endif %}"
                @blur="formatAmountOnBlur(form, '{{ name }}', $event){% if onblur %}; {{ onblur }}{% endif %}"
-               :readonly="!isFieldEditable('{{ ed|default:name }}')" placeholder="{{ ph|default:'۰' }}">
+               :readonly="!isFieldEditable('{{ ed|default:name }}')" placeholder="{{ ph|default:'۰' }}"{% if invalid %} :class="{'is-invalid': {{ invalid }}}"{% endif %}>
         <span class="df-unit">ریال</span>
     </div>
     {% if words %}<div class="df-words" x-show="form.{{ name }}">به حروف: <strong x-text="toWords(form.{{ name }})"></strong></div>{% endif %}

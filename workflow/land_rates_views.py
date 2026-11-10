@@ -340,17 +340,13 @@ def calculate_land_rates_api(request):
         })
 
     vals = compute_land_values(net, storage, parking, rate)
+    from .land_rates import serialize_rate_breakdown
+    breakdown = serialize_rate_breakdown(rate) or {}
     return JsonResponse({
         "success": True,
         "rate_found": True,
         "data": {
-            "renovation_code": rate.renovation_code,
-            "project_name": rate.project_name,
-            "block_name": rate.block_name,
-            "plot_number": rate.plot_number,
-            "share_land": str(rate.share_land),
-            "share_common": str(rate.share_common),
-            "share_coefficient": str(rate.share_land + rate.share_common),
+            **breakdown,
             "total_land_share": float(vals["total_land_share"]),
             "current_year_rent": int(vals["current_year_rent"]),
             "past_years_rent": int(vals["past_years_rent"]),

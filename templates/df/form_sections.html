@@ -115,56 +115,14 @@
                 </div>
             </div>
 
-            <fieldset class="df-set sb-advanced-only">
+            <fieldset class="df-set" :class="{'sb-advanced-only': !canSeeFullSection1()}">
                 <legend class="df-legend"><svg class="df-i"><use href="#i-building"/></svg>سایت، پروژه و واحد مسکونی</legend>
                 <div class="df-grid">
-                    <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('site')}">
-                        <label class="df-label" for="f_site">نام سایت</label>
-                        <select id="f_site" class="df-input" x-model="form.site" :disabled="!isFieldEditable('site')">
-                            <option value="">انتخاب سایت</option>
-                            <option value="رئیسی 560 هکتار">رئیسی 560 هکتار</option>
-                            <option value="27 هکتاری">27 هکتاری</option>
-                            <option value="پرنیان">پرنیان</option>
-                            <option value="قنوات">قنوات</option>
-                            <option value="سلفچگان">سلفچگان</option>
-                            <option value="جعفریه">جعفریه</option>
-                        </select>
-                    </div>
-
-                    <!-- جستجوی پروژه با پیمایش کیبوردی -->
-                    <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('project')}" x-data="{ open: false, hi: -1 }">
-                        <label class="df-label" for="f_project">نام پروژه</label>
-                        <div class="df-combo">
-                            <input id="f_project" type="text" class="df-input" autocomplete="off" role="combobox" :aria-expanded="open"
-                                   x-model="form.project"
-                                   @focus="open = isFieldEditable('project')"
-                                   @input="open = isFieldEditable('project'); hi = -1"
-                                   @click.outside="open = false"
-                                   @keydown.escape="open = false"
-                                   @keydown.arrow-down.prevent="open = isFieldEditable('project'); hi = Math.min(hi + 1, getFilteredProjects(form.project).length - 1)"
-                                   @keydown.arrow-up.prevent="hi = Math.max(hi - 1, 0)"
-                                   @keydown.enter="if (open && hi >= 0) { $event.preventDefault(); selectProject(getFilteredProjects(form.project)[hi]); open = false; }"
-                                   :readonly="!isFieldEditable('project')"
-                                   placeholder="جستجو: اقدم، پرنیان، داتیس">
-                            <div class="df-combo-list" role="listbox"
-                                 x-show="open && isFieldEditable('project') && getFilteredProjects(form.project).length > 0" x-cloak>
-                                <template x-for="(p, i) in getFilteredProjects(form.project)" :key="p.code || p.name">
-                                    <div class="df-combo-item" role="option" :class="{'is-hi': i === hi}"
-                                         @mousedown.prevent="selectProject(p); open = false">
-                                        <div>
-                                            <strong x-text="p.name"></strong>
-                                            <small x-text="p.bank_name ? '(' + p.bank_name + ')' : ''"></small>
-                                        </div>
-                                        <span class="df-combo-code fa-num" x-text="p.code"></span>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% include "df/_field.html" with name="project_code" label="کد پروژه" cols=2 num=1 ph="کد پروژه" %}
-                    {% include "df/_field.html" with name="bank_name" label="بانک متقاضی" cols=3 ph="بانک عامل" %}
-                    {% include "df/_field.html" with name="bank_branch" label="شعبه بانک" cols=3 ph="نام یا کد شعبه" %}
+                    {% include "df/_catalog_combo.html" with name="site" kind="site" label="نام سایت" cols=3 ph="جستجو و انتخاب سایت..." %}
+                    {% include "df/_catalog_combo.html" with name="project" kind="project" label="نام پروژه" cols=4 ph="جستجو نام یا کد پروژه..." %}
+                    {% include "df/_catalog_combo.html" with name="project_code" kind="code" label="کد پروژه" cols=2 num=1 ltr=1 ph="کد پروژه" %}
+                    {% include "df/_catalog_combo.html" with name="bank_name" kind="bank" label="بانک متقاضی" cols=3 ph="انتخاب بانک عامل" %}
+                    {% include "df/_catalog_combo.html" with name="bank_branch" kind="branch" label="شعبه بانک" cols=3 ph="جستجوی نام یا کد شعبه" %}
 
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('construction_type')}">
                         <label class="df-label" for="f_construction_type">نوع ساخت</label>
@@ -256,14 +214,14 @@
                 </div>
             </div>
             <div class="df-grid">
-                {% include "df/_field.html" with name="registration_section" label="بخش ثبتی" cols=2 ph="بخش ثبتی" %}
-                {% include "df/_field.html" with name="main_plaque" label="پلاک اصلی" cols=2 num=1 mode="numeric" ph="۰" %}
-                {% include "df/_field.html" with name="separated_plaque" label="پلاک مفروز" cols=2 num=1 mode="numeric" ph="۰" %}
-                {% include "df/_field.html" with name="sub_plaque" label="فرعی از" cols=2 num=1 mode="numeric" ph="۰" %}
-                {% include "df/_field.html" with name="plot_number" label="شماره قطعه" cols=2 num=1 mode="numeric" ph="۰" %}
+                {% include "df/_field.html" with name="registration_section" label="بخش ثبتی" cols=2 ph="بخش ثبتی" invalid="currentStage === 8 && (!form.registration_section || !String(form.registration_section).trim())" %}
+                {% include "df/_field.html" with name="main_plaque" label="پلاک اصلی" cols=2 num=1 mode="numeric" ph="۰" invalid="currentStage === 8 && (form.main_plaque === null || form.main_plaque === undefined || String(form.main_plaque).trim() === '')" %}
+                {% include "df/_field.html" with name="separated_plaque" label="پلاک مفروز" cols=2 num=1 mode="numeric" ph="۰" invalid="currentStage === 8 && (form.separated_plaque === null || form.separated_plaque === undefined || String(form.separated_plaque).trim() === '')" %}
+                {% include "df/_field.html" with name="sub_plaque" label="فرعی از" cols=2 num=1 mode="numeric" ph="۰" invalid="currentStage === 8 && (form.sub_plaque === null || form.sub_plaque === undefined || String(form.sub_plaque).trim() === '')" %}
+                {% include "df/_field.html" with name="plot_number" label="شماره قطعه" cols=2 num=1 mode="numeric" ph="۰" invalid="currentStage === 8 && (form.plot_number === null || form.plot_number === undefined || String(form.plot_number).trim() === '')" %}
                 {% include "df/_field.html" with name="renovation_code" label="کد نوسازی (شهرداری)" cols=2 num=1 ph="کد نوسازی" %}
                 {% include "df/_field.html" with name="rah_letter" label="شماره نامه راه و شهرسازی" cols=6 ltr=1 num=1 ph="۱۱۱/۴۴۵۵۶" ed="rah_letter" %}
-                {% include "df/_date.html" with label="تاریخ نامه راه و شهرسازی (شمسی)" cols=6 model="form.rah_letter_date" keyexpr="'rah_letter_date'" titleexpr="'تاریخ نامه راه و شهرسازی'" ph="۱۴۰۳/۰۴/۲۰" ed="rah_letter_date" %}
+                {% include "df/_date.html" with label="تاریخ نامه راه و شهرسازی (شمسی)" cols=6 model="form.rah_letter_date" keyexpr="'rah_letter_date'" titleexpr="'تاریخ نامه راه و شهرسازی'" ph="۱۴۰۵/۰۴/۲۰" ed="rah_letter_date" %}
             </div>
         </div>
     </section>
@@ -277,7 +235,7 @@
         <div class="df-body" id="section-form-j-body" x-show="sectionOpen" x-cloak x-transition>
             <div class="df-panel-head df-theme-green">
                 <p class="df-note" style="margin:0; max-width:46rem;">
-                    شماره پرسش‌نامه، وضعیت عدم مالکیت متقاضی و همسر. برگه چاپی استعلام در آلبوم اسناد بارگذاری می‌شود.
+                    شماره پرسش‌نامه / رسمی فرم «ج»، کد کامپیوتری (مرحله ۱۱) و وضعیت عدم مالکیت متقاضی و همسر. برگه چاپی استعلام در آلبوم اسناد بارگذاری می‌شود.
                 </p>
                 <button type="button" class="df-btn" @click="go('scans')" title="مشاهده اسناد در آلبوم اسکن‌ها">
                     <svg class="df-i"><use href="#i-link"/></svg><span>آلبوم اسناد</span>
@@ -285,9 +243,9 @@
             </div>
 
             <div class="df-grid">
-                {% include "df/_field.html" with name="project_code" sfx="_j" label="کد پروژه" cols=4 num=1 ph="کد پروژه" %}
+                {% include "df/_catalog_combo.html" with name="project_code" kind="code" sfx="_j" label="کد پروژه" cols=3 num=1 ltr=1 ph="کد پروژه" %}
 
-                <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('form_j_registration_type')}">
+                <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('form_j_registration_type')}">
                     <label class="df-label" for="f_form_j_registration_type">نحوه ثبت فرم ج</label>
                     <select id="f_form_j_registration_type" class="df-input" x-model="form.form_j_registration_type" :disabled="!isFieldEditable('form_j_registration_type')">
                         <option value="خودکار">ثبت خودکار</option>
@@ -295,7 +253,8 @@
                     </select>
                 </div>
 
-                {% include "df/_field.html" with name="form_j_questionnaire_number" label="شماره پرسش‌نامه فرم ج" cols=4 num=1 ph="شماره پرسش‌نامه" %}
+                {% include "df/_field.html" with name="form_j_questionnaire_number" label="شماره پرسش‌نامه / رسمی فرم ج" cols=3 num=1 ph="شماره پرسش‌نامه" %}
+                {% include "df/_field.html" with name="computer_code" label="شماره / کد کامپیوتری" cols=3 num=1 ph="کد کامپیوتری (مرحله ۱۱)" %}
 
                 <div class="df-field df-col-6" :class="{'is-locked': !isFieldEditable('applicant_form_j_status')}">
                     <div class="df-label-row">
@@ -372,7 +331,7 @@
                     <div class="df-words" x-show="form.bank_loan_amount">به حروف: <strong x-text="toWords(form.bank_loan_amount)"></strong></div>
                 </div>
 
-                {% include "df/_money.html" with name="base_cost_without_loan" label="قیمت تمام‌شده بدون وام بانکی" req=1 cols=6 words=1 on="recalculateEquity()" %}
+                {% include "df/_money.html" with name="base_cost_without_loan" label="قیمت تمام‌شده بدون وام بانکی" req=1 cols=6 words=1 on="recalculateEquity()" invalid="currentStage === 8 && (form.base_cost_without_loan === null || form.base_cost_without_loan === undefined || String(form.base_cost_without_loan).trim() === '' || Number(form.base_cost_without_loan) <= 0)" %}
             </div>
 
             <div class="df-total fa-num">
@@ -423,7 +382,7 @@
                     <div class="df-words" x-show="form.applicant_equity">به حروف: <strong x-text="toWords(form.applicant_equity)"></strong></div>
                 </div>
 
-                {% include "df/_date.html" with label="تاریخ ارسال پیامک به متقاضی (شمسی)" cols=6 model="form.sms_sent_date" keyexpr="'sms_sent_date'" titleexpr="'تاریخ ارسال پیامک تعیین آورده'" ph="۱۴۰۳/۰۸/۱۲" ed="sms_sent_date" %}
+                {% include "df/_date.html" with label="تاریخ ارسال پیامک به متقاضی (شمسی)" cols=6 model="form.sms_sent_date" keyexpr="'sms_sent_date'" titleexpr="'تاریخ ارسال پیامک تعیین آورده'" ph="۱۴۰۵/۰۸/۱۲" ed="sms_sent_date" %}
 
                 <div class="df-field df-col-12">
                     {% include "df/_confirm_card.html" with name="is_equity_funded" free=1 change="confirmEquityFunding()" title="تأمین و واریز کامل آورده نقدی به حساب مسدودی" ok="تأمین آورده تأیید شد ✓" wait="در انتظار تأمین آورده" %}
@@ -441,7 +400,7 @@
         <div class="df-body" id="section-bank-body" x-show="sectionOpen" x-cloak x-transition>
             <div class="df-grid">
                 {% include "df/_field.html" with name="bank_letter_number" label="شماره نامه معرفی به بانک" cols=6 num=1 ph="شماره نامه" %}
-                {% include "df/_field.html" with name="bank_letter_date" label="تاریخ نامه (شمسی)" cols=6 num=1 mode="numeric" ph="1403/01/01" %}
+                {% include "df/_field.html" with name="bank_letter_date" label="تاریخ نامه (شمسی)" cols=6 num=1 mode="numeric" ph="1405/01/01" %}
 
                 <div class="df-field df-col-12">
                     <div class="df-confirm" :class="{'is-on': form.is_sent_to_bank}">
@@ -476,19 +435,7 @@
 
         <div class="df-body" id="section-docs-installment-body" x-show="sectionOpen" x-cloak x-transition>
             <div class="df-grid">
-                <!-- ثبت شماره پرسش‌نامه فرم ج در مرحله ۷ (پس از ثبت به بخش ۳ منتقل و اینجا پنهان می‌شود) -->
-                <template x-if="currentStage === 7 && (!form.form_j_questionnaire_number || form.form_j_questionnaire_number.toString().trim() === '')">
-                    <div class="df-field df-col-12 df-panel df-theme-blue" style="margin-bottom:0;">
-                        <label class="df-label" for="f_form_j_questionnaire_number_s7" style="color:#1e40af;"><b class="df-req">*</b>شماره پرسش‌نامه فرم «ج»</label>
-                        <div style="display:flex; gap:8px;">
-                            <input id="f_form_j_questionnaire_number_s7" type="text" class="df-input fa-num" x-model="form.form_j_questionnaire_number" placeholder="شماره پرسش‌نامه">
-                            <button type="button" class="df-btn df-btn-primary" style="height:var(--df-h);" @click="saveDossierDraft(); triggerToast('شماره پرسش‌نامه ثبت و به بخش ۳ منتقل گردید.', 'success');">ثبت و انتقال</button>
-                        </div>
-                        <span class="df-note" style="display:block; margin-top:6px;">پس از ثبت، شماره در بخش ۳ ذخیره می‌شود و از این مرحله مخفی خواهد شد.</span>
-                    </div>
-                </template>
-
-                {% include "df/_field.html" with name="form_j_number" label="شماره رسمی فرم «ج»" req=1 cols=6 num=1 ph="۱۴۰۳/ج/۱۲۳۴" %}
+                {% include "df/_field.html" with name="form_j_number" label="شماره رسمی / پرسش‌نامه فرم «ج»" req=1 cols=6 num=1 ph="۱۴۰۵/ج/۱۲۳۴" %}
 
                 <div class="df-field df-col-6">
                     <label class="df-label">اسکن دفترچه اقساط</label>
@@ -535,12 +482,148 @@
                     <span>⚡ محاسبه مجدد ارقام</span>
                 </button>
             </div>
+
             <div class="df-grid">
                 {% include "df/_field.html" with name="total_land_share" label="جمع کل قدرالسهم (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
                 {% include "df/_field.html" with name="land_lease_year" label="سال اجاره عرصه" cols=3 num=1 mode="numeric" ph="۱۴۰۵" %}
                 {% include "df/_money.html" with name="preparation_cost" label="مبلغ آماده‌سازی" cols=6 %}
                 {% include "df/_money.html" with name="past_years_rent" label="اجاره سنوات تا پایان سال جاری" cols=6 %}
                 {% include "df/_money.html" with name="current_year_rent" label="اجاره سال جاری" cols=6 %}
+            </div>
+
+            <!-- شفاف‌سازی فرمول و نحوه محاسبه قدرالسهم، اجاره و آماده‌سازی (چپ به راست) -->
+            <div class="df-formula-box fa-num">
+                <div class="df-formula-head">
+                    <span>فرمول محاسبه قدرالسهم و مبالغ ارزیابی</span>
+                    <small class="df-formula-badge" x-show="landRateInfo" x-cloak
+                           x-text="'نرخ مصوب اکسل: ' + (landRateInfo ? ((landRateInfo.project_name || '') + (landRateInfo.block_name ? ' | بلوک ' + landRateInfo.block_name : '') + (landRateInfo.renovation_code ? ' | کد ' + landRateInfo.renovation_code : '')) : '')"></small>
+                    <small class="df-formula-badge is-empty" x-show="!landRateInfo" x-cloak>نرخ مصوب اکسل برای این پلاک/بلوک ثبت یا تطبیق نشده است</small>
+                </div>
+
+                <!-- ردیف ۱: فرمول متراژ و قدرالسهم (Left-to-Right) -->
+                <div class="df-formula-row" dir="ltr">
+                    <div class="df-f-term">
+                        <span class="df-f-lbl">متراژ مفید</span>
+                        <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationNetArea())"></strong>
+                    </div>
+                    <span class="df-f-op">+</span>
+                    <div class="df-f-term">
+                        <span class="df-f-lbl">انباری</span>
+                        <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationStorageArea())"></strong>
+                    </div>
+                    <span class="df-f-op">+</span>
+                    <div class="df-f-term">
+                        <span class="df-f-lbl">پارکینگ</span>
+                        <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationParkingArea())"></strong>
+                    </div>
+                    <span class="df-f-op">=</span>
+                    <div class="df-f-term is-sum">
+                        <span class="df-f-lbl">جمع متراژ</span>
+                        <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationTotalArea()) + ' m²'"></strong>
+                    </div>
+                    <span class="df-f-op">×</span>
+                    <div class="df-f-term is-coeff">
+                        <span class="df-f-lbl">ضریب قدرالسهم</span>
+                        <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_coefficient : '—'"></strong>
+                    </div>
+                    <span class="df-f-op">=</span>
+                    <div class="df-f-term is-result">
+                        <span class="df-f-lbl">جمع کل قدرالسهم</span>
+                        <strong class="df-f-val" x-text="(landRateInfo ? fmtFormulaNumber(getValuationComputedShare()) : (form.total_land_share ? fmtFormulaNumber(form.total_land_share) : '0')) + ' m²'"></strong>
+                    </div>
+                </div>
+
+                <!-- ردیف ۲: داده‌های پایه جدول نرخ مصوب اکسل -->
+                <div class="df-formula-excel">
+                    <div class="df-formula-subhead">داده‌های نرخ مصوب به ازای هر متر مربع و ضرایب (اکسل)</div>
+                    <div class="df-excel-grid" dir="ltr">
+                        <div class="df-f-term">
+                            <span class="df-f-lbl">آماده‌سازی هر متر (ریال)</span>
+                            <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.prep_per_m2) : '—'"></strong>
+                        </div>
+                        <div class="df-f-term">
+                            <span class="df-f-lbl">اجاره سنوات هر متر (ریال)</span>
+                            <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.rent_to_date_per_m2) : '—'"></strong>
+                        </div>
+                        <div class="df-f-term">
+                            <span class="df-f-lbl">اجاره سال جاری هر متر (ریال)</span>
+                            <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.rent_current_per_m2) : '—'"></strong>
+                        </div>
+                        <div class="df-f-term is-coeff">
+                            <span class="df-f-lbl">قدرالسهم از عرصه</span>
+                            <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_land : '—'"></strong>
+                        </div>
+                        <div class="df-f-term is-coeff">
+                            <span class="df-f-lbl">قدرالسهم از مشاع</span>
+                            <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_common : '—'"></strong>
+                        </div>
+                        <div class="df-f-term is-coeff">
+                            <span class="df-f-lbl">جمع ضریب قدرالسهم</span>
+                            <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_coefficient : '—'"></strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ردیف ۳: محاسبه مبالغ نهایی به ازای قدرالسهم (Left-to-Right) -->
+                <div class="df-formula-rates">
+                    <div class="df-f-rate-card">
+                        <div class="df-f-rate-title">محاسبه مبلغ آماده‌سازی</div>
+                        <div class="df-f-rate-expr" dir="ltr">
+                            <div class="df-f-mini">
+                                <span class="df-f-lbl">جمع کل قدرالسهم</span>
+                                <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationActiveShare())"></strong>
+                            </div>
+                            <span class="df-f-op-sm">×</span>
+                            <div class="df-f-mini">
+                                <span class="df-f-lbl">آماده‌سازی هر متر (ریال)</span>
+                                <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.prep_per_m2) : '—'"></strong>
+                            </div>
+                            <span class="df-f-op-sm">=</span>
+                            <div class="df-f-mini is-result">
+                                <span class="df-f-lbl">مبلغ آماده‌سازی (ریال)</span>
+                                <strong class="df-f-val" x-text="landRateInfo ? formatNumber(getValuationRateAmount('prep_per_m2')) : (form.preparation_cost ? formatNumber(form.preparation_cost) : '—')"></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="df-f-rate-card">
+                        <div class="df-f-rate-title">محاسبه اجاره سنوات تا پایان سال جاری</div>
+                        <div class="df-f-rate-expr" dir="ltr">
+                            <div class="df-f-mini">
+                                <span class="df-f-lbl">جمع کل قدرالسهم</span>
+                                <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationActiveShare())"></strong>
+                            </div>
+                            <span class="df-f-op-sm">×</span>
+                            <div class="df-f-mini">
+                                <span class="df-f-lbl">اجاره سنوات هر متر (ریال)</span>
+                                <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.rent_to_date_per_m2) : '—'"></strong>
+                            </div>
+                            <span class="df-f-op-sm">=</span>
+                            <div class="df-f-mini is-result">
+                                <span class="df-f-lbl">اجاره سنوات (ریال)</span>
+                                <strong class="df-f-val" x-text="landRateInfo ? formatNumber(getValuationRateAmount('rent_to_date_per_m2')) : (form.past_years_rent ? formatNumber(form.past_years_rent) : '—')"></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="df-f-rate-card">
+                        <div class="df-f-rate-title" x-text="'محاسبه اجاره سال جاری (' + (form.land_lease_year || '۱۴۰۵') + ')'"></div>
+                        <div class="df-f-rate-expr" dir="ltr">
+                            <div class="df-f-mini">
+                                <span class="df-f-lbl">جمع کل قدرالسهم</span>
+                                <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationActiveShare())"></strong>
+                            </div>
+                            <span class="df-f-op-sm">×</span>
+                            <div class="df-f-mini">
+                                <span class="df-f-lbl">اجاره سال جاری هر متر (ریال)</span>
+                                <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.rent_current_per_m2) : '—'"></strong>
+                            </div>
+                            <span class="df-f-op-sm">=</span>
+                            <div class="df-f-mini is-result">
+                                <span class="df-f-lbl">اجاره سال جاری (ریال)</span>
+                                <strong class="df-f-val" x-text="landRateInfo ? formatNumber(getValuationRateAmount('rent_current_per_m2')) : (form.current_year_rent ? formatNumber(form.current_year_rent) : '—')"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -590,7 +673,23 @@
 
                         {% include "df/_money.html" with name="decile_loan_amount" sfx="_checks" label="مبلغ کل وام دهک" cols=4 on="recalculateChecks()" onblur="recalculateChecks()" %}
                         {% include "df/_field.html" with name="commitment_number" label="شماره تعهدنامه" cols=4 ltr=1 num=1 ph="۱۲۴۰۵/ت" %}
-                        {% include "df/_date.html" with label="تاریخ تعهدنامه (شمسی)" cols=4 model="form.commitment_date" keyexpr="'commitment_date'" titleexpr="'تاریخ تعهدنامه محضری'" ph="۱۴۰۳/۰۵/۱۵" ed="commitment_date" %}
+                        {% include "df/_date.html" with label="تاریخ تعهدنامه (شمسی)" cols=4 model="form.commitment_date" keyexpr="'commitment_date'" titleexpr="'تاریخ تعهدنامه محضری'" ph="۱۴۰۵/۰۵/۱۵" ed="commitment_date" %}
+                        {% include "df/_field.html" with name="decile_bank_letter_number" label="شماره نامه بانک دهک" cols=6 ltr=1 num=1 ph="شماره نامه راه و شهرسازی به بانک دهک" %}
+                        {% include "df/_date.html" with label="تاریخ نامه بانک دهک (شمسی)" cols=6 model="form.decile_bank_letter_date" keyexpr="'decile_bank_letter_date'" titleexpr="'تاریخ نامه بانک دهک'" ph="۱۴۰۵/۰۵/۱۵" ed="decile_bank_letter_date" %}
+                        <div class="df-field df-col-12" style="margin-top: -0.25rem;">
+                            <div class="fa-num" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:6px 12px; font-size:.78rem;">
+                                <span style="color:#1e3a8a; font-weight:700;">
+                                    نامه راه و شهرسازی به بانک دهک:
+                                    <strong x-show="form.decile_bank_letter_number" x-text="form.decile_bank_letter_number + (form.decile_bank_letter_date ? ' مورخ ' + form.decile_bank_letter_date : '')"></strong>
+                                    <span x-show="!form.decile_bank_letter_number" style="color:#64748b; font-weight:600;">ثبت نشده</span>
+                                </span>
+                                <a class="df-link" target="_blank" rel="noopener" title="ثبت یا مشاهده در بخش ارسال نامه بانک دهک"
+                                   :href="form.decile_bank_letter_number ? '{% url 'bank_letter_sender' %}?type=decile&letter=' + encodeURIComponent(form.decile_bank_letter_number) : '{% url 'bank_letter_sender' %}?type=decile'">
+                                    <svg class="df-i"><use href="#i-eye"/></svg>
+                                    <span x-text="form.decile_bank_letter_number ? 'مشاهده در ارسال نامه بانک' : 'صدور / ثبت از بخش ارسال نامه بانک'"></span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     {% include "df/_check_generator.html" with theme="amber" title="تولید خودکار چک‌های وام دهک" gen="checkGenerator" datemodel="checkGenerator.startDate" action="generateChecksAuto()" ed="decile_loan_amount" min=1 max=12 c1=3 c2=4 c3=5 c4=6 ph="۱۴۰۶/۰۷/۳۰" keyexpr="'checkGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول'" interval=1 %}
@@ -641,9 +740,9 @@
                         </div>
                     </div>
 
-                    {% include "df/_check_generator.html" with theme="green" title="تولید خودکار چک‌های اقساط آماده‌سازی" gen="prepCheckGenerator" datemodel="prepCheckGenerator.startDate" action="generatePrepChecksAuto()" ed="non_cash_preparation_amount" min=1 max=10 c1=2 c2=3 c3=4 ph="۱۴۰۴/۰۲/۱۵" keyexpr="'prepCheckGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول آماده‌سازی'" interval_text="شش‌ماهه (+۶ ماه)" %}
+                    {% include "df/_check_generator.html" with theme="green" title="تولید خودکار چک‌های اقساط آماده‌سازی" gen="prepCheckGenerator" datemodel="prepCheckGenerator.startDate" action="generatePrepChecksAuto()" ed="non_cash_preparation_amount" min=1 max=10 c1=2 c2=3 c3=4 ph="۱۴۰۵/۰۲/۱۵" keyexpr="'prepCheckGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول آماده‌سازی'" interval_text="شش‌ماهه (+۶ ماه)" %}
 
-                    {% include "df/_check_table.html" with theme="green" title="سررسید و مبلغ چک‌های اقساط آماده‌سازی" entries="form.preparation_check_entries" ed="non_cash_preparation_amount" add="addPrepCheckEntry" remove="removePrepCheckEntry" recalc="recalculatePrepChecks" row="قسط" keyexpr="'prep_check_' + idx" titleexpr="'سررسید چک آماده‌سازی ' + (idx + 1)" ph_date="۱۴۰۴/۰۲/۱۵" total="form.total_preparation_check_amount" ceiling="form.non_cash_preparation_amount" ceiling_label="سقف ۸۰٪ آماده‌سازی" %}
+                    {% include "df/_check_table.html" with theme="green" title="سررسید و مبلغ چک‌های اقساط آماده‌سازی" entries="form.preparation_check_entries" ed="non_cash_preparation_amount" add="addPrepCheckEntry" remove="removePrepCheckEntry" recalc="recalculatePrepChecks" row="قسط" keyexpr="'prep_check_' + idx" titleexpr="'سررسید چک آماده‌سازی ' + (idx + 1)" ph_date="۱۴۰۵/۰۲/۱۵" total="form.total_preparation_check_amount" ceiling="form.non_cash_preparation_amount" ceiling_label="سقف ۸۰٪ آماده‌سازی" %}
 
                     {% include "df/_check_scans.html" with theme="green" kind="prep" getter="getPrepCheckScans" input_id="prepCheckScanFileInput" title="اسکن چک‌های اقساط آماده‌سازی" %}
 
@@ -665,9 +764,9 @@
             <div class="df-grid">
                 {% include "df/_field.html" with name="notary_office_number" label="شماره دفترخانه اسناد رسمی" cols=3 ltr=1 num=1 ph="مثال: ۱۲" ed="notary_office_number" %}
 
-                {% include "df/_field.html" with name="notary_letter_number" label="شماره نامه معرفی به محضر" cols=3 ltr=1 num=1 ph="مثال: ۱۴۰۳/ص/۵۵۲۱" ed="notary_letter_number" %}
+                {% include "df/_field.html" with name="notary_letter_number" label="شماره نامه معرفی به محضر" cols=3 ltr=1 num=1 ph="مثال: ۱۴۰۵/ص/۵۵۲۱" ed="notary_letter_number" %}
 
-                {% include "df/_date.html" with label="تاریخ نامه محضر (شمسی)" cols=3 model="form.notary_letter_date" keyexpr="'notary_letter_date'" titleexpr="'تاریخ نامه محضر'" ph="۱۴۰۳/۰۸/۲۰" ed="notary_letter_date" %}
+                {% include "df/_date.html" with label="تاریخ نامه محضر (شمسی)" cols=3 model="form.notary_letter_date" keyexpr="'notary_letter_date'" titleexpr="'تاریخ نامه محضر'" ph="۱۴۰۵/۰۸/۲۰" ed="notary_letter_date" %}
 
                 <!-- دکمه بارگذاری / اسکن نامه محضر در آلبوم اسناد -->
                 <div class="df-field df-col-3">

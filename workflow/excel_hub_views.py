@@ -487,6 +487,10 @@ def process_commission_excel_view(request):
     if not excel_file:
         return JsonResponse({"status": "error", "message": "هیچ فایل اکسلی ارسال نشده است."}, status=400)
 
+    task_id = request.POST.get("task_id") or request.GET.get("task_id")
+    from .excel_utils import set_excel_task_progress
+    set_excel_task_progress(task_id, "reading", 10, "در حال بازگشایی فایل اکسل مصوبه کمیسیون...", "خواندن کاربرگ")
+
     try:
         wb = openpyxl.load_workbook(excel_file, read_only=True, data_only=True)
         ws = wb.active
@@ -538,7 +542,20 @@ def process_commission_excel_view(request):
     error_items = []
     adjusted_rows_list = []
 
+    set_excel_task_progress(task_id, "comparing", 30, "در حال بررسی ردیف‌ها و اعمال مصوبات کمیسیون...", "تطبیق کدملی و مبالغ تعدیل", sub_label="پردازش ردیف‌های کمیسیون", sub_current=0)
+
     for row_idx, row in enumerate(row_iter, start=2):
+        if row_idx % 50 == 0:
+            pct = min(88, 30 + int((row_idx - 2) / 50))
+            set_excel_task_progress(
+                task_id,
+                "comparing",
+                pct,
+                f"در حال اعمال مصوبات کمیسیون ({row_idx - 1:,} ردیف بررسی شد)...",
+                f"تعدیل‌شده: {adjusted_count:,} | بدون مغایرت: {unchanged_count:,}",
+                sub_label="پردازش ردیف‌های کمیسیون",
+                sub_current=row_idx - 1,
+            )
         if not row or len(row) <= nid_col_idx or not row[nid_col_idx]:
             continue
         nid = str(row[nid_col_idx]).strip()
@@ -701,6 +718,8 @@ def process_commission_excel_view(request):
         else:
             unchanged_count += 1
 
+    set_excel_task_progress(task_id, "finalizing", 92, "در حال تولید گزارش‌های خروجی کمیسیون...", "آماده‌سازی فایل‌های اکسل خطاها و پرونده‌های تعدیل‌شده", sub_percent=30, sub_label="تولید گزارش اکسل")
+
     report_url = None
     if error_items:
         from .excel_utils import generate_failure_report
@@ -712,6 +731,8 @@ def process_commission_excel_view(request):
         from .excel_utils import generate_success_report
         s_uuid = generate_success_report(request.user.id, list(header_row), adjusted_rows_list, title="پرونده‌های تعدیل‌شده")
         success_report_url = f"/excel/report/{s_uuid}/"
+
+    set_excel_task_progress(task_id, "done", 100, "عملیات کمیسیون تعدیل با موفقیت به پایان رسید.", "در حال بارگذاری نتایج...", sub_percent=100)
 
     return JsonResponse({
         "status": "success",
@@ -969,6 +990,7 @@ def batch_sign_dossiers_view(request):
     signed_count = 0
     skipped_count = 0
     errors = []
+    signed_dossiers = []
 
     now_jalali = _format_tehran_jalali()
 
@@ -989,6 +1011,16 @@ def batch_sign_dossiers_view(request):
             can_sign = is_admin or bool(profile and profile.can_action_stage(dossier.current_stage))
             if not can_sign:
                 errors.append(f"پرونده #{num}: عدم دسترسی برای مرحله {dossier.current_stage} ({dossier.current_role})")
+                skipped_count += 1
+                continue
+
+            from .views import get_stage_sign_missing_fields
+            missing_fields = get_stage_sign_missing_fields(dossier, dossier.current_stage)
+            if missing_fields:
+                errors.append(
+                    f"پرونده #{num}: امکان امضای مرحله {dossier.current_stage} وجود ندارد؛ فیلدهای الزامی تکمیل نشده‌اند: "
+                    + "، ".join(missing_fields)
+                )
                 skipped_count += 1
                 continue
 
@@ -1065,6 +1097,14 @@ def batch_sign_dossiers_view(request):
                 sig_obj.save()
 
             signed_count += 1
+            signed_dossiers.append({
+                "archive_number": dossier.archive_number,
+                "id": dossier.id,
+                "full_name": dossier.full_name,
+                "national_id": dossier.national_id,
+                "from_stage": current_idx,
+                "to_stage": dossier.current_stage,
+            })
 
         except Exception as e:
             errors.append(f"پرونده #{arch_num}: {str(e)}")
@@ -1075,6 +1115,7 @@ def batch_sign_dossiers_view(request):
         "message": f"امضای گروهی انجام شد: {signed_count} پرونده با موفقیت تایید و امضا شد.",
         "signed_count": signed_count,
         "skipped_count": skipped_count,
+        "signed_dossiers": signed_dossiers,
         "errors": errors[:15]
     })
 

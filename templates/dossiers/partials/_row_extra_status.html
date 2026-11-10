@@ -1,0 +1,49 @@
+<div class="dl-extras-list">
+  {% if d.list_bank_letter_code %}
+  <span class="dl-extra-chip bank" title="نامه راه و شهرسازی به بانک: {{ d.list_bank_letter_code }}{% if d.list_bank_letter_date %} ({{ d.list_bank_letter_date }}){% endif %}">
+    <span class="dl-extra-main"><span class="lbl">نامه بانک:</span> <strong class="code">{{ d.list_bank_letter_code }}</strong></span>
+    {% if d.list_bank_letter_date %}<span class="dt">{{ d.list_bank_letter_date }}</span>{% endif %}
+  </span>
+  {% else %}
+  <span class="dl-extra-chip empty" title="نامه راه و شهرسازی به بانک ثبت نشده است">
+    <span class="dl-extra-main"><span class="lbl">نامه بانک</span></span>
+    <span class="dt">ندارد</span>
+  </span>
+  {% endif %}
+
+  {% if d.list_decile_paid %}
+  <span class="dl-extra-chip loan" title="تسهیلات دهک : پرداخت شده{% if d.list_decile_paid_date %} ({{ d.list_decile_paid_date }}){% endif %}">
+    <span class="dl-extra-main"><span class="lbl">تسهیلات دهک : پرداخت شده</span></span>
+    {% if d.list_decile_paid_date %}<span class="dt">{{ d.list_decile_paid_date }}</span>{% endif %}
+  </span>
+  {% else %}
+  <span class="dl-extra-chip empty" title="تسهیلات دهک پرداخت نشده است">
+    <span class="dl-extra-main"><span class="lbl">تسهیلات دهک</span></span>
+    <span class="dt">ندارد</span>
+  </span>
+  {% endif %}
+
+  {% if d.list_prep_paid %}
+  <span class="dl-extra-chip prep" title="آماده‌سازی : پرداخت شده{% if d.list_prep_paid_date %} ({{ d.list_prep_paid_date }}){% endif %}">
+    <span class="dl-extra-main"><span class="lbl">آماده‌سازی : پرداخت شده</span></span>
+    {% if d.list_prep_paid_date %}<span class="dt">{{ d.list_prep_paid_date }}</span>{% endif %}
+  </span>
+  {% else %}
+  <span class="dl-extra-chip empty" title="آماده‌سازی پرداخت نشده است">
+    <span class="dl-extra-main"><span class="lbl">آماده‌سازی</span></span>
+    <span class="dt">ندارد</span>
+  </span>
+  {% endif %}
+
+  {% if d.list_notary_letter_code %}
+  <span class="dl-extra-chip notary" title="نامه معرفی به دفترخانه: {{ d.list_notary_letter_code }}{% if d.notary_office_number %} - دفترخانه {{ d.notary_office_number }}{% endif %}{% if d.list_notary_letter_date %} ({{ d.list_notary_letter_date }}){% endif %}">
+    <span class="dl-extra-main"><span class="lbl">نامه دفترخانه:</span> <strong class="code">{{ d.list_notary_letter_code }}</strong></span>
+    {% if d.list_notary_letter_date %}<span class="dt">{{ d.list_notary_letter_date }}</span>{% endif %}
+  </span>
+  {% else %}
+  <span class="dl-extra-chip empty" title="نامه معرفی به دفترخانه ثبت نشده است">
+    <span class="dl-extra-main"><span class="lbl">نامه دفترخانه</span></span>
+    <span class="dt">ندارد</span>
+  </span>
+  {% endif %}
+</div>

@@ -72,7 +72,7 @@ FIELD_STAGE_MAP = {
     "renovation_code": [2, 8, 9, 12, 13, 14],
     "base_cost_without_loan": [2, 8, 9, 19],
 
-    # Step 3 & Step 10: کارشناس بررسی فرم ج (عالمی) / کارشناس ثبت فرم ج اداره کل
+    # Step 3 & Step 11: کارشناس بررسی فرم ج (عالمی) / کارشناس ثبت فرم ج اداره کل
     "applicant_form_j_status": [3, 11],
     "applicant_form_j_directorate_status": [3, 11],
     "applicant_form_j_red_description": [3, 11],
@@ -80,6 +80,8 @@ FIELD_STAGE_MAP = {
     "spouse_form_j_directorate_status": [3, 11],
     "spouse_form_j_red_description": [3, 11],
     "form_j_registration_type": [3, 10, 11],
+    "form_j_questionnaire_number": [1, 3, 7, 8, 11],
+    "computer_code": [11],
 
     # Step 4: وام صندوق، نامه پیمانکار، تسهیلات دهک (قابل ویرایش در مرحله 4 و تسویه پیمانکار مرحله 18)
     "fund_loan_amount": [4, 19],
@@ -103,7 +105,7 @@ FIELD_STAGE_MAP = {
     "bank_sent_letter_number": [6, 10],
 
     # Step 7: تشکیل پرونده کارگزاری، ثبت شماره فرم ج و چک‌باکس مدارک فیزیکی
-    "form_j_number": [3, 7, 8, 11],
+    "form_j_number": [1, 3, 7, 8, 11],
     "has_installment_booklet": [7, 8],
     "has_info_form": [7, 8],
     "has_form_j": [7, 8],
@@ -125,6 +127,8 @@ FIELD_STAGE_MAP = {
 
     # Step 17: دریافت چک‌های وام دهک
     "decile_loan_bank": [17, 18],
+    "decile_bank_letter_number": [17, 18],
+    "decile_bank_letter_date": [17, 18],
     "supported_institution": [17, 18],
     "check_count": [17, 18],
     "check_amount": [17, 18],

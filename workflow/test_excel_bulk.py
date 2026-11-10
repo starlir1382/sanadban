@@ -1193,3 +1193,70 @@ class ExcelBulkOperationsTestCase(TestCase):
 
         d.refresh_from_db()
         self.assertEqual(d.project, "پروژه بهرام تغییر یافته")
+
+    def test_update_emits_finalizing_sub_progress_and_fast_bulk_roundtrip(self):
+        """Verify finalizing sub-progress stages are emitted and Decimal/Bool/Int/Log writes persist accurately."""
+        from decimal import Decimal
+        from unittest.mock import patch
+        from django.core.cache import cache
+        from workflow.models import DossierFieldChangeLog
+        from workflow import excel_utils
+
+        d = HousingDossier.objects.create(
+            national_id="0382370699",
+            first_name="سارا",
+            last_name="احمدی",
+            archive_number=100100,
+            net_unit_area=Decimal("80.00"),
+            is_equity_funded=False,
+            floor_number=1,
+        )
+
+        f = make_excel_file(
+            ["کد ملی متقاضی", "متراژ مفید واحد (مترمربع)", "شماره طبقه", "تاییدیه تامین آورده نقدی", "شماره همراه متقاضی"],
+            [["0382370699", "95.25", "4", "بله", "09121112233"]],
+        )
+
+        recorded = []
+        orig_set = excel_utils.set_excel_task_progress
+
+        def spy_progress(task_id, stage, percent, message, details="", **kwargs):
+            recorded.append((stage, percent, kwargs.get("sub_percent"), kwargs.get("sub_label"), kwargs.get("sub_current"), kwargs.get("sub_total")))
+            return orig_set(task_id, stage, percent, message, details, **kwargs)
+
+        task_id = "test_sub_prog_001"
+        with patch.object(excel_utils, "set_excel_task_progress", side_effect=spy_progress):
+            res = excel_utils.process_excel_update(f, user=self.admin_user, preview=False, task_id=task_id)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+
+        stages = [r[0] for r in recorded]
+        self.assertIn("finalizing", stages)
+        self.assertEqual(stages[-1], "done")
+        finalizing_events = [r for r in recorded if r[0] == "finalizing"]
+        self.assertTrue(any(r[2] is not None and r[3] for r in finalizing_events))
+
+        # Check cache payload and progress endpoint
+        cached = cache.get(f"excel_task_{task_id}")
+        self.assertIsNotNone(cached)
+        self.assertEqual(cached["percent"], 100)
+        self.assertEqual(cached["sub_percent"], 100)
+
+        from django.urls import reverse
+        self.client.force_login(self.admin_user)
+        resp = self.client.get(reverse("excel_upload_progress") + f"?task_id={task_id}")
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["percent"], 100)
+        self.assertEqual(payload["sub_percent"], 100)
+
+        # Verify persisted field types & audit logs
+        d.refresh_from_db()
+        self.assertEqual(d.net_unit_area, Decimal("95.25"))
+        self.assertEqual(d.floor_number, 4)
+        self.assertTrue(d.is_equity_funded)
+        self.assertEqual(d.applicant_phone, "09121112233")
+        self.assertTrue(WorkflowSignatureLog.objects.filter(dossier=d, action="EXCEL_UPDATE").exists())
+        self.assertGreaterEqual(DossierFieldChangeLog.objects.filter(dossier=d).count(), 4)
