@@ -39,7 +39,7 @@ Params: theme, kind (loan | prep – passed to the upload/print/delete handlers)
             <template x-for="(scan, idx) in sheets" :key="scan.id">
                 <div class="df-thumb">
                     <div class="df-thumb-no fa-num" x-text="(idx + 1) + ' / ' + sheets.length"></div>
-                    <button type="button" class="df-thumb-del" title="حذف این برگ" aria-label="حذف این برگ" @click.stop="deleteCheckScan(scan.id, '{{ kind }}')">
+                    <button type="button" class="df-thumb-del" x-show="canDeleteAttachment(scan)" title="حذف این برگ" aria-label="حذف این برگ" @click.stop="deleteCheckScan(scan.id, '{{ kind }}')">
                         <svg class="df-i" style="width:.8em;height:.8em;"><use href="#i-x"/></svg>
                     </button>
                     <div class="df-thumb-img" @click="openPreview(scan)">

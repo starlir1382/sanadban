@@ -1,5 +1,5 @@
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/dossier_form.css' %}">
+<link rel="stylesheet" href="{% static 'css/dossier_form.css' %}?v=2">
 {% include "df/_icons.html" %}
 
 {# `form-sections-wrapper` / `form-card` are kept only as hooks for existing JS/CSS selectors. #}
@@ -126,9 +126,11 @@
 
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('construction_type')}">
                         <label class="df-label" for="f_construction_type">نوع ساخت</label>
-                        <select id="f_construction_type" class="df-input" x-model="form.construction_type" :disabled="!isFieldEditable('construction_type')">
-                            <option value="آپارتمانی">آپارتمانی</option>
-                            <option value="ویلایی">ویلایی</option>
+                        <select id="f_construction_type" class="df-input" x-model="form.construction_type"
+                                :disabled="!isFieldEditable('construction_type') || isApartmentSite(form.site) !== null">
+                            <option value="آپارتمانی" x-show="isApartmentSite(form.site) !== false">آپارتمانی</option>
+                            <option value="ویلایی" x-show="isApartmentSite(form.site) !== true">ویلایی</option>
+                            <option value="ویلایی (نیمه کاره)" x-show="form.construction_type === 'ویلایی (نیمه کاره)' && isApartmentSite(form.site) !== true">ویلایی</option>
                         </select>
                     </div>
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('bedroom_count')}">
@@ -139,23 +141,23 @@
                             <option value="3">۳ خوابه</option>
                         </select>
                     </div>
-                    {% include "df/_field.html" with name="block_code" label="کد بلوک" cols=3 num=1 mode="numeric" ph="27" %}
+                    {% include "df/_field.html" with name="block_code" label="کد بلوک" cols=3 num=1 mode="numeric" ph="کد بلوک را وارد کنید" %}
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('floor_number')}">
                         <label class="df-label" for="f_floor_number">طبقه</label>
                         <select id="f_floor_number" class="df-input fa-num" x-model="form.floor_number" :disabled="!isFieldEditable('floor_number')">
                             <option value="0">همکف</option>
-                            <option value="1" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۱</option>
-                            <option value="2" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۲</option>
-                            <option value="3" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۳</option>
-                            <option value="4" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۴</option>
-                            <option value="5" x-show="form.construction_type !== 'آپارتمانی'">طبقه ۵</option>
+                            <option value="1">طبقه ۱</option>
+                            <option value="2">طبقه ۲</option>
+                            <option value="3">طبقه ۳</option>
+                            <option value="4">طبقه ۴</option>
+                            <option value="5">طبقه ۵</option>
                         </select>
                     </div>
 
                     {% include "df/_field.html" with name="unit_number" label="شماره واحد" cols=3 num=1 mode="numeric" ph="شماره واحد" %}
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('unit_direction')}">
                         <label class="df-label" for="f_unit_direction">جهت واحد</label>
-                        <select id="f_unit_direction" class="df-input" x-model="form.unit_direction" :disabled="!isFieldEditable('unit_direction')">
+                        <select id="f_unit_direction" class="df-input" x-model="form.unit_direction" :disabled="!isFieldEditable('unit_direction') || isVillaConstruction()">
                             <option value="شمال غربی">شمال غربی</option>
                             <option value="شمال شرقی">شمال شرقی</option>
                             <option value="جنوب غربی">جنوب غربی</option>
@@ -165,13 +167,13 @@
                             <option value="دو کله">دو کله</option>
                         </select>
                     </div>
-                    {% include "df/_field.html" with name="net_unit_area" label="متراژ مفید (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
-                    {% include "df/_field.html" with name="common_area" label="متراژ مشاعات (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
-                    {% include "df/_field.html" with name="total_area" label="جمع کل متراژ (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
-                    {% include "df/_field.html" with name="storage_number" label="شماره انباری" cols=3 num=1 mode="numeric" ph="۰" %}
-                    {% include "df/_field.html" with name="storage_area" label="مساحت انباری (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
-                    {% include "df/_field.html" with name="parking_number" label="شماره پارکینگ" cols=3 num=1 mode="numeric" ph="۰" %}
-                    {% include "df/_field.html" with name="parking_area" label="مساحت پارکینگ (m²)" cols=3 num=1 mode="decimal" ph="۰" %}
+                    {% include "df/_field.html" with name="net_unit_area" label="متراژ مفید (m²)" label_expr="isVillaConstruction() ? 'مساحت اعیانی (m²)' : 'متراژ مفید (m²)'" cols=3 num=1 mode="decimal" ph=" مساحت اعیانی را وارد کنید" %}
+                    {% include "df/_field.html" with name="common_area" label="متراژ مشاعات (m²)" cols=3 num=1 mode="decimal" ph="متراژ مشاعات را وارد کنید" %}
+                    {% include "df/_field.html" with name="total_area" label="جمع کل متراژ (m²)" label_expr="isVillaConstruction() ? 'مساحت عرصه (m²)' : 'جمع کل متراژ (m²)'" cols=3 num=1 mode="decimal" ph="مساحت عرصه را وارد کنید" %}
+                    {% include "df/_field.html" with name="storage_number" label="شماره انباری" cols=3 num=1 mode="numeric" ph="شماره انباری را وارد کنید" %}
+                    {% include "df/_field.html" with name="storage_area" label="مساحت انباری (m²)" cols=3 num=1 mode="decimal" ph="مساحت انباری را وارد کنید" %}
+                    {% include "df/_field.html" with name="parking_number" label="شماره پارکینگ" cols=3 num=1 mode="numeric" ph="شماره پارکینگ را وارد کنید" %}
+                    {% include "df/_field.html" with name="parking_area" label="مساحت پارکینگ (m²)" cols=3 num=1 mode="decimal" ph="مساحت پارکینگ را وارد کنید" %}
                 </div>
             </fieldset>
         </div>
@@ -403,27 +405,54 @@
                 {% include "df/_field.html" with name="bank_letter_date" label="تاریخ نامه (شمسی)" cols=6 num=1 mode="numeric" ph="1405/01/01" %}
 
                 <div class="df-field df-col-12">
-                    <div class="df-confirm" :class="{'is-on': form.is_sent_to_bank}">
-                        <label class="df-confirm-main" for="chk_is_sent_to_bank">
-                            <input type="checkbox" id="chk_is_sent_to_bank" x-model="form.is_sent_to_bank" :disabled="!isFieldEditable('bank_letter_number')">
-                            <span>
-                                <strong x-show="form.is_sent_to_bank" x-text="'نامه معرفی متقاضی به ' + (form.bank_name || 'بانک مسکن') + ' صادر و ارسال شد'"></strong>
-                                <strong x-show="!form.is_sent_to_bank" x-text="'در انتظار صدور و ارسال نامه معرفی به ' + (form.bank_name || 'بانک مسکن')"></strong>
-                            </span>
-                        </label>
-                        <template x-if="form.is_sent_to_bank && (form.bank_letter_number || form.bank_sent_letter_number)">
-                            <div class="fa-num" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:.8rem;">
-                                <span>شماره: <strong x-text="form.bank_letter_number || form.bank_sent_letter_number"></strong></span>
-                                <span>تاریخ: <strong x-text="form.bank_letter_date || form.bank_sent_date"></strong></span>
-                                <a class="df-link" target="_blank" rel="noopener" title="مشاهده و چاپ برگه رسمی نامه بانک"
-                                   :href="'{% url 'bank_letter_sender' %}?letter=' + encodeURIComponent(form.bank_letter_number || form.bank_sent_letter_number)">
-                                    <svg class="df-i"><use href="#i-eye"/></svg>مشاهده برگه نامه
+                    <!-- وضعیت ارسال نامه به بانک (۳ وضعیت مجزا بدون چک‌باکس دستی خودکارساز) -->
+                    <template x-if="form.is_sent_to_bank && (form.bank_letter_number || form.bank_sent_letter_number)">
+                        <div class="df-confirm is-on" style="background: rgba(16, 185, 129, 0.08); border: 1.5px solid #10b981; padding: 12px 16px; border-radius: 8px; width: 100%;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width:100%;">
+                                <div style="display:flex; align-items:center; gap:8px; color:#065f46; font-weight:700;">
+                                    <svg class="df-i" style="color:#10b981; width:20px; height:20px;"><use href="#i-check"/></svg>
+                                    <span x-text="'نامه معرفی به ' + (form.bank_name || 'بانک مسکن') + ' صادر و ارسال شده است'"></span>
+                                </div>
+                                <div class="fa-num" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; font-size:.85rem;">
+                                    <span>شماره نامه: <strong x-text="form.bank_letter_number || form.bank_sent_letter_number"></strong></span>
+                                    <span>تاریخ نامه: <strong x-text="form.bank_letter_date || form.bank_sent_date"></strong></span>
+                                    <a class="df-link" target="_blank" rel="noopener" title="مشاهده و چاپ برگه رسمی نامه بانک"
+                                       :href="'{% url 'bank_letter_sender' %}?letter=' + encodeURIComponent(form.bank_letter_number || form.bank_sent_letter_number)">
+                                        <svg class="df-i"><use href="#i-eye"/></svg>مشاهده برگه نامه
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="!form.is_sent_to_bank && form.is_added_to_bank_shipment_list">
+                        <div style="background: rgba(2, 132, 199, 0.08); border: 1.5px solid #0284c7; padding: 12px 16px; border-radius: 8px; color: #0369a1; width: 100%;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width: 100%;">
+                                <div style="display:flex; align-items:center; gap:8px; font-weight:700;">
+                                    <svg class="df-i" style="color:#0284c7; width:20px; height:20px;"><use href="#i-info"/></svg>
+                                    <span>پرونده در محموله آماده ارسال به بانک قرار گرفته است (در انتظار صدور و ثبت شماره و تاریخ نامه رسمی از دبیرخانه)</span>
+                                </div>
+                                <a class="df-btn df-btn-xs" target="_blank" href="{% url 'bank_letter_sender' %}?tab=pending" style="text-decoration:none;">
+                                    <svg class="df-i"><use href="#i-link"/></svg>مدیریت محموله‌های در انتظار شماره نامه
                                 </a>
                             </div>
-                        </template>
-                    </div>
-                </div>
-            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="!form.is_sent_to_bank && !form.is_added_to_bank_shipment_list">
+                        <div style="background: rgba(100, 116, 139, 0.08); border: 1.5px dashed #94a3b8; padding: 12px 16px; border-radius: 8px; color: #475569; width: 100%;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; width: 100%;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <svg class="df-i" style="color:#64748b; width:20px; height:20px;"><use href="#i-info"/></svg>
+                                    <span style="font-weight:600;">در انتظار تجمیع در محموله و ارسال به بانک (مرحله ۶)</span>
+                                </div>
+                                <a class="df-btn df-btn-xs" target="_blank" href="{% url 'bank_letter_sender' %}" style="text-decoration:none;">
+                                    <svg class="df-i"><use href="#i-link"/></svg>سامانه دسته‌بندی و ارسال نامه بانک
+                                </a>
+                            </div>
+                        </div>
+                    </template>
+                </div>            </div>
         </div>
     </section>
 
@@ -472,7 +501,8 @@
             <div style="margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 0.82rem; color: #1e40af;">
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span>محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong> | بلوک: <strong class="fa-num" x-text="form.block_name || form.block_code || '-'"></strong>)</span>
+                    <span x-show="!isVillaConstruction()">محاسبه خودکار بر اساس نرخ مصوب عرصه (کد نوسازی: <strong class="fa-num" x-text="form.renovation_code || 'ثبت‌نشده'"></strong> | بلوک: <strong class="fa-num" x-text="form.block_name || form.block_code || '-'"></strong>)</span>
+                    <span x-show="isVillaConstruction()" x-cloak>استعلام خودکار نرخ ویلایی بر اساس پلاک ثبتی و پروژه (پلاک ثبتی: <strong class="fa-num" x-text="[form.main_plaque, form.sub_plaque, form.separated_plaque].filter(Boolean).join('/') || 'ثبت‌نشده'"></strong> | پروژه: <strong x-text="form.project || '-'"></strong>)</span>
                 </div>
                 <button type="button" 
                         class="btn btn-outline" 
@@ -492,18 +522,73 @@
             </div>
 
             <!-- شفاف‌سازی فرمول و نحوه محاسبه قدرالسهم، اجاره و آماده‌سازی (چپ به راست) -->
-            <div class="df-formula-box fa-num">
+            <div class="df-formula-box fa-num" x-show="isVillaConstruction() || (landRateInfo && landRateInfo.rate_type === 'villa')" x-cloak>
+                <div class="df-formula-head">
+                    <span>جزئیات نرخ ویلایی (استخراج بر اساس پلاک ثبتی و پروژه)</span>
+                    <small class="df-formula-badge" x-show="landRateInfo && landRateInfo.rate_type === 'villa'" x-cloak
+                           x-text="'نرخ ویلایی اکسل: ' + (landRateInfo ? ((landRateInfo.project_name || '') + ' | پلاک ثبتی ' + (landRateInfo.registry_plaque || '')) : '')"></small>
+                    <small class="df-formula-badge is-empty" x-show="!landRateInfo || landRateInfo.rate_type !== 'villa'" x-cloak>نرخ ویلایی برای این پلاک ثبتی و پروژه در جدول ویلایی یافت نشد</small>
+                </div>
+                <div class="df-excel-grid" dir="ltr" style="margin-bottom: 0.75rem;">
+                    <div class="df-f-term">
+                        <span class="df-f-lbl">پلاک ثبتی</span>
+                        <strong class="df-f-val" x-text="(landRateInfo && landRateInfo.registry_plaque) ? landRateInfo.registry_plaque : ([form.main_plaque, form.sub_plaque, form.separated_plaque].filter(Boolean).join('/') || '—')"></strong>
+                    </div>
+                    <div class="df-f-term">
+                        <span class="df-f-lbl">مساحت عرصه (m²)</span>
+                        <strong class="df-f-val" x-text="(landRateInfo && landRateInfo.land_area) ? fmtFormulaNumber(landRateInfo.land_area) : (form.total_land_share ? fmtFormulaNumber(form.total_land_share) : '—')"></strong>
+                    </div>
+                    <div class="df-f-term">
+                        <span class="df-f-lbl">معبر / نحوه واگذاری</span>
+                        <strong class="df-f-val" x-text="landRateInfo ? (landRateInfo.street_width || landRateInfo.allocation_type || '—') : '—'"></strong>
+                    </div>
+                </div>
+                <div class="df-formula-rates">
+                    <div class="df-f-rate-card">
+                        <div class="df-f-rate-title">مبلغ آماده‌سازی ویلایی (اکسل)</div>
+                        <div class="df-f-rate-expr" dir="ltr">
+                            <div class="df-f-mini" x-show="landRateInfo && Number(landRateInfo.prep_per_m2 || 0) > 0">
+                                <span class="df-f-lbl">نرخ هر متر (ریال)</span>
+                                <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.prep_per_m2) : '—'"></strong>
+                            </div>
+                            <div class="df-f-mini is-result">
+                                <span class="df-f-lbl">مبلغ آماده‌سازی (ریال)</span>
+                                <strong class="df-f-val" x-text="(landRateInfo && landRateInfo.rate_type === 'villa') ? formatNumber(landRateInfo.preparation_cost) : (form.preparation_cost ? formatNumber(form.preparation_cost) : '—')"></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="df-f-rate-card">
+                        <div class="df-f-rate-title">اجاره سنوات تا پایان ۱۴۰۵ (اکسل)</div>
+                        <div class="df-f-rate-expr" dir="ltr">
+                            <div class="df-f-mini is-result">
+                                <span class="df-f-lbl">اجاره سنوات (ریال)</span>
+                                <strong class="df-f-val" x-text="(landRateInfo && landRateInfo.rate_type === 'villa') ? formatNumber(landRateInfo.rent_to_date) : (form.past_years_rent ? formatNumber(form.past_years_rent) : '—')"></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="df-f-rate-card">
+                        <div class="df-f-rate-title" x-text="'اجاره سال جاری (' + (form.land_lease_year || '۱۴۰۵') + ') (اکسل)'"></div>
+                        <div class="df-f-rate-expr" dir="ltr">
+                            <div class="df-f-mini is-result">
+                                <span class="df-f-lbl">اجاره سال جاری (ریال)</span>
+                                <strong class="df-f-val" x-text="(landRateInfo && landRateInfo.rate_type === 'villa') ? formatNumber(landRateInfo.rent_current) : (form.current_year_rent ? formatNumber(form.current_year_rent) : '—')"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="df-formula-box fa-num" x-show="!(isVillaConstruction() || (landRateInfo && landRateInfo.rate_type === 'villa'))">
                 <div class="df-formula-head">
                     <span>فرمول محاسبه قدرالسهم و مبالغ ارزیابی</span>
                     <small class="df-formula-badge" x-show="landRateInfo" x-cloak
-                           x-text="'نرخ مصوب اکسل: ' + (landRateInfo ? ((landRateInfo.project_name || '') + (landRateInfo.block_name ? ' | بلوک ' + landRateInfo.block_name : '') + (landRateInfo.renovation_code ? ' | کد ' + landRateInfo.renovation_code : '')) : '')"></small>
+                           x-text="landRateInfo && landRateInfo.rate_type === 'villa' ? ('نرخ ویلایی اکسل: ' + (landRateInfo.project_name || '') + ' | پلاک ثبتی ' + (landRateInfo.registry_plaque || '')) : ('نرخ مصوب اکسل: ' + (landRateInfo ? ((landRateInfo.project_name || '') + (landRateInfo.block_name ? ' | بلوک ' + landRateInfo.block_name : '') + (landRateInfo.renovation_code ? ' | کد ' + landRateInfo.renovation_code : '')) : ''))"></small>
                     <small class="df-formula-badge is-empty" x-show="!landRateInfo" x-cloak>نرخ مصوب اکسل برای این پلاک/بلوک ثبت یا تطبیق نشده است</small>
                 </div>
 
                 <!-- ردیف ۱: فرمول متراژ و قدرالسهم (Left-to-Right) -->
                 <div class="df-formula-row" dir="ltr">
                     <div class="df-f-term">
-                        <span class="df-f-lbl">متراژ مفید</span>
+                        <span class="df-f-lbl" x-text="isVillaConstruction() ? 'مساحت اعیانی' : 'متراژ مفید'">متراژ مفید</span>
                         <strong class="df-f-val" x-text="fmtFormulaNumber(getValuationNetArea())"></strong>
                     </div>
                     <span class="df-f-op">+</span>
@@ -523,7 +608,7 @@
                     </div>
                     <span class="df-f-op">×</span>
                     <div class="df-f-term is-coeff">
-                        <span class="df-f-lbl">ضریب قدرالسهم</span>
+                        <span class="df-f-lbl">مجموع ضریب قدرالسهم</span>
                         <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_coefficient : '—'"></strong>
                     </div>
                     <span class="df-f-op">=</span>
@@ -533,9 +618,9 @@
                     </div>
                 </div>
 
-                <!-- ردیف ۲: داده‌های پایه جدول نرخ مصوب اکسل -->
+                <!-- ردیف ۲: نرخ‌های مصوب جدول اکسل -->
                 <div class="df-formula-excel">
-                    <div class="df-formula-subhead">داده‌های نرخ مصوب به ازای هر متر مربع و ضرایب (اکسل)</div>
+                    <div class="df-formula-subhead">نرخ‌های مصوب به ازای هر متر مربع (اکسل)</div>
                     <div class="df-excel-grid" dir="ltr">
                         <div class="df-f-term">
                             <span class="df-f-lbl">آماده‌سازی هر متر (ریال)</span>
@@ -548,18 +633,6 @@
                         <div class="df-f-term">
                             <span class="df-f-lbl">اجاره سال جاری هر متر (ریال)</span>
                             <strong class="df-f-val" x-text="landRateInfo ? formatNumber(landRateInfo.rent_current_per_m2) : '—'"></strong>
-                        </div>
-                        <div class="df-f-term is-coeff">
-                            <span class="df-f-lbl">قدرالسهم از عرصه</span>
-                            <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_land : '—'"></strong>
-                        </div>
-                        <div class="df-f-term is-coeff">
-                            <span class="df-f-lbl">قدرالسهم از مشاع</span>
-                            <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_common : '—'"></strong>
-                        </div>
-                        <div class="df-f-term is-coeff">
-                            <span class="df-f-lbl">جمع ضریب قدرالسهم</span>
-                            <strong class="df-f-val" x-text="landRateInfo ? landRateInfo.share_coefficient : '—'"></strong>
                         </div>
                     </div>
                 </div>
@@ -646,8 +719,8 @@
                     </div>
 
                     <div class="df-grid" style="margin-bottom:16px;">
-                        {% include "df/_decile_select.html" with cols=3 suffix="_checks" label="دهک درآمدی" %}
-                        <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('supported_institution')}">
+                        {% include "df/_decile_select.html" with cols=4 suffix="_checks" label="دهک درآمدی" %}
+                        <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('supported_institution')}">
                             <label class="df-label" for="f_supported_institution">نهاد تحت حمایت</label>
                             <select id="f_supported_institution" class="df-input" x-model="form.supported_institution" :disabled="!isFieldEditable('supported_institution')">
                                 <option value="هیچکدام">هیچکدام (عادی)</option>
@@ -657,9 +730,9 @@
                                 <option value="سایر">سایر نهادهای حمایتی</option>
                             </select>
                         </div>
-                        <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('decile_loan_bank')}">
+                        <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('decile_loan_bank')}">
                             <label class="df-label" for="f_decile_loan_bank">بانک عامل تسهیلات</label>
-                            <input id="f_decile_loan_bank" type="text" list="bank-list" class="df-input" x-model="form.decile_loan_bank" :readonly="!isFieldEditable('decile_loan_bank')" placeholder="مثال: بانک مسکن">
+                            <input id="f_decile_loan_bank" type="text" list="bank-list" class="df-input" x-model="form.decile_loan_bank" :readonly="!isFieldEditable('decile_loan_bank')" placeholder="نام بانک عامل تسهیلات">
                             <datalist id="bank-list">
                                 <option value="بانک مسکن"></option>
                                 <option value="بانک ملی ایران"></option>
@@ -669,7 +742,6 @@
                                 <option value="بانک سپه"></option>
                             </datalist>
                         </div>
-                        {% include "df/_money.html" with name="check_service_fee" label="کارمزد خدمات چک" cols=3 show="isCheckAdmin" %}
 
                         {% include "df/_money.html" with name="decile_loan_amount" sfx="_checks" label="مبلغ کل وام دهک" cols=4 on="recalculateChecks()" onblur="recalculateChecks()" %}
                         {% include "df/_field.html" with name="commitment_number" label="شماره تعهدنامه" cols=4 ltr=1 num=1 ph="۱۲۴۰۵/ت" %}
@@ -699,6 +771,53 @@
                     {% include "df/_check_scans.html" with theme="amber" kind="loan" getter="getLoanCheckScans" input_id="loanCheckScanFileInput" title="اسکن چک‌های وام دهک" %}
 
                     {% include "df/_confirm_card.html" with name="is_decile_loan_confirmed" title="تایید دریافت و کنترل چک‌های وام دهک" hint="اصالت چک‌های صیادی بر اساس سقف وام دهک تایید شد." by_field="loan_checks_confirmed_by" at_field="loan_checks_confirmed_at" %}
+
+                    {% if can_manage_directorate_shipments %}
+                    <div class="df-panel is-plain" style="margin-top: 0.9rem;">
+                        <div class="df-panel-head">
+                            <div class="df-panel-title"><svg class="df-i"><use href="#i-cal"/></svg>پیگیری مراجعه متقاضی و ارسال به راه و شهرسازی — مرحله ۱۷ (تسهیلات چک)</div>
+                            <template x-if="form.loan_processed_at">
+                                <span class="df-pill fa-num" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.76rem;" title="تاریخ و ساعت ثبت اولیه پرونده وام">
+                                    ثبت اولیه سیستم: <strong x-text="form.loan_processed_at"></strong>
+                                </span>
+                            </template>
+                        </div>
+                        <div class="df-grid">
+                            {% include "df/_date.html" with label="تاریخ مراجعه متقاضی — مرحله ۱۷ (شمسی)" cols=4 model="form.loan_visit_date" keyexpr="'loan_visit_date'" titleexpr="'تاریخ مراجعه مرحله ۱۷ (تسهیلات چک)'" ph="۱۴۰۵/۰۸/۲۰" ed="loan_visit_date" %}
+                            <div class="df-field df-col-4">
+                                <label class="df-label">ثبت‌کننده مراجعه مرحله ۱۷</label>
+                                <div class="df-readonly-box fa-num">
+                                    <span x-text="form.loan_visit_date ? (form.loan_visited_by || 'ثبت شده') : 'تاریخی ثبت نشده است'"></span>
+                                    <template x-if="form.loan_visited_at && form.loan_visit_date">
+                                        <span class="df-pill df-pill-green fa-num" x-text="form.loan_visited_at"></span>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="df-field df-col-4">
+                                <label class="df-label">تاریخ ارسال تسهیلات چک به راه و شهرسازی</label>
+                                <div class="df-readonly-box fa-num"
+                                     :class="{ 'is-sent': form.is_loan_sent_to_directorate || form.loan_directorate_sent_date }">
+                                    <span style="font-weight: 700;" x-text="(form.is_loan_sent_to_directorate || form.loan_directorate_sent_date) ? (form.loan_directorate_sent_date || 'ارسال شده') : 'ارسال نشده'">{% if dossier.is_loan_sent_to_directorate %}{{ dossier.loan_directorate_sent_date_display }}{% else %}ارسال نشده{% endif %}</span>
+                                    <template x-if="form.loan_directorate_shipment_code">
+                                        <span class="df-pill df-pill-green fa-num" x-text="form.loan_directorate_shipment_code"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <template x-if="(isCheckAdmin || isChief || isSuperuser) && !isLocked && !isViewOnly && Number(currentStage) !== 17">
+                        <div style="margin-top: 0.7rem; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap;">
+                            <template x-if="stageSignatures && stageSignatures[17]">
+                                <span class="df-pill df-pill-green">✓ مرحله ۱۷ (تسهیلات چک) خارج از نوبت تایید و امضا شد</span>
+                            </template>
+                            <template x-if="!stageSignatures || !stageSignatures[17]">
+                                <button type="button" class="df-btn df-btn-primary df-btn-sm" @click="confirmOutOfOrderStageSign(17)">
+                                    ✓ تایید و امضای الکترونیک خارج از نوبت مرحله ۱۷ (تسهیلات چک)
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                    {% endif %}
                 </div>
 
                 <!-- ---------- ب) اجاره عرصه و آماده‌سازی ---------- -->
@@ -747,7 +866,56 @@
                     {% include "df/_check_scans.html" with theme="green" kind="prep" getter="getPrepCheckScans" input_id="prepCheckScanFileInput" title="اسکن چک‌های اقساط آماده‌سازی" %}
 
                     {% include "df/_confirm_card.html" with name="is_preparation_checks_confirmed" title="تایید دریافت و کنترل چک‌های اقساط آماده‌سازی" hint="اصالت چک‌های صیادی ۸۰٪ آماده‌سازی تایید شد." by_field="prep_checks_confirmed_by" at_field="prep_checks_confirmed_at" %}
+
+                    {% if can_manage_directorate_shipments %}
+                    <div class="df-panel is-plain" style="margin-top: 0.9rem;">
+                        <div class="df-panel-head">
+                            <div class="df-panel-title"><svg class="df-i"><use href="#i-cal"/></svg>پیگیری مراجعه متقاضی و ارسال به راه و شهرسازی — مرحله ۱۸ (آماده‌سازی و اجاره)</div>
+                            <template x-if="form.prep_processed_at">
+                                <span class="df-pill fa-num" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.76rem;" title="تاریخ و ساعت ثبت اولیه پرونده آماده‌سازی">
+                                    ثبت اولیه سیستم: <strong x-text="form.prep_processed_at"></strong>
+                                </span>
+                            </template>
+                        </div>
+                        <div class="df-grid">
+                            {% include "df/_date.html" with label="تاریخ مراجعه متقاضی — مرحله ۱۸ (شمسی)" cols=4 model="form.prep_visit_date" keyexpr="'prep_visit_date'" titleexpr="'تاریخ مراجعه مرحله ۱۸ (آماده‌سازی و اجاره)'" ph="۱۴۰۵/۰۸/۲۰" ed="prep_visit_date" %}
+                            <div class="df-field df-col-4">
+                                <label class="df-label">ثبت‌کننده مراجعه مرحله ۱۸</label>
+                                <div class="df-readonly-box fa-num">
+                                    <span x-text="form.prep_visit_date ? (form.prep_visited_by || 'ثبت شده') : 'تاریخی ثبت نشده است'"></span>
+                                    <template x-if="form.prep_visited_at && form.prep_visit_date">
+                                        <span class="df-pill df-pill-green fa-num" x-text="form.prep_visited_at"></span>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="df-field df-col-4">
+                                <label class="df-label">تاریخ ارسال آماده‌سازی به راه و شهرسازی</label>
+                                <div class="df-readonly-box fa-num"
+                                     :class="{ 'is-sent': form.is_prep_sent_to_directorate || form.prep_directorate_sent_date }">
+                                    <span style="font-weight: 700;" x-text="(form.is_prep_sent_to_directorate || form.prep_directorate_sent_date) ? (form.prep_directorate_sent_date || 'ارسال شده') : 'ارسال نشده'">{% if dossier.is_prep_sent_to_directorate %}{{ dossier.prep_directorate_sent_date_display }}{% else %}ارسال نشده{% endif %}</span>
+                                    <template x-if="form.prep_directorate_shipment_code">
+                                        <span class="df-pill df-pill-green fa-num" x-text="form.prep_directorate_shipment_code"></span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <template x-if="(isCheckAdmin || isChief || isSuperuser) && !isLocked && !isViewOnly && Number(currentStage) !== 18">
+                        <div style="margin-top: 0.7rem; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap;">
+                            <template x-if="stageSignatures && stageSignatures[18]">
+                                <span class="df-pill df-pill-green">✓ مرحله ۱۸ (آماده‌سازی) خارج از نوبت تایید و امضا شد</span>
+                            </template>
+                            <template x-if="!stageSignatures || !stageSignatures[18]">
+                                <button type="button" class="df-btn df-btn-primary df-btn-sm" @click="confirmOutOfOrderStageSign(18)">
+                                    ✓ تایید و امضای الکترونیک خارج از نوبت مرحله ۱۸ (آماده‌سازی)
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                    {% endif %}
                 </div>
+
+
 
             </div>
           </template>
@@ -811,6 +979,69 @@
                                     @click="openUploadScanModal('NOTARY_LETTER', 'اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)')"
                                     :disabled="!isFieldEditable('notary_office_number') && !isChief && !isSuperuser">
                                 <span>افزودن اسکن</span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================= بخش ۱۲: ثبت و اسکن سند قرارداد اجاره عرصه (مرحله ۲۱) ======================= -->
+    <section class="df-card form-card" id="section-lease-contract"
+             :class="{'is-active': isSectionActive('section-lease-contract')}"
+             x-data="{ sectionOpen: shouldSectionOpen('section-lease-contract') }">
+        {% include "df/_section_header.html" with id="section-lease-contract" icon="file" title="بخش ۱۲: ثبت و اسکن سند قرارداد اجاره عرصه (مرحله ۲۱)" %}
+
+        <div class="df-body" id="section-lease-contract-body" x-show="sectionOpen" x-cloak x-transition>
+            <div class="df-grid">
+                {% include "df/_field.html" with name="lease_contract_number" label="شماره سند قرارداد اجاره" cols=4 ltr=1 num=1 ph="مثال: ۱۴۰۵/ق/۸۴۲۱" req=1 invalid="Number(currentStage) === 21 && !(form.lease_contract_number || '').trim()" %}
+
+                {% include "df/_date.html" with label="تاریخ قرارداد اجاره (شمسی)" cols=4 model="form.lease_contract_date" keyexpr="'lease_contract_date'" titleexpr="'تاریخ سند قرارداد اجاره'" ph="۱۴۰۵/۰۹/۰۱" ed="lease_contract_date" %}
+
+                <!-- دکمه اجباری اسکن صفحه قرارداد اجاره -->
+                <div class="df-field df-col-4">
+                    <label class="df-label"><b class="df-req">*</b>اسکن سند قرارداد اجاره</label>
+                    <button type="button" class="df-btn df-btn-primary" style="height: var(--df-h); width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                            @click="openUploadScanModal('LEASE_CONTRACT', 'اسکن سند قرارداد اجاره عرصه')"
+                            :disabled="!isFieldEditable('lease_contract_number') && !isChief && !isSuperuser">
+                        <svg class="df-i"><use href="#i-upload"/></svg>
+                        <span x-text="hasLeaseContractAttachment() ? 'افزودن / اسکن صفحه دیگر قرارداد' : 'اسکن و بارگذاری قرارداد اجاره'"></span>
+                    </button>
+                </div>
+
+                <!-- وضعیت یا پیش‌نمایش و چاپ اسکن قرارداد اجاره -->
+                <div class="df-field df-col-12" style="margin-top: -4px;">
+                    <template x-if="hasLeaseContractAttachment()">
+                        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #16a34a; font-size: 1.1rem; font-weight: bold;">✓</span>
+                                <div>
+                                    <strong style="color: #166534; font-size: 0.82rem;" x-text="getLeaseContractAttachment().title"></strong>
+                                    <span style="color: #15803d; font-size: 0.75rem; margin-right: 6px;">(اسکن در آلبوم مدارک ثبت شده است)</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button type="button" class="df-btn df-btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.76rem;"
+                                        @click="printScan(getLeaseContractAttachment())">
+                                    <svg class="df-i"><use href="#i-print"/></svg>
+                                    <span>چاپ برگه اسکن‌شده قرارداد</span>
+                                </button>
+                                <button type="button" class="df-btn df-btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.76rem;"
+                                        @click="openScanModal(getLeaseContractAttachment())">
+                                    <svg class="df-i"><use href="#i-eye"/></svg>
+                                    <span>مشاهده در نمایشگر اسناد</span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!hasLeaseContractAttachment()">
+                        <div style="background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 8px; padding: 0.65rem 0.85rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #92400e; font-size: 0.8rem; font-weight: 700;">
+                            <span>⚠️ برای ادامه و امضای مرحله ۲۱، ثبت شماره سند، تاریخ و اسکن قرارداد اجاره الزامی است.</span>
+                            <button type="button" class="df-btn df-btn-primary" style="padding: 0.28rem 0.75rem; font-size: 0.76rem;"
+                                    @click="openUploadScanModal('LEASE_CONTRACT', 'اسکن سند قرارداد اجاره عرصه')"
+                                    :disabled="!isFieldEditable('lease_contract_number') && !isChief && !isSuperuser">
+                                <span>اسکن صفحه قرارداد اجاره</span>
                             </button>
                         </div>
                     </template>

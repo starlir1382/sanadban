@@ -7,12 +7,14 @@ Tests for:
 """
 from decimal import Decimal
 from io import BytesIO
+import json
 import tempfile
 from PIL import Image
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client, override_settings
 from django.contrib.auth.models import User
+from django.urls import reverse
 
 from workflow.models import DossierAttachment, HousingDossier, UserProfile, WorkflowSignatureLog
 from workflow.views import (
@@ -277,6 +279,11 @@ class PrintSummaryAndPermissionsTestCase(TestCase):
         # 1. Print Land Bank (سند عرصه)
         res_arse = client.get(f"/dossier/{dossier.archive_number}/print/land-bank/")
         self.assertEqual(res_arse.status_code, 200)
+        html_arse = res_arse.content.decode("utf-8")
+        self.assertIn("جمع قدرالسهم از عرصه و مشاعات", html_arse)
+        self.assertNotIn(">عرصه</th>", html_arse)
+        self.assertNotIn(">مشاعات</th>", html_arse)
+        self.assertNotIn(">قدرالسهم از</th>", html_arse)
         dossier.refresh_from_db()
         self.assertTrue(dossier.is_land_deed_confirmed)
         att_arse = dossier.attachments.filter(doc_type="TITLE_DEED").first()
@@ -534,6 +541,54 @@ class WorkflowRequirementsTestCase(TestCase):
         p11.save()
         self.user_stage_11.refresh_from_db()
 
+        self.user_stage_2 = User.objects.create_user(username="req_stg2", password="password123")
+        p2, _ = UserProfile.objects.get_or_create(user=self.user_stage_2)
+        p2.allowed_stages = "2"
+        p2.can_sign = True
+        p2.full_name = "کارشناس عرصه و متقاضی (مرحله ۲)"
+        p2.save()
+        self.user_stage_2.refresh_from_db()
+
+        self.user_stage_3 = User.objects.create_user(username="req_stg3", password="password123")
+        p3, _ = UserProfile.objects.get_or_create(user=self.user_stage_3)
+        p3.allowed_stages = "3"
+        p3.can_sign = True
+        p3.full_name = "کارشناس فرم ج اداره کل (مرحله ۳)"
+        p3.save()
+        self.user_stage_3.refresh_from_db()
+
+        self.user_stage_6 = User.objects.create_user(username="req_stg6", password="password123")
+        p6, _ = UserProfile.objects.get_or_create(user=self.user_stage_6)
+        p6.allowed_stages = "6"
+        p6.can_sign = True
+        p6.full_name = "کارشناس بانک (مرحله ۶)"
+        p6.save()
+        self.user_stage_6.refresh_from_db()
+
+        self.user_stage_13 = User.objects.create_user(username="req_stg13", password="password123")
+        p13, _ = UserProfile.objects.get_or_create(user=self.user_stage_13)
+        p13.allowed_stages = "13"
+        p13.can_sign = True
+        p13.full_name = "کارشناس املاک (مرحله ۱۳)"
+        p13.save()
+        self.user_stage_13.refresh_from_db()
+
+        self.user_stage_14 = User.objects.create_user(username="req_stg14", password="password123")
+        p14, _ = UserProfile.objects.get_or_create(user=self.user_stage_14)
+        p14.allowed_stages = "14"
+        p14.can_sign = True
+        p14.full_name = "کارشناس بانک زمین (مرحله ۱۴)"
+        p14.save()
+        self.user_stage_14.refresh_from_db()
+
+        self.user_stage_15 = User.objects.create_user(username="req_stg15", password="password123")
+        p15, _ = UserProfile.objects.get_or_create(user=self.user_stage_15)
+        p15.allowed_stages = "15"
+        p15.can_sign = True
+        p15.full_name = "کارشناس حقوقی (مرحله ۱۵)"
+        p15.save()
+        self.user_stage_15.refresh_from_db()
+
     def test_form_j_number_and_questionnaire_number_sync(self):
         import json
         dossier = HousingDossier.objects.create(
@@ -570,7 +625,6 @@ class WorkflowRequirementsTestCase(TestCase):
             "form_j_questionnaire_number",
             "form_j_number",
             "form_j_registration_type",
-            "project_code",
             "applicant_form_j_status",
             "applicant_form_j_directorate_status",
             "applicant_form_j_red_description",
@@ -582,6 +636,9 @@ class WorkflowRequirementsTestCase(TestCase):
                 can_user_edit_field(self.user_stage_11, field),
                 f"Stage 11 must be able to edit '{field}'",
             )
+        # Stages 3 and 11 cannot change project_code
+        self.assertFalse(can_user_edit_field(self.user_stage_11, "project_code"))
+        self.assertFalse(can_user_edit_field(self.user_stage_3, "project_code"))
         self.assertFalse(can_user_edit_field(self.user_stage_8, "computer_code"))
 
         dossier = HousingDossier.objects.create(
@@ -636,7 +693,7 @@ class WorkflowRequirementsTestCase(TestCase):
             self.assertIn("!canSeeFullSection1()", html)
 
         js_text = Path("static/js/sanadban.js").read_text(encoding="utf-8")
-        self.assertIn('"section-cost": [2, 8, 9, 19]', js_text)
+        self.assertIn('"section-cost": [8, 9, 19]', js_text)
 
     def test_stage_8_cannot_sign_if_registry_or_base_cost_empty(self):
         import json
@@ -701,6 +758,112 @@ class WorkflowRequirementsTestCase(TestCase):
         self.assertEqual(res_ok.status_code, 200)
         dossier.refresh_from_db()
         self.assertEqual(dossier.current_stage, 9)
+
+    def test_workflow_new_requirements_permissions_and_bank_letter(self):
+        """Verify:
+        1. Stage 2 can edit Section 1, but NOT Section 2 or 4.
+        2. Stages 3 and 11 cannot edit project_code.
+        3. Stages 13, 14, 15 cannot edit dossier data fields (read-only for review & signature).
+        4. Regular bank letters only allowed for current_stage == 6.
+        5. Stages 17 and 18 print checks do not show دلاوری, and only show 2 signatures.
+        """
+        import json
+
+        # 1. Stage 2: Section 1 allowed, Section 2 & 4 prohibited
+        sec1_fields = [
+            "national_id", "first_name", "last_name", "applicant_phone",
+            "applicant_address", "site", "project", "block_name",
+            "unit_number", "bedroom_count", "net_unit_area", "bank_name", "bank_branch"
+        ]
+        for f in sec1_fields:
+            self.assertTrue(can_user_edit_field(self.user_stage_2, f), f"Stage 2 should edit {f}")
+
+        sec2_and_4_fields = [
+            "registration_section", "main_plaque", "separated_plaque",
+            "sub_plaque", "plot_number", "renovation_code",
+            "rah_letter", "rah_letter_date", "base_cost_without_loan"
+        ]
+        for f in sec2_and_4_fields:
+            self.assertFalse(can_user_edit_field(self.user_stage_2, f), f"Stage 2 should NOT edit {f}")
+
+        # 2. Stages 3 and 11: cannot edit project_code
+        self.assertFalse(can_user_edit_field(self.user_stage_3, "project_code"))
+        self.assertFalse(can_user_edit_field(self.user_stage_11, "project_code"))
+
+        # 3. Stages 13, 14, 15: cannot edit deed_number, registration_section, or base_cost_without_loan
+        prohibited_for_review_stages = [
+            "deed_number", "deed_date", "is_land_deed_confirmed",
+            "registration_section", "main_plaque", "plot_number",
+            "rah_letter", "base_cost_without_loan"
+        ]
+        for u in [self.user_stage_13, self.user_stage_14, self.user_stage_15]:
+            for f in prohibited_for_review_stages:
+                self.assertFalse(can_user_edit_field(u, f), f"User {u.username} should NOT edit {f}")
+
+        # 4. Bank letter submit API: regular bank letter only for current_stage == 6
+        d_stage6 = HousingDossier.objects.create(
+            national_id="0381112233",
+            full_name="متقاضی مرحله ۶",
+            archive_number=100961,
+            current_stage=6,
+        )
+        d_stage5 = HousingDossier.objects.create(
+            national_id="0381112234",
+            full_name="متقاضی مرحله ۵",
+            archive_number=100962,
+            current_stage=5,
+        )
+        c_bank = Client()
+        c_bank.force_login(self.user_stage_6)
+
+        # Attempt sending d_stage5 -> should be rejected with 400
+        res_fail = c_bank.post(
+            "/bank-letter/send/",
+            data=json.dumps({
+                "letter_type": "bank",
+                "archive_numbers": [d_stage5.archive_number],
+                "letter_number": "1405/B/001",
+                "letter_date": "1405/08/23",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res_fail.status_code, 400)
+        self.assertIn("مرحله ۶", res_fail.json().get("message", ""))
+
+        # Sending d_stage6 -> succeeds and advances
+        res_ok = c_bank.post(
+            "/bank-letter/send/",
+            data=json.dumps({
+                "letter_type": "bank",
+                "archive_numbers": [d_stage6.archive_number],
+                "letter_number": "1405/B/002",
+                "letter_date": "1405/08/23",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res_ok.status_code, 200)
+        d_stage6.refresh_from_db()
+        self.assertTrue(d_stage6.is_sent_to_bank)
+        self.assertEqual(d_stage6.bank_letter_number, "1405/B/002")
+        self.assertEqual(d_stage6.current_stage, 7)
+
+        # 5. Check print (stages 17 & 18): no Delavari, exactly 2 signatures (متصدی and کارگزار)
+        d_checks = HousingDossier.objects.create(
+            national_id="0381112235",
+            full_name="متقاضی چک‌ها",
+            archive_number=100963,
+            current_stage=17,
+        )
+        # Set up a profile with Delavari to verify it gets stripped/removed
+        c_print = Client()
+        c_print.force_login(self.user_stage_8)
+        res_print = c_print.get(f"/dossier/{d_checks.archive_number}/print/checks/")
+        self.assertEqual(res_print.status_code, 200)
+        html_print = res_print.content.decode("utf-8")
+        self.assertNotIn("دلاوری", html_print)
+        self.assertNotIn("امضاء راه و شهرسازی", html_print)
+        self.assertIn("امضاء متصدی", html_print)
+        self.assertIn("امضاء کارگزار", html_print)
 
 
 class DecileBankLetterTestCase(TestCase):
@@ -1066,11 +1229,23 @@ class DossierListLayoutAndExtrasTestCase(TestCase):
         self.assertEqual(resp.status_code, 200)
         html = resp.content.decode("utf-8")
 
-        # 7 columns with right-aligned Stage header and centered «وضعیت» header
-        self.assertIn("<th>مرحله و تاریخ ورود</th>", html)
+        # 7 columns with centered Stage & Status headers and 4-place location badges
+        self.assertIn('<th class="t-center">مرحله و تاریخ ورود</th>', html)
         self.assertIn('<th class="t-center">وضعیت</th>', html)
-        self.assertNotIn('<th class="t-center">مرحله و تاریخ ورود</th>', html)
-        self.assertIn('align-items: flex-start;', html)
+        self.assertIn('dl-stage-head', html)
+        self.assertIn('dl-stage-loc loc-rah_azarm', html)
+        self.assertIn('کارگزاری ره آزرم', html)
+        self.assertIn('کارشناس اطلاعات و عرصه', html)
+        self.assertIn('dl-stage-loc loc-zamin_tarsim', html)
+        self.assertIn('کارگزاری زمین ترسیم', html)
+        self.assertIn('کارشناس اخذ چک تسهیلات دهک', html)
+        self.assertIn('dl-stage-loc loc-directorate', html)
+        self.assertIn('اداره کل راه و شهرسازی', html)
+        self.assertIn('کارشناس صدور نامه محضر', html)
+        self.assertIn('dl-stage-role', html)
+        self.assertIn('dl-stage-loc-name', html)
+        self.assertIn('flex: 1;', html)
+        self.assertIn('align-items: center;', html)
         self.assertIn('width: 25%;', html)
         self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr));', html)
         self.assertIn('flex-direction: column;', html)
@@ -1118,8 +1293,1008 @@ class DossierListLayoutAndExtrasTestCase(TestCase):
         notary_html = ajax_notary.json()["html"]
         self.assertIn("100962", notary_html)
         self.assertIn("نامه دفترخانه:", notary_html)
+        self.assertIn('dl-stage-loc loc-directorate', notary_html)
+        self.assertIn('کارشناس صدور نامه محضر', notary_html)
+
+        # Verify all 22 stages + locked/archived map cleanly to the 4 places
+        from workflow.stages import get_stage_location
+        for s in (1, 2, 7, 8, 9):
+            self.assertEqual(get_stage_location(s), ("rah_azarm", "کارگزاری ره آزرم"))
+        for s in (17, 18):
+            self.assertEqual(get_stage_location(s), ("zamin_tarsim", "کارگزاری زمین ترسیم"))
+        for s in (3, 4, 5, 6, 10, 11, 12, 13, 14, 15, 16, 19, 20, 21):
+            self.assertEqual(get_stage_location(s), ("directorate", "اداره کل راه و شهرسازی"))
+        self.assertEqual(get_stage_location(22), ("archive", "بایگانی"))
+        self.assertEqual(get_stage_location(3, is_locked=True), ("archive", "بایگانی"))
+        self.assertEqual(get_stage_location(3, status="REJECTED_RED"), ("archive", "بایگانی"))
+
+        d_arch = HousingDossier.objects.create(
+            national_id="0388880004",
+            full_name="متقاضی بایگانی",
+            archive_number=100963,
+            current_stage=22,
+            is_locked=True,
+        )
+        arch_resp = self.client.get(f"/?q={d_arch.archive_number}&ajax=1")
+        self.assertEqual(arch_resp.status_code, 200)
+        arch_html = arch_resp.json()["html"]
+        self.assertIn('dl-stage-loc loc-archive', arch_html)
+        self.assertIn('بایگانی', arch_html)
+        self.assertIn('کارشناس بایگانی اداره کل', arch_html)
         self.assertIn("1405/ص/5521", notary_html)
         self.assertIn("1405/08/20", notary_html)
         self.assertEqual(notary_html.count('<span class="dl-extra-chip empty"'), 2)
 
+    def test_print_summary_broker_and_financial_2x3_layout(self):
+        from django.urls import reverse
 
+        d = HousingDossier.objects.create(
+            national_id="0388880099",
+            full_name="متقاضی خلاصه",
+            archive_number=100999,
+            current_stage=21,
+            base_cost_without_loan=10666630000,
+            total_land_share="77.05",
+            current_year_rent=34025280,
+            preparation_check_count=1,
+        )
+        resp = self.client.get(reverse("dossier_summary_print", kwargs={"pk": d.archive_number}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+        self.assertIn("broker-panel", html)
+        self.assertIn("broker-note", html)
+        self.assertIn("مسئولیت کارگزار صرفاً در محدوده صحت اطلاعات واحد انتخابی و اسکن مدارک می‌باشد.", html)
+        self.assertIn('<table class="money-grid-table">', html)
+        self.assertIn('<tr class="is-full">', html)
+        self.assertIn("قیمت علی‌الحساب تمام شده (بدون وام):", html)
+        self.assertIn("10,666,630,000 ریال", html)
+        self.assertIn("جمع قدرالسهم از عرصه:", html)
+        self.assertIn("مبلغ کل چک‌ها:", html)
+        grid_block = html[html.index('<table class="money-grid-table">') : html.index('<!-- 6. امضای کارشناسان')]
+        self.assertEqual(grid_block.count("<tr"), 4)
+        self.assertEqual(grid_block.count("<td>") + grid_block.count('<td colspan="2">'), 7)
+
+    def test_only_uploader_can_delete_attachment(self):
+        """Only the user who uploaded an image/attachment can delete it (including same-stage colleagues and superusers)."""
+        import json
+        import re
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import Client, override_settings
+        from django.urls import reverse
+
+        uploader = User.objects.create_user(username="att_uploader_a", password="password123")
+        pa, _ = UserProfile.objects.get_or_create(user=uploader)
+        pa.allowed_stages = "8"
+        pa.can_sign = True
+        pa.full_name = "بارگذار الف"
+        pa.save()
+
+        colleague = User.objects.create_user(username="att_colleague_b", password="password123")
+        pb, _ = UserProfile.objects.get_or_create(user=colleague)
+        pb.allowed_stages = "8"
+        pb.can_sign = True
+        pb.full_name = "همکار ب"
+        pb.save()
+
+        chief_admin = User.objects.create_superuser(username="att_super_c", password="password123")
+        pc, _ = UserProfile.objects.get_or_create(user=chief_admin)
+        pc.is_housing_chief = True
+        pc.full_name = "مدیر ج"
+        pc.save()
+
+        dossier = HousingDossier.objects.create(
+            national_id="0387771122",
+            full_name="متقاضی تست حذف تصویر",
+            archive_number=100991,
+            current_stage=8,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_media, override_settings(MEDIA_ROOT=tmp_media):
+            c_up = Client()
+            c_up.force_login(uploader)
+            png_bytes = (
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+                b"\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc```\x00\x00\x00\x04\x00\x01"
+                b"\x27\x34\x27\x0a\x00\x00\x00\x00IEND\xaeB`\x82"
+            )
+            up_resp = c_up.post(
+                f"/dossier/{dossier.archive_number}/upload-scan/",
+                data={
+                    "title": "تصویر اختصاصی",
+                    "doc_type": "OTHER",
+                    "upload_token": "tok_uploader_rule_1",
+                    "files": SimpleUploadedFile("pic.png", png_bytes, content_type="image/png"),
+                },
+            )
+            self.assertEqual(up_resp.status_code, 200)
+            att_id = up_resp.json()["attachments"][0]["id"]
+            self.assertTrue(up_resp.json()["attachments"][0]["can_delete"])
+
+            att_obj = DossierAttachment.objects.get(id=att_id)
+            self.assertEqual(att_obj.uploaded_by_user_id, uploader.id)
+
+            # Colleague in same stage cannot delete and gets can_delete=False
+            c_col = Client()
+            c_col.force_login(colleague)
+            del_col = c_col.post(
+                reverse("dossier_delete_attachment", kwargs={"pk": dossier.archive_number, "attachment_id": att_id})
+            )
+            self.assertEqual(del_col.status_code, 403)
+            self.assertTrue(DossierAttachment.objects.filter(id=att_id).exists())
+
+            detail_col_resp = c_col.get(reverse("dossier_detail", kwargs={"pk": dossier.archive_number}))
+            col_atts = json.loads(detail_col_resp.context["dossier_json"])["attachments"]
+            self.assertEqual(len(col_atts), 1)
+            self.assertFalse(col_atts[0]["can_delete"])
+
+            # Superuser / housing chief who did not upload also cannot delete
+            c_adm = Client()
+            c_adm.force_login(chief_admin)
+            del_adm = c_adm.post(
+                reverse("dossier_delete_attachment", kwargs={"pk": dossier.archive_number, "attachment_id": att_id})
+            )
+            self.assertEqual(del_adm.status_code, 403)
+            self.assertTrue(DossierAttachment.objects.filter(id=att_id).exists())
+
+            # Legacy attachment without uploaded_by_user still honors matching uploader display name
+            legacy_att = DossierAttachment.objects.create(
+                dossier=dossier,
+                stage=8,
+                doc_type="OTHER",
+                title="تصویر قدیمی",
+                file_name="legacy.png",
+                uploaded_by="بارگذار الف",
+                preview_url="/uploads/0387771122/legacy.png",
+            )
+            del_legacy_col = c_col.post(
+                reverse("dossier_delete_attachment", kwargs={"pk": dossier.archive_number, "attachment_id": legacy_att.id})
+            )
+            self.assertEqual(del_legacy_col.status_code, 403)
+            del_legacy_up = c_up.post(
+                reverse("dossier_delete_attachment", kwargs={"pk": dossier.archive_number, "attachment_id": legacy_att.id})
+            )
+            self.assertEqual(del_legacy_up.status_code, 200)
+            self.assertFalse(DossierAttachment.objects.filter(id=legacy_att.id).exists())
+
+            # Uploader gets can_delete=True and can delete their own image
+            detail_up_resp = c_up.get(reverse("dossier_detail", kwargs={"pk": dossier.archive_number}))
+            up_atts = json.loads(detail_up_resp.context["dossier_json"])["attachments"]
+            self.assertEqual(len(up_atts), 1)
+            self.assertTrue(up_atts[0]["can_delete"])
+
+            del_up = c_up.post(
+                reverse("dossier_delete_attachment", kwargs={"pk": dossier.archive_number, "attachment_id": att_id})
+            )
+            self.assertEqual(del_up.status_code, 200)
+            self.assertFalse(DossierAttachment.objects.filter(id=att_id).exists())
+
+    def test_album_one_place_side_vs_bottom_dock(self):
+        """Photo album launcher appears only on side when closed, and only in bottom dock when minimized."""
+        from django.conf import settings
+        from django.urls import reverse
+
+        dossier = HousingDossier.objects.create(
+            national_id="0387772233",
+            full_name="متقاضی تست جایگاه آلبوم",
+            archive_number=100992,
+            current_stage=8,
+        )
+        resp = self.client.get(reverse("dossier_detail", kwargs={"pk": dossier.archive_number}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+
+        # Side tab must NOT force display: flex !important (which overrides x-show) and must only show when closed
+        css_block = html[html.index(".sticky-scan-tab {") : html.index(".sticky-scan-tab:hover")]
+        self.assertIn("display: flex;", css_block)
+        self.assertNotIn("display: flex !important;", css_block)
+        self.assertIn('class="sticky-scan-tab no-print"\n    x-show="!showAlbumPopup"', html)
+        self.assertIn('class="album-minimized-dock"\n        x-show="showAlbumPopup && isAlbumMinimized"', html)
+        self.assertIn('class="album-popup-overlay"\n        x-show="showAlbumPopup && !isAlbumMinimized"', html)
+        self.assertIn("canDeleteAttachment(item)", html)
+        self.assertIn("sanadban.js?v=3.7", html)
+
+        df_check_scans = (settings.BASE_DIR / "templates" / "df" / "_check_scans.html").read_text(encoding="utf-8")
+        self.assertIn('x-show="canDeleteAttachment(scan)"', df_check_scans)
+
+    def test_detail_tab_scroll_and_overflow_fix(self):
+        """Tab switching uses non-sticky #dt-tabs-anchor, non-colliding panel IDs, and overflow-x: clip."""
+        from django.conf import settings
+        from django.urls import reverse
+
+        dossier = HousingDossier.objects.create(
+            national_id="0387773344",
+            full_name="متقاضی تست اسکرول تب‌ها",
+            archive_number=100993,
+            current_stage=8,
+        )
+        resp = self.client.get(reverse("dossier_detail", kwargs={"pk": dossier.archive_number}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+
+        self.assertIn("html, body { overflow-x: clip !important; max-width: 100vw; }", html)
+        self.assertNotIn("html, body { overflow-x: hidden !important;", html)
+        self.assertIn('<div id="dt-tabs-anchor"', html)
+        self.assertIn('id="tab-panel-map"', html)
+        self.assertIn('id="tab-panel-history"', html)
+        self.assertNotIn('<div x-show="tab === \'map\'" id="map">', html)
+        self.assertNotIn('<div x-show="tab === \'history\'" id="history">', html)
+
+        css_text = (settings.BASE_DIR / "static" / "css" / "sanadban.css").read_text(encoding="utf-8")
+        self.assertEqual(css_text.count("overflow-x: clip !important;"), 2)
+        self.assertNotIn("overflow-x: hidden !important;", css_text)
+
+        js_text = (settings.BASE_DIR / "static" / "js" / "sanadban.js").read_text(encoding="utf-8")
+        self.assertIn('const validTabs = ["form", "map", "history"];', js_text)
+        self.assertIn('document.getElementById("dt-tabs-anchor")', js_text)
+        self.assertIn("this.$nextTick", js_text)
+
+    def test_dossier_list_session_filter_persistence_and_clear_button(self):
+        """List filters stay saved across returning home/back and reset cleanly via clear_filters=1."""
+        from django.urls import reverse
+
+        d_stage3 = HousingDossier.objects.create(
+            national_id="0387774401",
+            full_name="متقاضی مرحله سه",
+            archive_number=100994,
+            current_stage=3,
+        )
+        d_stage8 = HousingDossier.objects.create(
+            national_id="0387774402",
+            full_name="متقاضی مرحله هشت",
+            archive_number=100995,
+            current_stage=8,
+        )
+        d_red_pending = HousingDossier.objects.create(
+            national_id="0387774403",
+            full_name="متقاضی قرمز ارجاعی",
+            archive_number=100996,
+            current_stage=5,
+            status="REJECT_RED_PENDING",
+        )
+
+        list_url = reverse("dossier_list")
+
+        # 0. When there is no filter (all dossiers), the clear-filter button must not exist
+        r_initial = self.client.get(list_url)
+        self.assertEqual(r_initial.status_code, 200)
+        self.assertFalse(r_initial.context["has_active_filters"])
+        html_initial = r_initial.content.decode("utf-8")
+        self.assertNotIn('id="workflow-clear-filters-btn"', html_initial)
+        self.assertNotIn('href="/?clear_filters=1"', html_initial)
+
+        # 1. Apply stage filter and verify list + session
+        r_stage = self.client.get(list_url, {"stage": "3"})
+        self.assertEqual(r_stage.status_code, 200)
+        self.assertEqual(r_stage.context["stage_filter"], "3")
+        self.assertTrue(r_stage.context["has_active_filters"])
+        names = [d.full_name for d in r_stage.context["dossiers"]]
+        self.assertIn(d_stage3.full_name, names)
+        self.assertNotIn(d_stage8.full_name, names)
+
+        # Red "پاک سازی فیلتر" button is rendered inside گردش کار header linking to ?clear_filters=1
+        html_stage = r_stage.content.decode("utf-8")
+        self.assertIn('id="workflow-clear-filters-btn"', html_stage)
+        self.assertIn("?clear_filters=1", html_stage)
+        self.assertIn("پاک سازی فیلتر", html_stage)
+
+        # 2. Simulate entering a dossier and returning Home (bare "/") -> filter persists
+        r_detail = self.client.get(reverse("dossier_detail", kwargs={"pk": d_stage3.archive_number}))
+        self.assertEqual(r_detail.status_code, 200)
+
+        r_home = self.client.get(list_url)
+        self.assertEqual(r_home.status_code, 200)
+        self.assertEqual(r_home.context["stage_filter"], "3")
+        home_names = [d.full_name for d in r_home.context["dossiers"]]
+        self.assertIn(d_stage3.full_name, home_names)
+        self.assertNotIn(d_stage8.full_name, home_names)
+
+        # 3. Switch to status=pending_red -> stage=3 must NOT leak into status filter, and status persists on "/"
+        r_status = self.client.get(list_url, {"status": "pending_red"})
+        self.assertEqual(r_status.status_code, 200)
+        self.assertEqual(r_status.context["stage_filter"], "")
+        self.assertEqual(r_status.context["status_filter"], "pending_red")
+        self.assertEqual([d.full_name for d in r_status.context["dossiers"]], [d_red_pending.full_name])
+
+        r_home2 = self.client.get(list_url)
+        self.assertEqual(r_home2.context["status_filter"], "pending_red")
+        self.assertEqual([d.full_name for d in r_home2.context["dossiers"]], [d_red_pending.full_name])
+
+        # 4. AJAX search with query + empty stage updates session query and persists on "/"
+        r_ajax = self.client.get(
+            list_url,
+            {"q": "0387774402", "stage": "", "status": "", "sort": "stage_asc", "ajax": "1"},
+        )
+        self.assertEqual(r_ajax.status_code, 200)
+        self.assertEqual(r_ajax.json()["count"], 1)
+
+        r_home3 = self.client.get(list_url)
+        self.assertEqual(r_home3.context["query"], "0387774402")
+        self.assertEqual([d.full_name for d in r_home3.context["dossiers"]], [d_stage8.full_name])
+
+        # 5. Click "پاک سازی فیلتر" (?clear_filters=1) -> redirects to "/" with cleared session
+        r_clear = self.client.get(list_url, {"clear_filters": "1"}, follow=True)
+        self.assertRedirects(r_clear, list_url)
+        self.assertFalse(r_clear.context["has_active_filters"])
+        self.assertEqual(r_clear.context["query"], "")
+        self.assertEqual(r_clear.context["stage_filter"], "")
+        self.assertEqual(r_clear.context["status_filter"], "")
+        cleared_names = [d.full_name for d in r_clear.context["dossiers"]]
+        self.assertIn(d_stage3.full_name, cleared_names)
+        self.assertIn(d_stage8.full_name, cleared_names)
+        html_cleared = r_clear.content.decode("utf-8")
+        self.assertNotIn('id="workflow-clear-filters-btn"', html_cleared)
+        self.assertNotIn('href="/?clear_filters=1"', html_cleared)
+
+
+
+
+class DirectorateShipmentAndVisitTestCase(TestCase):
+    def setUp(self):
+        from workflow.models import DirectorateShipment  # ensure model imports cleanly
+        self.DirectorateShipment = DirectorateShipment
+
+        self.alireza_user = User.objects.create_user(
+            username="alireza_nazari",
+            password="password123",
+            is_staff=True,
+            is_superuser=True,
+        )
+        p_alireza, _ = UserProfile.objects.get_or_create(user=self.alireza_user)
+        p_alireza.full_name = "علیرضا نظری"
+        p_alireza.is_housing_chief = True
+        p_alireza.organization = "system"
+        p_alireza.allowed_stages = "all"
+        p_alireza.save()
+
+        self.other_admin = User.objects.create_user(
+            username="other_superadmin",
+            password="password123",
+            is_staff=True,
+            is_superuser=True,
+        )
+        p_other, _ = UserProfile.objects.get_or_create(user=self.other_admin)
+        p_other.full_name = "سایر ادمین‌ها"
+        p_other.is_housing_chief = True
+        p_other.organization = "system"
+        p_other.allowed_stages = "all"
+        p_other.save()
+
+        self.all_stages_user = User.objects.create_user(username="all_lvl_user", password="password123")
+        p_all, _ = UserProfile.objects.get_or_create(user=self.all_stages_user)
+        p_all.allowed_stages = "all"
+        p_all.full_name = "کاربر دسترسی کامل"
+        p_all.save()
+
+        self.user_17_18 = User.objects.create_user(username="expert_stg17_18", password="password123")
+        p1718, _ = UserProfile.objects.get_or_create(user=self.user_17_18)
+        p1718.allowed_stages = "17,18"
+        p1718.is_check_admin = True
+        p1718.full_name = "کارشناس اختصاصی ۱۷ و ۱۸"
+        p1718.save()
+
+        self.user_17 = User.objects.create_user(username="expert_stg17", password="password123")
+        p17, _ = UserProfile.objects.get_or_create(user=self.user_17)
+        p17.allowed_stages = "17"
+        p17.full_name = "کارشناس تکمیل اسناد ۱۷"
+        p17.role_title = "کارشناس چک و اسناد ۱۷"
+        p17.save()
+
+        self.user_18 = User.objects.create_user(username="expert_stg18", password="password123")
+        p18, _ = UserProfile.objects.get_or_create(user=self.user_18)
+        p18.allowed_stages = "18"
+        p18.full_name = "کارشناس تطبیق چک ۱۸"
+        p18.role_title = "کارشناس بررسی ۱۸"
+        p18.save()
+
+        self.mixed_stage_user = User.objects.create_user(username="expert_stg1_17", password="password123")
+        p_mix, _ = UserProfile.objects.get_or_create(user=self.mixed_stage_user)
+        p_mix.allowed_stages = "1,17"
+        p_mix.full_name = "کارشناس غیر اختصاصی"
+        p_mix.save()
+
+        self.user_3 = User.objects.create_user(username="expert_stg3_ship", password="password123")
+        p3, _ = UserProfile.objects.get_or_create(user=self.user_3)
+        p3.allowed_stages = "3"
+        p3.full_name = "کارشناس مرحله ۳"
+        p3.save()
+
+        for u in (
+            self.alireza_user,
+            self.other_admin,
+            self.all_stages_user,
+            self.user_17_18,
+            self.user_17,
+            self.user_18,
+            self.mixed_stage_user,
+            self.user_3,
+        ):
+            u.refresh_from_db()
+
+        self.d17 = HousingDossier.objects.create(
+            national_id="0388811001",
+            full_name="متقاضی مرحله هفده",
+            current_stage=17,
+            archive_number=7001,
+        )
+        self.d18 = HousingDossier.objects.create(
+            national_id="0388811002",
+            full_name="متقاضی مرحله هجده",
+            current_stage=18,
+            archive_number=7002,
+        )
+        self.d3 = HousingDossier.objects.create(
+            national_id="0388811004",
+            full_name="متقاضی مرحله سه زودرس",
+            current_stage=3,
+            archive_number=7004,
+            check_count=2,
+            check_amount=500000000,
+            last_check_amount=500000000,
+            total_check_amount=1000000000,
+            is_decile_loan_confirmed=True,
+            tenant_price=100000000,
+            tenant_code="12/1234",
+            is_cash_rent_confirmed=True,
+            cash_preparation_amount=200000000,
+            prepayment_code="22/5678",
+            non_cash_preparation_amount=800000000,
+            preparation_check_count=2,
+            total_preparation_check_amount=800000000,
+            is_preparation_checks_confirmed=True,
+        )
+        self.d17_locked = HousingDossier.objects.create(
+            national_id="0388811003",
+            full_name="متقاضی مختومه ۱۷",
+            current_stage=17,
+            archive_number=7003,
+            is_locked=True,
+        )
+
+    def test_shipment_history_page_acl_and_bulk_visit_removed(self):
+        from django.urls import NoReverseMatch
+        with self.assertRaises(NoReverseMatch):
+            reverse("dossiers_bulk_mark_visited")
+
+        loan_sh = self.DirectorateShipment.objects.create(
+            shipment_type="LOAN",
+            sent_date="1405/08/22",
+            created_by_user=self.alireza_user,
+            created_by="علیرضا نظری",
+        )
+        prep_sh = self.DirectorateShipment.objects.create(
+            shipment_type="PREP",
+            sent_date="1405/08/23",
+            created_by_user=self.alireza_user,
+            created_by="علیرضا نظری",
+        )
+        self.d17.loan_directorate_shipment = loan_sh
+        self.d17.is_loan_sent_to_directorate = True
+        self.d17.save(update_fields=["loan_directorate_shipment", "is_loan_sent_to_directorate"])
+        self.d18.prep_directorate_shipment = prep_sh
+        self.d18.is_prep_sent_to_directorate = True
+        self.d18.save(update_fields=["prep_directorate_shipment", "is_prep_sent_to_directorate"])
+
+        history_url = reverse("directorate_shipments_list")
+        ca = Client()
+        ca.force_login(self.alireza_user)
+        self.assertEqual(ca.post("/dossiers/bulk-mark-visited/").status_code, 404)
+
+        r_ali = ca.get(history_url)
+        self.assertEqual(r_ali.status_code, 200)
+        ali_hist_html = r_ali.content.decode("utf-8")
+        self.assertIn(loan_sh.shipment_code, ali_hist_html)
+        self.assertIn(prep_sh.shipment_code, ali_hist_html)
+        self.assertIn("چاپ ارسالی ها", ali_hist_html)
+
+        # Stage 17-only expert sees only LOAN shipments; Stage 18-only sees only PREP shipments
+        c17 = Client()
+        c17.force_login(self.user_17)
+        r17 = c17.get(history_url)
+        self.assertEqual(r17.status_code, 200)
+        h17 = r17.content.decode("utf-8")
+        self.assertIn(loan_sh.shipment_code, h17)
+        self.assertNotIn(prep_sh.shipment_code, h17)
+
+        c18 = Client()
+        c18.force_login(self.user_18)
+        r18 = c18.get(history_url)
+        self.assertEqual(r18.status_code, 200)
+        h18 = r18.content.decode("utf-8")
+        self.assertIn(prep_sh.shipment_code, h18)
+        self.assertNotIn(loan_sh.shipment_code, h18)
+
+        # Other admins / non-17-18 experts are blocked from history page (redirect 302)
+        for denied in (self.other_admin, self.all_stages_user, self.mixed_stage_user, self.user_3):
+            cd = Client()
+            cd.force_login(denied)
+            self.assertEqual(cd.get(history_url).status_code, 302)
+
+        # Verify dossier_list navigation renders cleanly without breaking other admins or experts
+        list_url = reverse("dossier_list")
+        ali_list_resp = ca.get(list_url)
+        self.assertEqual(ali_list_resp.status_code, 200)
+        ali_list_html = ali_list_resp.content.decode("utf-8")
+        self.assertIn('id="nav-directorate-shipments-tab"', ali_list_html)
+        self.assertIn("تاریخچه ارسالی‌ها", ali_list_html)
+
+        c_other_admin = Client()
+        c_other_admin.force_login(self.other_admin)
+        other_admin_resp = c_other_admin.get(list_url)
+        self.assertEqual(other_admin_resp.status_code, 200)
+        other_admin_html = other_admin_resp.content.decode("utf-8")
+        self.assertNotIn('id="nav-directorate-shipments-tab"', other_admin_html)
+        self.assertIn("مدیریت کاربران و مراحل", other_admin_html)
+
+        c_expert = Client()
+        c_expert.force_login(self.user_17_18)
+        expert_resp = c_expert.get(list_url)
+        self.assertEqual(expert_resp.status_code, 200)
+        expert_html = expert_resp.content.decode("utf-8")
+        self.assertIn('id="nav-directorate-shipments-btn"', expert_html)
+        self.assertNotIn('id="nav-directorate-shipments-tab"', expert_html)
+
+        c_user3 = Client()
+        c_user3.force_login(self.user_3)
+        u3_resp = c_user3.get(list_url)
+        self.assertEqual(u3_resp.status_code, 200)
+        u3_html = u3_resp.content.decode("utf-8")
+        self.assertNotIn('id="nav-directorate-shipments-btn"', u3_html)
+        self.assertNotIn('id="nav-directorate-shipments-tab"', u3_html)
+
+    def test_stage17_18_split_permissions_visit_date_and_draft_save(self):
+        self.user_17.refresh_from_db()
+        self.user_18.refresh_from_db()
+        self.user_17_18.refresh_from_db()
+        self.user_3.refresh_from_db()
+
+        # Both alireza_nazari and dedicated Stage 17/18 experts can edit visit_date;
+        # directorate shipment flags/dates are strictly read-only inside individual dossiers ("only tick and send")
+        for allowed_user in (self.alireza_user, self.user_17_18, self.user_17, self.user_18):
+            self.assertTrue(can_user_edit_field(allowed_user, "visit_date"))
+            for ro_field in (
+                "is_loan_sent_to_directorate",
+                "loan_directorate_sent_date",
+                "is_prep_sent_to_directorate",
+                "prep_directorate_sent_date",
+            ):
+                self.assertFalse(can_user_edit_field(allowed_user, ro_field))
+
+        # Separate Stage 17 & Stage 18 visit_date fields obey strict split stage ACL
+        self.assertTrue(can_user_edit_field(self.alireza_user, "loan_visit_date"))
+        self.assertTrue(can_user_edit_field(self.alireza_user, "prep_visit_date"))
+        self.assertTrue(can_user_edit_field(self.user_17_18, "loan_visit_date"))
+        self.assertTrue(can_user_edit_field(self.user_17_18, "prep_visit_date"))
+        self.assertTrue(can_user_edit_field(self.user_17, "loan_visit_date"))
+        self.assertFalse(can_user_edit_field(self.user_17, "prep_visit_date"))
+        self.assertTrue(can_user_edit_field(self.user_18, "prep_visit_date"))
+        self.assertFalse(can_user_edit_field(self.user_18, "loan_visit_date"))
+
+        all_tracking = [
+            "visit_date",
+            "loan_visit_date",
+            "prep_visit_date",
+            "is_loan_sent_to_directorate",
+            "loan_directorate_sent_date",
+            "is_prep_sent_to_directorate",
+            "prep_directorate_sent_date",
+        ]
+        for f in all_tracking:
+            for denied_user in (self.other_admin, self.all_stages_user, self.mixed_stage_user, self.user_3):
+                self.assertFalse(can_user_edit_field(denied_user, f))
+
+        for denied_user in (self.user_3, self.other_admin, self.all_stages_user, self.mixed_stage_user):
+            filtered = filter_allowed_updates(
+                denied_user,
+                {
+                    "visit_date": "1405/08/20",
+                    "is_loan_sent_to_directorate": True,
+                    "loan_directorate_sent_date": "1405/08/21",
+                    "is_prep_sent_to_directorate": True,
+                    "prep_directorate_sent_date": "1405/08/21",
+                },
+            )
+            self.assertEqual(filtered, {})
+
+        # Even authorized Stage 17/18 users only keep visit_date in filter_allowed_updates; shipment fields are stripped
+        filtered_ali = filter_allowed_updates(
+            self.alireza_user,
+            {
+                "visit_date": "1405/08/20",
+                "is_loan_sent_to_directorate": True,
+                "loan_directorate_sent_date": "1405/08/21",
+                "is_prep_sent_to_directorate": True,
+                "prep_directorate_sent_date": "1405/08/21",
+            },
+        )
+        self.assertEqual(filtered_ali, {"visit_date": "1405/08/20"})
+
+        # Other superadmin cannot save or see tracking blocks on detail page
+        c_other = Client()
+        c_other.force_login(self.other_admin)
+        r_other_save = c_other.post(
+            reverse("dossier_save", kwargs={"pk": self.d17.archive_number}),
+            data=json.dumps({
+                "visit_date": "1405/08/19",
+                "is_loan_sent_to_directorate": True,
+                "is_prep_sent_to_directorate": True,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(r_other_save.status_code, 200)
+        self.d17.refresh_from_db()
+        self.assertEqual(self.d17.visit_date, "")
+        self.assertFalse(self.d17.is_loan_sent_to_directorate)
+        self.assertFalse(self.d17.is_prep_sent_to_directorate)
+
+        r_other_detail = c_other.get(reverse("dossier_detail", kwargs={"pk": self.d17.archive_number}))
+        self.assertEqual(r_other_detail.status_code, 200)
+        self.assertFalse(r_other_detail.context["can_manage_directorate_shipments"])
+        detail_other_html = r_other_detail.content.decode("utf-8")
+        self.assertNotIn("تیک مراجعه شده", detail_other_html)
+        self.assertNotIn("ارسال شده به راه و شهرسازی — تسهیلات چک", detail_other_html)
+        self.assertNotIn("ارسال شده به راه و شهرسازی — آماده‌سازی", detail_other_html)
+        self.assertNotIn("تاریخ ارسال تسهیلات چک به راه و شهرسازی", detail_other_html)
+        self.assertNotIn("تاریخ ارسال آماده‌سازی به راه و شهرسازی", detail_other_html)
+
+        # alireza_nazari sees visit_date + read-only Loan/Prep status ("ارسال نشده" before batch send), NO toggle checkboxes
+        c_ali = Client()
+        c_ali.force_login(self.alireza_user)
+        r_ali_detail = c_ali.get(reverse("dossier_detail", kwargs={"pk": self.d17.archive_number}))
+        self.assertEqual(r_ali_detail.status_code, 200)
+        self.assertTrue(r_ali_detail.context["can_manage_directorate_shipments"])
+        ali_html = r_ali_detail.content.decode("utf-8")
+        self.assertNotIn("تیک مراجعه شده", ali_html)
+        self.assertNotIn("ارسال شده به راه و شهرسازی — تسهیلات چک", ali_html)
+        self.assertNotIn("ارسال شده به راه و شهرسازی — آماده‌سازی", ali_html)
+        self.assertNotIn("تاریخ مراجعه متقاضی (مراحل ۱۷ و ۱۸)", ali_html)
+        self.assertIn("تاریخ مراجعه متقاضی — مرحله ۱۷ (شمسی)", ali_html)
+        self.assertIn("تاریخ مراجعه متقاضی — مرحله ۱۸ (شمسی)", ali_html)
+        self.assertIn("تاریخ ارسال تسهیلات چک به راه و شهرسازی", ali_html)
+        self.assertIn("تاریخ ارسال آماده‌سازی به راه و شهرسازی", ali_html)
+        self.assertIn("ارسال نشده", ali_html)
+
+        # Stage 17 saves loan_visit_date (and cannot touch prep_visit_date or direct shipment flags)
+        c17 = Client()
+        c17.force_login(self.user_17)
+        resp1 = c17.post(
+            reverse("dossier_save", kwargs={"pk": self.d3.archive_number}),
+            data=json.dumps({
+                "loan_visit_date": "1405/08/20",
+                "prep_visit_date": "1405/08/29",
+                "is_loan_sent_to_directorate": True,
+                "loan_directorate_sent_date": "1405/08/20",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp1.status_code, 200)
+        self.d3.refresh_from_db()
+        self.assertTrue(self.d3.is_loan_visited)
+        self.assertEqual(self.d3.loan_visit_date, "1405/08/20")
+        self.assertEqual(self.d3.loan_visited_by, "کارشناس تکمیل اسناد ۱۷")
+        self.assertEqual(self.d3.prep_visit_date, "")
+        self.assertTrue(self.d3.is_visited)
+        self.assertEqual(self.d3.visit_date, "1405/08/20")
+        self.assertFalse(self.d3.is_loan_sent_to_directorate)
+        self.assertEqual(self.d3.loan_directorate_sent_date, "")
+
+        # Stage 18 saves its own independent prep_visit_date
+        c18_v = Client()
+        c18_v.force_login(self.user_18)
+        resp1b = c18_v.post(
+            reverse("dossier_save", kwargs={"pk": self.d3.archive_number}),
+            data=json.dumps({"prep_visit_date": "1405/08/24"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp1b.status_code, 200)
+        self.d3.refresh_from_db()
+        self.assertTrue(self.d3.is_prep_visited)
+        self.assertEqual(self.d3.prep_visit_date, "1405/08/24")
+        self.assertEqual(self.d3.prep_visited_by, "کارشناس تطبیق چک ۱۸")
+        self.assertEqual(self.d3.loan_visit_date, "1405/08/20")
+
+        # Clearing loan_visit_date clears loan visit while preserving Stage 18 prep_visit_date
+        resp2 = c17.post(
+            reverse("dossier_save", kwargs={"pk": self.d3.archive_number}),
+            data=json.dumps({"loan_visit_date": ""}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp2.status_code, 200)
+        self.d3.refresh_from_db()
+        self.assertFalse(self.d3.is_loan_visited)
+        self.assertEqual(self.d3.loan_visit_date, "")
+        self.assertTrue(self.d3.is_prep_visited)
+        self.assertEqual(self.d3.prep_visit_date, "1405/08/24")
+        self.assertTrue(self.d3.is_visited)
+        self.assertEqual(self.d3.visit_date, "1405/08/24")
+
+        # Clearing prep_visit_date clears remaining is_visited & metadata
+        resp2b = c18_v.post(
+            reverse("dossier_save", kwargs={"pk": self.d3.archive_number}),
+            data=json.dumps({"prep_visit_date": ""}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp2b.status_code, 200)
+        self.d3.refresh_from_db()
+        self.assertFalse(self.d3.is_visited)
+        self.assertEqual(self.d3.visit_date, "")
+
+        # Direct prep toggle via dossier_save is also ignored ("only tick and send")
+        c18 = Client()
+        c18.force_login(self.user_18)
+        resp3 = c18.post(
+            reverse("dossier_save", kwargs={"pk": self.d18.archive_number}),
+            data=json.dumps({"is_prep_sent_to_directorate": True, "prep_directorate_sent_date": "1405/08/20"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp3.status_code, 200)
+        self.d18.refresh_from_db()
+        self.assertFalse(self.d18.is_prep_sent_to_directorate)
+        self.assertEqual(self.d18.prep_directorate_sent_date, "")
+
+        # Once batch-sent via directorate_shipment_create, dossier detail displays the sent date instead of "ارسال نشده"
+        r_batch_loan = c_ali.post(
+            reverse("directorate_shipment_create"),
+            data=json.dumps({
+                "shipment_type": "LOAN",
+                "archive_numbers": [self.d17.archive_number],
+                "sent_date": "1405/08/25",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(r_batch_loan.status_code, 200)
+        r_ali_sent_detail = c_ali.get(reverse("dossier_detail", kwargs={"pk": self.d17.archive_number}))
+        self.assertEqual(r_ali_sent_detail.status_code, 200)
+        sent_html = r_ali_sent_detail.content.decode("utf-8")
+        self.assertIn("1405/08/25", sent_html)
+
+    def test_no_stage_order_restriction_for_stages_17_and_18(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        # Dedicated Stage 17/18 check admin can open d3 (current_stage=3) directly with action enabled
+        c1718 = Client()
+        c1718.force_login(self.user_17_18)
+        r_det = c1718.get(reverse("dossier_detail", kwargs={"pk": self.d3.archive_number}))
+        self.assertEqual(r_det.status_code, 200)
+        self.assertTrue(r_det.context["user_can_action"])
+
+        # Can upload a LOAN_CHECK scan on d3 even though dossier is at Stage 3
+        up_file = SimpleUploadedFile("loan_chk.jpg", b"\xff\xd8\xff\xe0test", content_type="image/jpeg")
+        r_up = c1718.post(
+            reverse("dossier_upload_scan", kwargs={"pk": self.d3.archive_number}),
+            {"doc_type": "LOAN_CHECK", "file": up_file},
+        )
+        self.assertEqual(r_up.status_code, 200)
+
+        # Regular Stage 18 operator (is_check_admin=False) still cannot electronically sign Stage 18
+        c18 = Client()
+        c18.force_login(self.user_18)
+        r_op_sign = c18.post(
+            reverse("dossier_sign", kwargs={"pk": self.d3.archive_number}),
+            data=json.dumps({"target_stage": 18}),
+            content_type="application/json",
+        )
+        self.assertEqual(r_op_sign.status_code, 403)
+        self.assertIn("مدیر کارگزاری چک", r_op_sign.json()["message"])
+
+        # Check admin / alireza can sign Stage 18 FIRST out of order on d17 (current_stage=17) -> stays at 17
+        r_sign_18_on_17 = c1718.post(
+            reverse("dossier_sign", kwargs={"pk": self.d17.archive_number}),
+            data=json.dumps({"target_stage": 18}),
+            content_type="application/json",
+        )
+        self.assertEqual(r_sign_18_on_17.status_code, 200)
+        self.d17.refresh_from_db()
+        self.assertEqual(self.d17.current_stage, 17)
+        self.assertIn(18, self.d17.get_signed_stages_set())
+
+        # When d17 then signs Stage 17, workflow skips already-signed Stage 18 and jumps straight to Stage 19!
+        r_sign_17 = c1718.post(
+            reverse("dossier_sign", kwargs={"pk": self.d17.archive_number}),
+            data=json.dumps({"notes": "تایید مرحله ۱۷"}),
+            content_type="application/json",
+        )
+        self.assertEqual(r_sign_17.status_code, 200)
+        self.d17.refresh_from_db()
+        self.assertEqual(self.d17.current_stage, 19)
+
+        # Out-of-order Stage 18 sign on d3 (at Stage 3) keeps d3 at Stage 3 and logs Stage 18 signature
+        r_sign_18_on_3 = c1718.post(
+            reverse("dossier_sign", kwargs={"pk": self.d3.archive_number}),
+            data=json.dumps({"target_stage": 18}),
+            content_type="application/json",
+        )
+        self.assertEqual(r_sign_18_on_3.status_code, 200)
+        self.d3.refresh_from_db()
+        self.assertEqual(self.d3.current_stage, 3)
+        self.assertIn(18, self.d3.get_signed_stages_set())
+
+    def test_split_loan_and_prep_shipments_and_print(self):
+        # Other admins / 'all'-stage / stage-3 users remain 403 on shipment creation
+        for blocked_u in (self.user_3, self.other_admin, self.all_stages_user, self.mixed_stage_user):
+            c_blk = Client()
+            c_blk.force_login(blocked_u)
+            r_blk_post = c_blk.post(
+                reverse("directorate_shipment_create"),
+                data=json.dumps({"archive_numbers": [self.d17.archive_number], "shipment_type": "LOAN"}),
+                content_type="application/json",
+            )
+            self.assertEqual(r_blk_post.status_code, 403)
+
+        # Stage 17-only expert can send LOAN on d3 (even at stage 3!) but NOT PREP (403)
+        c17 = Client()
+        c17.force_login(self.user_17)
+        r_wrong_type = c17.post(
+            reverse("directorate_shipment_create"),
+            data=json.dumps({"archive_numbers": [self.d3.archive_number], "shipment_type": "PREP"}),
+            content_type="application/json",
+        )
+        self.assertEqual(r_wrong_type.status_code, 403)
+
+        r_loan_ship = c17.post(
+            reverse("directorate_shipment_create"),
+            data=json.dumps({
+                "archive_numbers": [self.d3.archive_number, self.d18.archive_number],
+                "shipment_type": "LOAN",
+                "sent_date": "1405/08/22",
+                "note": "بسته تسهیلات",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(r_loan_ship.status_code, 200)
+        loan_data = r_loan_ship.json()
+        self.assertEqual(loan_data["shipment"]["shipment_type"], "LOAN")
+        self.assertEqual(loan_data["shipment"]["record_count"], 2)
+        loan_code = loan_data["shipment"]["shipment_code"]
+
+        self.d3.refresh_from_db()
+        self.d18.refresh_from_db()
+        self.assertTrue(self.d3.is_loan_sent_to_directorate)
+        self.assertFalse(self.d3.is_prep_sent_to_directorate)
+        self.assertEqual(self.d3.loan_directorate_shipment.shipment_code, loan_code)
+
+        # Duplicate LOAN fails (400), whereas PREP for the SAME dossier d3 succeeds cleanly!
+        r_dup_loan = c17.post(
+            reverse("directorate_shipment_create"),
+            data=json.dumps({"archive_numbers": [self.d3.archive_number], "shipment_type": "LOAN"}),
+            content_type="application/json",
+        )
+        self.assertEqual(r_dup_loan.status_code, 400)
+
+        ca = Client()
+        ca.force_login(self.alireza_user)
+        r_prep_ship = ca.post(
+            reverse("directorate_shipment_create"),
+            data=json.dumps({
+                "archive_numbers": [self.d3.archive_number],
+                "shipment_type": "PREP",
+                "sent_date": "1405/08/23",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(r_prep_ship.status_code, 200)
+        prep_data = r_prep_ship.json()
+        self.assertEqual(prep_data["shipment"]["shipment_type"], "PREP")
+        prep_code = prep_data["shipment"]["shipment_code"]
+
+        self.d3.refresh_from_db()
+        self.assertTrue(self.d3.is_loan_sent_to_directorate)
+        self.assertTrue(self.d3.is_prep_sent_to_directorate)
+        self.assertEqual(self.d3.prep_directorate_shipment.shipment_code, prep_code)
+        self.assertNotEqual(loan_code, prep_code)
+
+        # Print view renders type-specific title & manifest; blocked for other_admin
+        c_other = Client()
+        c_other.force_login(self.other_admin)
+        self.assertEqual(c_other.get(prep_data["print_url"]).status_code, 302)
+
+        r_print_prep = ca.get(prep_data["print_url"])
+        self.assertEqual(r_print_prep.status_code, 200)
+        print_html = r_print_prep.content.decode("utf-8")
+        self.assertIn("آماده‌سازی", print_html)
+        self.assertIn(prep_code, print_html)
+        self.assertIn(self.d3.full_name, print_html)
+        self.assertIn("امضا تحویل‌دهنده", print_html)
+        self.assertIn("امضا تحویل‌گیرنده", print_html)
+        self.assertIn("پیمانکار", print_html)
+        self.assertIn("تعداد چک", print_html)
+
+    def test_comma_search_and_dossier_list_split_filters(self):
+        loan_sh = self.DirectorateShipment.objects.create(
+            shipment_type="LOAN",
+            sent_date="1405/08/22",
+            created_by_user=self.alireza_user,
+            created_by="علیرضا نظری",
+        )
+        prep_sh = self.DirectorateShipment.objects.create(
+            shipment_type="PREP",
+            sent_date="1405/08/23",
+            created_by_user=self.alireza_user,
+            created_by="علیرضا نظری",
+        )
+        self.d17.visit_date = "1405/08/19"
+        self.d17.is_visited = True
+        self.d17.is_loan_sent_to_directorate = True
+        self.d17.loan_directorate_sent_date = "1405/08/22"
+        self.d17.loan_directorate_shipment = loan_sh
+        self.d17.save()
+
+        self.d3.is_prep_sent_to_directorate = True
+        self.d3.prep_directorate_sent_date = "1405/08/23"
+        self.d3.prep_directorate_shipment = prep_sh
+        self.d3.save()
+
+        list_url = reverse("dossier_list")
+
+        # Other superadmin does NOT see visit/loan/prep filter pills, batch buttons, or chips
+        c_other = Client()
+        c_other.force_login(self.other_admin)
+        r_other_list = c_other.get(list_url, {"status": "loan_shipped"})
+        self.assertEqual(r_other_list.status_code, 200)
+        self.assertFalse(r_other_list.context["can_manage_directorate_shipments"])
+        self.assertEqual(r_other_list.context["status_filter"], "")
+        other_html = r_other_list.content.decode("utf-8")
+        self.assertNotIn("batch-ship-loan-btn", other_html)
+        self.assertNotIn("batch-ship-prep-btn", other_html)
+        self.assertNotIn("batch-visit-btn", other_html)
+        self.assertNotIn("loan_shipped", other_html)
+        self.assertNotIn("prep_shipped", other_html)
+        self.assertNotIn('<div class="dl-track-box">', other_html)
+        self.assertNotIn(loan_sh.shipment_code, other_html)
+
+        # Stage 17/18 expert searches multiple national IDs separated by Arabic/Persian ویرگول and English comma
+        c1718 = Client()
+        c1718.force_login(self.user_17_18)
+        r_comma_nids = c1718.get(list_url, {"q": f"{self.d3.national_id}, {self.d18.national_id}"})
+        self.assertEqual(r_comma_nids.status_code, 200)
+        found_archives = {d.archive_number for d in r_comma_nids.context["dossiers"]}
+        self.assertEqual(found_archives, {self.d3.archive_number, self.d18.archive_number})
+
+        # Search by Persian names separated by ویرگول (،)
+        r_virgool_names = c1718.get(list_url, {"q": "متقاضی مرحله هفده، متقاضی مرحله سه زودرس"})
+        found_by_names = {d.archive_number for d in r_virgool_names.context["dossiers"]}
+        self.assertEqual(found_by_names, {self.d17.archive_number, self.d3.archive_number})
+
+        # Dedicated Stage 17/18 user sees split Loan/Prep buttons + 2x2 applicant tracking grid (NO bulk-visit button)
+        html_1718 = r_comma_nids.content.decode("utf-8")
+        self.assertIn("batch-ship-loan-btn", html_1718)
+        self.assertIn("batch-ship-prep-btn", html_1718)
+        self.assertIn('<div class="dl-track-box">', html_1718)
+        self.assertIn("ارسال آماده‌سازی", html_1718)
+        self.assertNotIn("batch-visit-btn", html_1718)
+
+        # Filter pills work cleanly across all stages for alireza_nazari
+        ca = Client()
+        ca.force_login(self.alireza_user)
+
+        r_vis = ca.get(list_url, {"status": "has_visit_date"})
+        self.assertEqual([d.archive_number for d in r_vis.context["dossiers"]], [self.d17.archive_number])
+        vis_html = r_vis.content.decode("utf-8")
+        self.assertIn("فیلتر: دارای تاریخ مراجعه", vis_html)
+        self.assertNotIn("فیلتر: has_visit_date", vis_html)
+
+        r_loan_yes = ca.get(list_url, {"status": "loan_shipped"})
+        self.assertEqual([d.archive_number for d in r_loan_yes.context["dossiers"]], [self.d17.archive_number])
+        self.assertIn("فیلتر: تسهیلات چک ارسال‌شده", r_loan_yes.content.decode("utf-8"))
+
+        r_prep_yes = ca.get(list_url, {"status": "prep_shipped"})
+        self.assertEqual([d.archive_number for d in r_prep_yes.context["dossiers"]], [self.d3.archive_number])
+        self.assertIn("فیلتر: آماده‌سازی ارسال‌شده", r_prep_yes.content.decode("utf-8"))
+
+        # ارسال‌نشده counts and filters must only include current_stage >= 17 (17, 18, 19, ...), NOT stage < 17
+        d19 = HousingDossier.objects.create(
+            national_id="0388811009",
+            full_name="متقاضی مرحله نوزده",
+            current_stage=19,
+            archive_number=7009,
+        )
+        r_loan_no = ca.get(list_url, {"status": "loan_not_shipped"})
+        self.assertEqual(r_loan_no.context["loan_not_shipped_cnt"], 2)  # d18 (stage 18) + d19 (stage 19); excludes d3 (stage 3) & d17 (shipped)
+        self.assertEqual({d.archive_number for d in r_loan_no.context["dossiers"]}, {self.d18.archive_number, d19.archive_number})
+
+        r_prep_no = ca.get(list_url, {"status": "prep_not_shipped"})
+        self.assertEqual(r_prep_no.context["prep_not_shipped_cnt"], 3)  # d17 (stage 17) + d18 (stage 18) + d19 (stage 19); excludes d3 (stage 3)
+        self.assertEqual({d.archive_number for d in r_prep_no.context["dossiers"]}, {self.d17.archive_number, self.d18.archive_number, d19.archive_number})
+
+        r_search_code = ca.get(list_url, {"q": prep_sh.shipment_code, "status": ""})
+        self.assertEqual([d.archive_number for d in r_search_code.context["dossiers"]], [self.d3.archive_number])

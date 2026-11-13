@@ -69,6 +69,11 @@ class ProjectCatalogStrictDropdownTests(TestCase):
         self.assertIn("selectCatalogItem(", html)
         self.assertIn("projects_catalog", html)
         self.assertIn("اعتمادگستر خاورمیانه جعفریه", html)
+        self.assertIn("isApartmentSite", html)
+        self.assertIn("isVillaConstruction", html)
+        self.assertIn("مساحت اعیانی (m²)", html)
+        self.assertIn("مساحت عرصه (m²)", html)
+        self.assertIn("ویلایی (نیمه کاره)", html)
 
     def test_save_rejects_outside_values_for_all_5_catalog_fields(self):
         self.client.force_login(self.expert)
@@ -138,3 +143,45 @@ class ProjectCatalogStrictDropdownTests(TestCase):
         legacy.refresh_from_db()
         self.assertEqual(legacy.father_name, "حسین")
         self.assertEqual(legacy.project, "عامر مستقل 1")
+
+    def test_villa_always_defaults_and_enforces_north_direction(self):
+        villa = HousingDossier.objects.create(
+            archive_number=100992,
+            national_id="0399990003",
+            full_name="متقاضی ویلایی",
+            current_stage=1,
+            site="قنوات",
+            project="اعتمادگستر خاورمیانه قنوات",
+            construction_type="ویلایی (نیمه کاره)",
+            unit_direction="جنوبی",
+        )
+        self.assertEqual(villa.unit_direction, "شمالی")
+
+        apt = HousingDossier.objects.create(
+            archive_number=100993,
+            national_id="0399990004",
+            full_name="متقاضی آپارتمانی",
+            current_stage=1,
+            site="رئیسی 560 هکتار",
+            project="داناک پژوه",
+            construction_type="آپارتمانی",
+            unit_direction="جنوب شرقی",
+        )
+        self.assertEqual(apt.unit_direction, "جنوب شرقی")
+
+        self.client.force_login(self.expert)
+        resp = self.client.get(reverse("dossier_detail", kwargs={"pk": villa.archive_number}))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+        self.assertIn("|| isVillaConstruction()", html)
+        self.assertIn('id="f_unit_direction"', html)
+        self.assertNotIn("form.construction_type !== 'آپارتمانی'", html)
+        self.assertIn('<option value="5">طبقه ۵</option>', html)
+        server_start = html.index('<script id="dossier-server-json" type="application/json">')
+        server_end = html.index("</script>", server_start)
+        payload_json = json.loads(
+            html[server_start + len('<script id="dossier-server-json" type="application/json">'):server_end].strip()
+        )
+        self.assertEqual(payload_json["form"]["unit_direction"], "شمالی")
+        js_src = open("static/js/sanadban.js", encoding="utf-8").read()
+        self.assertIn("syncUnitDirectionByConstruction", js_src)

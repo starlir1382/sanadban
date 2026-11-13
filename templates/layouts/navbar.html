@@ -1,6 +1,6 @@
     {% load static %}
     {% with profile=request.user.profile %}
-    {% if request.user.is_staff or request.user.is_superuser or profile.is_housing_chief %}{% firstof "1" as is_manager %}{% endif %}
+    {% if request.user.is_staff or request.user.is_superuser or profile.is_housing_chief %}{% if not profile.is_readonly %}{% firstof "1" as is_manager %}{% endif %}{% endif %}
 
     {% if request.user.is_authenticated %}
     <script>
@@ -322,6 +322,7 @@
                     <span id="sb-live-clock">{{ today_time_jalali }}</span>
                     <span style="opacity: 0.6; font-size: 0.74rem; border-right: 1px solid rgba(255,255,255,0.2); padding-right: 6px;">{{ today_jalali_short }}</span>
                 </div>
+
                 {% if is_manager %}
                 <!-- Management Hamburger Button -->
                 <div style="position: relative;" @click.away="mgmt = false">
@@ -351,6 +352,7 @@
                             <span class="sb-chip sb-chip--sky"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
                             <span style="font-size: 0.86rem;">ارسال دسته‌جمعی به بانک</span>
                         </a>
+
                         <a href="{% url 'excel_hub' %}" class="sb-menu-item">
                             <span class="sb-chip sb-chip--amber" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>
                             <span style="font-size: 0.86rem;">مرکز اکسل و عملیات گروهی</span>
@@ -378,7 +380,7 @@
                         {% endif %}
                         <span class="sb-user-text">
                             <div class="sb-user-name" title="{{ profile.full_name|default:request.user.username }}">{{ profile.full_name|default:request.user.username }}</div>
-                            <div class="sb-user-role">{{ profile.role_title|default:'کارشناس سامانه' }}</div>
+                            <div class="sb-user-role">{% if profile.is_readonly %}حساب فقط خواندنی (رویت){% else %}{{ profile.role_title|default:'کارشناس سامانه' }}{% endif %}</div>
                         </span>
                         <svg class="sb-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2.2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
@@ -403,6 +405,18 @@
                             <span class="sb-chip sb-chip--blue"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg></span>
                             <span>سوابق پرونده‌های امضا شده</span>
                         </a>
+                        {% if can_manage_directorate_shipments %}
+                        <a href="{% url 'directorate_shipments_list' %}" class="sb-menu-item">
+                            <span class="sb-chip sb-chip--green"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>
+                            <span>تاریخچه ارسالی‌های راه و شهرسازی</span>
+                        </a>
+                        {% endif %}
+                        {% if is_alireza_nazari %}
+                        <a href="{% url 'stage17_18_excel_hub' %}" class="sb-menu-item">
+                            <span class="sb-chip sb-chip--emerald" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>
+                            <span>ورود و خروج اکسل (۱۷ و ۱۸)</span>
+                        </a>
+                        {% endif %}
 
                         <div class="sb-sep" style="padding-top: 4px; padding-bottom: 4px;">
                             <button type="button" class="sb-menu-theme-toggle" onclick="window.SanadbanTheme.toggle()">

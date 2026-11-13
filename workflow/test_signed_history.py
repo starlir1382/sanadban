@@ -356,5 +356,60 @@ class SignedHistoryTests(TestCase):
         self.assertNotIn("مشاهده سوابق", ajax_html)
         self.assertNotIn("چاپ فرم مراحل و امضاها", ajax_html)
 
+    def test_regular_users_cannot_see_archived_locked_dossiers(self):
+        """Non-admin experts and check admins must not see archived/locked (بایگانی) dossiers."""
+        archived_22 = HousingDossier.objects.create(
+            archive_number=2001,
+            national_id="0055667788",
+            full_name="متقاضی بایگانی شده",
+            current_stage=22,
+            is_locked=True,
+            status="COMPLETED",
+        )
+        locked_stage8 = HousingDossier.objects.create(
+            archive_number=2002,
+            national_id="0055667799",
+            full_name="متقاضی قفل شده",
+            current_stage=8,
+            is_locked=True,
+            status="REJECTED_RED",
+        )
+
+        # Normal expert (allowed_stages="8"): must NOT see archived/locked dossiers in list or AJAX
+        self.client.force_login(self.expert_user)
+        resp_list = self.client.get(reverse("dossier_list"))
+        self.assertEqual(resp_list.status_code, 200)
+        list_ids = [d.archive_number for d in resp_list.context["dossiers"]]
+        self.assertNotIn(archived_22.archive_number, list_ids)
+        self.assertNotIn(locked_stage8.archive_number, list_ids)
+
+        resp_ajax = self.client.get(reverse("dossier_list") + "?q=2001&ajax=1")
+        self.assertEqual(resp_ajax.status_code, 200)
+        self.assertEqual(resp_ajax.json()["count"], 0)
+
+        # Unsigned locked dossier must also be blocked on direct detail URL (even with ?view_only=1)
+        resp_detail = self.client.get(reverse("dossier_detail", kwargs={"pk": archived_22.archive_number}) + "?view_only=1")
+        self.assertEqual(resp_detail.status_code, 302)
+        self.assertEqual(resp_detail.url, reverse("dossier_list"))
+
+        # Check-admin (non-full-admin): must NOT see archived/locked dossiers either
+        check_user = User.objects.create_user(username="check_admin_user", password="password123")
+        UserProfile.objects.update_or_create(
+            user=check_user,
+            defaults={"full_name": "مدیر چک", "allowed_stages": "17", "is_check_admin": True},
+        )
+        self.client.force_login(check_user)
+        resp_check = self.client.get(reverse("dossier_list"))
+        self.assertEqual(resp_check.status_code, 200)
+        check_ids = [d.archive_number for d in resp_check.context["dossiers"]]
+        self.assertNotIn(archived_22.archive_number, check_ids)
+
+        # Full admin CAN still see archived/locked dossiers
+        self.client.force_login(self.admin_user)
+        resp_admin = self.client.get(reverse("dossier_list"))
+        self.assertEqual(resp_admin.status_code, 200)
+        admin_ids = [d.archive_number for d in resp_admin.context["dossiers"]]
+        self.assertIn(archived_22.archive_number, admin_ids)
+
 
 

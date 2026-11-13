@@ -77,6 +77,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'workflow.middleware.FirstLoginSecurityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'workflow.middleware.ReadOnlyAccountMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 

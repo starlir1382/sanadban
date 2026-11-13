@@ -1,10 +1,10 @@
 // Which form section belongs to which workflow stage(s)
 const SECTION_STAGE_MAP = {
-  "section-applicant": [1, 8, 9],
+  "section-applicant": [1, 2, 8, 9],
   "section-form-j": [3, 11],
-  "section-spouse": [1, 8, 9],
-  "section-plot": [2, 8, 9, 12, 13, 14, 15],
-  "section-cost": [2, 8, 9, 19],
+  "section-spouse": [1, 2, 8, 9],
+  "section-plot": [8, 9, 12],
+  "section-cost": [8, 9, 19],
   "section-loans": [4, 19],
   "section-equity": [5],
   "section-applicant-equity": [5],
@@ -12,6 +12,7 @@ const SECTION_STAGE_MAP = {
   "section-bank-letter": [6, 10],
   "section-docs-installment": [7, 8, 9, 21, 22],
   "section-notary": [20, 21, 22],
+  "section-lease-contract": [21, 22],
   "section-valuation": [16, 19],
   "section-valuation-rent": [16, 19],
   "section-checks": [17, 18],
@@ -19,60 +20,60 @@ const SECTION_STAGE_MAP = {
 };
 
 const FIELD_STAGE_MAP = {
-  national_id: [1, 8, 9],
-  first_name: [1, 8, 9],
-  last_name: [1, 8, 9],
-  full_name: [1, 8, 9],
-  father_name: [1, 8, 9],
-  birth_date: [1, 8, 9],
-  applicant_id_number: [1, 8, 9],
-  applicant_id_serial: [1, 8, 9],
-  applicant_birth_place: [1, 8, 9],
-  applicant_phone: [1, 8, 9],
-  applicant_address: [1, 8, 9],
-  applicant_postal_code: [1, 8, 9],
-  applicant_landline_phone: [1, 8, 9],
-  selection_rank: [1, 8, 9],
-  decile: [1, 4, 8, 9],
-  marital_status: [1, 8, 9],
-  is_married_confirmed: [1, 8, 9],
-  spouse_first_name: [1, 8, 9],
-  spouse_last_name: [1, 8, 9],
-  spouse_full_name: [1, 8, 9],
-  spouse_father_name: [1, 8, 9],
-  spouse_national_id: [1, 8, 9],
-  spouse_birth_date: [1, 8, 9],
-  spouse_id_number: [1, 8, 9],
-  spouse_id_serial: [1, 8, 9],
-  spouse_birth_place: [1, 8, 9],
-  site: [1, 8, 9],
-  project: [1, 8, 9],
-  project_code: [1, 2, 3, 8, 9, 10, 11],
-  bank_name: [1, 6, 8, 9],
-  bank_branch: [1, 6, 8, 9],
-  construction_type: [1, 8, 9],
-  block_name: [1, 8, 9],
-  block_code: [1, 8, 9],
-  floor_number: [1, 8, 9],
-  unit_number: [1, 8, 9],
-  unit_code: [1, 8, 9],
-  bedroom_count: [1, 8, 9],
-  unit_direction: [1, 8, 9],
-  net_unit_area: [1, 8, 9],
-  common_area: [1, 8, 9],
-  total_area: [1, 8, 9],
-  unit_area: [1, 8, 9],
-  storage_number: [1, 8, 9],
-  storage_area: [1, 8, 9],
-  parking_number: [1, 8, 9],
-  parking_area: [1, 8, 9],
-  registration_section: [2, 8, 9, 12, 13, 14],
-  main_plaque: [2, 8, 9, 12, 13, 14],
-  separated_plaque: [2, 8, 9, 12, 13, 14],
-  sub_plaque: [2, 8, 9, 12, 13, 14],
-  plot_number: [2, 8, 9, 12, 13, 14],
-  renovation_code: [2, 8, 9, 12, 13, 14],
-  base_cost_without_loan: [2, 8, 9, 19],
+  national_id: [1, 2, 8, 9],
+  first_name: [1, 2, 8, 9],
+  last_name: [1, 2, 8, 9],
+  full_name: [1, 2, 8, 9],
+  father_name: [1, 2, 8, 9],
+  birth_date: [1, 2, 8, 9],
+  applicant_id_number: [1, 2, 8, 9],
+  applicant_id_serial: [1, 2, 8, 9],
+  applicant_birth_place: [1, 2, 8, 9],
+  applicant_phone: [1, 2, 8, 9],
+  applicant_address: [1, 2, 8, 9],
+  applicant_postal_code: [1, 2, 8, 9],
+  applicant_landline_phone: [1, 2, 8, 9],
+  selection_rank: [1, 2, 8, 9],
+  decile: [1, 2, 4, 8, 9],
+  marital_status: [1, 2, 8, 9],
+  is_married_confirmed: [1, 2, 8, 9, 10],
+  spouse_first_name: [1, 2, 8, 9],
+  spouse_last_name: [1, 2, 8, 9],
+  spouse_full_name: [1, 2, 8, 9],
+  spouse_father_name: [1, 2, 8, 9],
+  spouse_national_id: [1, 2, 8, 9],
+  spouse_birth_date: [1, 2, 8, 9],
+  spouse_id_number: [1, 2, 8, 9],
+  spouse_id_serial: [1, 2, 8, 9],
+  spouse_birth_place: [1, 2, 8, 9],
+  site: [1, 2, 8, 9],
+  project: [1, 2, 8, 9],
+  project_code: [1, 2, 8, 9, 10],
+  bank_name: [1, 2, 6, 8, 9],
+  bank_branch: [1, 2, 6, 8, 9],
+  construction_type: [1, 2, 8, 9],
+  block_name: [1, 2, 8, 9],
+  block_code: [1, 2, 8, 9],
+  floor_number: [1, 2, 8, 9],
+  unit_number: [1, 2, 8, 9],
+  unit_code: [1, 2, 8, 9],
+  bedroom_count: [1, 2, 8, 9],
+  unit_direction: [1, 2, 8, 9],
+  net_unit_area: [1, 2, 8, 9],
+  common_area: [1, 2, 8, 9],
+  total_area: [1, 2, 8, 9],
+  unit_area: [1, 2, 8, 9],
+  storage_number: [1, 2, 8, 9],
+  storage_area: [1, 2, 8, 9],
+  parking_number: [1, 2, 8, 9],
+  parking_area: [1, 2, 8, 9],
+  registration_section: [8, 9, 12],
+  main_plaque: [8, 9, 12],
+  separated_plaque: [8, 9, 12],
+  sub_plaque: [8, 9, 12],
+  plot_number: [8, 9, 12],
+  renovation_code: [8, 9, 12],
+  base_cost_without_loan: [8, 9, 19],
   form_j_registration_type: [3, 10, 11],
   form_j_questionnaire_number: [1, 3, 7, 8, 11],
   computer_code: [11],
@@ -116,7 +117,6 @@ const FIELD_STAGE_MAP = {
   check_amount: [17],
   last_check_amount: [17],
   total_check_amount: [17],
-  check_service_fee: [17, 18],
   commitment_number: [17, 18],
   commitment_date: [17, 18],
   check_entries_json: [17, 18],
@@ -132,14 +132,19 @@ const FIELD_STAGE_MAP = {
   total_preparation_check_amount: [17, 18],
   preparation_check_entries_json: [17, 18],
   is_preparation_checks_confirmed: [17, 18],
-  rah_letter: [2, 8, 9, 12, 13, 14, 20],
-  rah_letter_date: [2, 8, 9, 12, 13, 14, 20],
-  deed_number: [13],
-  deed_date: [13],
-  is_land_deed_confirmed: [13],
+  visit_date: [17, 18],
+  loan_visit_date: [17],
+  prep_visit_date: [18],
+  rah_letter: [8, 9, 12, 20],
+  rah_letter_date: [8, 9, 12, 20],
+  deed_number: [8, 9, 12],
+  deed_date: [8, 9, 12],
+  is_land_deed_confirmed: [8, 9, 12],
   notary_office_number: [20],
   notary_letter_number: [20],
   notary_letter_date: [20],
+  lease_contract_number: [21],
+  lease_contract_date: [21],
 };
 
 /**
@@ -302,7 +307,7 @@ const STAGES_22 = [
   {
     id: 9,
     unit: "brokerage",
-    role: "مدیرعامل کارگزاری (رئیس کارگزاری ره آزرم)",
+    role: "مدیرعامل کارگزاری ",
     title: "تأیید و امضای مدیرعامل کارگزاری ره آزرم",
     category: "کارگزاری مسکن",
   },
@@ -625,13 +630,13 @@ const STAGE_GUIDANCE = {
   21: {
     actionTitle: "اسکن قرارداد اجاره عرصه و چاپ فرم‌های رسمی",
     actionSummary:
-      "بارگذاری اسکن قرارداد اجاره عرصه امضاشده و چاپ فرم رسمی مراحل و فرم ارزیابی.",
+      "ثبت شماره و تاریخ سند قرارداد اجاره، بارگذاری اسکن آن و چاپ فرم رسمی مراحل و فرم ارزیابی.",
     items: [
-      "بارگذاری اسکن قرارداد اجاره عرصه منعقدشده",
-      "چاپ فرم رسمی مراحل و امضاها",
-      "چاپ فرم ارزیابی تکمیل‌شده",
+      "ثبت شماره سند قرارداد اجاره و تاریخ قرارداد",
+      "اسکن و بارگذاری اجباری صفحه قرارداد اجاره عرصه",
+      "چاپ فرم رسمی مراحل و فرم ارزیابی تکمیل‌شده",
     ],
-    targetSection: "#audit-timeline-section",
+    targetSection: "#section-lease-contract",
   },
   22: {
     actionTitle: "مشاهده فرم نهایی و بایگانی قطعی پرونده",
@@ -743,11 +748,35 @@ document.addEventListener("alpine:init", () => {
       if (location.hash !== "#" + t) {
         history.replaceState(null, "", "#" + t);
       }
-      const tabsEl = document.querySelector(".dt-tabs");
-      if (tabsEl) {
-        const top =
-          tabsEl.getBoundingClientRect().top + window.pageYOffset - 80;
-        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      const syncTabScroll = () => {
+        if (document.body && document.body.scrollTop) {
+          document.body.scrollTop = 0;
+        }
+        const anchor =
+          document.getElementById("dt-tabs-anchor") ||
+          document.querySelector(".dt-tabs");
+        if (!anchor) return;
+        const anchorTop = Math.max(
+          0,
+          anchor.getBoundingClientRect().top + window.pageYOffset - 80,
+        );
+        const maxScroll = Math.max(
+          0,
+          document.documentElement.scrollHeight - window.innerHeight,
+        );
+        if (window.pageYOffset > anchorTop + 12) {
+          window.scrollTo({
+            top: Math.max(0, Math.min(anchorTop, maxScroll)),
+            behavior: "auto",
+          });
+        } else if (window.pageYOffset > maxScroll) {
+          window.scrollTo({ top: maxScroll, behavior: "auto" });
+        }
+      };
+      if (typeof this.$nextTick === "function") {
+        this.$nextTick(() => requestAnimationFrame(syncTabScroll));
+      } else {
+        requestAnimationFrame(syncTabScroll);
       }
     },
 
@@ -939,7 +968,7 @@ document.addEventListener("alpine:init", () => {
       preparation_cost: 0,
 
       // Stage 18: BankCheckTracker & TashilatCheck Fields (وام دهک، چک‌ها، آماده‌سازی و اجاره)
-      decile_loan_bank: "بانک مسکن",
+      decile_loan_bank: "",
       decile_bank_letter_number: "",
       decile_bank_letter_date: "",
       supported_institution: "هیچکدام",
@@ -947,7 +976,6 @@ document.addEventListener("alpine:init", () => {
       check_amount: 0,
       last_check_amount: 0,
       total_check_amount: 0,
-      check_service_fee: 0,
       commitment_number: "",
       commitment_date: "",
       check_entries: [],
@@ -970,6 +998,8 @@ document.addEventListener("alpine:init", () => {
       notary_office_number: "",
       notary_letter_number: "",
       notary_letter_date: "",
+      lease_contract_number: "",
+      lease_contract_date: "",
       is_cash_rent_confirmed: false,
       cash_rent_confirmed_by: "",
       cash_rent_confirmed_at: "",
@@ -979,6 +1009,27 @@ document.addEventListener("alpine:init", () => {
       is_preparation_checks_confirmed: false,
       prep_checks_confirmed_by: "",
       prep_checks_confirmed_at: "",
+      visit_date: "",
+      visited_by: "",
+      visited_at: "",
+      is_loan_visited: false,
+      loan_visit_date: "",
+      loan_visited_by: "",
+      loan_visited_at: "",
+      is_prep_visited: false,
+      prep_visit_date: "",
+      prep_visited_by: "",
+      prep_visited_at: "",
+      is_loan_sent_to_directorate: false,
+      loan_directorate_sent_date: "",
+      loan_directorate_sent_by: "",
+      loan_directorate_sent_at: "",
+      loan_directorate_shipment_code: "",
+      is_prep_sent_to_directorate: false,
+      prep_directorate_sent_date: "",
+      prep_directorate_sent_by: "",
+      prep_directorate_sent_at: "",
+      prep_directorate_shipment_code: "",
     },
 
     // Scanned Documents (populated dynamically from database without ghost record flicker)
@@ -1022,6 +1073,7 @@ document.addEventListener("alpine:init", () => {
 
     // Check Admin Authorization (Superuser, Chief, or Kargozari Check Admin)
     isCheckAdmin: false,
+    canManageDirectorateShipments: false,
     userAllowedStages: "all",
     isSuperuser: false,
     signaturesList: [],
@@ -1070,7 +1122,7 @@ document.addEventListener("alpine:init", () => {
 
     init() {
       // 1. Sync active tab from URL hash (#form)
-      const validTabs = ["form"];
+      const validTabs = ["form", "map", "history"];
       const currentHash = location.hash.slice(1);
       if (validTabs.includes(currentHash)) {
         this.tab = currentHash;
@@ -1131,6 +1183,8 @@ document.addEventListener("alpine:init", () => {
             this.isSuperuser = Boolean(serverData.is_superuser);
           if (typeof serverData.is_check_admin !== "undefined")
             this.isCheckAdmin = Boolean(serverData.is_check_admin);
+          if (typeof serverData.can_manage_directorate_shipments !== "undefined")
+            this.canManageDirectorateShipments = Boolean(serverData.can_manage_directorate_shipments);
           if (typeof serverData.user_allowed_stages !== "undefined")
             this.userAllowedStages = serverData.user_allowed_stages;
           if (typeof serverData.is_superuser !== "undefined")
@@ -1193,7 +1247,18 @@ document.addEventListener("alpine:init", () => {
           console.error("Failed to parse server dossier data:", e);
         }
       }
+      this.syncConstructionTypeBySite();
+      this.syncUnitDirectionByConstruction();
       this.recalculateEquity();
+
+      this.$watch("form.site", (val) => {
+        this.syncConstructionTypeBySite(val);
+        this.syncUnitDirectionByConstruction();
+      });
+
+      this.$watch("form.construction_type", () => {
+        this.syncUnitDirectionByConstruction();
+      });
 
       // Two-way sync between "شماره رسمی فرم «ج»" (form_j_number) and "شماره پرسش‌نامه فرم ج" (form_j_questionnaire_number)
       this.$watch("form.form_j_number", (val) => {
@@ -1220,7 +1285,7 @@ document.addEventListener("alpine:init", () => {
             cash_date: "",
             check_amount: 0,
             check_sayadi_code: "",
-            bank_name: this.form.decile_loan_bank || "بانک مسکن",
+            bank_name: "",
           },
         ];
       }
@@ -1251,7 +1316,7 @@ document.addEventListener("alpine:init", () => {
             cash_date: "",
             check_amount: 0,
             check_sayadi_code: "",
-            bank_name: "بانک مسکن",
+            bank_name: "",
           },
         ];
       }
@@ -1657,6 +1722,8 @@ document.addEventListener("alpine:init", () => {
       return 0;
     },
 
+
+
     // Stage 9: Send SMS simulation
     sendEquitySMS() {
       this.form.is_sms_sent = true;
@@ -1860,9 +1927,19 @@ document.addEventListener("alpine:init", () => {
       }
     },
 
+    canDeleteAttachment(item) {
+      if (!item || this.isLocked || this.isViewOnly) return false;
+      return item.can_delete === true;
+    },
+
     async deleteAttachment(attId) {
       if (this.isLocked || this.isViewOnly) {
         this.triggerToast("امکان حذف اسناد در حالت فقط خواندنی وجود ندارد.", "error");
+        return;
+      }
+      const targetItem = this.attachments.find((a) => a.id === attId);
+      if (targetItem && !this.canDeleteAttachment(targetItem)) {
+        this.triggerToast("فقط کاربری که این تصویر را بارگذاری کرده است مجاز به حذف آن می‌باشد.", "error");
         return;
       }
       if (!confirm("آیا از حذف این مدرک از پرونده اطمینان دارید؟")) return;
@@ -2326,6 +2403,11 @@ document.addEventListener("alpine:init", () => {
     },
 
     async deleteCheckScan(attachmentId, type = "prep") {
+      const targetItem = this.attachments.find((a) => a.id === attachmentId);
+      if (targetItem && !this.canDeleteAttachment(targetItem)) {
+        this.triggerToast("فقط کاربری که این تصویر را بارگذاری کرده است مجاز به حذف آن می‌باشد.", "error");
+        return;
+      }
       if (!confirm("آیا از حذف این برگ اسکن اطمینان دارید؟")) return;
       await this.deleteAttachment(attachmentId);
     },
@@ -2439,8 +2521,8 @@ document.addEventListener("alpine:init", () => {
           computedTitle = "اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)";
           computedType = "NOTARY_LETTER";
         } else if (this.currentStage === 21) {
-          computedTitle = "اسکن قرارداد اجاره عرصه";
-          computedType = "OTHER";
+          computedTitle = "اسکن سند قرارداد اجاره عرصه";
+          computedType = "LEASE_CONTRACT";
         }
 
         finalTitle = finalTitle || computedTitle;
@@ -2826,6 +2908,49 @@ document.addEventListener("alpine:init", () => {
         .toLowerCase();
     },
 
+    isApartmentSite(siteName) {
+      const s = this.normalizeCatalogText(siteName);
+      if (!s) return null;
+      return s.includes("560") || s.includes("27");
+    },
+
+    isVillaConstruction() {
+      const bySite = this.isApartmentSite(this.form && this.form.site);
+      if (bySite === true) return false;
+      if (bySite === false) return true;
+      const ct = String((this.form && this.form.construction_type) || "").trim();
+      return ct.includes("ویلایی");
+    },
+
+    syncConstructionTypeBySite(siteName = null) {
+      if (!this.form || !this.isFieldEditable("construction_type")) return;
+      const targetSite = siteName !== null ? siteName : this.form.site;
+      const isApt = this.isApartmentSite(targetSite);
+      if (isApt === true) {
+        if (this.form.construction_type !== "آپارتمانی") {
+          this.form.construction_type = "آپارتمانی";
+        }
+      } else if (isApt === false) {
+        const cur = String(this.form.construction_type || "").trim();
+        if (!cur.includes("ویلایی")) {
+          this.form.construction_type = "ویلایی";
+        }
+      }
+      this.syncUnitDirectionByConstruction();
+    },
+
+    syncUnitDirectionByConstruction() {
+      if (!this.form) return;
+      if (this.isVillaConstruction()) {
+        if (
+          this.isFieldEditable("unit_direction") &&
+          this.form.unit_direction !== "شمالی"
+        ) {
+          this.form.unit_direction = "شمالی";
+        }
+      }
+    },
+
     _catalogProjects() {
       const cat = this.projectsCatalog || {};
       if (Array.isArray(cat.projects) && cat.projects.length) return cat.projects;
@@ -3070,6 +3195,22 @@ document.addEventListener("alpine:init", () => {
     isFieldEditable(fieldName) {
       if (this.isLocked || this.isViewOnly) return false;
       if (
+        [
+          "is_loan_sent_to_directorate",
+          "loan_directorate_sent_date",
+          "is_prep_sent_to_directorate",
+          "prep_directorate_sent_date",
+        ].includes(fieldName)
+      ) {
+        return false;
+      }
+      if (
+        ["visit_date", "loan_visit_date", "prep_visit_date"].includes(fieldName) &&
+        !this.canManageDirectorateShipments
+      ) {
+        return false;
+      }
+      if (
         this.isSuperuser ||
         this.isChief ||
         this.userAllowedStages === "all"
@@ -3132,21 +3273,59 @@ document.addEventListener("alpine:init", () => {
       return missing;
     },
 
+    getStage21MissingFields() {
+      if (Number(this.currentStage) !== 21 || !this.form) return [];
+      const isEmpty = (v) =>
+        v === null || v === undefined || String(v).trim() === "";
+      const missing = [];
+      if (isEmpty(this.form.lease_contract_number)) {
+        missing.push("شماره سند قرارداد اجاره");
+      }
+      if (isEmpty(this.form.lease_contract_date)) {
+        missing.push("تاریخ قرارداد اجاره");
+      }
+      if (!this.hasLeaseContractAttachment()) {
+        missing.push("اسکن سند قرارداد اجاره");
+      }
+      return missing;
+    },
+
+    getCurrentStageMissingFields() {
+      const stg = Number(this.currentStage);
+      if (stg === 8) return this.getStage8MissingFields();
+      if (stg === 21) return this.getStage21MissingFields();
+      return [];
+    },
+
     _validateBeforeSign() {
-      if (Number(this.currentStage) === 8) {
-        const missing = this.getStage8MissingFields();
-        if (missing.length > 0) {
+      const stg = Number(this.currentStage);
+      const missing = this.getCurrentStageMissingFields();
+      if (missing.length > 0) {
+        if (stg === 8) {
           this.triggerToast(
             `امکان امضای مرحله ۸ وجود ندارد؛ لطفاً ابتدا فیلدهای الزامی زیر را تکمیل نمایید: ${missing.join("، ")}`,
             "error",
           );
           const targetId =
-            missing.length === 1 &&
-            missing[0].includes("قیمت")
+            missing.length === 1 && missing[0].includes("قیمت")
               ? "#section-cost"
               : "#section-plot";
           this.tab = "form";
           this.$nextTick(() => this.scrollToActiveSection(targetId));
+          return false;
+        }
+        if (stg === 21) {
+          this.triggerToast(
+            `برای ادامه و تایید مرحله ۲۱، تکمیل موارد زیر الزامی است: ${missing.join("، ")}`,
+            "error",
+          );
+          this.tab = "form";
+          this.$nextTick(() => {
+            this.scrollToActiveSection("#section-lease-contract");
+            if (!this.hasLeaseContractAttachment()) {
+              this.openUploadScanModal("LEASE_CONTRACT", "اسکن سند قرارداد اجاره عرصه");
+            }
+          });
           return false;
         }
       }
@@ -3213,6 +3392,18 @@ document.addEventListener("alpine:init", () => {
     },
     hasNotaryAttachment() {
       return Boolean(this.getNotaryAttachment());
+    },
+
+    getLeaseContractAttachment() {
+      return (this.attachments || []).find(
+        (a) =>
+          a.type === "LEASE_CONTRACT" ||
+          a.doc_type === "LEASE_CONTRACT" ||
+          (a.title && a.title.includes("قرارداد اجاره")),
+      );
+    },
+    hasLeaseContractAttachment() {
+      return Boolean(this.getLeaseContractAttachment());
     },
 
     // --------------------------------------------------------------------------
@@ -3313,12 +3504,16 @@ document.addEventListener("alpine:init", () => {
           this.form.check_entries && this.form.check_entries[i]
             ? this.form.check_entries[i].check_sayadi_code || ""
             : "";
+        const existingBank =
+          this.form.check_entries && this.form.check_entries[i]
+            ? this.form.check_entries[i].bank_name || ""
+            : "";
         newEntries.push({
           row_number: i + 1,
           cash_date: dueDate,
           check_amount: amt,
           check_sayadi_code: existingSayadi,
-          bank_name: this.form.decile_loan_bank || "بانک مسکن",
+          bank_name: existingBank,
         });
       }
 
@@ -3347,9 +3542,7 @@ document.addEventListener("alpine:init", () => {
 
       const nextAmount = lastEntry ? lastEntry.check_amount || 0 : 0;
       const nextBank =
-        lastEntry && lastEntry.bank_name
-          ? lastEntry.bank_name
-          : this.form.decile_loan_bank || "بانک مسکن";
+        lastEntry && lastEntry.bank_name ? lastEntry.bank_name : "";
 
       this.form.check_entries.push({
         row_number: count + 1,
@@ -3375,7 +3568,7 @@ document.addEventListener("alpine:init", () => {
           cash_date: "",
           check_amount: 0,
           check_sayadi_code: "",
-          bank_name: this.form.decile_loan_bank || "بانک مسکن",
+          bank_name: "",
         };
       }
       this.form.check_entries.forEach((c, i) => (c.row_number = i + 1));
@@ -3397,14 +3590,6 @@ document.addEventListener("alpine:init", () => {
         this.form.last_check_amount =
           this.form.check_entries[this.form.check_entries.length - 1]
             .check_amount || 0;
-      }
-      // Auto-calculate custody service fee (0.5% rounded half up)
-      const feeBase =
-        total > 0 ? total : Number(this.form.decile_loan_amount) || 0;
-      if (feeBase > 0) {
-        this.form.check_service_fee = Math.floor((feeBase * 5 + 500) / 1000);
-      } else if (!this.form.check_service_fee) {
-        this.form.check_service_fee = 2000000;
       }
     },
 
@@ -3564,12 +3749,17 @@ document.addEventListener("alpine:init", () => {
           this.form.preparation_check_entries[i]
             ? this.form.preparation_check_entries[i].check_sayadi_code || ""
             : "";
+        const existingBank =
+          this.form.preparation_check_entries &&
+          this.form.preparation_check_entries[i]
+            ? this.form.preparation_check_entries[i].bank_name || ""
+            : "";
         newEntries.push({
           row_number: i + 1,
           cash_date: dueDate,
           check_amount: amt,
           check_sayadi_code: existingSayadi,
-          bank_name: "بانک مسکن",
+          bank_name: existingBank,
         });
       }
 
@@ -3597,7 +3787,7 @@ document.addEventListener("alpine:init", () => {
 
       const nextAmount = lastEntry ? lastEntry.check_amount || 0 : 0;
       const nextBank =
-        lastEntry && lastEntry.bank_name ? lastEntry.bank_name : "بانک مسکن";
+        lastEntry && lastEntry.bank_name ? lastEntry.bank_name : "";
 
       this.form.preparation_check_entries.push({
         row_number: count + 1,
@@ -3623,7 +3813,7 @@ document.addEventListener("alpine:init", () => {
           cash_date: "",
           check_amount: 0,
           check_sayadi_code: "",
-          bank_name: "بانک مسکن",
+          bank_name: "",
         };
       }
       this.form.preparation_check_entries.forEach(
@@ -3649,13 +3839,15 @@ document.addEventListener("alpine:init", () => {
     },
 
     getAppraisalCash() {
-      const prep = Number(this.form.preparation_cost) || 0;
-      return Math.round(prep * 0.2);
+      const prep = Math.max(0, Number(this.form.preparation_cost) || 0);
+      return prep - this.getAppraisalInstallment();
     },
 
     getAppraisalInstallment() {
-      const prep = Number(this.form.preparation_cost) || 0;
-      return Math.round(prep * 0.8);
+      const prep = Math.max(0, Number(this.form.preparation_cost) || 0);
+      if (prep <= 0) return 0;
+      const ROUND_UNIT = 10000000;
+      return Math.floor(Math.round(prep * 0.8) / ROUND_UNIT) * ROUND_UNIT;
     },
 
     getAppraisalRent() {
@@ -3694,6 +3886,48 @@ document.addEventListener("alpine:init", () => {
       this.signerPin = "";
       this.signAgreement = true;
       this.showSignatureModal = true;
+    },
+
+    async confirmOutOfOrderStageSign(targetStage) {
+      const stageLabel = targetStage === 17 ? "۱۷ (تسهیلات چک)" : "۱۸ (آماده‌سازی)";
+      if (!confirm(`آیا از تایید و امضای الکترونیک خارج از نوبت مرحله ${stageLabel} اطمینان دارید؟`)) {
+        return;
+      }
+      const saved = await this.saveDossierDraft(false);
+      if (!saved) {
+        this.triggerToast("ذخیره‌سازی اطلاعات ناموفق بود. امضا لغو شد.", "error");
+        return;
+      }
+      const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+      try {
+        const res = await fetch(`/dossier/${this.archiveNumber}/sign/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+          body: JSON.stringify({
+            target_stage: targetStage,
+            notes: `تایید و امضای خارج از نوبت مرحله ${targetStage} با موفقیت ثبت شد.`,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.status === "success") {
+          if (!this.stageSignatures) this.stageSignatures = {};
+          this.stageSignatures[targetStage] = {
+            actor: "کاربر مجاز",
+            date: this.getTodayJalali(),
+            action: "SIGN",
+            action_label: `تایید و امضای خارج از نوبت مرحله ${targetStage}`,
+          };
+          this.triggerToast(data.message || `مرحله ${stageLabel} امضا شد.`, "success");
+          setTimeout(() => window.location.reload(), 900);
+        } else {
+          this.triggerToast(data.message || "خطا در ثبت امضا", "error");
+        }
+      } catch (err) {
+        this.triggerToast("خطا در ارتباط با سرور: " + err.message, "error");
+      }
     },
 
     async confirmElectronicSignature() {
@@ -4198,14 +4432,21 @@ document.addEventListener("alpine:init", () => {
       const project = (this.form.project || "").trim();
       const plot = String(this.form.plot_number || "").trim();
       const block = (this.form.block_name || this.form.block_code || "").trim();
+      const site = (this.form.site || "").trim();
+      const constructionType = (this.form.construction_type || "").trim();
+      const mainPlaque = String(this.form.main_plaque ?? "").trim();
+      const separatedPlaque = String(this.form.separated_plaque ?? "").trim();
+      const subPlaque = String(this.form.sub_plaque ?? "").trim();
+      const isVilla = this.isVillaConstruction();
 
-      if (!code && !project && !plot && !block) {
+      if (isVilla ? (!mainPlaque && !separatedPlaque && !subPlaque) : (!code && !project && !plot && !block)) {
         this.triggerToast("لطفاً حداقل نام پروژه و کد بلوک (یا کد نوسازی) را مشخص فرمایید.", "warning");
         return;
       }
       const net = this.form.net_unit_area || this.form.unit_area || 0;
       const storage = this.form.storage_area || 0;
       const parking = this.form.parking_area || 0;
+      const landArea = this.form.total_land_share || 0;
       try {
         const params = new URLSearchParams({
           code: code,
@@ -4213,6 +4454,12 @@ document.addEventListener("alpine:init", () => {
           plot: plot,
           block: block,
           block_code: block,
+          site: site,
+          construction_type: constructionType,
+          main_plaque: mainPlaque,
+          separated_plaque: separatedPlaque,
+          sub_plaque: subPlaque,
+          land_area: landArea,
           net: net,
           storage: storage,
           parking: parking,
@@ -4221,18 +4468,24 @@ document.addEventListener("alpine:init", () => {
         const res = await resp.json();
         if (res.success && res.data) {
           const d = res.data;
-          this.form.total_land_share = d.total_land_share;
+          if (d.total_land_share !== undefined && d.total_land_share !== null && Number(d.total_land_share) > 0) { this.form.total_land_share = d.total_land_share; }
           this.form.land_lease_year = d.land_lease_year;
           this.form.preparation_cost = d.preparation_cost;
           this.form.past_years_rent = d.past_years_rent;
           this.form.current_year_rent = d.current_year_rent;
           this.landRateInfo = {
+            rate_type: d.rate_type || "apartment",
+            registry_plaque: d.registry_plaque || "",
+            street_width: d.street_width || "",
+            allocation_type: d.allocation_type || "",
+            land_area: d.land_area || "0",
+            rent_current: Number(d.rent_current || 0),
+            rent_to_date: Number(d.rent_to_date || 0),
+            preparation_cost: Number(d.preparation_cost || 0),
             renovation_code: d.renovation_code || "",
             project_name: d.project_name || "",
             block_name: d.block_name || "",
             plot_number: d.plot_number || "",
-            share_land: d.share_land || "0",
-            share_common: d.share_common || "0",
             share_coefficient: d.share_coefficient || "0",
             rent_current_per_m2: Number(d.rent_current_per_m2 || 0),
             rent_to_date_per_m2: Number(d.rent_to_date_per_m2 || 0),

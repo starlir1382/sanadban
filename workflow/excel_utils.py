@@ -16,6 +16,7 @@ import tempfile
 import hashlib
 import itertools
 import jdatetime
+from collections import Counter
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
@@ -1116,11 +1117,13 @@ def generate_failure_report(
     error_rows: List[Dict[str, Any]],
     spouse_rows: Optional[List[Dict[str, Any]]] = None,
     progress_callback: Optional[Callable[[int, int], None]] = None,
+    keep_original_cols: int = 0,
 ) -> str:
     """
     Generates a write_only RTL failure workbook.
-    Sheet 1: خطاها و موارد رد شده
-    Sheet 2 (optional): تطبیق از طریق همسر
+    Sheet 1: خلاصه علل رد
+    Sheet 2: موارد رد شده
+    Sheet 3 (optional): تطبیق از طریق همسر
     Returns the report UUID.
     """
     cleanup_old_reports()
@@ -1130,34 +1133,61 @@ def generate_failure_report(
 
     wb = openpyxl.Workbook(write_only=True)
 
-    # Sheet 1: Errors
-    ws_errors = wb.create_sheet(title="موارد رد شده و خطاها")
-    ws_errors.views.sheetView[0].rightToLeft = True
+    # Sheet 1: Reason summary (collapse numbers so similar messages group cleanly)
+    ws_sum = wb.create_sheet(title="خلاصه علل رد")
+    ws_sum.views.sheetView[0].rightToLeft = True
+    ws_sum.column_dimensions["A"].width = 85
+    ws_sum.column_dimensions["B"].width = 16
+    reason_counts: Counter = Counter()
+    for item in error_rows:
+        for reason in item.get("reasons", []):
+            reason_counts[re.sub(r"\d+", "#", str(reason))] += 1
+    ws_sum.append(["علت رد", "تعداد"])
+    for reason, cnt in reason_counts.most_common():
+        ws_sum.append([reason, cnt])
 
-    err_headers = ["ردیف اکسل", "کد ملی", "نام متقاضی / همسر", "علت رد و خطا"] + [str(h or "") for h in original_headers]
+    # Sheet 2: Slim rejected rows list
+    ws_errors = wb.create_sheet(title="موارد رد شده")
+    ws_errors.views.sheetView[0].rightToLeft = True
+    ws_errors.column_dimensions["A"].width = 12
+    ws_errors.column_dimensions["B"].width = 16
+    ws_errors.column_dimensions["C"].width = 28
+    ws_errors.column_dimensions["D"].width = 65
+
+    k = max(0, int(keep_original_cols))
+    err_headers = ["ردیف اکسل", "کد ملی", "نام متقاضی / همسر", "علت رد"]
+    if k and original_headers:
+        err_headers.extend(str(h or "") for h in original_headers[:k])
     ws_errors.append(err_headers)
 
     total_items = len(error_rows) + (len(spouse_rows) if spouse_rows else 0)
     processed = 0
 
     for item in error_rows:
-        reasons_str = " | ".join(item.get("reasons", []))
-        orig_cells = item.get("original_cells", [])
+        reasons_str = " | ".join(str(r) for r in item.get("reasons", []))
         row_vals = [
             item.get("row", ""),
             item.get("national_id", ""),
             item.get("name", ""),
             reasons_str,
-        ] + ["" if c is None else (c if isinstance(c, str) else str(c)) for c in orig_cells]
+        ]
+        if k:
+            orig_cells = item.get("original_cells", [])[:k]
+            row_vals.extend("" if c is None else (c if isinstance(c, str) else str(c)) for c in orig_cells)
         ws_errors.append(row_vals)
         processed += 1
-        if progress_callback and (processed % 1000 == 0 or processed == total_items):
+        if progress_callback and (processed % 2000 == 0 or processed == total_items):
             progress_callback(processed, total_items)
 
-    # Sheet 2: Spouse Matched (for Update)
+    # Sheet 3: Spouse Matched (for Update)
     if spouse_rows:
         ws_spouse = wb.create_sheet(title="تطبیق از طریق همسر")
         ws_spouse.views.sheetView[0].rightToLeft = True
+        ws_spouse.column_dimensions["A"].width = 12
+        ws_spouse.column_dimensions["B"].width = 18
+        ws_spouse.column_dimensions["C"].width = 28
+        ws_spouse.column_dimensions["D"].width = 16
+        ws_spouse.column_dimensions["E"].width = 65
         ws_spouse.append(["ردیف اکسل", "کد ملی همسر ورودی", "نام پرونده", "شماره بایگانی", "تغییرات اعمال‌شده"])
         for item in spouse_rows:
             diff_text = " ، ".join([f"{d.get('label', '')}: {d.get('old', '')} -> {d.get('new', '')}" for d in item.get("diff_display", [])])
@@ -1169,10 +1199,12 @@ def generate_failure_report(
                 diff_text or "بدون تغییر",
             ])
             processed += 1
-            if progress_callback and (processed % 1000 == 0 or processed == total_items):
+            if progress_callback and (processed % 2000 == 0 or processed == total_items):
                 progress_callback(processed, total_items)
 
     wb.save(filepath)
+    if progress_callback:
+        progress_callback(total_items, total_items)
     return report_uuid
 
 def generate_success_report(
@@ -1181,9 +1213,10 @@ def generate_success_report(
     success_rows: List[Dict[str, Any]],
     title: str = "پرونده‌های تایید و بروزرسانی‌شده",
     progress_callback: Optional[Callable[[int, int], None]] = None,
+    include_original_cols: bool = False,
 ) -> str:
     """
-    Generates a write_only RTL success workbook for accepted / updated dossiers.
+    Generates a slim write_only RTL success workbook for accepted / updated dossiers.
     Returns the report UUID.
     """
     cleanup_old_reports()
@@ -1194,9 +1227,15 @@ def generate_success_report(
     wb = openpyxl.Workbook(write_only=True)
     ws = wb.create_sheet(title=title[:30])
     ws.views.sheetView[0].rightToLeft = True
+    ws.column_dimensions["A"].width = 12
+    ws.column_dimensions["B"].width = 16
+    ws.column_dimensions["C"].width = 16
+    ws.column_dimensions["D"].width = 28
+    ws.column_dimensions["E"].width = 18
+    ws.column_dimensions["F"].width = 70
 
     base_headers = ["ردیف اکسل", "شماره بایگانی", "کد ملی", "نام متقاضی", "وضعیت", "توضیحات و تغییرات اعمال‌شده"]
-    if original_headers:
+    if include_original_cols and original_headers:
         full_headers = base_headers + [str(h or "") for h in original_headers]
     else:
         full_headers = base_headers
@@ -1207,7 +1246,6 @@ def generate_success_report(
         if isinstance(item, (list, tuple)):
             ws.append(list(item))
         else:
-            orig_cells = item.get("original_cells", [])
             row_vals = [
                 item.get("row", ""),
                 item.get("archive_number", ""),
@@ -1216,13 +1254,17 @@ def generate_success_report(
                 item.get("status", "موفق"),
                 item.get("diff_summary", "") or item.get("notes", ""),
             ]
-            if orig_cells:
-                row_vals.extend(["" if c is None else (c if isinstance(c, str) else str(c)) for c in orig_cells])
+            if include_original_cols:
+                orig_cells = item.get("original_cells", [])
+                if orig_cells:
+                    row_vals.extend(["" if c is None else (c if isinstance(c, str) else str(c)) for c in orig_cells])
             ws.append(row_vals)
-        if progress_callback and (idx % 1000 == 0 or idx == total_rows):
+        if progress_callback and (idx % 2000 == 0 or idx == total_rows):
             progress_callback(idx, total_rows)
 
     wb.save(filepath)
+    if progress_callback:
+        progress_callback(total_rows, total_rows)
     return report_uuid
 
 def get_report_file_path(report_id: str, user_id: int) -> Optional[str]:
@@ -2776,7 +2818,7 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
             task_id,
             "finalizing",
             96,
-            f"در حال تولید فایل اکسل گزارش موفق ({total_rec:,} پرونده)...",
+            f"در حال آماده‌سازی فایل اکسل گزارش موفق ({updated_count:,} پرونده بروزرسانی‌شده)...",
             "آماده‌سازی گزارش نهایی خروجی",
             sub_percent=0,
             sub_label="تولید فایل اکسل رکوردهای موفق",
@@ -2785,18 +2827,19 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
         )
         success_rows = []
         for idx_rec, rec in enumerate(valid_updated_records, start=1):
+            dfs = rec["diffs"]
+            if not dfs:
+                continue
             d = rec["dossier"]
             it = rec["item"]
-            dfs = rec["diffs"]
-            diff_text = " ، ".join([f"{df['label']}: {df['old']} -> {df['new']}" for df in dfs]) if dfs else "بدون تغییر داده"
+            diff_text = " ، ".join([f"{df['label']}: {df['old']} -> {df['new']}" for df in dfs])
             success_rows.append({
                 "row": it.get("row", ""),
                 "archive_number": d.archive_number,
                 "national_id": d.national_id,
                 "name": d.full_name,
-                "status": "بروزرسانی شد" if dfs else "بدون تغییر",
+                "status": "بروزرسانی شد",
                 "diff_summary": diff_text,
-                "original_cells": it.get("original_cells", []),
             })
             if idx_rec % 2000 == 0:
                 sp = int((idx_rec / total_rec) * 20)
@@ -2812,27 +2855,28 @@ def process_excel_update(file_obj: Any, user: Any, preview: bool = False, is_pre
                     sub_total=total_rec,
                 )
 
-        def _succ_rep_cb(done: int, tot: int) -> None:
-            sp = 20 + int((done / max(1, tot)) * 80)
-            set_excel_task_progress(
-                task_id,
-                "finalizing",
-                96 + int((done / max(1, tot)) * 3),
-                f"در حال نگارش فایل اکسل گزارش موفق ({done:,} از {tot:,})...",
-                "ایجاد کاربرگ اکسل قابل دانلود",
-                sub_percent=sp,
-                sub_label="تولید فایل اکسل رکوردهای موفق",
-                sub_current=done,
-                sub_total=tot,
+        if success_rows:
+            def _succ_rep_cb(done: int, tot: int) -> None:
+                sp = 20 + int((done / max(1, tot)) * 80)
+                set_excel_task_progress(
+                    task_id,
+                    "finalizing",
+                    96 + int((done / max(1, tot)) * 3),
+                    f"در حال نگارش فایل اکسل گزارش موفق ({done:,} از {tot:,})...",
+                    "ایجاد کاربرگ اکسل قابل دانلود",
+                    sub_percent=sp,
+                    sub_label="تولید فایل اکسل رکوردهای موفق",
+                    sub_current=done,
+                    sub_total=tot,
+                )
+            s_uuid = generate_success_report(
+                user.id,
+                [],
+                success_rows,
+                title="پرونده‌های بروزرسانی‌شده",
+                progress_callback=_succ_rep_cb,
             )
-        s_uuid = generate_success_report(
-            user.id,
-            raw_headers,
-            success_rows,
-            title="پرونده‌های بروزرسانی‌شده",
-            progress_callback=_succ_rep_cb,
-        )
-        success_report_url = f"/excel/report/{s_uuid}/"
+            success_report_url = f"/excel/report/{s_uuid}/"
 
     set_excel_task_progress(task_id, "done", 100, "بروزرسانی رکوردهای دیتابیس با موفقیت به پایان رسید.", "در حال بارگذاری گزارش نهایی...", sub_percent=100)
     return {

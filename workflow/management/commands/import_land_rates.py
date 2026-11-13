@@ -35,7 +35,7 @@ class Command(BaseCommand):
             update_conflicts=True,
             unique_fields=["renovation_code"],
             update_fields=[
-                "project_name", "plot_number", "block_name", "share_land", "share_common",
+                "project_name", "plot_number", "block_name", "share_coefficient",
                 "rent_current_per_m2", "rent_to_date_per_m2", "prep_per_m2",
             ],
         )

@@ -79,6 +79,7 @@
             phone_number: '',
             national_id: '',
             is_housing_chief: false,
+            is_readonly: false,
             can_sign: true,
             is_active: true,
             allowed_stages: '',
@@ -87,6 +88,8 @@
 
         createUser: {
             is_housing_chief: false,
+            is_readonly: false,
+            can_sign: true,
             selected_stages: ['1', '2', '3', '4']
         },
 
@@ -105,7 +108,8 @@
             const u = this.usersList.find(x => x.id === userId);
             if (!u) return;
             this.editUser = JSON.parse(JSON.stringify(u));
-            if (this.editUser.is_housing_chief || this.editUser.allowed_stages === 'all') {
+            this.editUser.is_readonly = Boolean(u.is_readonly);
+            if (this.editUser.is_housing_chief || this.editUser.is_readonly || this.editUser.allowed_stages === 'all') {
                 this.editUser.selected_stages = [
                     '0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21'
                 ];
@@ -184,6 +188,7 @@
             if (this.activeTab === 'brokerage' && u.organization !== 'brokerage') return false;
             if (this.activeTab === 'directorate' && u.organization !== 'directorate') return false;
             if (this.activeTab === 'chiefs' && !u.is_housing_chief && !u.is_superuser) return false;
+            if (this.activeTab === 'readonly' && !u.is_readonly) return false;
 
             // Search query
             if (!this.searchQuery) return true;
@@ -362,6 +367,12 @@
                     style="border: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s;">
                  رؤسای مسکن و مدیران ({{ count_chief|add:count_system }})
             </button>
+            <button type="button" 
+                    @click="activeTab = 'readonly'" 
+                    :style="activeTab === 'readonly' ? 'background: #ffffff; color: #0284c7; font-weight: 800; box-shadow: 0 1px 3px rgba(0,0,0,0.1);' : 'background: transparent; color: #64748b; font-weight: 600;'"
+                    style="border: none; padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: all 0.15s;">
+                 صرفاً جهت نمایش ({{ count_readonly }})
+            </button>
         </div>
     </div>
 
@@ -407,6 +418,7 @@
                             allowed_stages: '{{ u.allowed_stages }}',
                             personnel_code: '{{ u.personnel_code }}',
                             is_housing_chief: {{ u.is_housing_chief|yesno:'true,false' }},
+                            is_readonly: {{ u.is_readonly|yesno:'true,false' }},
                             is_superuser: {{ u.is_superuser|yesno:'true,false' }}
                         })">
                         
@@ -423,7 +435,12 @@
                                 </div>
                                 <div>
                                     <strong style="color: #0f172a; display: block; font-size: 0.88rem;">{{ u.full_name }}</strong>
-                                    {% if u.is_housing_chief %}
+                                    {% if u.is_readonly %}
+                                    <span style="font-size: 0.68rem; background: #e0f2fe; color: #0369a1; padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 2px; border: 1px solid #bae6fd;">
+                                        <span>👁️</span>
+                                        <span>صرفاً جهت نمایش</span>
+                                    </span>
+                                    {% elif u.is_housing_chief %}
                                     <span style="font-size: 0.68rem; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 2px; border: 1px solid #fde68a;">
                                         <span></span>
                                         <span>رئیس مسکن با اختیارات تام</span>
@@ -467,7 +484,11 @@
                         <!-- Allowed Stages Chips -->
                         <td style="padding: 0.85rem 1rem;">
                             <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; max-width: 280px;">
-                                {% if u.is_housing_chief %}
+                                {% if u.is_readonly %}
+                                <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.74rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">
+                                     مشاهده کلیه مراحل (فقط رویت)
+                                </span>
+                                {% elif u.is_housing_chief %}
                                 <span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-size: 0.74rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">
                                      نظارت بر کلیه ۲۲ مرحله
                                 </span>
@@ -491,7 +512,9 @@
 
                         <!-- Can Sign -->
                         <td style="padding: 0.85rem 1rem; text-align: center;">
-                            {% if u.can_sign %}
+                            {% if u.is_readonly %}
+                            <span style="color: #94a3b8; font-size: 0.75rem;">فاقد مجوز (فقط رویت)</span>
+                            {% elif u.can_sign %}
                             <span style="color: #059669; font-weight: 800; font-size: 0.78rem; background: #ecfdf5; padding: 2px 7px; border-radius: 999px; border: 1px solid #a7f3d0;">
                                 ✓ مجاز
                             </span>
@@ -617,7 +640,7 @@
                                name="is_housing_chief" 
                                id="edit-housing-chief" 
                                x-model="editUser.is_housing_chief"
-                               @change="if(editUser.is_housing_chief) setEditPreset('chief')"
+                               @change="if(editUser.is_housing_chief) { editUser.is_readonly = false; setEditPreset('chief'); }"
                                style="width: 20px; height: 20px; accent-color: #d97706; margin-top: 2px;">
                         <label for="edit-housing-chief" style="cursor: pointer;">
                             <div style="font-weight: 800; font-size: 0.88rem; color: #92400e; display: flex; align-items: center; gap: 0.35rem;">
@@ -626,6 +649,25 @@
                             </div>
                             <div style="font-size: 0.76rem; color: #b45309; margin-top: 3px; line-height: 1.5;">
                                 رئیس مسکن به کلیه پرونده‌ها دسترسی کامل دارد و می‌تواند در هر مرحله‌ای پرونده را بررسی، امضا یا بازگردانی کند.
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Read-Only Account Banner Switch (Under Housing Chief) -->
+                    <div style="grid-column: span 2; background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%); border: 1.5px solid #7dd3fc; border-radius: 10px; padding: 0.85rem 1rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                        <input type="checkbox" 
+                               name="is_readonly" 
+                               id="edit-is-readonly" 
+                               x-model="editUser.is_readonly"
+                               @change="if(editUser.is_readonly) { editUser.is_housing_chief = false; editUser.can_sign = false; setEditPreset('all'); }"
+                               style="width: 20px; height: 20px; accent-color: #0284c7; margin-top: 2px;">
+                        <label for="edit-is-readonly" style="cursor: pointer;">
+                            <div style="font-weight: 800; font-size: 0.88rem; color: #0369a1; display: flex; align-items: center; gap: 0.35rem;">
+                                <span>👁️</span>
+                                <span>ساخت اکانت صرفاً جهت نمایش (دسترسی فقط خواندنی)</span>
+                            </div>
+                            <div style="font-size: 0.76rem; color: #0284c7; margin-top: 3px; line-height: 1.5;">
+                                دسترسی همه‌جانبه جهت مطالعه و رویت کلیه اسناد، پرونده‌ها، پلاک‌ها و گزارش‌ها، بدون امکان ثبت، ویرایش، حذف، امضا یا ارسال هرگونه درخواست تغییر (POST/PATCH).
                             </div>
                         </label>
                     </div>
@@ -678,7 +720,7 @@
 
                     <!-- Additional Toggles -->
                     <div style="grid-column: span 1; display: flex; align-items: center; gap: 0.5rem;">
-                        <input type="checkbox" name="can_sign" id="edit-can-sign" x-model="editUser.can_sign" style="width: 16px; height: 16px; accent-color: #2563eb;">
+                        <input type="checkbox" name="can_sign" id="edit-can-sign" x-model="editUser.can_sign" :disabled="editUser.is_readonly" style="width: 16px; height: 16px; accent-color: #2563eb;">
                         <label for="edit-can-sign" style="font-size: 0.82rem; font-weight: 600; color: #334155; cursor: pointer;">
                             دارای مجوز امضای الکترونیک
                         </label>
@@ -768,7 +810,7 @@
                                name="is_housing_chief" 
                                id="create-housing-chief" 
                                x-model="createUser.is_housing_chief"
-                               @change="if(createUser.is_housing_chief) setCreatePreset('chief')"
+                               @change="if(createUser.is_housing_chief) { createUser.is_readonly = false; setCreatePreset('chief'); }"
                                style="width: 20px; height: 20px; accent-color: #d97706; margin-top: 2px;">
                         <label for="create-housing-chief" style="cursor: pointer;">
                             <div style="font-weight: 800; font-size: 0.88rem; color: #92400e;">
@@ -776,6 +818,25 @@
                             </div>
                             <div style="font-size: 0.76rem; color: #b45309; margin-top: 3px;">
                                 دسترسی همه‌جانبه به کلیه مراحل گردش کار، تایید نهایی و بازبینی اسناد
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Read-Only Account Banner Switch (Under Housing Chief) -->
+                    <div style="grid-column: span 2; background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%); border: 1.5px solid #7dd3fc; border-radius: 10px; padding: 0.85rem 1rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+                        <input type="checkbox" 
+                               name="is_readonly" 
+                               id="create-is-readonly" 
+                               x-model="createUser.is_readonly"
+                               @change="if(createUser.is_readonly) { createUser.is_housing_chief = false; createUser.can_sign = false; setCreatePreset('all'); }"
+                               style="width: 20px; height: 20px; accent-color: #0284c7; margin-top: 2px;">
+                        <label for="create-is-readonly" style="cursor: pointer;">
+                            <div style="font-weight: 800; font-size: 0.88rem; color: #0369a1; display: flex; align-items: center; gap: 0.35rem;">
+                                <span>👁️</span>
+                                <span>ساخت اکانت صرفاً جهت نمایش (دسترسی فقط خواندنی)</span>
+                            </div>
+                            <div style="font-size: 0.76rem; color: #0284c7; margin-top: 3px; line-height: 1.5;">
+                                دسترسی همه‌جانبه جهت مطالعه و رویت کلیه اسناد، پرونده‌ها، پلاک‌ها و گزارش‌ها، بدون امکان ثبت، ویرایش، حذف، امضا یا ارسال هرگونه درخواست تغییر (POST/PATCH).
                             </div>
                         </label>
                     </div>
@@ -825,7 +886,7 @@
                     </div>
 
                     <div style="grid-column: span 2; display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
-                        <input type="checkbox" name="can_sign" id="create-can-sign" checked style="width: 16px; height: 16px; accent-color: #2563eb;">
+                        <input type="checkbox" name="can_sign" id="create-can-sign" x-model="createUser.can_sign" :disabled="createUser.is_readonly" style="width: 16px; height: 16px; accent-color: #2563eb;">
                         <label for="create-can-sign" style="font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer;">
                             اعطای مجوز امضای الکترونیک در گردش کار پرونده‌ها
                         </label>

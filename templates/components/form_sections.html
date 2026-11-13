@@ -506,7 +506,7 @@
                 <!-- block_code -->
                 <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('block_code')}">
                     <label class="field-label"><span>کد بلوک</span></label>
-                    <input type="text" class="input-control fa-num" x-model="form.block_code" :readonly="!isFieldEditable('block_code')" placeholder="مثال: 27">
+                    <input type="text" class="input-control fa-num" x-model="form.block_code" :readonly="!isFieldEditable('block_code')" placeholder="مثال: کد بلوک را وارد کنید">
                 </div>
 
                 <!-- floor_number -->
@@ -1165,19 +1165,15 @@
                     <input type="text" class="input-control fa-num" x-model="form.bank_letter_date" :readonly="!isFieldEditable('bank_letter_date')">
                 </div>
 
-                <!-- Verified Bank Letter Status Box -->
+                <!-- Verified Bank Letter Status Box (۳ وضعیت مجزا بدون چک‌باکس دستی خودکارساز) -->
                 <div class="col-12" style="margin-top: 0.65rem;">
-                    <div style="padding: 0.85rem 1.15rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s;"
-                         :style="form.is_sent_to_bank ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
-                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
-                            <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                <input type="checkbox" id="chk_is_sent_to_bank" x-model="form.is_sent_to_bank" :disabled="!isFieldEditable('bank_letter_number')" style="width: 19px; height: 19px; accent-color: #10b981; cursor: pointer;">
-                                <label for="chk_is_sent_to_bank" style="font-weight: 800; font-size: 0.88rem; cursor: pointer;">
-                                    <span x-show="form.is_sent_to_bank" x-text="'نامه معرفی متقاضی به ' + (form.bank_name || 'بانک مسکن') + ' صادر و ارسال گردیده است'"></span>
-                                    <span x-show="!form.is_sent_to_bank" x-text="'در انتظار صدور و ارسال نامه معرفی به ' + (form.bank_name || 'بانک مسکن')"></span>
-                                </label>
-                            </div>
-                            <template x-if="form.is_sent_to_bank && (form.bank_letter_number || form.bank_sent_letter_number)">
+                    <template x-if="form.is_sent_to_bank && (form.bank_letter_number || form.bank_sent_letter_number)">
+                        <div style="padding: 0.85rem 1.15rem; border-radius: 8px; border: 1.5px solid #86efac; background: #f0fdf4; color: #166534; transition: all 0.2s;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 0.65rem; font-weight: 800; font-size: 0.88rem;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    <span x-text="'نامه معرفی متقاضی به ' + (form.bank_name || 'بانک مسکن') + ' صادر و ارسال گردیده است'"></span>
+                                </div>
                                 <div style="display: flex; align-items: center; gap: 0.85rem; font-size: 0.8rem; background: #ffffff; padding: 0.35rem 0.85rem; border-radius: 6px; border: 1px solid #bbf7d0;" class="fa-num">
                                     <span>شماره نامه: <strong style="color: #0f172a;" x-text="form.bank_letter_number || form.bank_sent_letter_number"></strong></span>
                                     <span>تاریخ نامه: <strong style="color: #0f172a;" x-text="form.bank_letter_date || form.bank_sent_date"></strong></span>
@@ -1189,9 +1185,39 @@
                                         <span>مشاهده برگه و سوابق نامه بانک</span>
                                     </a>
                                 </div>
-                            </template>
+                            </div>
                         </div>
-                    </div>
+                    </template>
+
+                    <template x-if="!form.is_sent_to_bank && form.is_added_to_bank_shipment_list">
+                        <div style="padding: 0.85rem 1.15rem; border-radius: 8px; border: 1.5px solid #7dd3fc; background: #f0f9ff; color: #0369a1; transition: all 0.2s;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 0.65rem; font-weight: 700; font-size: 0.88rem;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    <span>پرونده در محموله آماده ارسال به بانک قرار گرفته است (در انتظار صدور و ثبت شماره و تاریخ نامه رسمی از دبیرخانه)</span>
+                                </div>
+                                <a href="{% url 'bank_letter_sender' %}?tab=pending" target="_blank"
+                                   style="text-decoration: none; font-size: 0.78rem; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #bae6fd;">
+                                    <span>مدیریت محموله‌های در انتظار شماره نامه</span>
+                                </a>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="!form.is_sent_to_bank && !form.is_added_to_bank_shipment_list">
+                        <div style="padding: 0.85rem 1.15rem; border-radius: 8px; border: 1.5px dashed #cbd5e1; background: #f8fafc; color: #64748b; transition: all 0.2s;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 0.65rem; font-weight: 600; font-size: 0.88rem;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    <span>در انتظار تجمیع در محموله و ارسال به بانک (مرحله ۶)</span>
+                                </div>
+                                <a href="{% url 'bank_letter_sender' %}" target="_blank"
+                                   style="text-decoration: none; font-size: 0.78rem; font-weight: 700; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e2e8f0;">
+                                    <span>سامانه دسته‌بندی و ارسال نامه بانک</span>
+                                </a>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -1450,7 +1476,7 @@
             <!-- اطلاعات پایه چک‌های وام دهک -->
             <div class="fields-grid" style="margin-bottom: 1.25rem;">
                 <!-- دهک درآمدی متقاضی -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('decile')}">
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile')}">
                     <label class="field-label">
                         <span>دهک درآمدی متقاضی</span>
                         <span class="helper-badge">۱ تا ۱۰</span>
@@ -1459,7 +1485,7 @@
                 </div>
 
                 <!-- نهاد تحت حمایت -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('supported_institution')}">
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('supported_institution')}">
                     <label class="field-label">
                         <span>نهاد تحت حمایت</span>
                     </label>
@@ -1473,11 +1499,11 @@
                 </div>
 
                 <!-- بانک عامل ارزیابی / تسهیلات -->
-                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('decile_loan_bank')}">
+                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile_loan_bank')}">
                     <label class="field-label">
                         <span>بانک عامل تسهیلات</span>
                     </label>
-                    <input type="text" list="bank-list" class="input-control" x-model="form.decile_loan_bank" :readonly="!isFieldEditable('decile_loan_bank')" placeholder="مثال: بانک مسکن">
+                    <input type="text" list="bank-list" class="input-control" x-model="form.decile_loan_bank" :readonly="!isFieldEditable('decile_loan_bank')" placeholder="نام بانک عامل تسهیلات">
                     <datalist id="bank-list">
                         <option value="بانک مسکن">
                         <option value="بانک ملی ایران">
@@ -1486,25 +1512,6 @@
                         <option value="بانک تجارت">
                         <option value="بانک سپه">
                     </datalist>
-                </div>
-
-                <!-- کارمزد خدمات چک (فقط برای مدیر کارگزاری چک و مدیران ارشد) -->
-                <div class="field-group col-3" x-show="isCheckAdmin" :class="{'field-locked': !isFieldEditable('check_service_fee')}">
-                    <label class="field-label">
-                        <span>کارمزد خدمات چک (ریال)</span>
-                        <span class="helper-badge" style="background: #e0e7ff; color: #3730a3;">مخصوص مدیر چک</span>
-                    </label>
-                    <div class="currency-input-wrapper">
-                        <input type="text"
-                               class="input-control fa-num"
-                               style="direction: ltr; font-weight: 700;"
-                               :value="form.check_service_fee ? formatNumber(form.check_service_fee) : ''"
-                               @input="updateFormattedAmount(form, 'check_service_fee', $event)"
-                               @blur="formatAmountOnBlur(form, 'check_service_fee', $event)"
-                               :readonly="!isFieldEditable('check_service_fee')"
-                               placeholder="۰">
-                        <span class="currency-unit-tag">ریال</span>
-                    </div>
                 </div>
 
                 <!-- مبلغ کل وام دهک -->
@@ -1685,7 +1692,7 @@
                                 <th style="width: 70px; text-align: center;">ردیف</th>
                                 <th style="width: 26%;">تاریخ سررسید چک (شمسی)</th>
                                 <th style="width: 22%;">شناسه صیادی (۱۶ رقمی)</th>
-                                <th style="width: 22%;">نام بانک صادرکننده</th>
+                                <th style="width: 22%;">نام بانک صادرکننده چک</th>
                                 <th style="width: 22%;">مبلغ چک (ریال)</th>
                                 <th style="width: 60px; text-align: center;">عملیات</th>
                             </tr>
@@ -1735,7 +1742,7 @@
                                                style="font-size: 0.84rem;"
                                                x-model="check.bank_name"
                                                :readonly="!isFieldEditable('decile_loan_amount')"
-                                               placeholder="مثال: مسکن">
+                                               placeholder="نام بانک صادرکننده چک">
                                     </td>
 
                                     <!-- مبلغ چک -->
@@ -1888,6 +1895,7 @@
                                     
                                     <!-- Delete Button -->
                                     <button type="button"
+                                            x-show="canDeleteAttachment(scan)"
                                             @click.stop="deleteCheckScan(scan.id, 'loan')"
                                             style="position: absolute; top: 6px; left: 6px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;"
                                             title="حذف این برگ اسکن">
@@ -2253,7 +2261,7 @@
                                     <th style="width: 70px; text-align: center;">ردیف</th>
                                     <th style="width: 26%;">تاریخ سررسید چک آماده‌سازی (شمسی)</th>
                                     <th style="width: 22%;">شناسه صیادی (۱۶ رقمی)</th>
-                                    <th style="width: 22%;">نام بانک صادرکننده</th>
+                                    <th style="width: 22%;">نام بانک صادرکننده چک</th>
                                     <th style="width: 22%;">مبلغ چک (ریال)</th>
                                     <th style="width: 60px; text-align: center;">عملیات</th>
                                 </tr>
@@ -2303,7 +2311,7 @@
                                                    style="font-size: 0.84rem;"
                                                    x-model="check.bank_name"
                                                    :readonly="!isFieldEditable('non_cash_preparation_amount')"
-                                                   placeholder="مثال: مسکن">
+                                                   placeholder="نام بانک صادرکننده چک">
                                         </td>
 
                                         <!-- مبلغ چک -->
@@ -2456,6 +2464,7 @@
                                         
                                         <!-- Delete Button -->
                                         <button type="button"
+                                                x-show="canDeleteAttachment(scan)"
                                                 @click.stop="deleteCheckScan(scan.id, 'prep')"
                                                 style="position: absolute; top: 6px; left: 6px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; background: rgba(239, 68, 68, 0.9); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;"
                                                 title="حذف این برگ اسکن">

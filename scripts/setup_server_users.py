@@ -230,9 +230,9 @@ USERS_SPEC = [
     {
         "username": "alireza_nazari",
         "full_name": "علیرضا نظری",
-        "stage": 18,
+        "stage": 17,
         "stages": "all",
-        "role_title": "مدیر سامانه / کارشناس تسویه با پیمانکار",
+        "role_title": "مدیر سامانه / مسئول مراحل ۱۷ و ۱۸",
         "organization": "system",
         "is_superuser": True,
         "is_staff": True,

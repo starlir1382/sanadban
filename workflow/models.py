@@ -22,6 +22,8 @@ from django.dispatch import receiver
 
 from django.conf import settings
 
+from django.utils.crypto import get_random_string
+
 from workflow.stages import (
     STAGE_ROLES as WORKFLOW_STAGE_ROLES,
     STAGE_DETAILS as WORKFLOW_STAGE_DETAILS,
@@ -32,6 +34,23 @@ _SIGNED_AT_RE = re.compile(r"^\s*(\d{4}/\d{1,2}/\d{1,2})(?:\s*[-–]?\s*(\d{1,2}
 
 _FA_AR_DIGITS_TRANS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
+
+def _format_dt_jalali(dt, fmt: str = "%Y/%m/%d %H:%M") -> str:
+    if not dt:
+        return ""
+    try:
+        import jdatetime
+        return jdatetime.datetime.fromgregorian(datetime=timezone.localtime(dt)).strftime(fmt)
+    except Exception:
+        return dt.strftime(fmt)
+
+
+def generate_directorate_shipment_code() -> str:
+    import jdatetime
+    jalali_year = jdatetime.date.today().year
+    rand_part = get_random_string(5, allowed_chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+    return f"SHP-{jalali_year}-{rand_part}"
+
 def normalize_national_id(val: Any) -> str:
     """Normalizes any national ID field to strictly 10 digits with leading zero if valid digit string."""
     if not val:
@@ -41,6 +60,20 @@ def normalize_national_id(val: Any) -> str:
     if digits and len(digits) <= 10:
         return digits.zfill(10)
     return str(val).strip()
+
+
+VILLA_SITE_KEYWORDS = ("جعفریه", "سلفچگان", "قنوات", "پرنیان")
+
+
+def is_villa_construction(site: Any = "", construction_type: Any = "") -> bool:
+    """Return True when unit is ویلایی (explicitly or on canonical non-560/27 villa sites)."""
+    if "ویلایی" in str(construction_type or ""):
+        return True
+    raw_site = getattr(site, "name", site) if site is not None else ""
+    s = str(raw_site or "").strip()
+    if not s:
+        return False
+    return any(k in s for k in VILLA_SITE_KEYWORDS)
 
 _PROJECT_BANK_CACHE = None
 
@@ -287,6 +320,9 @@ class PreSelectedUnit(models.Model):
             self.spouse_first_name = parts[0] if parts else ""
 
             self.spouse_last_name = parts[1] if len(parts) > 1 else ""
+
+        if is_villa_construction(self.site, self.construction_type):
+            self.unit_direction = "شمالی"
 
         super().save(*args, **kwargs)
 
@@ -664,6 +700,11 @@ class HousingDossier(models.Model):
 
     notary_letter_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ نامه معرفی به محضر (شمسی)")
 
+    # Stage 21: اسکن و ثبت مشخصات سند قرارداد اجاره عرصه
+    lease_contract_number = models.CharField(max_length=80, blank=True, default="", verbose_name="شماره سند قرارداد اجاره")
+
+    lease_contract_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ سند قرارداد اجاره (شمسی)")
+
     is_cash_rent_confirmed = models.BooleanField(default=False, verbose_name="تایید مبلغ نقدی اجاره")
     cash_rent_confirmed_by = models.CharField(max_length=150, blank=True, default="", verbose_name="تاییدکننده وصول نقدی اجاره")
     cash_rent_confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان تایید وصول نقدی اجاره")
@@ -675,6 +716,50 @@ class HousingDossier(models.Model):
     is_preparation_checks_confirmed = models.BooleanField(default=False, verbose_name="تایید دریافت چک‌های اقساط آماده‌سازی")
     prep_checks_confirmed_by = models.CharField(max_length=150, blank=True, default="", verbose_name="تاییدکننده چک‌های اقساط آماده‌سازی")
     prep_checks_confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان تایید چک‌های اقساط آماده‌سازی")
+
+    # Stages 17 & 18: تاریخ مراجعه و ارسال به راه و شهرسازی
+    is_visited = models.BooleanField(default=False, verbose_name="مراجعه متقاضی (مراحل ۱۷ و ۱۸)")
+    visit_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ مراجعه (شمسی)")
+    visited_by = models.CharField(max_length=150, blank=True, default="", verbose_name="ثبت‌کننده مراجعه")
+    visited_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان ثبت مراجعه")
+
+    is_loan_visited = models.BooleanField(default=False, verbose_name="مراجعه متقاضی (مرحله ۱۷ - تسهیلات چک)")
+    loan_visit_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ مراجعه مرحله ۱۷ (شمسی)")
+    loan_visited_by = models.CharField(max_length=150, blank=True, default="", verbose_name="ثبت‌کننده مراجعه مرحله ۱۷")
+    loan_visited_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان ثبت مراجعه مرحله ۱۷")
+    loan_processed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان ثبت اولیه وام دهک در سیستم")
+
+    is_prep_visited = models.BooleanField(default=False, verbose_name="مراجعه متقاضی (مرحله ۱۸ - آماده‌سازی)")
+    prep_visit_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ مراجعه مرحله ۱۸ (شمسی)")
+    prep_visited_by = models.CharField(max_length=150, blank=True, default="", verbose_name="ثبت‌کننده مراجعه مرحله ۱۸")
+    prep_visited_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان ثبت مراجعه مرحله ۱۸")
+    prep_processed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان ثبت اولیه آماده‌سازی در سیستم")
+
+    is_loan_sent_to_directorate = models.BooleanField(default=False, verbose_name="ارسال تسهیلات چک به راه و شهرسازی (مرحله ۱۷)")
+    loan_directorate_sent_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ ارسال تسهیلات چک به راه و شهرسازی (شمسی)")
+    loan_directorate_sent_by = models.CharField(max_length=150, blank=True, default="", verbose_name="ثبت‌کننده ارسال تسهیلات چک")
+    loan_directorate_sent_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان ارسال تسهیلات چک")
+    loan_directorate_shipment = models.ForeignKey(
+        "DirectorateShipment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="loan_dossiers",
+        verbose_name="محموله ارسالی تسهیلات چک به راه و شهرسازی",
+    )
+
+    is_prep_sent_to_directorate = models.BooleanField(default=False, verbose_name="ارسال آماده‌سازی به راه و شهرسازی (مرحله ۱۸)")
+    prep_directorate_sent_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ ارسال آماده‌سازی به راه و شهرسازی (شمسی)")
+    prep_directorate_sent_by = models.CharField(max_length=150, blank=True, default="", verbose_name="ثبت‌کننده ارسال آماده‌سازی")
+    prep_directorate_sent_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان ارسال آماده‌سازی")
+    prep_directorate_shipment = models.ForeignKey(
+        "DirectorateShipment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="prep_dossiers",
+        verbose_name="محموله ارسالی آماده‌سازی به راه و شهرسازی",
+    )
 
     # Metadata
 
@@ -692,33 +777,77 @@ class HousingDossier(models.Model):
 
     @property
     def cash_rent_confirmed_at_jalali(self) -> str:
-        if not self.cash_rent_confirmed_at:
-            return ""
-        try:
-            import jdatetime
-            return jdatetime.datetime.fromgregorian(datetime=self.cash_rent_confirmed_at).strftime("%Y/%m/%d %H:%M")
-        except Exception:
-            return self.cash_rent_confirmed_at.strftime("%Y/%m/%d %H:%M")
+        return _format_dt_jalali(self.cash_rent_confirmed_at, "%Y/%m/%d %H:%M")
 
     @property
     def loan_checks_confirmed_at_jalali(self) -> str:
-        if not self.loan_checks_confirmed_at:
-            return ""
-        try:
-            import jdatetime
-            return jdatetime.datetime.fromgregorian(datetime=self.loan_checks_confirmed_at).strftime("%Y/%m/%d %H:%M")
-        except Exception:
-            return self.loan_checks_confirmed_at.strftime("%Y/%m/%d %H:%M")
+        return _format_dt_jalali(self.loan_checks_confirmed_at, "%Y/%m/%d %H:%M")
 
     @property
     def prep_checks_confirmed_at_jalali(self) -> str:
-        if not self.prep_checks_confirmed_at:
-            return ""
-        try:
-            import jdatetime
-            return jdatetime.datetime.fromgregorian(datetime=self.prep_checks_confirmed_at).strftime("%Y/%m/%d %H:%M")
-        except Exception:
-            return self.prep_checks_confirmed_at.strftime("%Y/%m/%d %H:%M")
+        return _format_dt_jalali(self.prep_checks_confirmed_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def visited_at_jalali(self) -> str:
+        return _format_dt_jalali(self.visited_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def visit_date_display(self) -> str:
+        if self.visit_date and self.visit_date.strip():
+            return self.visit_date.strip()
+        if self.loan_visit_date and self.loan_visit_date.strip():
+            return self.loan_visit_date.strip()
+        if self.prep_visit_date and self.prep_visit_date.strip():
+            return self.prep_visit_date.strip()
+        return _format_dt_jalali(self.visited_at, "%Y/%m/%d") if self.is_visited else ""
+
+    @property
+    def loan_visited_at_jalali(self) -> str:
+        return _format_dt_jalali(self.loan_visited_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def loan_processed_at_jalali(self) -> str:
+        return _format_dt_jalali(self.loan_processed_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def loan_visit_date_display(self) -> str:
+        if self.loan_visit_date and self.loan_visit_date.strip():
+            return self.loan_visit_date.strip()
+        return _format_dt_jalali(self.loan_visited_at, "%Y/%m/%d") if self.is_loan_visited else ""
+
+    @property
+    def prep_visited_at_jalali(self) -> str:
+        return _format_dt_jalali(self.prep_visited_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def prep_processed_at_jalali(self) -> str:
+        return _format_dt_jalali(self.prep_processed_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def prep_visit_date_display(self) -> str:
+        if self.prep_visit_date and self.prep_visit_date.strip():
+            return self.prep_visit_date.strip()
+        return _format_dt_jalali(self.prep_visited_at, "%Y/%m/%d") if self.is_prep_visited else ""
+
+    @property
+    def loan_directorate_sent_at_jalali(self) -> str:
+        return _format_dt_jalali(self.loan_directorate_sent_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def loan_directorate_sent_date_display(self) -> str:
+        if self.loan_directorate_sent_date and self.loan_directorate_sent_date.strip():
+            return self.loan_directorate_sent_date.strip()
+        return _format_dt_jalali(self.loan_directorate_sent_at, "%Y/%m/%d") if self.is_loan_sent_to_directorate else ""
+
+    @property
+    def prep_directorate_sent_at_jalali(self) -> str:
+        return _format_dt_jalali(self.prep_directorate_sent_at, "%Y/%m/%d %H:%M")
+
+    @property
+    def prep_directorate_sent_date_display(self) -> str:
+        if self.prep_directorate_sent_date and self.prep_directorate_sent_date.strip():
+            return self.prep_directorate_sent_date.strip()
+        return _format_dt_jalali(self.prep_directorate_sent_at, "%Y/%m/%d") if self.is_prep_sent_to_directorate else ""
 
     @property
 
@@ -878,12 +1007,16 @@ class HousingDossier(models.Model):
                 self.check_service_fee = 2000000
 
         # 6. Auto-calculate Section 9 Land Valuation & Rates from LandRate table
-        if not self.is_locked and (self.renovation_code or self.plot_number or self.project):
+        if not self.is_locked and (self.renovation_code or self.plot_number or self.main_plaque or self.project):
             try:
                 from .land_rates import apply_land_calculation
                 apply_land_calculation(self, skip=skip_set)
             except Exception:
                 pass
+
+        # 7. Villa units always default/enforce شمالی direction
+        if not self.is_locked and is_villa_construction(self.site, self.construction_type):
+            self.unit_direction = "شمالی"
 
     def save(self, *args, **kwargs):
         if self.national_id:
@@ -937,13 +1070,18 @@ class HousingDossier(models.Model):
         return self.STAGE_ROLES.get(self.current_stage, ("-", "-", "-"))[0]
 
     @property
+    def current_location_key(self):
+        from .stages import get_stage_location
+        return get_stage_location(self.current_stage, is_locked=self.is_locked, status=self.status)[0]
+
+    @property
+    def current_location_display(self):
+        from .stages import get_stage_location
+        return get_stage_location(self.current_stage, is_locked=self.is_locked, status=self.status)[1]
+
+    @property
     def current_unit_display(self):
-        u = self.current_unit
-        if u == "brokerage":
-            return "کارگزاری ره آزرم"
-        elif u == "directorate":
-            return "اداره کل راه و شهرسازی"
-        return u or "-"
+        return self.current_location_display
 
     @property
 
@@ -1235,6 +1373,8 @@ class DossierAttachment(models.Model):
 
         ("NOTARY_LETTER", "اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)"),
 
+        ("LEASE_CONTRACT", "اسکن سند قرارداد اجاره عرصه"),
+
         ("AFFIDAVIT", "اقرارنامه تعهد به تقسیط و تسویه حساب"),
 
         ("INFO_FORM", "فرم اطلاعات خواسته شده متقاضی و سکونت"),
@@ -1258,6 +1398,15 @@ class DossierAttachment(models.Model):
     file_sha256 = models.CharField(max_length=64, blank=True, verbose_name="هش SHA-256")
 
     uploaded_by = models.CharField(max_length=150, verbose_name="بارگذاری‌کننده")
+
+    uploaded_by_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_dossier_attachments",
+        verbose_name="کاربر بارگذاری‌کننده",
+    )
 
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان بارگذاری")
 
@@ -1314,6 +1463,7 @@ class WorkflowSignatureLog(models.Model):
         ("EXCEL_SWAP", "جابجایی با همسر از طریق اکسل"),
         ("SIGN_EXCEL", "امضای گروهی از طریق اکسل"),
         ("BANK_LETTER", "نامه معرفی به بانک / بانک دهک"),
+        ("DIRECTORATE_SHIP", "ارسال به راه و شهرسازی"),
     ]
 
     dossier = models.ForeignKey(HousingDossier, on_delete=models.CASCADE, related_name="audit_logs")
@@ -1566,6 +1716,8 @@ class UserProfile(models.Model):
 
     is_housing_chief = models.BooleanField(default=False, verbose_name="رئیس مسکن (اختیارات و دسترسی تام)")
 
+    is_readonly = models.BooleanField(default=False, verbose_name="حساب صرفاً جهت نمایش (فقط خواندنی)")
+
     is_check_admin = models.BooleanField(default=False, verbose_name="مدیر کارگزاری چک (دسترسی به کارمزد و امور مالی چک)")
 
     allowed_stages = models.CharField(max_length=150, default="all", verbose_name="مراحل مجاز (مثال: 0,1,2 یا all)")
@@ -1610,6 +1762,8 @@ class UserProfile(models.Model):
     def save(self, *args, **kwargs):
         if self.national_id:
             self.national_id = normalize_national_id(self.national_id)
+        if self.is_readonly:
+            self.can_sign = False
         super().save(*args, **kwargs)
 
     def get_allowed_stages_list(self):
@@ -1656,6 +1810,10 @@ class UserProfile(models.Model):
 
             return False
 
+        if self.is_readonly:
+
+            return False
+
         if self.user.is_superuser or self.is_housing_chief or self.organization == 'system' or self.allowed_stages == 'all':
 
             return True
@@ -1676,11 +1834,24 @@ class UserProfile(models.Model):
 
         """
 
-        return self.user.is_superuser or self.is_housing_chief or self.organization == 'system'
+        return self.user.is_superuser or self.is_housing_chief or self.organization == 'system' or self.is_readonly
+
+    @property
+
+    def can_manage_directorate_shipments(self):
+
+        from .field_permissions import can_user_manage_stage17_18_tracking
+
+        return can_user_manage_stage17_18_tracking(self.user)
 
     def __str__(self):
 
-        chief_tag = " [رئیس مسکن]" if self.is_housing_chief else ""
+        if self.is_readonly:
+            chief_tag = " [صرفاً جهت نمایش]"
+        elif self.is_housing_chief:
+            chief_tag = " [رئیس مسکن]"
+        else:
+            chief_tag = ""
 
         return f"{self.full_name} ({self.role_title}){chief_tag}"
 
@@ -1706,11 +1877,20 @@ class BankLetter(models.Model):
 
     ]
 
+    STATUS_CHOICES = [
+        ("PENDING", "در انتظار ثبت شماره و تاریخ دبیرخانه"),
+        ("FINALIZED", "ثبت نهایی و ارسال‌شده به بانک"),
+    ]
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="FINALIZED", db_index=True, verbose_name="وضعیت محموله")
+
+    batch_code = models.CharField(max_length=100, blank=True, default="", db_index=True, verbose_name="کد رهگیری محموله")
+
     letter_type = models.CharField(max_length=20, choices=LETTER_TYPES, default="bank", db_index=True, verbose_name="نوع نامه")
 
     letter_number = models.CharField(max_length=100, unique=True, verbose_name="شماره نامه رسمی بانک")
 
-    letter_date = models.CharField(max_length=20, verbose_name="تاریخ نامه بانک (شمسی)")
+    letter_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ نامه بانک (شمسی)")
 
     bank_code = models.CharField(max_length=20, blank=True, verbose_name="کد بانک عامل")
 
@@ -1736,13 +1916,44 @@ class BankLetter(models.Model):
 
         verbose_name_plural = "سوابق و بایگانی نامه‌های بانک"
 
+
+class DirectorateShipment(models.Model):
+    """
+    Batch shipment manifest for Stage 17 (LOAN) & 18 (PREP) dossiers sent to راه و شهرسازی.
+    """
+    SHIPMENT_TYPE_CHOICES = [
+        ("LOAN", "تسهیلات چک (مرحله ۱۷)"),
+        ("PREP", "آماده‌سازی (مرحله ۱۸)"),
+    ]
+    shipment_type = models.CharField(
+        max_length=16,
+        choices=SHIPMENT_TYPE_CHOICES,
+        default="LOAN",
+        verbose_name="نوع محموله",
+    )
+    shipment_code = models.CharField(
+        max_length=40,
+        unique=True,
+        default=generate_directorate_shipment_code,
+        verbose_name="کد محموله ارسال به راه و شهرسازی",
+    )
+    sent_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ ارسال به راه و شهرسازی (شمسی)")
+    note = models.CharField(max_length=300, blank=True, default="", verbose_name="توضیحات محموله")
+    created_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="کاربر ثبت‌کننده")
+    created_by = models.CharField(max_length=150, blank=True, default="", verbose_name="ثبت‌کننده محموله")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="زمان ثبت محموله")
+
+    class Meta:
+        verbose_name = "محموله ارسالی به راه و شهرسازی"
+        verbose_name_plural = "محموله‌های ارسالی به راه و شهرسازی"
         ordering = ["-created_at", "-id"]
 
+    @property
+    def created_at_jalali(self) -> str:
+        return _format_dt_jalali(self.created_at, "%Y/%m/%d %H:%M")
+
     def __str__(self):
-
-        prefix = "نامه بانک دهک" if self.letter_type == "decile" else "نامه"
-
-        return f"{prefix} {self.letter_number} مورخ {self.letter_date}"
+        return f"{self.shipment_code} - {self.get_shipment_type_display()} ({self.sent_date or self.created_at_jalali})"
 
 @receiver(post_save, sender=User)
 
@@ -1842,8 +2053,7 @@ class LandRate(models.Model):
     project_name = models.CharField(max_length=200, blank=True, verbose_name="نام پروژه")
     plot_number = models.CharField(max_length=20, blank=True, verbose_name="قطعه")
     block_name = models.CharField(max_length=50, blank=True, verbose_name="نام بلوک")
-    share_land = models.DecimalField(max_digits=14, decimal_places=9, verbose_name="قدرالسهم از عرصه")
-    share_common = models.DecimalField(max_digits=14, decimal_places=9, verbose_name="قدرالسهم از مشاع")
+    share_coefficient = models.DecimalField(max_digits=14, decimal_places=9, default=0, verbose_name="مجموع ضریب قدرالسهم")
     rent_current_per_m2 = models.DecimalField(max_digits=18, decimal_places=4, verbose_name="اجاره یک متر سال جاری (ریال)")
     rent_to_date_per_m2 = models.DecimalField(max_digits=18, decimal_places=4, verbose_name="اجاره یک متر تا پایان سال جاری (ریال)")
     prep_per_m2 = models.DecimalField(max_digits=18, decimal_places=4, verbose_name="هزینه آماده‌سازی یک متر (ریال)")
@@ -1857,5 +2067,38 @@ class LandRate(models.Model):
 
     def __str__(self):
         return f"{self.renovation_code} ({self.project_name} - {self.block_name})"
+
+
+class VillaLandRate(models.Model):
+    """
+    Fixed Section 9 land valuation & lease/preparation rates per (project, پلاک ثبتی) for ویلایی dossiers.
+    Personal applicant data is never stored here; values come strictly from approved plot valuation sheets.
+    """
+    registry_plaque = models.CharField(max_length=60, db_index=True, verbose_name="پلاک ثبتی")
+    project_name = models.CharField(max_length=200, blank=True, default="", verbose_name="نام پروژه / تعاونی")
+    plot_number = models.CharField(max_length=30, blank=True, default="", verbose_name="پلاک / قطعه")
+    street_width = models.CharField(max_length=80, blank=True, default="", verbose_name="معبر")
+    allocation_type = models.CharField(max_length=80, blank=True, default="", verbose_name="نحوه واگذاری")
+    land_area = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="مساحت عرصه (مترمربع)")
+    prep_per_m2 = models.DecimalField(max_digits=18, decimal_places=4, default=0, verbose_name="هزینه آماده‌سازی هر متر (ریال)")
+    rent_current = models.DecimalField(max_digits=18, decimal_places=4, default=0, verbose_name="اجاره سال جاری ۱۴۰۵ (ریال)")
+    rent_to_date = models.DecimalField(max_digits=18, decimal_places=4, default=0, verbose_name="اجاره سنوات تا ۱۴۰۵ (ریال)")
+    preparation_cost = models.DecimalField(max_digits=18, decimal_places=4, default=0, verbose_name="هزینه آماده‌سازی کل (ریال)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+
+    class Meta:
+        verbose_name = "نرخ عرصه و آماده‌سازی ویلایی"
+        verbose_name_plural = "نرخ‌های عرصه و آماده‌سازی ویلایی"
+        ordering = ["project_name", "registry_plaque"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project_name", "registry_plaque"],
+                name="uniq_villa_land_rate_proj_plaque",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.registry_plaque} ({self.project_name})"
 
 

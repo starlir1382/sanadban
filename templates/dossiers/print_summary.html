@@ -215,17 +215,67 @@
         font-weight: 600;
       }
 
-      /* ---------- money panel ---------- */
-      .money-panel { height: 100%; line-height: 1.5; font-size: 7.2pt; }
+      /* ---------- broker & money panel ---------- */
+      .broker-panel {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 4px;
+      }
+      .broker-name { font-weight: 800; font-size: 7.8pt; color: #0f2744; margin-bottom: 1.5px; }
+      .broker-ceo { font-size: 7.3pt; font-weight: 700; color: #1e293b; }
+      .broker-note {
+        margin-top: 3px;
+        padding: 2.5px 6px;
+        background: #f8fafc;
+        border-right: 2px solid #94a3b8;
+        font-size: 6.5pt;
+        line-height: 1.38;
+        color: #475569;
+        font-weight: 600;
+      }
+      .broker-sig { border: 1px solid #94a3b8; }
+      .money-panel {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.45;
+        font-size: 7.6pt;
+      }
       .money-panel .money-title {
-        font-weight: 800; font-size: 7.8pt; color: #0f2744;
-        padding-bottom: 2px; margin-bottom: 3px; border-bottom: 1px solid #cbd5e1;
+        font-weight: 800; font-size: 8.2pt; color: #0f2744;
+        padding-bottom: 3px; margin-bottom: 5px; border-bottom: 1px solid #cbd5e1;
+      }
+      .money-grid-table {
+        width: 100%;
+        flex: 1;
+        height: 100%;
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 5px;
+        margin: -3px 0 0;
+      }
+      .official-doc-table .money-grid-table td {
+        width: 50%;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 3px;
+        background: #ffffff;
+        padding: 6px 8px !important;
+        vertical-align: middle !important;
+      }
+      .official-doc-table .money-grid-table tr.is-full td {
+        width: 100%;
+        background: #f7f9fc;
+        border-color: #94a3b8 !important;
+        padding: 7px 9px !important;
       }
       .money-panel .money-row {
         display: flex; justify-content: space-between; align-items: baseline;
-        gap: 5px; padding: 0.5px 0;
+        gap: 6px; width: 100%;
       }
-      .money-panel .money-value { font-weight: 800; color: #0f2744; text-align: left; overflow-wrap: anywhere; }
+      .money-panel .money-lbl { font-size: 7.4pt; color: #475569; font-weight: 600; white-space: nowrap; }
+      .money-panel .money-value { font-size: 8pt; font-weight: 800; color: #0f2744; text-align: left; overflow-wrap: anywhere; }
 
       /* ---------- header / meta ---------- */
       .document-header { font-size: 10.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
@@ -420,49 +470,80 @@
       <!-- 5. کارگزار (امضای ۱) · مبالغ مالی -->
       <table class="official-doc-table">
         <colgroup>
-          <col style="width: 38%" />
-          <col style="width: 62%" />
+          <col style="width: 39%" />
+          <col style="width: 61%" />
         </colgroup>
         <tr>
-          <td style="padding: 6px 8px; vertical-align: top">
-            <div style="font-weight: 800; margin-bottom: 3px">نام کارگزار: مهندسین مشاور ره آزرم بین‌الملل</div>
-            <div>مدیرعامل: مهندس مجتبی دلاوری</div>
-            <div style="margin-top: 5px; border: 1px solid #94a3b8">
-              {% include "dossiers/partials/sig_cell.html" with sig=signatures_map.brokerage label="مهر و امضاء کارگزاری" v="1" %}
+          <td style="padding: 5px 7px; vertical-align: top; height: 1px">
+            <div class="broker-panel">
+              <div class="broker-info">
+                <div class="broker-name">نام کارگزار: مهندسین مشاور ره آزرم بین‌الملل</div>
+                <div class="broker-ceo">مدیرعامل: مهندس مجتبی دلاوری</div>
+                <div class="broker-note">
+                  مسئولیت کارگزار صرفاً در محدوده صحت اطلاعات واحد انتخابی و اسکن مدارک می‌باشد.
+                </div>
+              </div>
+              <div class="broker-sig">
+                {% include "dossiers/partials/sig_cell.html" with sig=signatures_map.brokerage label="مهر و امضاء کارگزاری" v="1" %}
+              </div>
             </div>
           </td>
 
-          <td style="padding: 6px 10px; vertical-align: top">
+          <td style="padding: 5px 7px; vertical-align: top; height: 1px">
             <div class="money-panel">
               <div class="money-title">مبالغ مالی و آماده‌سازی</div>
-              <div class="money-row">
-                <span>قیمت علی‌الحساب تمام شده (بدون وام):</span>
-                <span class="money-value">{% if dossier.base_cost_without_loan %}{{ dossier.base_cost_without_loan|intcomma:False }} ریال{% else %}-{% endif %}</span>
-              </div>
-              <div class="money-row">
-                <span>جمع قدرالسهم از عرصه:</span>
-                <span class="money-value">{% if dossier.total_land_share and dossier.total_land_share != '-' %}{{ dossier.total_land_share }} مترمربع{% else %}-{% endif %}</span>
-              </div>
-              <div class="money-row">
-                <span>بابت اجاره عرصه سال:</span>
-                <span class="money-value">{{ lease_year|default:dossier.land_lease_year|default:'-' }}</span>
-              </div>
-              <div class="money-row">
-                <span>مبلغ اجاره:</span>
-                <span class="money-value">{% if rent %}{{ rent|intcomma:False }} ریال{% else %}-{% endif %}</span>
-              </div>
-              <div class="money-row">
-                <span>۲۰٪ نقد آماده‌سازی:</span>
-                <span class="money-value">{% if dossier.cash_preparation_amount %}{{ dossier.cash_preparation_amount|intcomma:False }} ریال{% else %}-{% endif %}</span>
-              </div>
-              <div class="money-row">
-                <span>تعداد چک‌های آماده‌سازی:</span>
-                <span class="money-value">{% if dossier.preparation_check_count %}{{ dossier.preparation_check_count }} فقره{% else %}-{% endif %}</span>
-              </div>
-              <div class="money-row">
-                <span>مبلغ کل چک‌ها:</span>
-                <span class="money-value">{% if dossier.total_preparation_check_amount or dossier.non_cash_preparation_amount %}{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma:False }} ریال{% else %}-{% endif %}</span>
-              </div>
+              <table class="money-grid-table">
+                <tr class="is-full">
+                  <td colspan="2">
+                    <div class="money-row">
+                      <span class="money-lbl">قیمت علی‌الحساب تمام شده (بدون وام):</span>
+                      <span class="money-value">{% if dossier.base_cost_without_loan %}{{ dossier.base_cost_without_loan|intcomma:False }} ریال{% else %}-{% endif %}</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="money-row">
+                      <span class="money-lbl">جمع قدرالسهم از عرصه:</span>
+                      <span class="money-value">{% if dossier.total_land_share and dossier.total_land_share != '-' %}{{ dossier.total_land_share }} مترمربع{% else %}-{% endif %}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="money-row">
+                      <span class="money-lbl">بابت اجاره عرصه سال:</span>
+                      <span class="money-value">{{ lease_year|default:dossier.land_lease_year|default:'-' }}</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="money-row">
+                      <span class="money-lbl">مبلغ اجاره:</span>
+                      <span class="money-value">{% if rent %}{{ rent|intcomma:False }} ریال{% else %}-{% endif %}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="money-row">
+                      <span class="money-lbl">۲۰٪ نقد آماده‌سازی:</span>
+                      <span class="money-value">{% if dossier.cash_preparation_amount %}{{ dossier.cash_preparation_amount|intcomma:False }} ریال{% else %}-{% endif %}</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="money-row">
+                      <span class="money-lbl">تعداد چک‌های آماده‌سازی:</span>
+                      <span class="money-value">{% if dossier.preparation_check_count %}{{ dossier.preparation_check_count }} فقره{% else %}-{% endif %}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="money-row">
+                      <span class="money-lbl">مبلغ کل چک‌ها:</span>
+                      <span class="money-value">{% if dossier.total_preparation_check_amount or dossier.non_cash_preparation_amount %}{{ dossier.total_preparation_check_amount|default:dossier.non_cash_preparation_amount|intcomma:False }} ریال{% else %}-{% endif %}</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </div>
           </td>
         </tr>
@@ -477,7 +558,6 @@
         <tr>
           <td rowspan="4" class="side-title" style="font-size: 7.8pt; line-height: 1.4">
             امضای کارشناسان<br />
-            <span style="font-size: 6.5pt; font-weight: normal; color: #475569">(تأییدات ۱۲ گانه تخصصی)</span>
           </td>
           <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.national_housing label="کارشناس نهضت ملی" v="1" %}</td>
           <td class="sig-cell-td">{% include "dossiers/partials/sig_cell.html" with sig=signatures_map.bank_facility label="استعلام تسهیلات بانکی" v="2" %}</td>
@@ -503,7 +583,8 @@
       <!-- 7. اداره درآمد (امضای ۱۴) -->
       <table class="official-doc-table" style="margin-bottom: 0">
         <tr>
-          <td class="side-title" style="padding: 6px 4px; font-size: 8.5pt">اداره درآمد</td>
+          <td class="side-title" style="padding: 6px 4px; font-size: 8.5pt">اداره درآمد
+          <span style="font-size: 6.5pt; font-weight: normal; color: #475569">(تأییدات ۱۲ گانه تخصصی)</span></td>
           <td style="padding: 6px 12px; line-height: 1.8">
             <div style="font-size: 8.2pt; font-weight: 700; color: #0f2744">
               مبلغ اجاره

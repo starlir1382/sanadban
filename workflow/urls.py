@@ -1,6 +1,6 @@
 from django.urls import path
 from django.views.generic import RedirectView
-from . import views
+from . import views, shipment_views, stage17_18_excel_views
 
 urlpatterns = [
     # Dashboard & Dossier Management
@@ -96,5 +96,20 @@ path("excel/export/", views.excel_export_all_view, name="excel_export_all"),
     path("api/land-rates/upload-excel/", views.land_rates_upload_excel_api, name="land_rates_upload_excel_api"),
     path("api/land-rates/export-excel/", views.land_rates_export_excel, name="land_rates_export_excel"),
     path("api/land-rates/bulk-apply/", views.land_rates_bulk_apply_api, name="land_rates_bulk_apply_api"),
+    path("api/land-rates/villa/<int:pk>/update/", views.villa_rates_update_api, name="villa_rates_update_api"),
+    path("api/land-rates/villa/upload-excel/", views.villa_rates_upload_excel_api, name="villa_rates_upload_excel_api"),
+    path("api/land-rates/villa/export-excel/", views.villa_rates_export_excel, name="villa_rates_export_excel"),
+    path("api/land-rates/villa/bulk-apply/", views.villa_rates_bulk_apply_api, name="villa_rates_bulk_apply_api"),
     path("api/calculate-land-rates/", views.calculate_land_rates_api, name="calculate_land_rates_api"),
+
+    # Stage 17 & 18: Directorate Shipments (ارسال تسهیلات چک و آماده‌سازی به راه و شهرسازی)
+    path("directorate-shipments/", shipment_views.directorate_shipments_list_view, name="directorate_shipments_list"),
+    path("directorate-shipments/create/", shipment_views.directorate_shipment_create_api, name="directorate_shipment_create"),
+    path("directorate-shipments/<int:shipment_id>/print/", shipment_views.directorate_shipment_print_view, name="directorate_shipment_print"),
+
+    # Stage 17 & 18: Excel Hub, Template Download, and Upload (Strictly Alireza Nazari)
+    path("stage17-18/excel/", stage17_18_excel_views.stage17_18_excel_hub_view, name="stage17_18_excel_hub"),
+    path("stage17-18/excel/template/<int:stage>/", stage17_18_excel_views.stage17_18_template_download_view, name="stage17_18_template_download"),
+    path("stage17-18/excel/export/<int:stage>/", stage17_18_excel_views.stage17_18_data_export_view, name="stage17_18_data_export"),
+    path("stage17-18/excel/upload/<int:stage>/", stage17_18_excel_views.stage17_18_excel_upload_view, name="stage17_18_excel_upload"),
 ]

@@ -598,7 +598,7 @@
     left: 0 !important;
     top: calc(50vh - 95px) !important;
     z-index: 99999 !important;
-    display: flex !important;
+    display: flex;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: flex-start !important;
@@ -723,15 +723,19 @@
       <span style="font-size: 1.4rem; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: #2563eb; color: white;">🔒</span>
       <div>
         <div style="font-weight: 800; font-size: 0.98rem; color: #1e3a8a;">
+          {% if is_readonly_user %}
+          حالت اختصاصی فقط رویت — حساب کاربری صرفاً جهت نمایش (فقط خواندنی)
+          {% else %}
           حالت اختصاصی فقط مشاهده — سوابق پرونده امضا شده
+          {% endif %}
         </div>
         <div style="font-size: 0.84rem; color: #334155; margin-top: 2px;">
           این پرونده صرفاً جهت رویت، پیگیری سوابق و چاپ اسناد باز شده است. امکان هرگونه ویرایش، بارگذاری فایل یا حذف به طور کامل مسدود می‌باشد.
         </div>
       </div>
     </div>
-    <a href="{% url 'signed_dossiers_list' %}" class="btn btn-outline" style="background: white; border-color: #3b82f6; color: #1d4ed8; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1rem; border-radius: 8px; text-decoration: none;">
-      <span>بازگشت به سوابق امضاها ↩</span>
+    <a href="{% if is_readonly_user %}{% url 'dossier_list' %}{% else %}{% url 'signed_dossiers_list' %}{% endif %}" class="btn btn-outline" style="background: white; border-color: #3b82f6; color: #1d4ed8; font-weight: 700; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1rem; border-radius: 8px; text-decoration: none;">
+      <span>{% if is_readonly_user %}بازگشت به کارتابل پرونده‌ها ↩{% else %}بازگشت به سوابق امضاها ↩{% endif %}</span>
     </a>
   </div>
   {% endif %}
@@ -784,7 +788,7 @@
 
   <!-- Top navigation: back to inbox / signed list -->
   <div style="margin-bottom: 0.9rem">
-    {% if is_view_only %}
+    {% if is_view_only and not is_readonly_user %}
     <a
       href="{% url 'signed_dossiers_list' %}"
       class="btn btn-outline"
@@ -927,6 +931,7 @@
   </div>
 
   <!-- Tabs -->
+  <div id="dt-tabs-anchor" style="height: 1px; margin-top: -1px; pointer-events: none;"></div>
   <div class="dt-tabs" role="tablist">
     <button
       type="button"
@@ -1040,7 +1045,7 @@
 
   {% if is_full_admin %}
   <!-- TAB: stage map -->
-  <div x-show="tab === 'map'" id="map">
+  <div x-show="tab === 'map'" id="tab-panel-map">
     <div class="dt-map">
       <template x-for="stg in stages" :key="'map-' + stg.id">
         <div
@@ -1082,7 +1087,7 @@
 
   {% if is_full_admin or can_view_audit %}
   <!-- TAB: signature history & audit log -->
-  <div x-show="tab === 'history'" id="history">
+  <div x-show="tab === 'history'" id="tab-panel-history">
     {% include 'components/audit_timeline.html' %}
   </div>
   {% endif %}
@@ -1393,12 +1398,12 @@
         </template>
 
         <div
-          x-show="Number(currentStage) === 8 && userCanAction && !isLocked && !isViewOnly && getStage8MissingFields().length > 0"
+          x-show="[8, 21].includes(Number(currentStage)) && userCanAction && !isLocked && !isViewOnly && getCurrentStageMissingFields().length > 0"
           x-cloak
           style="display: none; background: #fffbeb; color: #92400e; border: 1.5px solid #fcd34d; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700;"
-          :title="'فیلدهای الزامی: ' + getStage8MissingFields().join('، ')"
+          :title="'موارد الزامی: ' + getCurrentStageMissingFields().join('، ')"
         >
-          <span>⚠️ پیش از امضای مرحله ۸ تکمیل کنید: <span x-text="getStage8MissingFields().join('، ')"></span></span>
+          <span>⚠️ پیش از تایید و ادامه مرحله <span x-text="currentStage"></span> تکمیل کنید: <span x-text="getCurrentStageMissingFields().join('، ')"></span></span>
         </div>
 
         <button
@@ -1407,8 +1412,8 @@
           x-show="canSignCurrentStage()"
           x-cloak
           style="display: none"
-          :style="(Number(currentStage) === 8 && getStage8MissingFields().length > 0) ? { opacity: 0.65 } : {}"
-          :title="(Number(currentStage) === 8 && getStage8MissingFields().length > 0) ? ('تکمیل فیلدهای زیر الزامی است: ' + getStage8MissingFields().join('، ')) : ''"
+          :style="([8, 21].includes(Number(currentStage)) && getCurrentStageMissingFields().length > 0) ? { opacity: 0.65 } : {}"
+          :title="([8, 21].includes(Number(currentStage)) && getCurrentStageMissingFields().length > 0) ? ('تکمیل موارد زیر الزامی است: ' + getCurrentStageMissingFields().join('، ')) : ''"
           @click="openSignatureModal()"
         >
           <span
@@ -1421,32 +1426,18 @@
 
   <!-- Modals (inside the Alpine scope) -->
   
-  <!-- Sticky Button on Left Edge: Generous Toggle for Floating Photo Album Popup -->
+  <!-- Sticky Button on Left Edge: Shown only when Photo Album Popup is closed -->
   <button
     type="button"
     class="sticky-scan-tab no-print"
-    :class="{ 'is-open': showAlbumPopup && !isAlbumMinimized }"
-    @click="toggleAlbumPopup()"
-    :title="(showAlbumPopup && !isAlbumMinimized) ? 'بستن آلبوم تصاویر مدارک' : 'مشاهده آلبوم تصاویر مدارک'"
-    :aria-label="(showAlbumPopup && !isAlbumMinimized) ? 'بستن آلبوم تصاویر مدارک' : 'مشاهده آلبوم تصاویر مدارک'"
+    x-show="!showAlbumPopup"
+    x-cloak
+    style="display: none;"
+    @click="openAlbumPopup()"
+    title="مشاهده آلبوم تصاویر مدارک"
+    aria-label="مشاهده آلبوم تصاویر مدارک"
   >
-    <!-- Close icon (when open) -->
     <svg
-      x-show="showAlbumPopup && !isAlbumMinimized"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="18" y1="6" x2="6" y2="18"></line>
-      <line x1="6" y1="6" x2="18" y2="18"></line>
-    </svg>
-    <!-- Photo album icon (when closed) -->
-    <svg
-      x-show="!showAlbumPopup || isAlbumMinimized"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -1459,7 +1450,7 @@
       <circle cx="8.5" cy="8.5" r="1.5"></circle>
       <path d="m21 15-5-5L5 21"></path>
     </svg>
-    <span x-text="(showAlbumPopup && !isAlbumMinimized) ? 'بستن آلبوم تصاویر' : 'مشاهده آلبوم تصاویر'"></span>
+    <span>مشاهده آلبوم تصاویر</span>
   </button>
 
   {% include 'components/modals/workflow_modals.html' %} {% include 'components/modals/scan_viewer_modal.html' %} {% include 'components/modals/date_picker_modal.html' %} {% include 'components/modals/album_popup_modal.html' %}

@@ -43,6 +43,8 @@ def _check_admin_access(user):
     if not user.is_authenticated:
         return False
     profile = getattr(user, 'profile', None)
+    if profile and getattr(profile, 'is_readonly', False):
+        return False
     return user.is_superuser or bool(profile and (profile.is_housing_chief or profile.allowed_stages == 'all'))
 
 

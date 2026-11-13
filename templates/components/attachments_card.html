@@ -62,7 +62,7 @@
                             <button type="button" @click.stop="printScan(item)" title="چاپ تصویر مدرک" style="background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.25); color: #ffffff; border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s;" @mouseenter="$el.style.background='rgba(22,163,74,0.9)'" @mouseleave="$el.style.background='rgba(15,23,42,0.75)'">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                             </button>
-                            <button type="button" x-show="!isLocked && !isViewOnly" @click.stop="deleteAttachment(item.id)" title="حذف این تصویر" style="background: rgba(220, 38, 38, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.25); color: #ffffff; border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s;" @mouseenter="$el.style.background='#dc2626'" @mouseleave="$el.style.background='rgba(220, 38, 38, 0.85)'">
+                            <button type="button" x-show="!isLocked && !isViewOnly && canDeleteAttachment(item)" @click.stop="deleteAttachment(item.id)" title="حذف این تصویر" style="background: rgba(220, 38, 38, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.25); color: #ffffff; border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s;" @mouseenter="$el.style.background='#dc2626'" @mouseleave="$el.style.background='rgba(220, 38, 38, 0.85)'">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                         </div>
@@ -224,7 +224,7 @@
                                 </button>
 
                                 <!-- Delete Button -->
-                                <button type="button" x-show="!isLocked && !isViewOnly" 
+                                <button type="button" x-show="!isLocked && !isViewOnly && canDeleteAttachment(item)" 
                                         @click="deleteAttachment(item.id)"
                                         style="background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 6px; padding: 0.4rem 0.65rem; cursor: pointer; transition: background 0.15s;" 
                                         title="حذف این سند از پرونده">

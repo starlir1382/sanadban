@@ -1,0 +1,579 @@
+{% extends 'base.html' %}
+{% load static persian_tags %}
+
+{% block title %}مرکز اکسل مراحل ۱۷ و ۱۸ (تسهیلات و آماده‌سازی) | سامانه مسکن یار{% endblock %}
+
+{% block content %}
+<style>
+  .s1718-page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 3.5rem;
+    direction: rtl;
+    color: #1e293b;
+  }
+  .s1718-header {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 1.35rem 1.6rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+  }
+  .s1718-title-wrap h1 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  .s1718-title-wrap p {
+    margin: 0.4rem 0 0;
+    font-size: 0.88rem;
+    color: #64748b;
+  }
+  .s1718-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .s1718-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+  .s1718-btn-back {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+  .s1718-btn-back:hover {
+    background: #e2e8f0;
+  }
+  .s1718-btn-shipment {
+    background: #f0fdfa;
+    border-color: #99f6e4;
+    color: #0f766e;
+  }
+  .s1718-btn-shipment:hover {
+    background: #ccfbf1;
+  }
+  .s1718-banner {
+    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+    border: 1.5px solid #bfdbfe;
+    border-radius: 16px;
+    padding: 1rem 1.3rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+  }
+  .s1718-banner-icon {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
+  .s1718-banner-text {
+    flex: 1;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: #1e3a8a;
+  }
+  .s1718-banner-text strong {
+    color: #1e40af;
+  }
+
+  /* Grid of 2 Stages */
+  .s1718-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 1.5rem;
+  }
+  .s1718-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .s1718-card:hover {
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  }
+  .s1718-card-stage17 {
+    border-top: 5px solid #0d9488;
+  }
+  .s1718-card-stage18 {
+    border-top: 5px solid #2563eb;
+  }
+  .s1718-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .s1718-badge {
+    padding: 0.25rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+  .s1718-badge-17 {
+    background: #ccfbf1;
+    color: #0f766e;
+    border: 1px solid #99f6e4;
+  }
+  .s1718-badge-18 {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+  .s1718-stats-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+  }
+  .s1718-stat-item {
+    flex: 1;
+    text-align: center;
+  }
+  .s1718-stat-label {
+    font-size: 0.74rem;
+    color: #64748b;
+    margin-bottom: 2px;
+  }
+  .s1718-stat-val {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #0f172a;
+  }
+
+  /* Action Buttons inside Card */
+  .s1718-downloads-box {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  .s1718-btn-dl-template {
+    flex: 1;
+    background: #10b981;
+    color: #ffffff;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 0.65rem 1rem;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+  }
+  .s1718-btn-dl-template:hover {
+    background: #059669;
+    color: #ffffff;
+  }
+  .s1718-btn-dl-export {
+    flex: 1;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 0.65rem 1rem;
+  }
+  .s1718-btn-dl-export:hover {
+    background: #e2e8f0;
+  }
+
+  /* Dropzone & Upload Form */
+  .s1718-dropzone {
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 0.85rem;
+    position: relative;
+  }
+  .s1718-dropzone.dragover {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+  .s1718-dropzone-icon {
+    font-size: 2rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+  }
+  .s1718-dropzone-txt {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #334155;
+  }
+  .s1718-dropzone-hint {
+    font-size: 0.74rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+  }
+  .s1718-file-selected {
+    margin-top: 0.6rem;
+    padding: 0.4rem 0.8rem;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: #0369a1;
+    font-weight: 700;
+    display: inline-block;
+  }
+  .s1718-btn-upload {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.92rem;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  }
+  .s1718-btn-upload-17 {
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+  }
+  .s1718-btn-upload-17:hover {
+    background: #0f766e;
+  }
+  .s1718-btn-upload-18 {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  }
+  .s1718-btn-upload-18:hover {
+    background: #1d4ed8;
+  }
+  .s1718-btn-upload:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Response Result Box */
+  .s1718-result-box {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    display: none;
+  }
+  .s1718-result-box.success {
+    display: block;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+  }
+  .s1718-result-box.error {
+    display: block;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+
+  @media (max-width: 900px) {
+    .s1718-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="s1718-page fa-num" x-data="stage1718Manager()">
+
+  <!-- Top Header -->
+  <div class="s1718-header">
+    <div class="s1718-title-wrap">
+      <h1>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span>مرکز ورود و خروج داده‌های اکسل (مراحل ۱۷ و ۱۸)</span>
+      </h1>
+      <p>پنل اختصاصی علیرضا نظری — مدیریت بارگذاری، دانلود قالب و استخراج اطلاعات تسهیلات و آماده‌سازی</p>
+    </div>
+
+    <div class="s1718-actions">
+      <a href="{% url 'directorate_shipments_list' %}" class="s1718-btn s1718-btn-shipment">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>تاریخچه محموله‌های ارسالی</span>
+      </a>
+      <a href="{% url 'dossier_list' %}" class="s1718-btn s1718-btn-back">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span>بازگشت به کارتابل پرونده‌ها</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Guidance Banner -->
+  <div class="s1718-banner">
+    <div class="s1718-banner-icon">
+      ⚙️
+    </div>
+    <div class="s1718-banner-text">
+      <strong>توجه ویژه و راهنما:</strong>
+      این درگاه برای مدیریت ورود و خروج اکسل پرونده‌های <strong>مرحله ۱۷ (تسهیلات چک)</strong> و <strong>مرحله ۱۸ (اقساط آماده‌سازی)</strong> در دسترس شما قرار دارد.
+      می‌توانید قالب استاندارد هر مرحله را دانلود کرده یا خروجی داده‌های موجود را استخراج کنید. همچنین فایل‌های اکسل دریافتی از این بخش قابل بارگذاری می‌باشند.
+      فیلدها و ساختار نگاشت نهایی به محض اعلام دقیق ستون‌ها توسط شما پیاده‌سازی و نهایی خواهد شد.
+    </div>
+  </div>
+
+  <!-- Two Cards: Stage 17 & Stage 18 -->
+  <div class="s1718-grid">
+
+    <!-- Card 1: Stage 17 (تسهیلات چک) -->
+    <div class="s1718-card s1718-card-stage17">
+      <div>
+        <div class="s1718-card-head">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <strong style="font-size: 1.05rem; color: #0f172a;">مرحله ۱۷ — تسهیلات چک (وام دهک)</strong>
+          </div>
+          <span class="s1718-badge s1718-badge-17">مرحله ۱۷</span>
+        </div>
+
+        <p style="font-size: 0.84rem; color: #64748b; margin-bottom: 1rem; line-height: 1.5;">
+          ثبت و به‌روزرسانی کد ملی، شماره و تاریخ تعهدنامه، نهاد تحت حمایت، بانک عامل تسهیلات و اطلاعات چک‌های ۱ تا ۷
+        </p>
+
+        <!-- Stats -->
+        <div class="s1718-stats-row">
+          <div class="s1718-stat-item">
+            <div class="s1718-stat-label">کل پرونده‌ها</div>
+            <div class="s1718-stat-val">{{ stage17_total }}</div>
+          </div>
+          <div class="s1718-stat-item" style="border-right: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0;">
+            <div class="s1718-stat-label">دارای مراجعه</div>
+            <div class="s1718-stat-val" style="color: #0d9488;">{{ stage17_visited }}</div>
+          </div>
+          <div class="s1718-stat-item">
+            <div class="s1718-stat-label">ارسال به راه و شهرسازی</div>
+            <div class="s1718-stat-val" style="color: #2563eb;">{{ stage17_shipped }}</div>
+          </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="s1718-downloads-box">
+          <a href="{% url 'stage17_18_template_download' stage=17 %}" class="s1718-btn s1718-btn-dl-template" title="دریافت قالب اکسل تمیز و استاندارد مرحله ۱۷">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>دانلود قالب اکسل مرحله ۱۷</span>
+          </a>
+          <a href="{% url 'stage17_18_data_export' stage=17 %}" class="s1718-btn s1718-btn-dl-export" title="استخراج کلیه رکوردهای مرحله ۱۷ در قالب اکسل">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span>خروجی داده‌ها</span>
+          </a>
+        </div>
+
+        <!-- Upload Form -->
+        <form @submit.prevent="submitUpload(17)" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="s1718-dropzone" 
+               :class="{ 'dragover': isDragging17 }"
+               @dragover.prevent="isDragging17 = true"
+               @dragleave.prevent="isDragging17 = false"
+               @drop.prevent="handleDrop($event, 17)"
+               @click="$refs.fileInput17.click()">
+            <input type="file" x-ref="fileInput17" style="display: none;" accept=".xlsx,.xls" @change="handleFileSelect($event, 17)">
+            <div class="s1718-dropzone-icon">📁</div>
+            <div class="s1718-dropzone-txt">کلیک جهت انتخاب فایل اکسل مرحله ۱۷ یا کشیدن فایل به این بخش</div>
+            <div class="s1718-dropzone-hint">فقط فایل‌های با پسوند xlsx. یا xls.</div>
+            <template x-if="file17">
+              <div class="s1718-file-selected" x-text="file17.name"></div>
+            </template>
+          </div>
+
+          <button type="submit" class="s1718-btn s1718-btn-upload s1718-btn-upload-17" :disabled="!file17 || loading17">
+            <span x-show="!loading17">📤 بارگذاری و پردازش فایل مرحله ۱۷</span>
+            <span x-show="loading17" x-cloak>در حال ارسال و اعتبارسنجی فایل...</span>
+          </button>
+        </form>
+
+        <div class="s1718-result-box" :class="{ 'success': result17.success, 'error': result17.error }" x-show="result17.msg" x-text="result17.msg"></div>
+      </div>
+    </div>
+
+    <!-- Card 2: Stage 18 (آماده‌سازی) -->
+    <div class="s1718-card s1718-card-stage18">
+      <div>
+        <div class="s1718-card-head">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <strong style="font-size: 1.05rem; color: #0f172a;">مرحله ۱۸ — چک‌ها و اقساط آماده‌سازی</strong>
+          </div>
+          <span class="s1718-badge s1718-badge-18">مرحله ۱۸</span>
+        </div>
+
+        <p style="font-size: 0.84rem; color: #64748b; margin-bottom: 1rem; line-height: 1.5;">
+          ثبت و به‌روزرسانی کد ملی، نامه راه شهرسازی، مبالغ و کدهای پیگیری پیش‌پرداخت و اجاره، وضعیت سند و چک‌های اقساط آماده‌سازی
+        </p>
+
+        <!-- Stats -->
+        <div class="s1718-stats-row">
+          <div class="s1718-stat-item">
+            <div class="s1718-stat-label">کل پرونده‌ها</div>
+            <div class="s1718-stat-val">{{ stage18_total }}</div>
+          </div>
+          <div class="s1718-stat-item" style="border-right: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0;">
+            <div class="s1718-stat-label">دارای مراجعه</div>
+            <div class="s1718-stat-val" style="color: #2563eb;">{{ stage18_visited }}</div>
+          </div>
+          <div class="s1718-stat-item">
+            <div class="s1718-stat-label">ارسال به راه و شهرسازی</div>
+            <div class="s1718-stat-val" style="color: #7c3aed;">{{ stage18_shipped }}</div>
+          </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="s1718-downloads-box">
+          <a href="{% url 'stage17_18_template_download' stage=18 %}" class="s1718-btn s1718-btn-dl-template" style="background: #2563eb;" title="دریافت قالب اکسل تمیز و استاندارد مرحله ۱۸">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>دانلود قالب اکسل مرحله ۱۸</span>
+          </a>
+          <a href="{% url 'stage17_18_data_export' stage=18 %}" class="s1718-btn s1718-btn-dl-export" title="استخراج کلیه رکوردهای مرحله ۱۸ در قالب اکسل">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span>خروجی داده‌ها</span>
+          </a>
+        </div>
+
+        <!-- Upload Form -->
+        <form @submit.prevent="submitUpload(18)" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="s1718-dropzone" 
+               :class="{ 'dragover': isDragging18 }"
+               @dragover.prevent="isDragging18 = true"
+               @dragleave.prevent="isDragging18 = false"
+               @drop.prevent="handleDrop($event, 18)"
+               @click="$refs.fileInput18.click()">
+            <input type="file" x-ref="fileInput18" style="display: none;" accept=".xlsx,.xls" @change="handleFileSelect($event, 18)">
+            <div class="s1718-dropzone-icon">📁</div>
+            <div class="s1718-dropzone-txt">کلیک جهت انتخاب فایل اکسل مرحله ۱۸ یا کشیدن فایل به این بخش</div>
+            <div class="s1718-dropzone-hint">فقط فایل‌های با پسوند xlsx. یا xls.</div>
+            <template x-if="file18">
+              <div class="s1718-file-selected" x-text="file18.name"></div>
+            </template>
+          </div>
+
+          <button type="submit" class="s1718-btn s1718-btn-upload s1718-btn-upload-18" :disabled="!file18 || loading18">
+            <span x-show="!loading18">📤 بارگذاری و پردازش فایل مرحله ۱۸</span>
+            <span x-show="loading18" x-cloak>در حال ارسال و اعتبارسنجی فایل...</span>
+          </button>
+        </form>
+
+        <div class="s1718-result-box" :class="{ 'success': result18.success, 'error': result18.error }" x-show="result18.msg" x-text="result18.msg"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function stage1718Manager() {
+  return {
+    file17: null,
+    file18: null,
+    isDragging17: false,
+    isDragging18: false,
+    loading17: false,
+    loading18: false,
+    result17: { success: false, error: false, msg: '' },
+    result18: { success: false, error: false, msg: '' },
+
+    handleFileSelect(e, stage) {
+      if (e.target.files && e.target.files.length > 0) {
+        if (stage === 17) this.file17 = e.target.files[0];
+        if (stage === 18) this.file18 = e.target.files[0];
+      }
+    },
+
+    handleDrop(e, stage) {
+      if (stage === 17) this.isDragging17 = false;
+      if (stage === 18) this.isDragging18 = false;
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        if (stage === 17) this.file17 = e.dataTransfer.files[0];
+        if (stage === 18) this.file18 = e.dataTransfer.files[0];
+      }
+    },
+
+    async submitUpload(stage) {
+      const file = stage === 17 ? this.file17 : this.file18;
+      if (!file) return;
+
+      if (stage === 17) {
+        this.loading17 = true;
+        this.result17 = { success: false, error: false, msg: '' };
+      } else {
+        this.loading18 = true;
+        this.result18 = { success: false, error: false, msg: '' };
+      }
+
+      const fd = new FormData();
+      fd.append('excel_file', file);
+
+      try {
+        const resp = await fetch(`/stage17-18/excel/upload/${stage}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: fd
+        });
+        const data = await resp.json();
+        if (data.success) {
+          if (stage === 17) {
+            this.result17 = { success: true, error: false, msg: data.message };
+          } else {
+            this.result18 = { success: true, error: false, msg: data.message };
+          }
+        } else {
+          const err = data.error || 'خطای نامشخص در بارگذاری فایل.';
+          if (stage === 17) {
+            this.result17 = { success: false, error: true, msg: err };
+          } else {
+            this.result18 = { success: false, error: true, msg: err };
+          }
+        }
+      } catch (err) {
+        const errMsg = 'خطا در ارتباط با سرور: ' + err.message;
+        if (stage === 17) {
+          this.result17 = { success: false, error: true, msg: errMsg };
+        } else {
+          this.result18 = { success: false, error: true, msg: errMsg };
+        }
+      } finally {
+        if (stage === 17) this.loading17 = false;
+        if (stage === 18) this.loading18 = false;
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

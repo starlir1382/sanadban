@@ -8,69 +8,69 @@ Official 21-Stage Workflow Architecture (Stages 1 to 21).
 
 # 1. Field to Stage Mapping (Stages 1 to 21)
 FIELD_STAGE_MAP = {
-    # Step 1 (بخش ۱): متقاضی، همسر، پروژه و واحد (قابل ویرایش توسط کارشناس مرحله ۱ و هر دو کاربر مراحل ۸ و ۹)
-    "national_id": [1, 8, 9],
-    "first_name": [1, 8, 9],
-    "last_name": [1, 8, 9],
-    "full_name": [1, 8, 9],
-    "father_name": [1, 8, 9],
-    "birth_date": [1, 8, 9],
-    "applicant_phone": [1, 8, 9],
-    "applicant_address": [1, 8, 9],
-    "applicant_postal_code": [1, 8, 9],
-    "applicant_landline_phone": [1, 8, 9],
-    "applicant_id_serial": [1, 8, 9],
-    "applicant_id_number": [1, 8, 9],
-    "applicant_birth_place": [1, 8, 9],
-    "selection_rank": [1, 8, 9],
-    "decile": [1, 4, 8, 9],
-    "marital_status": [1, 8, 9],
-    "is_married_confirmed": [1, 8, 9, 10],
+    # Step 1 (بخش ۱): متقاضی، همسر، پروژه و واحد (قابل ویرایش توسط کارشناس مراحل ۱ و ۲ و هر دو کاربر مراحل ۸ و ۹)
+    "national_id": [1, 2, 8, 9],
+    "first_name": [1, 2, 8, 9],
+    "last_name": [1, 2, 8, 9],
+    "full_name": [1, 2, 8, 9],
+    "father_name": [1, 2, 8, 9],
+    "birth_date": [1, 2, 8, 9],
+    "applicant_phone": [1, 2, 8, 9],
+    "applicant_address": [1, 2, 8, 9],
+    "applicant_postal_code": [1, 2, 8, 9],
+    "applicant_landline_phone": [1, 2, 8, 9],
+    "applicant_id_serial": [1, 2, 8, 9],
+    "applicant_id_number": [1, 2, 8, 9],
+    "applicant_birth_place": [1, 2, 8, 9],
+    "selection_rank": [1, 2, 8, 9],
+    "decile": [1, 2, 4, 8, 9],
+    "marital_status": [1, 2, 8, 9],
+    "is_married_confirmed": [1, 2, 8, 9, 10],
     "is_installment_booklet_confirmed": [7, 8, 9, 10],
-    "is_land_deed_confirmed": [8, 9, 12, 13],
+    "is_land_deed_confirmed": [8, 9, 12],
 
     # Spouse fields (Step 1 & Steps 8, 9)
-    "spouse_first_name": [1, 8, 9],
-    "spouse_last_name": [1, 8, 9],
-    "spouse_full_name": [1, 8, 9],
-    "spouse_father_name": [1, 8, 9],
-    "spouse_national_id": [1, 8, 9],
-    "spouse_birth_date": [1, 8, 9],
-    "spouse_id_number": [1, 8, 9],
-    "spouse_id_serial": [1, 8, 9],
-    "spouse_birth_place": [1, 8, 9],
+    "spouse_first_name": [1, 2, 8, 9],
+    "spouse_last_name": [1, 2, 8, 9],
+    "spouse_full_name": [1, 2, 8, 9],
+    "spouse_father_name": [1, 2, 8, 9],
+    "spouse_national_id": [1, 2, 8, 9],
+    "spouse_birth_date": [1, 2, 8, 9],
+    "spouse_id_number": [1, 2, 8, 9],
+    "spouse_id_serial": [1, 2, 8, 9],
+    "spouse_birth_place": [1, 2, 8, 9],
 
     # Unit specifications (Step 1 & Steps 8, 9)
-    "site": [1, 8, 9],
-    "project": [1, 8, 9],
-    "project_code": [1, 2, 3, 8, 9, 10, 11],
-    "construction_type": [1, 8, 9],
-    "block_name": [1, 8, 9],
-    "block_code": [1, 8, 9],
-    "floor_number": [1, 8, 9],
-    "unit_number": [1, 8, 9],
-    "unit_code": [1, 8, 9],
-    "bedroom_count": [1, 8, 9],
-    "unit_direction": [1, 8, 9],
-    "net_unit_area": [1, 8, 9],
-    "common_area": [1, 8, 9],
-    "total_area": [1, 8, 9],
-    "unit_area": [1, 8, 9],
-    "storage_number": [1, 8, 9],
-    "storage_area": [1, 8, 9],
-    "parking_number": [1, 8, 9],
-    "parking_area": [1, 8, 9],
-    "bank_name": [1, 6, 8, 9],
-    "bank_branch": [1, 6, 8, 9],
+    "site": [1, 2, 8, 9],
+    "project": [1, 2, 8, 9],
+    "project_code": [1, 2, 8, 9, 10],
+    "construction_type": [1, 2, 8, 9],
+    "block_name": [1, 2, 8, 9],
+    "block_code": [1, 2, 8, 9],
+    "floor_number": [1, 2, 8, 9],
+    "unit_number": [1, 2, 8, 9],
+    "unit_code": [1, 2, 8, 9],
+    "bedroom_count": [1, 2, 8, 9],
+    "unit_direction": [1, 2, 8, 9],
+    "net_unit_area": [1, 2, 8, 9],
+    "common_area": [1, 2, 8, 9],
+    "total_area": [1, 2, 8, 9],
+    "unit_area": [1, 2, 8, 9],
+    "storage_number": [1, 2, 8, 9],
+    "storage_area": [1, 2, 8, 9],
+    "parking_number": [1, 2, 8, 9],
+    "parking_area": [1, 2, 8, 9],
+    "bank_name": [1, 2, 6, 8, 9],
+    "bank_branch": [1, 2, 6, 8, 9],
 
-    # Step 2 (بخش ۲): اطلاعات ثبتی، پلاک و قیمت تمام شده (قابل ویرایش در مرحله ۲ و هر دو کاربر مراحل ۸ و ۹)
-    "registration_section": [2, 8, 9, 12, 13, 14],
-    "main_plaque": [2, 8, 9, 12, 13, 14],
-    "separated_plaque": [2, 8, 9, 12, 13, 14],
-    "sub_plaque": [2, 8, 9, 12, 13, 14],
-    "plot_number": [2, 8, 9, 12, 13, 14],
-    "renovation_code": [2, 8, 9, 12, 13, 14],
-    "base_cost_without_loan": [2, 8, 9, 19],
+    # Step 2 (بخش ۲): اطلاعات ثبتی، پلاک و قیمت تمام شده (مرحله ۲ دسترسی ندارد، مراحل ۱۳، ۱۴، ۱۵ فیلدی تغییر نمی‌دهند)
+    "registration_section": [8, 9, 12],
+    "main_plaque": [8, 9, 12],
+    "separated_plaque": [8, 9, 12],
+    "sub_plaque": [8, 9, 12],
+    "plot_number": [8, 9, 12],
+    "renovation_code": [8, 9, 12],
+    "base_cost_without_loan": [8, 9, 19],
 
     # Step 3 & Step 11: کارشناس بررسی فرم ج (عالمی) / کارشناس ثبت فرم ج اداره کل
     "applicant_form_j_status": [3, 11],
@@ -113,10 +113,9 @@ FIELD_STAGE_MAP = {
     "has_sana": [7, 8],
     "has_national_id_doc": [7, 8],
 
-    # Step 13: کارشناس املاک (مشخصات و تأیید سند مالکیت عرصه)
-    "deed_number": [13],
-    "deed_date": [13],
-    "is_land_deed_confirmed": [13],
+    # Step 13: کارشناس املاک (مراحل ۱۳، ۱۴، ۱۵ فقط امضا ثبت می‌کنند و فیلدی را تغییر نمی‌دهند)
+    "deed_number": [8, 9, 12],
+    "deed_date": [8, 9, 12],
 
     # Step 15: کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)
     "total_land_share": [16],
@@ -152,13 +151,20 @@ FIELD_STAGE_MAP = {
     "total_preparation_check_amount": [17, 18],
     "preparation_check_entries_json": [17, 18],
     "is_preparation_checks_confirmed": [17, 18],
+    "visit_date": [17, 18],
+    "loan_visit_date": [17],
+    "prep_visit_date": [18],
 
-    # Step 2 & 20: شماره و تاریخ نامه راه و شهرسازی (قابل ویرایش در بخش ۲ و مرحله ۲۰)
-    "rah_letter": [2, 8, 9, 12, 13, 14, 20],
-    "rah_letter_date": [2, 8, 9, 12, 13, 14, 20],
+    # Step 20: شماره و تاریخ نامه راه و شهرسازی (قابل ویرایش در بخش ۲ و مرحله ۲۰)
+    "rah_letter": [8, 9, 12, 20],
+    "rah_letter_date": [8, 9, 12, 20],
     "notary_office_number": [20],
     "notary_letter_number": [20],
     "notary_letter_date": [20],
+
+    # Step 21: کارشناس قرارداد اجاره و چاپ (بخش ۱۲)
+    "lease_contract_number": [21],
+    "lease_contract_date": [21],
 }
 
 # 2. 14 Archival Signatures Slot to Stage Mapping (imported from stages.py)
@@ -208,10 +214,100 @@ def get_user_allowed_stages_set(user):
     except Exception:
         return set()
 
+STAGE17_18_TRACKING_USERS = frozenset({"alireza_nazari", "alireza-nazari"})
+STAGE17_18_TRACKING_FIELDS = frozenset({
+    "visit_date",
+    "loan_visit_date",
+    "prep_visit_date",
+})
+DIRECTORATE_SHIPMENT_READONLY_FIELDS = frozenset({
+    "is_loan_sent_to_directorate",
+    "loan_directorate_sent_date",
+    "is_prep_sent_to_directorate",
+    "prep_directorate_sent_date",
+})
+
+
+def can_user_view_approved_checks(user) -> bool:
+    """
+    Approved checks awaiting final signature queue/card/filter ('چک‌های تاییدشده')
+    is restricted strictly to 'alireza_nazari' / 'alireza-nazari' only.
+    """
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    username_norm = (getattr(user, "username", "") or "").strip().lower()
+    return username_norm in STAGE17_18_TRACKING_USERS
+
+
+def is_alireza_nazari_user(user) -> bool:
+    """
+    Returns True strictly for user 'alireza_nazari' / 'alireza-nazari'.
+    """
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    username_norm = (getattr(user, "username", "") or "").strip().lower()
+    return username_norm in STAGE17_18_TRACKING_USERS
+
+
+def can_user_manage_stage17_18_tracking(user) -> bool:
+    if getattr(getattr(user, 'profile', None), 'is_readonly', False):
+        return False
+    """
+    Stage 17/18 visit tracking & Directorate shipments are restricted strictly to:
+    1) User 'alireza_nazari' / 'alireza-nazari', and
+    2) Active experts specifically assigned to stages 17 and/or 18 (not admins, chiefs,
+       'system' organization, or 'all'-stages users).
+    """
+    if not user or not user.is_authenticated or not user.is_active:
+        return False
+    username_norm = (getattr(user, "username", "") or "").strip().lower()
+    if username_norm in STAGE17_18_TRACKING_USERS:
+        return True
+    if user.is_superuser:
+        return False
+    profile = getattr(user, "profile", None)
+    if not profile or not profile.is_active_expert:
+        return False
+    if profile.is_housing_chief or profile.organization == "system" or str(profile.allowed_stages).strip() == "all":
+        return False
+    try:
+        stages = {
+            int(s.strip())
+            for s in str(profile.allowed_stages).split(",")
+            if s.strip().isdigit()
+        }
+    except Exception:
+        return False
+    return bool(stages) and stages.issubset({17, 18})
+
+
+def get_stage17_18_allowed_stages_set(user) -> set:
+    """Return the exact subset of {17, 18} the user may act upon, or empty set."""
+    if not can_user_manage_stage17_18_tracking(user):
+        return set()
+    username_norm = (getattr(user, "username", "") or "").strip().lower()
+    if username_norm in STAGE17_18_TRACKING_USERS:
+        return {17, 18}
+    allowed = get_user_allowed_stages_set(user)
+    if allowed == "all":
+        return set()
+    return {s for s in allowed if s in (17, 18)}
+
+
 def can_user_edit_field(user, field_name):
+    if getattr(getattr(user, 'profile', None), 'is_readonly', False):
+        return False
     """
     Checks if the user has permission to modify the given field.
     """
+    if field_name in DIRECTORATE_SHIPMENT_READONLY_FIELDS:
+        return False
+    if field_name in STAGE17_18_TRACKING_FIELDS:
+        tracking_stages = get_stage17_18_allowed_stages_set(user)
+        if not tracking_stages:
+            return False
+        stages_for_field = FIELD_STAGE_MAP.get(field_name, [])
+        return bool(tracking_stages.intersection(stages_for_field))
     allowed_stages = get_user_allowed_stages_set(user)
     if allowed_stages == "all":
         return True
@@ -226,6 +322,8 @@ def can_user_edit_field(user, field_name):
     return bool(allowed_stages.intersection(stages_for_field))
 
 def can_user_upload_signature(user, slot_key):
+    if getattr(getattr(user, 'profile', None), 'is_readonly', False):
+        return False
     """
     Checks if the user is authorized to upload or edit the signature for a given slot.
     """
@@ -239,15 +337,26 @@ def can_user_upload_signature(user, slot_key):
     return bool(allowed_stages.intersection(slot_stages))
 
 def filter_allowed_updates(user, data_dict):
+    if getattr(getattr(user, 'profile', None), 'is_readonly', False):
+        return {}
     """
     Filters incoming draft update dictionary, stripping any fields that the user is not authorized to edit.
     """
+    clean_dict = {
+        k: v for k, v in data_dict.items()
+        if k not in DIRECTORATE_SHIPMENT_READONLY_FIELDS
+    }
     allowed_stages = get_user_allowed_stages_set(user)
     if allowed_stages == "all":
-        return data_dict
+        if can_user_manage_stage17_18_tracking(user):
+            return clean_dict
+        return {
+            key: value for key, value in clean_dict.items()
+            if key not in STAGE17_18_TRACKING_FIELDS
+        }
     
     filtered = {}
-    for key, value in data_dict.items():
+    for key, value in clean_dict.items():
         if can_user_edit_field(user, key):
             filtered[key] = value
     return filtered

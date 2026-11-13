@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+{% load static persian_tags %}
+
+{% block title %}تاریخچه محموله‌های ارسالی به راه و شهرسازی | سامانه مسکن یار{% endblock %}
+
+{% block content %}
+<style>
+  .sh-page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 1.4rem 1.25rem 3rem;
+    direction: rtl;
+  }
+  .sh-header {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .sh-title-wrap h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .sh-title-wrap p {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  .sh-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #1e293b;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.18s ease;
+  }
+  .sh-back-btn:hover {
+    background: #e2e8f0;
+  }
+  .sh-controls {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 0.9rem 1.15rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+  }
+  .sh-filter-pills {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .sh-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 11px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.16s ease;
+  }
+  .sh-pill.active {
+    background: #0d9488;
+    border-color: #0d9488;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.28);
+  }
+  .sh-pill-cnt {
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    background: rgba(15, 23, 42, 0.08);
+  }
+  .sh-pill.active .sh-pill-cnt {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+  }
+  .sh-search-form {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex: 1 1 280px;
+    max-width: 420px;
+  }
+  .sh-search-input {
+    width: 100%;
+    height: 40px;
+    border-radius: 11px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #0f172a;
+    padding: 0 0.85rem;
+    font-family: inherit;
+    font-size: 0.84rem;
+    outline: none;
+  }
+  .sh-search-input:focus {
+    border-color: #0d9488;
+    background: #ffffff;
+  }
+  .sh-search-btn {
+    height: 40px;
+    padding: 0 1rem;
+    border-radius: 11px;
+    border: none;
+    background: #1e293b;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .sh-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .sh-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.35rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.2s ease, transform 0.15s ease;
+  }
+  .sh-card:hover {
+    border-color: #cbd5e1;
+  }
+  .sh-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .sh-code-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+  .sh-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #0f172a;
+    direction: ltr;
+  }
+  .sh-type-badge {
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 0.22rem 0.7rem;
+    border-radius: 999px;
+  }
+  .sh-type-badge.loan {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+  }
+  .sh-type-badge.prep {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+  .sh-meta-line {
+    margin: 0.45rem 0 0;
+    font-size: 0.86rem;
+    color: #475569;
+  }
+  .sh-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .sh-toggle-btn {
+    padding: 0.55rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .sh-print-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.58rem 1.1rem;
+    border-radius: 12px;
+    background: #0d9488;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 8px 18px rgba(13, 148, 136, 0.24);
+    transition: background 0.16s ease, transform 0.12s ease;
+  }
+  .sh-print-btn:hover {
+    background: #14b8a6;
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+  .sh-preview {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid #e2e8f0;
+    overflow-x: auto;
+  }
+  .sh-mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .sh-mini-table th,
+  .sh-mini-table td {
+    padding: 0.48rem 0.65rem;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: right;
+  }
+  .sh-mini-table th {
+    color: #64748b;
+    font-weight: 700;
+  }
+  .sh-empty {
+    text-align: center;
+    padding: 4.5rem 1.5rem;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 18px;
+    color: #64748b;
+    font-size: 0.95rem;
+  }
+
+  /* Dark mode matching Tashilat ShipmentsView */
+  [data-theme="dark"] .sh-header,
+  [data-theme="dark"] .sh-controls,
+  [data-theme="dark"] .sh-empty {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  [data-theme="dark"] .sh-card {
+    background: rgba(30, 41, 59, 0.55);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+  }
+  [data-theme="dark"] .sh-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  [data-theme="dark"] .sh-title-wrap h1,
+  [data-theme="dark"] .sh-code {
+    color: #ffffff;
+  }
+  [data-theme="dark"] .sh-title-wrap p,
+  [data-theme="dark"] .sh-meta-line {
+    color: #94a3b8;
+  }
+  [data-theme="dark"] .sh-back-btn,
+  [data-theme="dark"] .sh-toggle-btn,
+  [data-theme="dark"] .sh-pill:not(.active) {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+  }
+  [data-theme="dark"] .sh-search-input {
+    background: rgba(15, 23, 42, 0.85);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #f8fafc;
+  }
+  [data-theme="dark"] .sh-search-btn {
+    background: #334155;
+  }
+  [data-theme="dark"] .sh-type-badge.loan {
+    background: rgba(14, 165, 233, 0.16);
+    color: #7dd3fc;
+    border-color: rgba(56, 189, 248, 0.3);
+  }
+  [data-theme="dark"] .sh-type-badge.prep {
+    background: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+  [data-theme="dark"] .sh-preview,
+  [data-theme="dark"] .sh-mini-table th,
+  [data-theme="dark"] .sh-mini-table td {
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+  }
+  [data-theme="dark"] .sh-mini-table th {
+    color: #94a3b8;
+  }
+</style>
+
+<div class="sh-page fa-num">
+  <div class="sh-header">
+    <div class="sh-title-wrap">
+      <h1>
+        <span>📦 تاریخچه محموله‌های ارسالی به راه و شهرسازی</span>
+      </h1>
+      <p>مشاهده کلیه دسته‌های ارسال‌شده (تسهیلات چک مرحله ۱۷ و آماده‌سازی مرحله ۱۸) و چاپ مجدد لیست A4</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+      {% if is_alireza_nazari %}
+      <a href="{% url 'stage17_18_excel_hub' %}" class="sh-back-btn" style="background: #ecfdf5; border-color: #a7f3d0; color: #065f46;" title="مرکز بارگذاری و دانلود اکسل تسهیلات و آماده‌سازی">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span>اکسل مراحل ۱۷ و ۱۸</span>
+      </a>
+      {% endif %}
+      <a href="{% url 'dossier_list' %}" class="sh-back-btn">
+        <span>← بازگشت به فهرست پرونده‌ها</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="sh-controls">
+    <div class="sh-filter-pills">
+      <a href="{% url 'directorate_shipments_list' %}?type=ALL{% if query %}&q={{ query|urlencode }}{% endif %}"
+         class="sh-pill {% if type_filter == 'ALL' %}active{% endif %}">
+        <span>همه محموله‌ها</span>
+        <span class="sh-pill-cnt">{{ total_count }}</span>
+      </a>
+      {% if 'LOAN' in allowed_types %}
+      <a href="{% url 'directorate_shipments_list' %}?type=LOAN{% if query %}&q={{ query|urlencode }}{% endif %}"
+         class="sh-pill {% if type_filter == 'LOAN' %}active{% endif %}">
+        <span>تسهیلات چک (مرحله ۱۷)</span>
+        <span class="sh-pill-cnt">{{ loan_count }}</span>
+      </a>
+      {% endif %}
+      {% if 'PREP' in allowed_types %}
+      <a href="{% url 'directorate_shipments_list' %}?type=PREP{% if query %}&q={{ query|urlencode }}{% endif %}"
+         class="sh-pill {% if type_filter == 'PREP' %}active{% endif %}">
+        <span>آماده‌سازی (مرحله ۱۸)</span>
+        <span class="sh-pill-cnt">{{ prep_count }}</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <form method="get" action="{% url 'directorate_shipments_list' %}" class="sh-search-form">
+      <input type="hidden" name="type" value="{{ type_filter }}">
+      <input type="text" name="q" value="{{ query }}" class="sh-search-input"
+             placeholder="جستجو با کد محموله (SHP-...)، نام یا کدملی...">
+      <button type="submit" class="sh-search-btn">جستجو</button>
+    </form>
+  </div>
+
+  {% if not shipments %}
+  <div class="sh-empty">
+    هنوز هیچ پرونده‌ای به راه و شهرسازی ارسال نشده است. از فهرست پرونده‌ها، پرونده‌های مورد نظر را تیک بزنید و دکمه «ارسال تسهیلات چک» یا «ارسال آماده‌سازی» را بزنید.
+  </div>
+  {% else %}
+  <div class="sh-list">
+    {% for s in shipments %}
+    <div class="sh-card" x-data="{ open: false }">
+      <div class="sh-card-top">
+        <div>
+          <div class="sh-code-row">
+            <span class="sh-code">{{ s.shipment_code }}</span>
+            <span class="sh-type-badge {% if s.shipment_type == 'PREP' %}prep{% else %}loan{% endif %}">
+              {{ s.shipment_type_label }}
+            </span>
+          </div>
+          <p class="sh-meta-line">
+            {{ s.record_count }} پرونده
+            · تاریخ ارسال: {{ s.sent_date }}
+            · تاریخ ثبت: {{ s.created_at_jalali }}
+            {% if s.created_by %} · {{ s.created_by }}{% endif %}
+            {% if s.note %} · {{ s.note }}{% endif %}
+          </p>
+        </div>
+
+        <div class="sh-card-actions">
+          <button type="button" class="sh-toggle-btn" @click="open = !open"
+                  x-text="open ? 'بستن جزئیات ▴' : 'مشاهده پرونده‌ها ({{ s.record_count }}) ▾'"></button>
+          <a href="{{ s.print_url }}" target="_blank" rel="noopener" class="sh-print-btn">
+            <span>چاپ ارسالی ها</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sh-preview" x-show="open" x-cloak x-transition>
+        <table class="sh-mini-table">
+          <thead>
+            <tr>
+              <th>ردیف</th>
+              <th>بایگانی</th>
+              <th>نام و نام خانوادگی</th>
+              <th>کد ملی</th>
+              <th>شماره تماس</th>
+              <th>پیمانکار / پروژه</th>
+              <th>تعداد چک</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in s.dossiers %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td><a href="{% url 'dossier_detail' pk=d.archive_number %}" style="color: #0d9488; font-weight: 700; text-decoration: none;">{{ d.archive_number }}</a></td>
+              <td>{{ d.full_name }}</td>
+              <td dir="ltr" style="text-align: right;">{{ d.national_id }}</td>
+              <td dir="ltr" style="text-align: right;">{{ d.applicant_phone }}</td>
+              <td>{{ d.contractor_display }}</td>
+              <td>{{ d.check_count_type }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

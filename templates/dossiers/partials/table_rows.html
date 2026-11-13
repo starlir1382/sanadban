@@ -1,5 +1,5 @@
 {% for d in dossiers %}
-<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.stage_entry_date_jalali }} {{ d.list_bank_letter_code }} {{ d.list_notary_letter_code }}{% if d.has_confirmed_checks %} چک تایید شده چک‌های تاییدشده{% endif %}">
+<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.current_location_display }} {{ d.stage_entry_date_jalali }} {{ d.list_bank_letter_code }} {{ d.list_notary_letter_code }}{% if d.has_confirmed_checks %} چک تایید شده چک‌های تاییدشده{% endif %}{% if can_manage_directorate_shipments %}{% if d.visit_date %} تاریخ مراجعه {{ d.visit_date }}{% endif %}{% if d.is_loan_sent_to_directorate %} ارسال تسهیلات چک راه و شهرسازی {{ d.loan_directorate_sent_date }}{% if d.loan_directorate_shipment %} {{ d.loan_directorate_shipment.shipment_code }}{% endif %}{% endif %}{% if d.is_prep_sent_to_directorate %} ارسال آماده سازی آماده‌سازی راه و شهرسازی {{ d.prep_directorate_sent_date }}{% if d.prep_directorate_shipment %} {{ d.prep_directorate_shipment.shipment_code }}{% endif %}{% endif %}{% endif %}">
   
   <!-- Checkbox for Batch Signing -->
   <td class="t-center dl-td-chk">
@@ -7,7 +7,7 @@
            class="dossier-chk" 
            value="{{ d.archive_number }}" 
            data-stage="{{ d.current_stage }}"
-           {% if d.is_locked %}disabled title="پرونده نهایی و بایگانی شده است"{% endif %}
+           {% if d.is_locked or is_readonly_user %}disabled title="{% if is_readonly_user %}حساب کاربری فقط خواندنی است{% else %}پرونده نهایی و بایگانی شده است{% endif %}"{% endif %}
            onchange="updateSelectedDossiers()"
            style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;">
   </td>
@@ -41,41 +41,9 @@
     </div>
   </td>
 
-  <!-- 4. Stage + Date + Status -->
+  <!-- 4. Stage + Location + Role + Date + Status -->
   <td class="fa-num">
-    <div class="dl-stage">
-      <span class="dl-stage-pill {% if d.current_stage == 22 or d.is_locked %}done{% elif d.current_unit == 'brokerage' %}brokerage{% else %}directorate{% endif %}" title="مرحله {{ d.current_stage }}: {{ d.current_stage_title }}">
-        <span class="lbl">مرحله</span>
-        <span class="no fa-num">{{ d.current_stage }}</span>
-      </span>
-
-      <span class="dl-stage-title fa-num" title="{{ d.current_stage_title }}">{{ d.current_stage_title }}</span>
-
-      <span class="dl-date fa-num" title="تاریخ ورود به مرحله {{ d.current_stage }}: {{ d.stage_entry_date_jalali|default:'ثبت‌نشده' }}">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        <span>{{ d.stage_entry_date_jalali|default:'-' }}</span>
-      </span>
-
-      {% if d.status == 'REJECTED_RED' or d.status == 'DELETED' or d.status == 'REJECT_RED_PENDING' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked or d.has_pending_check_signature %}
-      <div class="dl-stage-meta">
-        {% if d.status == 'DELETED' %}
-          <span class="dl-status gray" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700;" title="حذف و بایگانی{% if d.deletion_reason %}: {{ d.deletion_reason }}{% endif %}">🗑 حذف و راکد</span>
-        {% elif d.status == 'REJECTED_RED' %}
-          <span class="dl-status red" title="رد صلاحیت - فرم «ج» قرمز (عدم واگذاری واحد)">⛔ رد صلاحیت فرم ج</span>
-        {% elif d.status == 'REJECT_RED_PENDING' %}
-          <span class="dl-status red" style="background: #fff1f2; color: #be123c; border: 1.5px solid #f43f5e; font-weight: 800;" title="ارجاع شده توسط کارشناس به مدیر سامانه جهت تعیین تکلیف و صدور ابلاغیه رد صلاحیت">🚨 ارجاع به ادمین (فرم ج)</span>
-        {% elif d.is_red_form_j and d.status != 'REJECTED_RED' %}
-          <span class="dl-status orange" title="فرم «ج» قرمز - نیازمند ابلاغ رد صلاحیت رئیس مسکن">⚠ فرم «ج» قرمز</span>
-        {% elif d.current_stage == 22 or d.is_locked %}
-          <span class="dl-status green" title="نهایی و بایگانی قطعی (مختومه)">✓ مختومه</span>
-        {% elif d.has_pending_check_signature %}
-          <span class="dl-status green" style="background: #ecfdf5; color: #065f46; border: 1.5px solid #10b981; font-weight: 800;" title="تاییدیه چک‌ها ثبت گردیده و در انتظار امضای الکترونیک مدیر چک / ادمین است">💳 چک‌های تاییدشده</span>
-        {% elif d.status == 'RETURNED' %}
-          <span class="dl-status ret" title="برگشت‌خورده جهت اصلاح{% if d.return_reason %}: {{ d.return_reason }}{% endif %}">↩ برگشت‌خورده{% if d.return_reason %}: {{ d.return_reason|truncatechars:10 }}{% endif %}</span>
-        {% endif %}
-      </div>
-      {% endif %}
-    </div>
+    {% include "dossiers/partials/_stage_cell.html" %}
   </td>
 
   <!-- 5. Optional: Bank letter & paid/signed facility/prep status -->

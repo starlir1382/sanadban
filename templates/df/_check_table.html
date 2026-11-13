@@ -19,7 +19,7 @@ Rows are keyed by `check.id` when the backend provides one, otherwise by index.
                     <th style="width: 76px;">ردیف</th>
                     <th style="width: 25%;">سررسید (شمسی)</th>
                     <th style="width: 23%;">شناسه صیادی</th>
-                    <th style="width: 20%;">بانک صادرکننده</th>
+                    <th style="width: 20%;">بانک صادر کننده چک</th>
                     <th style="width: 24%;">مبلغ</th>
                     <th style="width: 44px;"><span class="sr-only" style="position:absolute;left:-9999px;">حذف</span></th>
                 </tr>
@@ -38,7 +38,7 @@ Rows are keyed by `check.id` when the backend provides one, otherwise by index.
                                    placeholder="۱۶ رقم">
                         </td>
                         <td>
-                            <input type="text" class="df-input" x-model="check.bank_name" :readonly="!isFieldEditable('{{ ed }}')" placeholder="مثال: مسکن">
+                            <input type="text" class="df-input" x-model="check.bank_name" :readonly="!isFieldEditable('{{ ed }}')" placeholder="نام بانک صادرکننده چک">
                         </td>
                         <td>
                             <div class="df-money">

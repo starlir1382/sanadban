@@ -348,8 +348,32 @@ html[data-theme="dark"] .dl-stage-pill.done {
   color: #6ee7b7 !important;
   border-color: rgba(16, 185, 129, 0.4) !important;
 }
+html[data-theme="dark"] .dl-stage-loc.loc-rah_azarm {
+  background: rgba(99, 102, 241, 0.18) !important;
+  color: #a5b4fc !important;
+  border-color: rgba(129, 140, 248, 0.35) !important;
+}
+html[data-theme="dark"] .dl-stage-loc.loc-zamin_tarsim {
+  background: rgba(20, 184, 166, 0.16) !important;
+  color: #5eead4 !important;
+  border-color: rgba(45, 212, 191, 0.35) !important;
+}
+html[data-theme="dark"] .dl-stage-loc.loc-directorate {
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(52, 211, 153, 0.35) !important;
+}
+html[data-theme="dark"] .dl-stage-loc.loc-archive {
+  background: rgba(148, 163, 184, 0.16) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.32) !important;
+}
 html[data-theme="dark"] .dl-stage-title {
-  color: #64748b !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .dl-stage-role {
+  color: inherit !important;
+  opacity: 0.78;
 }
 
 html[data-theme="dark"] .dl-date {
@@ -384,7 +408,8 @@ html[data-theme="dark"] .dl-btn.ghost {
   color: #e2e8f0 !important;
   border-color: #24344d !important;
 }
-html[data-theme="dark"] .dl-extras-list {
+html[data-theme="dark"] .dl-extras-list,
+html[data-theme="dark"] .dl-track-box {
   background: #0b1220 !important;
   border-color: #1e293b !important;
 }
@@ -415,6 +440,26 @@ html[data-theme="dark"] .dl-extra-chip.empty {
 }
 html[data-theme="dark"] .dl-extra-chip.empty .dt {
   color: #94a3b8 !important;
+}
+html[data-theme="dark"] .dl-track-chip.visit-17 {
+  background: rgba(59, 130, 246, 0.14) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.32) !important;
+}
+html[data-theme="dark"] .dl-track-chip.visit-18 {
+  background: rgba(99, 102, 241, 0.16) !important;
+  color: #a5b4fc !important;
+  border-color: rgba(99, 102, 241, 0.34) !important;
+}
+html[data-theme="dark"] .dl-track-chip.ship-loan {
+  background: rgba(6, 182, 212, 0.14) !important;
+  color: #67e8f9 !important;
+  border-color: rgba(6, 182, 212, 0.32) !important;
+}
+html[data-theme="dark"] .dl-track-chip.ship-prep {
+  background: rgba(16, 185, 129, 0.14) !important;
+  color: #6ee7b7 !important;
+  border-color: rgba(16, 185, 129, 0.32) !important;
 }
 /* Strict Catalog Searchable Dropdown Dark Mode */
 /* Section 9 Formula Card Dark Mode */

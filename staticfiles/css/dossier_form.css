@@ -454,7 +454,7 @@ select.df-input:disabled { cursor: default; }
 }
 .df-formula-subhead { font-size: .72rem; font-weight: 800; color: var(--df-muted); margin-bottom: 6px; }
 .df-excel-grid {
-    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
 }
 .df-excel-grid .df-f-term { min-width: 0; padding: 6px 6px; }
 .df-formula-rates {
@@ -485,6 +485,39 @@ select.df-input:disabled { cursor: default; }
     .df-excel-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .df-formula-rates { grid-template-columns: 1fr; }
 }
-@media (max-width: 600px) { .df-excel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .df-excel-grid { grid-template-columns: 1fr; } }
 
 @media print { .df-btn, .df-icon-btn, .df-date-btn, .df-thumb-del { display: none !important; } }
+
+
+/* Stage 17 & 18 read-only status / timestamp boxes */
+.df-readonly-box {
+    min-height: var(--df-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px dashed #cbd5e1;
+    background: rgba(248, 250, 252, 0.9);
+    color: #475569;
+    font-size: 0.84rem;
+    box-sizing: border-box;
+}
+.df-readonly-box.is-sent {
+    border-style: solid;
+    border-color: #34d399;
+    background: rgba(236, 253, 245, 0.85);
+    color: #065f46;
+}
+[data-theme='dark'] .df-readonly-box {
+    border-color: rgba(148, 163, 184, 0.3);
+    background: rgba(15, 23, 42, 0.55);
+    color: #cbd5e1;
+}
+[data-theme='dark'] .df-readonly-box.is-sent {
+    border-color: rgba(52, 211, 153, 0.5);
+    background: rgba(6, 78, 59, 0.4);
+    color: #6ee7b7;
+}

@@ -4,7 +4,8 @@
 {% block title %}مدیریت نرخ‌های مصوب عرصه و آماده‌سازی | مسکن یار{% endblock %}
 
 {% block content %}
-<div class="sb-rates-page" x-data="landRatesManager()" x-cloak>
+<div class="sb-rates-page" x-data="landRatesManager('{{ active_tab|default:'apartment' }}')" x-cloak>
+    {% csrf_token %}
     <!-- Header Section -->
     <div class="sb-page-header">
         <div>
@@ -17,30 +18,92 @@
                 <span>مدیریت نرخ‌های مصوب عرصه، اجاره و آماده‌سازی (بخش ۹)</span>
             </h1>
             <p class="sb-page-desc">
-                پایگاه داده ضرایب قدرالسهم عرصه/مشاع و نرخ‌های متری سال مبنای ۱۴۰۵ — مبنای محاسبه خودکار بخش ۹ پرونده‌های مسکن
+                {% if active_tab == 'villa' %}
+                    پایگاه داده مبالغ و نرخ‌های ویلایی بر اساس پلاک ثبتی و پروژه (بدون نگهداری اطلاعات فردی متقاضیان)
+                {% else %}
+                    پایگاه داده مجموع ضریب قدرالسهم و نرخ‌های متری سال مبنای ۱۴۰۵ — مبنای محاسبه خودکار بخش ۹ پرونده‌های آپارتمانی
+                {% endif %}
             </p>
         </div>
 
         <div class="sb-header-actions">
             <button type="button" class="sb-btn sb-btn-outline" @click="openUploadModal = true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <span>بارگذاری فایل اکسل جدید</span>
+                <span>{% if active_tab == 'villa' %}بارگذاری اکسل ویلایی{% else %}بارگذاری فایل اکسل جدید{% endif %}</span>
             </button>
 
             <a href="{% url 'land_rates_export_excel' %}" class="sb-btn sb-btn-success">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                <span>دریافت خروجی اکسل</span>
+                <span>خروجی اکسل آپارتمانی</span>
+            </a>
+
+            <a href="{% url 'villa_rates_export_excel' %}" class="sb-btn sb-btn-teal">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>خروجی اکسل ویلایی</span>
             </a>
 
             <button type="button" class="sb-btn sb-btn-primary" @click="openBulkApplyModal = true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                <span>محاسبه و اعمال گروهی به پرونده‌ها</span>
+                <span>{% if active_tab == 'villa' %}اعمال گروهی به پرونده‌های ویلایی{% else %}محاسبه و اعمال گروهی به پرونده‌ها{% endif %}</span>
             </button>
         </div>
     </div>
 
+    <!-- Mode Tabs: Apartment vs Villa -->
+    <div class="sb-tabs-bar" role="tablist">
+        <a href="{% url 'land_rates_admin' %}?tab=apartment" class="sb-tab-btn {% if active_tab != 'villa' %}active{% endif %}">
+            <span>آپارتمانی (کد نوسازی)</span>
+            <span class="sb-tab-pill fa-num">{{ total_rates|default:"0" }}</span>
+        </a>
+        <a href="{% url 'land_rates_admin' %}?tab=villa" class="sb-tab-btn {% if active_tab == 'villa' %}active villa-active{% endif %}">
+            <span>ویلایی (پلاک ثبتی)</span>
+            <span class="sb-tab-pill fa-num">{{ villa_total_rates|default:"0" }}</span>
+        </a>
+    </div>
+
     <!-- Stat Cards -->
     <div class="sb-stats-grid">
+        {% if active_tab == 'villa' %}
+        <div class="sb-stat-card">
+            <div class="sb-stat-icon emerald">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            </div>
+            <div>
+                <div class="sb-stat-value fa-num">{{ villa_total_rates|default:"0" }}</div>
+                <div class="sb-stat-label">پلاک‌های ثبتی ویلایی ثبت‌شده</div>
+            </div>
+        </div>
+
+        <div class="sb-stat-card">
+            <div class="sb-stat-icon indigo">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </div>
+            <div>
+                <div class="sb-stat-value fa-num">{{ villa_total_projects|default:"0" }}</div>
+                <div class="sb-stat-label">پروژه‌های ویلایی دارای نرخ</div>
+            </div>
+        </div>
+
+        <div class="sb-stat-card">
+            <div class="sb-stat-icon blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            </div>
+            <div>
+                <div class="sb-stat-value fa-num">{{ villa_dossiers_count|default:"0" }}</div>
+                <div class="sb-stat-label">پرونده‌های ویلایی سامانه</div>
+            </div>
+        </div>
+
+        <div class="sb-stat-card">
+            <div class="sb-stat-icon amber">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div>
+                <div class="sb-stat-value fa-num">{{ base_year|default:"1405" }}</div>
+                <div class="sb-stat-label">سال مبنای اجاره عرصه</div>
+            </div>
+        </div>
+        {% else %}
         <div class="sb-stat-card">
             <div class="sb-stat-icon blue">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
@@ -80,23 +143,29 @@
                 <div class="sb-stat-label">سال مبنای اجاره عرصه</div>
             </div>
         </div>
+        {% endif %}
     </div>
 
     <!-- Filter & Search Toolbar -->
     <div class="sb-toolbar-card">
         <form method="GET" action="{% url 'land_rates_admin' %}" class="sb-filter-form">
+            <input type="hidden" name="tab" value="{{ active_tab|default:'apartment' }}">
             <div class="sb-filter-item flex-2">
-                <label for="search-input" class="sb-filter-label">جستجو در کد نوسازی، پروژه، بلوک یا قطعه:</label>
+                <label for="search-input" class="sb-filter-label">
+                    {% if active_tab == 'villa' %}جستجو در پلاک ثبتی، پروژه/تعاونی، پلاک، معبر:{% else %}جستجو در کد نوسازی، پروژه، بلوک یا قطعه:{% endif %}
+                </label>
                 <div class="sb-input-icon-wrap">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="search-input" name="q" value="{{ q }}" placeholder="مثال: 8-806-68-2-1 یا بتن پوشش آگرین یا LL15..." class="sb-input-field fa-num">
+                    <input type="text" id="search-input" name="q" value="{{ q }}"
+                           placeholder="{% if active_tab == 'villa' %}مثال: 11507/957/3828 یا آبمواسپاد یا شهرک اول...{% else %}مثال: 8-806-68-2-1 یا بتن پوشش آگرین یا LL15...{% endif %}"
+                           class="sb-input-field fa-num">
                 </div>
             </div>
 
             <div class="sb-filter-item flex-1">
-                <label for="project-select" class="sb-filter-label">فیلتر پروژه:</label>
+                <label for="project-select" class="sb-filter-label">فیلتر پروژه / تعاونی:</label>
                 <select id="project-select" name="project" class="sb-input-field">
-                    <option value="">همه پروژه‌ها ({{ total_projects }})</option>
+                    <option value="">همه پروژه‌ها ({% if active_tab == 'villa' %}{{ villa_total_projects }}{% else %}{{ total_projects }}{% endif %})</option>
                     {% for p in distinct_projects %}
                         <option value="{{ p }}" {% if selected_project == p %}selected{% endif %}>{{ p }}</option>
                     {% endfor %}
@@ -109,7 +178,7 @@
                     <span>اعمال فیلتر</span>
                 </button>
                 {% if q or selected_project %}
-                    <a href="{% url 'land_rates_admin' %}" class="sb-btn sb-btn-ghost">لغو فیلترها</a>
+                    <a href="{% url 'land_rates_admin' %}?tab={{ active_tab|default:'apartment' }}" class="sb-btn sb-btn-ghost">لغو فیلترها</a>
                 {% endif %}
             </div>
         </form>
@@ -119,12 +188,72 @@
     <div class="sb-table-card">
         <div class="sb-table-header">
             <div class="sb-table-title">
-                <span>فهرست نرخ‌های مصوب</span>
+                <span>{% if active_tab == 'villa' %}فهرست مبالغ و نرخ‌های ویلایی (بر اساس پلاک ثبتی){% else %}فهرست نرخ‌های مصوب{% endif %}</span>
                 <span class="sb-badge-count fa-num">مجموع {{ page_obj.paginator.count }} ردیف</span>
             </div>
         </div>
 
         <div class="sb-table-responsive">
+            {% if active_tab == 'villa' %}
+            <table class="sb-data-table fa-num">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">ردیف</th>
+                        <th>پلاک ثبتی</th>
+                        <th>پلاک / قطعه</th>
+                        <th>تعاونی / پروژه</th>
+                        <th>مساحت (m²)</th>
+                        <th>معبر / واگذاری</th>
+                        <th>اجاره ۱۴۰۵ (ریال)</th>
+                        <th>اجاره تا ۱۴۰۵ (ریال)</th>
+                        <th>آماده‌سازی کل (ریال)</th>
+                        <th>هر متر آماده‌سازی</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rate in page_obj %}
+                    <tr id="villa-rate-row-{{ rate.pk }}">
+                        <td class="text-center text-muted">{{ forloop.counter0|add:page_obj.start_index }}</td>
+                        <td><span class="sb-code-tag">{{ rate.registry_plaque }}</span></td>
+                        <td>{{ rate.plot_number|default:"-" }}</td>
+                        <td class="font-bold">{{ rate.project_name|default:"-" }}</td>
+                        <td class="text-indigo">{{ rate.land_area|floatformat:"-2" }}</td>
+                        <td class="text-muted">{{ rate.street_width|default:rate.allocation_type|default:"-" }}</td>
+                        <td class="font-bold text-emerald">{{ rate.rent_current|floatformat:"-2" }}</td>
+                        <td class="text-amber">{{ rate.rent_to_date|floatformat:"-2" }}</td>
+                        <td class="text-slate font-bold">{{ rate.preparation_cost|floatformat:"-2" }}</td>
+                        <td class="text-muted">{{ rate.prep_per_m2|floatformat:"-2" }}</td>
+                        <td class="text-center">
+                            <button type="button" class="sb-btn-edit"
+                                    @click="openVillaEdit({
+                                        id: {{ rate.pk }},
+                                        registry_plaque: '{{ rate.registry_plaque|escapejs }}',
+                                        project_name: '{{ rate.project_name|escapejs }}',
+                                        plot_number: '{{ rate.plot_number|escapejs }}',
+                                        street_width: '{{ rate.street_width|escapejs }}',
+                                        allocation_type: '{{ rate.allocation_type|escapejs }}',
+                                        land_area: '{{ rate.land_area }}',
+                                        prep_per_m2: '{{ rate.prep_per_m2 }}',
+                                        rent_current: '{{ rate.rent_current }}',
+                                        rent_to_date: '{{ rate.rent_to_date }}',
+                                        preparation_cost: '{{ rate.preparation_cost }}'
+                                    })">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                <span>ویرایش</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" class="sb-empty-state">
+                            هنوز ردیف ویلایی ثبت نشده است؛ از دکمه «بارگذاری اکسل ویلایی» برای ورود فایل اکسل استفاده کنید.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
             <table class="sb-data-table fa-num">
                 <thead>
                     <tr>
@@ -133,8 +262,7 @@
                         <th>نام پروژه</th>
                         <th>قطعه</th>
                         <th>نام بلوک</th>
-                        <th>قدرالسهم عرصه</th>
-                        <th>قدرالسهم مشاع</th>
+                        <th>مجموع ضریب قدرالسهم</th>
                         <th>اجاره سال جاری (ریال)</th>
                         <th>اجاره سنوات (ریال)</th>
                         <th>آماده‌سازی (ریال)</th>
@@ -151,8 +279,7 @@
                         <td class="font-bold">{{ rate.project_name|default:"-" }}</td>
                         <td>{{ rate.plot_number|default:"-" }}</td>
                         <td>{{ rate.block_name|default:"-" }}</td>
-                        <td class="text-indigo">{{ rate.share_land }}</td>
-                        <td class="text-indigo">{{ rate.share_common }}</td>
+                        <td class="text-indigo">{{ rate.share_coefficient }}</td>
                         <td class="font-bold text-emerald">{{ rate.rent_current_per_m2|floatformat:0 }}</td>
                         <td class="text-amber">{{ rate.rent_to_date_per_m2|floatformat:0 }}</td>
                         <td class="text-slate">{{ rate.prep_per_m2|floatformat:0 }}</td>
@@ -164,8 +291,7 @@
                                         project: '{{ rate.project_name|escapejs }}',
                                         plot: '{{ rate.plot_number|escapejs }}',
                                         block: '{{ rate.block_name|escapejs }}',
-                                        share_land: '{{ rate.share_land }}',
-                                        share_common: '{{ rate.share_common }}',
+                                        share_coefficient: '{{ rate.share_coefficient }}',
                                         rent_current: '{{ rate.rent_current_per_m2 }}',
                                         rent_past: '{{ rate.rent_to_date_per_m2 }}',
                                         prep: '{{ rate.prep_per_m2 }}'
@@ -177,13 +303,14 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="11" class="sb-empty-state">
+                        <td colspan="10" class="sb-empty-state">
                             هیچ رکوردی منطبق با جستجوی شما یافت نشد.
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            {% endif %}
         </div>
 
         <!-- Pagination -->
@@ -194,15 +321,15 @@
             </div>
             <div class="sb-page-links fa-num">
                 {% if page_obj.has_previous %}
-                    <a href="?page=1{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">&laquo; اول</a>
-                    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">قبلی</a>
+                    <a href="?tab={{ active_tab|default:'apartment' }}&page=1{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">&laquo; اول</a>
+                    <a href="?tab={{ active_tab|default:'apartment' }}&page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">قبلی</a>
                 {% endif %}
 
                 <span class="sb-page-btn active">{{ page_obj.number }}</span>
 
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">بعدی</a>
-                    <a href="?page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">آخر &raquo;</a>
+                    <a href="?tab={{ active_tab|default:'apartment' }}&page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">بعدی</a>
+                    <a href="?tab={{ active_tab|default:'apartment' }}&page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if selected_project %}&project={{ selected_project|urlencode }}{% endif %}" class="sb-page-btn">آخر &raquo;</a>
                 {% endif %}
             </div>
         </div>
@@ -232,12 +359,12 @@
                     </div>
 
                     <div class="sb-field-col">
-                        <label class="sb-field-label">قدرالسهم از عرصه:</label>
-                        <input type="number" step="0.000000001" class="sb-input-field fa-num" x-model="editItem.share_land">
+                        <label class="sb-field-label">مجموع ضریب قدرالسهم:</label>
+                        <input type="number" step="0.000000001" class="sb-input-field fa-num" x-model="editItem.share_coefficient">
                     </div>
                     <div class="sb-field-col">
-                        <label class="sb-field-label">قدرالسهم از مشاع:</label>
-                        <input type="number" step="0.000000001" class="sb-input-field fa-num" x-model="editItem.share_common">
+                        <label class="sb-field-label">مبلغ یک متر هزینه آماده‌سازی (ریال):</label>
+                        <input type="number" class="sb-input-field fa-num" x-model="editItem.prep">
                     </div>
 
                     <div class="sb-field-col">
@@ -248,11 +375,6 @@
                         <label class="sb-field-label">علی‌الحساب اجاره تا پایان سال جاری (ریال):</label>
                         <input type="number" class="sb-input-field fa-num" x-model="editItem.rent_past">
                     </div>
-
-                    <div class="sb-field-col full-width">
-                        <label class="sb-field-label">مبلغ یک متر هزینه آماده‌سازی (ریال):</label>
-                        <input type="number" class="sb-input-field fa-num" x-model="editItem.prep">
-                    </div>
                 </div>
 
                 <!-- Simulation Preview -->
@@ -261,19 +383,19 @@
                     <div class="sb-calc-preview-grid fa-num">
                         <div>
                             <span class="text-muted">مجموع ضریب:</span>
-                            <strong x-text="(Number(editItem.share_land || 0) + Number(editItem.share_common || 0)).toFixed(6)"></strong>
+                            <strong x-text="Number(editItem.share_coefficient || 0).toFixed(6)"></strong>
                         </div>
                         <div>
                             <span class="text-muted">قدرالسهم:</span>
-                            <strong class="text-indigo" x-text="((100) * (Number(editItem.share_land || 0) + Number(editItem.share_common || 0))).toFixed(2) + ' m²'"></strong>
+                            <strong class="text-indigo" x-text="(100 * Number(editItem.share_coefficient || 0)).toFixed(2) + ' m²'"></strong>
                         </div>
                         <div>
                             <span class="text-muted">اجاره سال جاری:</span>
-                            <strong class="text-emerald" x-text="formatRial((100 * (Number(editItem.share_land || 0) + Number(editItem.share_common || 0))) * Number(editItem.rent_current || 0)) + ' ریال'"></strong>
+                            <strong class="text-emerald" x-text="formatRial((100 * Number(editItem.share_coefficient || 0)) * Number(editItem.rent_current || 0)) + ' ریال'"></strong>
                         </div>
                         <div>
                             <span class="text-muted">آماده‌سازی:</span>
-                            <strong class="text-slate" x-text="formatRial((100 * (Number(editItem.share_land || 0) + Number(editItem.share_common || 0))) * Number(editItem.prep || 0)) + ' ریال'"></strong>
+                            <strong class="text-slate" x-text="formatRial((100 * Number(editItem.share_coefficient || 0)) * Number(editItem.prep || 0)) + ' ریال'"></strong>
                         </div>
                     </div>
                 </div>
@@ -289,18 +411,97 @@
         </div>
     </div>
 
+    <!-- ================= VILLA EDIT MODAL ================= -->
+    <div x-show="openVillaEditModal" class="sb-modal-backdrop" @click.self="openVillaEditModal = false">
+        <div class="sb-modal-box">
+            <div class="sb-modal-header">
+                <div>
+                    <h3 class="sb-modal-title">ویرایش نرخ ویلایی (پلاک ثبتی)</h3>
+                    <div class="sb-modal-subtitle fa-num" x-text="villaEditItem.registry_plaque + ' (' + (villaEditItem.project_name || 'بدون پروژه') + ')'"></div>
+                </div>
+                <button type="button" class="sb-modal-close" @click="openVillaEditModal = false">&times;</button>
+            </div>
+
+            <div class="sb-modal-body">
+                <div class="sb-form-grid">
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">پلاک ثبتی:</label>
+                        <input type="text" class="sb-input-field fa-num" dir="ltr" x-model="villaEditItem.registry_plaque">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">تعاونی / پروژه:</label>
+                        <input type="text" class="sb-input-field" x-model="villaEditItem.project_name">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">پلاک / قطعه:</label>
+                        <input type="text" class="sb-input-field fa-num" x-model="villaEditItem.plot_number">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">مساحت عرصه (مترمربع):</label>
+                        <input type="number" step="0.01" class="sb-input-field fa-num" x-model="villaEditItem.land_area">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">معبر:</label>
+                        <input type="text" class="sb-input-field" x-model="villaEditItem.street_width">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">نحوه واگذاری:</label>
+                        <input type="text" class="sb-input-field" x-model="villaEditItem.allocation_type">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">اجاره ۱۴۰۵ (ریال):</label>
+                        <input type="number" step="0.01" class="sb-input-field fa-num" x-model="villaEditItem.rent_current">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">اجاره تا ۱۴۰۵ (ریال):</label>
+                        <input type="number" step="0.01" class="sb-input-field fa-num" x-model="villaEditItem.rent_to_date">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">هزینه آماده‌سازی کل (ریال):</label>
+                        <input type="number" step="0.01" class="sb-input-field fa-num" x-model="villaEditItem.preparation_cost">
+                    </div>
+                    <div class="sb-field-col">
+                        <label class="sb-field-label">هزینه هر متر آماده‌سازی (ریال):</label>
+                        <input type="number" step="0.01" class="sb-input-field fa-num" x-model="villaEditItem.prep_per_m2">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sb-modal-footer">
+                <button type="button" class="sb-btn sb-btn-ghost" @click="openVillaEditModal = false">انصراف</button>
+                <button type="button" class="sb-btn sb-btn-primary" :disabled="isSaving" @click="saveVillaEdit()">
+                    <span x-show="!isSaving">ذخیره تغییرات ویلایی</span>
+                    <span x-show="isSaving">در حال ذخیره...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ================= UPLOAD EXCEL MODAL ================= -->
     <div x-show="openUploadModal" class="sb-modal-backdrop" @click.self="if (!isUploading) openUploadModal = false">
         <div class="sb-modal-box">
             <div class="sb-modal-header">
-                <h3 class="sb-modal-title">بارگذاری فایل اکسل نرخ‌های مصوب</h3>
+                <h3 class="sb-modal-title" x-text="activeTab === 'villa' ? 'بارگذاری فایل اکسل نرخ‌های ویلایی (پلاک ثبتی)' : 'بارگذاری فایل اکسل نرخ‌های مصوب'"></h3>
                 <button type="button" class="sb-modal-close" @click="if (!isUploading) openUploadModal = false">&times;</button>
             </div>
 
             <div class="sb-modal-body">
-                <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
-                    فایل اکسل ارسالی باید دارای ستون‌های «کد نوسازی»، «نام پروژه»، «نام بلوک»، «قطعه»، «قدرالسهم از عرصه»، «قدرالسهم از مشاع»، «مبلغ اجاره یک متر»، «علی الحساب» و «مبلغ یک متر هزینه آماده» باشد.
-                </p>
+                <template x-if="activeTab === 'villa'">
+                    <div>
+                        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.85rem; line-height: 1.7;">
+                            فایل اکسل ویلایی بر اساس <strong>پلاک ثبتی</strong> و <strong>تعاونی/پروژه</strong> پردازش می‌شود و ارقام دقیق بدون تغییر ذخیره می‌گردند. ستون‌های اطلاعات فردی (نام، کد ملی، شماره تماس) به‌صورت خودکار نادیده گرفته می‌شوند.
+                        </p>
+                        <div class="sb-field-col" style="margin-bottom: 1rem;">
+                            <label class="sb-field-label">نام پروژه پیش‌فرض (اختیاری — برای فایل‌هایی که ستون تعاونی/پروژه ندارند):</label>
+                            <input type="text" class="sb-input-field" x-model="defaultVillaProject" placeholder="مثال: شهرک اول یا آبمواسپاد (در صورت خالی بودن از نام برگه یا سطر عنوان خوانده می‌شود)">
+                        </div>
+                    </div>
+                </template>
+                <template x-if="activeTab !== 'villa'">
+                    <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+                        فایل اکسل ارسالی باید دارای ستون‌های «کد نوسازی»، «نام پروژه»، «نام بلوک»، «قطعه»، «مجموع ضریب قدرالسهم» (یا ستون‌های مجزای ضریب عرصه و عیان/مشاع که به‌صورت خودکار با هم جمع می‌شوند)، «مبلغ اجاره یک متر»، «علی‌الحساب اجاره» و «مبلغ یک متر هزینه آماده‌سازی» باشد.
+                    </p>
+                </template>
 
                 <div class="sb-dropzone" :class="{'dragover': isDragover}"
                      @dragover.prevent="isDragover = true"
@@ -338,15 +539,32 @@
     <div x-show="openBulkApplyModal" class="sb-modal-backdrop" @click.self="if (!isApplying) openBulkApplyModal = false">
         <div class="sb-modal-box">
             <div class="sb-modal-header">
-                <h3 class="sb-modal-title">محاسبه و اعمال خودکار به پرونده‌ها</h3>
+                <h3 class="sb-modal-title" x-text="activeTab === 'villa' ? 'اعمال گروهی نرخ‌های ویلایی (پلاک ثبتی)' : 'محاسبه و اعمال خودکار به پرونده‌ها'"></h3>
                 <button type="button" class="sb-modal-close" @click="if (!isApplying) openBulkApplyModal = false">&times;</button>
             </div>
 
             <div class="sb-modal-body">
-                <div class="sb-alert-info">
-                    <strong>نحوه محاسبه خودکار:</strong>
-                    سیستم پرونده‌های باز دارای کد نوسازی را خوانده و با استفاده از فرمول مصوب و مساحت‌های ثبت‌شده (مفید واحد + انباری + پارکینگ)، مقادیر بخش ۹ (قدرالسهم، اجاره سال جاری، اجاره سنوات، آماده‌سازی و سال ۱۴۰۵) را به‌صورت قطعی در پرونده‌ها ذخیره می‌کند.
+                <template x-if="activeTab === 'villa'">
+                    <div class="sb-alert-info">
+                        <strong>نحوه تطبیق ویلایی:</strong>
+                        سیستم پرونده‌های باز ویلایی دارای پلاک ثبتی را بر اساس <strong>پلاک ثبتی و نام پروژه</strong> با جدول نرخ‌های ویلایی تطبیق داده و ارقام دقیق اجاره ۱۴۰۵، اجاره تا ۱۴۰۵، هزینه آماده‌سازی و سال ۱۴۰۵ را بدون تغییر فرمولی ذخیره می‌کند.
+                    </div>
+                </template>
+                <template x-if="activeTab !== 'villa'">
+                    <div class="sb-alert-info">
+                        <strong>نحوه محاسبه خودکار:</strong>
+                        سیستم پرونده‌های باز دارای کد نوسازی را خوانده و با استفاده از فرمول مصوب و مساحت‌های ثبت‌شده (مفید واحد + انباری + پارکینگ)، مقادیر بخش ۹ (قدرالسهم، اجاره سال جاری، اجاره سنوات، آماده‌سازی و سال ۱۴۰۵) را به‌صورت قطعی در پرونده‌ها ذخیره می‌کند.
+                    </div>
+                </template>
+
+                {% if selected_project %}
+                <div style="margin-top: 0.85rem; font-size: 0.82rem; color: #334155;">
+                    <label class="sb-checkbox-label">
+                        <input type="checkbox" x-model="bulkOnlySelectedProject">
+                        <span>فقط برای پروژه انتخاب‌شده («{{ selected_project }}»)</span>
+                    </label>
                 </div>
+                {% endif %}
 
                 <div style="margin-top: 1rem;">
                     <label class="sb-checkbox-label">
@@ -428,9 +646,65 @@
 .sb-btn-outline:hover { background: #f8fafc; border-color: #94a3b8; }
 .sb-btn-success { background: #059669; color: #fff; }
 .sb-btn-success:hover { background: #047857; }
+.sb-btn-teal { background: #0d9488; color: #fff; }
+.sb-btn-teal:hover { background: #0f766e; }
 .sb-btn-ghost { background: transparent; color: #64748b; }
 .sb-btn-ghost:hover { background: #f1f5f9; color: #1e293b; }
 .sb-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Mode Tabs */
+.sb-tabs-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0;
+}
+.sb-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.15rem;
+    border-radius: 10px 10px 0 0;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #64748b;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin-bottom: -2px;
+    transition: all 0.15s ease;
+    background: #f8fafc;
+}
+.sb-tab-btn:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+.sb-tab-btn.active {
+    background: #ffffff;
+    color: #1d4ed8;
+    border-color: #e2e8f0;
+    border-bottom: 2px solid #ffffff;
+}
+.sb-tab-btn.active.villa-active {
+    color: #047857;
+}
+.sb-tab-pill {
+    background: #e2e8f0;
+    color: #334155;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+.sb-tab-btn.active .sb-tab-pill {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+.sb-tab-btn.active.villa-active .sb-tab-pill {
+    background: #d1fae5;
+    color: #047857;
+}
 
 /* Stats Grid */
 .sb-stats-grid {
@@ -764,9 +1038,11 @@ select.sb-input-field option {
 </style>
 
 <script>
-function landRatesManager() {
+function landRatesManager(initialTab = 'apartment') {
     return {
+        activeTab: initialTab || 'apartment',
         openEditModal: false,
+        openVillaEditModal: false,
         openUploadModal: false,
         openBulkApplyModal: false,
         isSaving: false,
@@ -774,7 +1050,10 @@ function landRatesManager() {
         isApplying: false,
         isDragover: false,
         selectedFile: null,
+        defaultVillaProject: '',
         bulkOnlyEmpty: false,
+        bulkOnlySelectedProject: Boolean("{{ selected_project|default:''|escapejs }}"),
+        selectedProject: "{{ selected_project|default:''|escapejs }}",
 
         editItem: {
             id: null,
@@ -782,16 +1061,34 @@ function landRatesManager() {
             project: '',
             plot: '',
             block: '',
-            share_land: '',
-            share_common: '',
+            share_coefficient: '',
             rent_current: '',
             rent_past: '',
             prep: ''
         },
 
+        villaEditItem: {
+            id: null,
+            registry_plaque: '',
+            project_name: '',
+            plot_number: '',
+            street_width: '',
+            allocation_type: '',
+            land_area: '',
+            prep_per_m2: '',
+            rent_current: '',
+            rent_to_date: '',
+            preparation_cost: ''
+        },
+
         openEdit(item) {
             this.editItem = { ...item };
             this.openEditModal = true;
+        },
+
+        openVillaEdit(item) {
+            this.villaEditItem = { ...item };
+            this.openVillaEditModal = true;
         },
 
         formatRial(val) {
@@ -808,7 +1105,14 @@ function landRatesManager() {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': this.getCsrfToken()
                     },
-                    body: JSON.stringify(this.editItem)
+                    body: JSON.stringify({
+                        block_name: this.editItem.block,
+                        plot_number: this.editItem.plot,
+                        share_coefficient: this.editItem.share_coefficient,
+                        rent_current_per_m2: this.editItem.rent_current,
+                        rent_to_date_per_m2: this.editItem.rent_past,
+                        prep_per_m2: this.editItem.prep
+                    })
                 });
                 const res = await resp.json();
                 if (res.success) {
@@ -816,6 +1120,31 @@ function landRatesManager() {
                     window.location.reload();
                 } else {
                     alert('خطا در ذخیره تغییرات: ' + (res.error || 'خطای ناشناخته'));
+                }
+            } catch (err) {
+                alert('خطا در ارتباط با سرور: ' + err.message);
+            } finally {
+                this.isSaving = false;
+            }
+        },
+
+        async saveVillaEdit() {
+            this.isSaving = true;
+            try {
+                const resp = await fetch(`/api/land-rates/villa/${this.villaEditItem.id}/update/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken()
+                    },
+                    body: JSON.stringify(this.villaEditItem)
+                });
+                const res = await resp.json();
+                if (res.success) {
+                    alert(res.message);
+                    window.location.reload();
+                } else {
+                    alert('خطا در ذخیره تغییرات ویلایی: ' + (res.error || 'خطای ناشناخته'));
                 }
             } catch (err) {
                 alert('خطا در ارتباط با سرور: ' + err.message);
@@ -842,9 +1171,16 @@ function landRatesManager() {
             this.isUploading = true;
             const formData = new FormData();
             formData.append('excel_file', this.selectedFile);
+            if (this.activeTab === 'villa' && this.defaultVillaProject.trim()) {
+                formData.append('default_project', this.defaultVillaProject.trim());
+            }
+
+            const uploadUrl = this.activeTab === 'villa'
+                ? '/api/land-rates/villa/upload-excel/'
+                : '/api/land-rates/upload-excel/';
 
             try {
-                const resp = await fetch('/api/land-rates/upload-excel/', {
+                const resp = await fetch(uploadUrl, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': this.getCsrfToken()
@@ -866,15 +1202,22 @@ function landRatesManager() {
         },
 
         async submitBulkApply() {
-            if (!confirm('آیا از محاسبه و اعمال این ارقام به کلیه پرونده‌های مرتبط در سامانه اطمینان دارید؟')) {
+            if (!confirm('آیا از اعمال این ارقام به پرونده‌های مرتبط در سامانه اطمینان دارید؟')) {
                 return;
             }
             this.isApplying = true;
             const formData = new FormData();
             formData.append('only_empty', this.bulkOnlyEmpty ? 'true' : 'false');
+            if (this.selectedProject && this.bulkOnlySelectedProject) {
+                formData.append('project', this.selectedProject);
+            }
+
+            const applyUrl = this.activeTab === 'villa'
+                ? '/api/land-rates/villa/bulk-apply/'
+                : '/api/land-rates/bulk-apply/';
 
             try {
-                const resp = await fetch('/api/land-rates/bulk-apply/', {
+                const resp = await fetch(applyUrl, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': this.getCsrfToken()
@@ -897,7 +1240,9 @@ function landRatesManager() {
 
         getCsrfToken() {
             const el = document.querySelector('[name=csrfmiddlewaretoken]');
-            return el ? el.value : '';
+            if (el && el.value) return el.value;
+            const m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+            return m ? decodeURIComponent(m[1]) : '';
         }
     };
 }

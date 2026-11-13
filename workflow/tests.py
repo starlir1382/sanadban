@@ -2,11 +2,11 @@
 Unit tests for workflow stages and migration mapping.
 """
 
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, Client
 from django.urls import reverse
 import json
 from django.contrib.auth.models import User
-from workflow.models import HousingDossier, UserProfile
+from workflow.models import HousingDossier, UserProfile, DossierAttachment
 from workflow.views import electronic_sign_action, return_stage_action, upload_scan_attachment_view
 from workflow.stages import (
     STAGE_ROLES,
@@ -198,6 +198,26 @@ class WorkflowExecutionTestCase(TestCase):
             )
             req.user = self.admin_user
             resp = electronic_sign_action(req, pk=dossier.archive_number)
+            if step == 21:
+                self.assertEqual(resp.status_code, 400)
+                dossier.lease_contract_number = "1405/ق/900"
+                dossier.lease_contract_date = "1405/09/10"
+                dossier.save()
+                DossierAttachment.objects.create(
+                    dossier=dossier,
+                    stage=21,
+                    doc_type="LEASE_CONTRACT",
+                    title="اسکن سند قرارداد اجاره عرصه",
+                    file_name="lease.jpg",
+                    uploaded_by="admin_test",
+                )
+                req = self.factory.post(
+                    f"/dossier/{dossier.archive_number}/action/sign/",
+                    data=json.dumps({"notes": f"امضا مرحله {step}"}),
+                    content_type="application/json",
+                )
+                req.user = self.admin_user
+                resp = electronic_sign_action(req, pk=dossier.archive_number)
             self.assertEqual(resp.status_code, 200)
 
             dossier.refresh_from_db()
@@ -209,6 +229,95 @@ class WorkflowExecutionTestCase(TestCase):
                 self.assertEqual(dossier.current_stage, 22)
                 self.assertTrue(dossier.is_locked)
                 self.assertEqual(dossier.status, "COMPLETED")
+
+    def test_stage21_section12_requires_lease_contract_fields_and_scan(self):
+        """Section 12 enforces lease contract number, date, and scanned page before Stage 21 can continue."""
+        stage21_user = User.objects.create_user(username="stage21_specialist", password="pw")
+        p21 = stage21_user.profile
+        p21.full_name = "کارشناس قرارداد اجاره"
+        p21.allowed_stages = "21"
+        p21.can_sign = True
+        p21.save()
+
+        stage20_user = User.objects.create_user(username="stage20_specialist", password="pw")
+        p20 = stage20_user.profile
+        p20.allowed_stages = "20"
+        p20.can_sign = True
+        p20.save()
+
+        dossier = HousingDossier.objects.create(
+            archive_number=100821,
+            national_id="0388882121",
+            full_name="متقاضی مرحله بیست‌ویک",
+            current_stage=21,
+        )
+
+        client = Client()
+        client.force_login(stage21_user)
+
+        detail_resp = client.get(reverse("dossier_detail", kwargs={"pk": dossier.archive_number}))
+        self.assertEqual(detail_resp.status_code, 200)
+        html = detail_resp.content.decode("utf-8")
+        self.assertIn('id="section-lease-contract"', html)
+        self.assertIn("بخش ۱۲: ثبت و اسکن سند قرارداد اجاره عرصه (مرحله ۲۱)", html)
+        self.assertIn("شماره سند قرارداد اجاره", html)
+        self.assertIn("تاریخ قرارداد اجاره", html)
+        self.assertIn("LEASE_CONTRACT", html)
+        self.assertIn("getCurrentStageMissingFields()", html)
+
+        # Unrelated stage cannot edit Section 12 fields
+        client20 = Client()
+        client20.force_login(stage20_user)
+        forbidden_resp = client20.post(
+            reverse("dossier_save", kwargs={"pk": dossier.archive_number}),
+            data=json.dumps({"lease_contract_number": "1405/99"}),
+            content_type="application/json",
+        )
+        self.assertEqual(forbidden_resp.status_code, 403)
+
+        # Stage 21 user saves number and date
+        save_resp = client.post(
+            reverse("dossier_save", kwargs={"pk": dossier.archive_number}),
+            data=json.dumps({
+                "lease_contract_number": "1405/ق/8421",
+                "lease_contract_date": "1405/09/01",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(save_resp.status_code, 200)
+        dossier.refresh_from_db()
+        self.assertEqual(dossier.lease_contract_number, "1405/ق/8421")
+        self.assertEqual(dossier.lease_contract_date, "1405/09/01")
+
+        # Cannot continue/sign Stage 21 without uploading/scanning a LEASE_CONTRACT page
+        blocked_sign = client.post(
+            reverse("dossier_sign", kwargs={"pk": dossier.archive_number}),
+            data=json.dumps({"notes": "تلاش بدون اسکن"}),
+            content_type="application/json",
+        )
+        self.assertEqual(blocked_sign.status_code, 400)
+        self.assertIn("اسکن سند قرارداد اجاره عرصه", blocked_sign.json()["message"])
+
+        # Upload scanned LEASE_CONTRACT page
+        up_resp = client.post(
+            reverse("dossier_upload_scan", kwargs={"pk": dossier.archive_number}),
+            data={
+                "title": "اسکن سند قرارداد اجاره عرصه",
+                "doc_type": "LEASE_CONTRACT",
+                "preview_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+            },
+        )
+        self.assertEqual(up_resp.status_code, 200)
+
+        # Now signing Stage 21 advances smoothly to Stage 22
+        ok_sign = client.post(
+            reverse("dossier_sign", kwargs={"pk": dossier.archive_number}),
+            data=json.dumps({"notes": "تکمیل و ارسال به مرحله ۲۲"}),
+            content_type="application/json",
+        )
+        self.assertEqual(ok_sign.status_code, 200)
+        dossier.refresh_from_db()
+        self.assertEqual(dossier.current_stage, 22)
 
     def test_expert_permissions_upload_sign_and_return(self):
         dossier = HousingDossier.objects.create(

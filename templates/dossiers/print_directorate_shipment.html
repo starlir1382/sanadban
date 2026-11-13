@@ -1,0 +1,205 @@
+{% load static persian_tags %}
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>پرونده‌های ارسالی به راه و شهرسازی استان قم {{ shipment.shipment_code }}</title>
+  <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
+  <style>
+    @page { size: A4 portrait; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Vazirmatn', Tahoma, Vazir, sans-serif;
+      font-feature-settings: "ss01" 1;
+      font-variant-numeric: tabular-nums;
+      padding: 24px;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+    .toolbar {
+      max-width: 210mm;
+      margin: 0 auto 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e293b;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: #0d9488;
+      border-color: #0d9488;
+      color: #ffffff;
+    }
+    .sheet {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    }
+    h1 {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0 0 6px;
+      text-align: center;
+      color: #1e293b;
+    }
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 11px;
+      border-bottom: 2px solid #1e293b;
+      padding-bottom: 8px;
+    }
+    .note-box {
+      margin-bottom: 12px;
+      padding: 6px 10px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    th, td {
+      border: 1px solid #94a3b8;
+      padding: 6px 8px;
+      text-align: right;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: bold;
+      text-align: center;
+    }
+    .col-num { width: 5%; }
+    .col-archive { width: 9%; }
+    .col-name { width: 25%; }
+    .col-phone { width: 15%; }
+    .col-id { width: 15%; }
+    .col-contractor { width: 23%; }
+    .col-checks { width: 8%; }
+
+    .sign-row {
+      margin-top: 48px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .sign-box {
+      width: 40%;
+      border-top: 1px solid #1e293b;
+      padding-top: 6px;
+      text-align: center;
+      font-size: 11px;
+    }
+    @media print {
+      body {
+        padding: 8px;
+        background: #ffffff;
+      }
+      .toolbar {
+        display: none !important;
+      }
+      .sheet {
+        max-width: none;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <a href="{% url 'directorate_shipments_list' %}" class="btn">← تاریخچه ارسالی‌ها</a>
+      <a href="{% url 'dossier_list' %}" class="btn">بازگشت به فهرست پرونده‌ها</a>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="window.print()">چاپ ارسالی ها (A4)</button>
+  </div>
+
+  <div class="sheet fa-num">
+    <h1>پرونده‌های ارسالی به راه و شهرسازی استان قم — {{ shipment_short_label }}</h1>
+    <div class="meta">
+      <span>کد سیستم: <strong dir="ltr">{{ shipment.shipment_code }}</strong></span>
+      <span>نوع ارسال: <strong>{{ shipment_type_label }}</strong></span>
+      <span>تعداد پرونده: <strong>{{ rows|length }}</strong></span>
+      <span>تاریخ ارسال: <strong>{{ shipment.sent_date|default:print_date }}</strong></span>
+      <span>تاریخ چاپ: <strong>{{ print_date }}</strong></span>
+    </div>
+
+    {% if shipment.note %}
+    <div class="note-box">
+      <strong>توضیحات:</strong> {{ shipment.note }}
+    </div>
+    {% endif %}
+
+    <table>
+      <thead>
+        <tr>
+          <th class="col-num">ردیف</th>
+          <th class="col-archive">بایگانی</th>
+          <th class="col-name">نام</th>
+          <th class="col-phone">شماره تلفن</th>
+          <th class="col-id">کد ملی</th>
+          <th class="col-contractor">پیمانکار</th>
+          <th class="col-checks">تعداد چک</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td style="text-align: center;">{{ forloop.counter }}</td>
+          <td style="text-align: center;">{{ r.archive_number }}</td>
+          <td>{{ r.full_name }}</td>
+          <td dir="ltr" style="text-align: center;">{{ r.applicant_phone }}</td>
+          <td dir="ltr" style="text-align: center;">{{ r.national_id }}</td>
+          <td>{{ r.contractor_display }}</td>
+          <td style="text-align: center;">{{ r.check_count_type }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 18px; color: #64748b;">هیچ پرونده‌ای در این محموله ثبت نشده است.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="sign-row">
+      <div class="sign-box">امضا تحویل‌دهنده</div>
+      <div class="sign-box">امضا تحویل‌گیرنده</div>
+    </div>
+  </div>
+</body>
+</html>

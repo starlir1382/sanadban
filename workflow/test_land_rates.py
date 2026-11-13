@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 
-from workflow.models import LandRate, HousingDossier, UserProfile
+from workflow.models import LandRate, VillaLandRate, HousingDossier, UserProfile
 from workflow.land_rates import (
     LAND_LEASE_YEAR,
     normalize_code,
@@ -16,9 +16,14 @@ from workflow.land_rates import (
     clean_project_fuzzy,
     normalize_block,
     clean_block_fuzzy,
+    normalize_registry_plaque,
+    plaque_candidates,
     compute_land_values,
+    compute_villa_land_values,
     get_rate,
+    get_villa_rate,
     apply_land_calculation,
+    read_villa_rates_from_excel,
     reset_cache,
 )
 
@@ -32,8 +37,7 @@ class LandRatesMatchingTestCase(TestCase):
             project_name="تدبیر عمران محنا",
             plot_number="307",
             block_name="K46",
-            share_land=Decimal("0.731738046"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.731738046"),
             rent_current_per_m2=Decimal("588800"),
             rent_to_date_per_m2=Decimal("612706"),
             prep_per_m2=Decimal("19733922"),
@@ -43,8 +47,7 @@ class LandRatesMatchingTestCase(TestCase):
             project_name="زنجان ره گشا",
             plot_number="302",
             block_name="W18",
-            share_land=Decimal("0.550000000"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.550000000"),
             rent_current_per_m2=Decimal("500000"),
             rent_to_date_per_m2=Decimal("550000"),
             prep_per_m2=Decimal("15000000"),
@@ -188,7 +191,7 @@ class LandRatesMatchingTestCase(TestCase):
         self.assertEqual(r["project_name"], "شرکت آزمایشی نگین")
         self.assertEqual(r["plot_number"], "101")
         self.assertEqual(r["block_name"], "A1")
-        self.assertEqual(r["share_land"], Decimal("0.654321"))
+        self.assertEqual(r["share_coefficient"], Decimal("0.654321"))
         self.assertEqual(r["rent_current_per_m2"], Decimal("600000"))
         self.assertEqual(r["rent_to_date_per_m2"], Decimal("650000"))
         self.assertEqual(r["prep_per_m2"], Decimal("18000000"))
@@ -211,8 +214,7 @@ class LandRatesApiTestCase(TestCase):
             project_name="تدبیر عمران محنا",
             plot_number="307",
             block_name="K46",
-            share_land=Decimal("0.731738046"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.731738046"),
             rent_current_per_m2=Decimal("588800"),
             rent_to_date_per_m2=Decimal("612706"),
             prep_per_m2=Decimal("19733922"),
@@ -279,8 +281,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="پروژه الف",
             plot_number="307",
             block_name="K46",
-            share_land=Decimal("0.7"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.7"),
             rent_current_per_m2=Decimal("500000"),
             rent_to_date_per_m2=Decimal("600000"),
             prep_per_m2=Decimal("10000000"),
@@ -290,8 +291,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="پروژه ب",
             plot_number="302",
             block_name="W18",
-            share_land=Decimal("0.5"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.5"),
             rent_current_per_m2=Decimal("400000"),
             rent_to_date_per_m2=Decimal("450000"),
             prep_per_m2=Decimal("9000000"),
@@ -349,8 +349,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="پروژه جدید",
             plot_number="1",
             block_name="A1",
-            share_land=Decimal("0.5"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.5"),
             rent_current_per_m2=Decimal("100000"),
             rent_to_date_per_m2=Decimal("100000"),
             prep_per_m2=Decimal("1000000"),
@@ -374,8 +373,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="تدبیر عمران محنا",
             plot_number="99",
             block_name="Z9",
-            share_land=Decimal("0.600000000"),
-            share_common=Decimal("0.131738046"),
+            share_coefficient=Decimal("0.731738046"),
             rent_current_per_m2=Decimal("10000000"),
             rent_to_date_per_m2=Decimal("20000000"),
             prep_per_m2=Decimal("30000000"),
@@ -402,8 +400,8 @@ class ClearLandRatesScriptTestCase(TestCase):
         )
         self.assertEqual(api_resp.status_code, 200)
         d = api_resp.json()["data"]
-        self.assertEqual(d["share_land"], "0.6")
-        self.assertEqual(d["share_common"], "0.131738046")
+        self.assertNotIn("share_land", d)
+        self.assertNotIn("share_common", d)
         self.assertEqual(d["share_coefficient"], "0.731738046")
         self.assertEqual(d["rent_current_per_m2"], 10000000)
         self.assertEqual(d["rent_to_date_per_m2"], 20000000)
@@ -420,13 +418,14 @@ class ClearLandRatesScriptTestCase(TestCase):
         self.assertIn("انباری", html)
         self.assertIn("پارکینگ", html)
         self.assertIn("جمع متراژ", html)
-        self.assertIn("ضریب قدرالسهم", html)
+        self.assertIn("مجموع ضریب قدرالسهم", html)
+        self.assertIn("نرخ‌های مصوب به ازای هر متر مربع (اکسل)", html)
         self.assertIn("آماده‌سازی هر متر (ریال)", html)
         self.assertIn("اجاره سنوات هر متر (ریال)", html)
         self.assertIn("اجاره سال جاری هر متر (ریال)", html)
-        self.assertIn("قدرالسهم از عرصه", html)
-        self.assertIn("قدرالسهم از مشاع", html)
-        self.assertIn("جمع ضریب قدرالسهم", html)
+        self.assertNotIn("قدرالسهم از عرصه", html)
+        self.assertNotIn("قدرالسهم از مشاع", html)
+        self.assertNotIn("جمع ضریب قدرالسهم", html)
         self.assertIn("land_rate_info", html)
         self.assertIn("0.731738046", html)
         self.assertIn("30000000", html)
@@ -443,8 +442,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="تعاونی سپاه علی ابن ابیطالب",
             plot_number="27",
             block_name="KK",
-            share_land=Decimal("0.692840716"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.692840716"),
             rent_current_per_m2=Decimal("441600"),
             rent_to_date_per_m2=Decimal("468550"),
             prep_per_m2=Decimal("19733922"),
@@ -454,8 +452,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="بسیج سازندگی",
             plot_number="5",
             block_name="KK",
-            share_land=Decimal("0.740000000"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.740000000"),
             rent_current_per_m2=Decimal("441600"),
             rent_to_date_per_m2=Decimal("468550"),
             prep_per_m2=Decimal("19733922"),
@@ -465,8 +462,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="کیمیا بنا پارس",
             plot_number="281",
             block_name="M2",
-            share_land=Decimal("0.650000000"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.650000000"),
             rent_current_per_m2=Decimal("441600"),
             rent_to_date_per_m2=Decimal("468550"),
             prep_per_m2=Decimal("19733922"),
@@ -476,8 +472,7 @@ class ClearLandRatesScriptTestCase(TestCase):
             project_name="فاطر سازه ایلیا2",
             plot_number="370",
             block_name="Y5",
-            share_land=Decimal("0.620000000"),
-            share_common=Decimal("0"),
+            share_coefficient=Decimal("0.620000000"),
             rent_current_per_m2=Decimal("441600"),
             rent_to_date_per_m2=Decimal("468550"),
             prep_per_m2=Decimal("19733922"),
@@ -507,3 +502,463 @@ class ClearLandRatesScriptTestCase(TestCase):
         r_fater = get_rate(project="فاطر سازه ایلیا 1 و 2", plot="370", block="Y5")
         self.assertIsNotNone(r_fater)
         self.assertEqual(r_fater.renovation_code, "8-806-88-1-1")
+
+    def test_read_rates_from_excel_sums_two_share_columns_and_upload(self):
+        """If an Excel sheet provides separate land + common/ayan columns, sum both into share_coefficient."""
+        import io
+        import openpyxl
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.urls import reverse
+        from workflow.land_rates import read_rates_from_excel
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append([
+            "نام پروژه", "قطعه", "نام بلوک", "کد نوسازی",
+            "ضریب قدرالسهم عرصه", "ضریب قدرالسهم عیان",
+            "مبلغ اجاره یک متر سال جاری (ریال)", "علی‌الحساب اجاره تا پایان سال جاری (ریال)",
+            "مبلغ یک متر هزینه آماده‌سازی (ریال)",
+        ])
+        ws.append([
+            "پروژه تجمیع", "12", "B2", "8-806-70-1-1",
+            0.600000000, 0.131738046,
+            500000, 550000, 19000000,
+        ])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        raw_bytes = buf.getvalue()
+        parsed, problems = read_rates_from_excel(io.BytesIO(raw_bytes))
+        self.assertEqual(problems, [])
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0]["share_coefficient"], Decimal("0.731738046"))
+
+        user = User.objects.create_superuser(username="upload_tester", password="password123")
+        client = Client()
+        client.force_login(user)
+        uploaded = SimpleUploadedFile(
+            "rates.xlsx",
+            raw_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        resp = client.post(reverse("land_rates_upload_excel_api"), {"excel_file": uploaded})
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["success"])
+        saved = LandRate.objects.get(renovation_code="8-806-70-1-1")
+        self.assertEqual(saved.share_coefficient, Decimal("0.731738046"))
+
+    def test_land_rates_export_and_update_use_single_share_coefficient(self):
+        """Excel export and update API use only share_coefficient ('مجموع ضریب قدرالسهم')."""
+        import io
+        import json
+        import openpyxl
+        from django.urls import reverse
+
+        rate = LandRate.objects.create(
+            renovation_code="8-806-71-1-1",
+            project_name="پروژه خروجی",
+            plot_number="44",
+            block_name="C3",
+            share_coefficient=Decimal("0.650000000"),
+            rent_current_per_m2=Decimal("500000"),
+            rent_to_date_per_m2=Decimal("600000"),
+            prep_per_m2=Decimal("15000000"),
+        )
+        user = User.objects.create_superuser(username="export_tester", password="password123")
+        client = Client()
+        client.force_login(user)
+
+        upd = client.post(
+            reverse("land_rates_update_api", kwargs={"pk": rate.pk}),
+            data=json.dumps({"share_coefficient": "0.750000000"}),
+            content_type="application/json",
+        )
+        self.assertEqual(upd.status_code, 200)
+        self.assertEqual(upd.json()["rate"]["share_coefficient"], "0.750000000")
+        rate.refresh_from_db()
+        self.assertEqual(rate.share_coefficient, Decimal("0.750000000"))
+
+        exp = client.get(reverse("land_rates_export_excel"))
+        self.assertEqual(exp.status_code, 200)
+        wb = openpyxl.load_workbook(io.BytesIO(exp.content), data_only=True)
+        ws = wb.active
+        headers = [cell.value for cell in ws[1]]
+        self.assertIn("مجموع ضریب قدرالسهم", headers)
+        self.assertNotIn("قدرالسهم از عرصه", headers)
+        self.assertNotIn("قدرالسهم از مشاع", headers)
+        coeff_idx = headers.index("مجموع ضریب قدرالسهم")
+        code_idx = headers.index("کد نوسازی")
+        matching_rows = [row for row in ws.iter_rows(min_row=2, values_only=True) if row[code_idx] == "8-806-71-1-1"]
+        self.assertEqual(len(matching_rows), 1)
+        self.assertAlmostEqual(float(matching_rows[0][coeff_idx]), 0.75, places=6)
+
+    def test_appraisal_preparation_80_20_rounding(self):
+        """80% installment rounds down to 10,000,000 Rials and the remainder is added to 20% cash."""
+        import json
+        import shutil
+        import subprocess
+        from django.conf import settings
+
+        node_bin = shutil.which("node")
+        self.assertIsNotNone(node_bin, "Node.js is required to test static/js/sanadban.js")
+
+        js_path = settings.BASE_DIR / "static" / "js" / "sanadban.js"
+        node_script = """
+const fs = require("fs");
+const vm = require("vm");
+const listeners = {};
+let factory = null;
+const noop = () => {};
+const ctx = {
+  console,
+  Math,
+  Number,
+  String,
+  Boolean,
+  Array,
+  Object,
+  JSON,
+  Intl,
+  Date,
+  RegExp,
+  Error,
+  parseInt,
+  parseFloat,
+  isNaN,
+  setTimeout: noop,
+  clearTimeout: noop,
+  localStorage: { getItem: () => null, setItem: noop },
+  fetch: async () => ({ ok: true, json: async () => ({}) }),
+  CustomEvent,
+  Alpine: { data: (name, fn) => { if (name === "sanadbanApp") factory = fn; } },
+  window: { location: { pathname: "/" }, addEventListener: noop, dispatchEvent: noop, matchMedia: () => ({ matches: false }) },
+  document: {
+    readyState: "complete",
+    cookie: "",
+    documentElement: { setAttribute: noop, getAttribute: () => null },
+    querySelectorAll: () => [],
+    getElementById: () => null,
+    addEventListener: (ev, cb) => { listeners[ev] = cb; },
+  },
+};
+vm.runInNewContext(fs.readFileSync(process.argv[1], "utf8"), ctx);
+listeners["alpine:init"]();
+const app = factory();
+app.triggerToast = noop;
+
+const cases = [1517341263, 12500000, 5000000, 0];
+const results = cases.map((prep) => {
+  app.form.preparation_cost = prep;
+  return {
+    prep,
+    cash: app.getAppraisalCash(),
+    installment: app.getAppraisalInstallment(),
+  };
+});
+
+app.form.preparation_cost = 1517341263;
+app.applyAppraisalCash();
+app.applyAppraisalInstallment();
+console.log(JSON.stringify({
+  results,
+  appliedCash: app.form.cash_preparation_amount,
+  appliedInstallment: app.form.non_cash_preparation_amount,
+}));
+"""
+        proc = subprocess.run(
+            [node_bin, "-e", node_script, str(js_path)],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, f"Node failed:\n{proc.stderr}")
+        payload = json.loads(proc.stdout)
+        by_prep = {row["prep"]: row for row in payload["results"]}
+
+        # 1,517,341,263 -> 80% unrounded 1,213,873,010 -> rounded down 1,210,000,000;
+        # remainder 3,873,010 moves to 20% cash: 303,468,253 + 3,873,010 = 307,341,263
+        self.assertEqual(by_prep[1517341263]["installment"], 1210000000)
+        self.assertEqual(by_prep[1517341263]["cash"], 307341263)
+        self.assertEqual(by_prep[1517341263]["cash"] + by_prep[1517341263]["installment"], 1517341263)
+
+        # Exact 10M multiple in 80% keeps exact 80/20 split
+        self.assertEqual(by_prep[12500000]["installment"], 10000000)
+        self.assertEqual(by_prep[12500000]["cash"], 2500000)
+
+        # Under 10M in 80% floors installment to 0 and shifts full amount to cash
+        self.assertEqual(by_prep[5000000]["installment"], 0)
+        self.assertEqual(by_prep[5000000]["cash"], 5000000)
+
+        self.assertEqual(by_prep[0]["installment"], 0)
+        self.assertEqual(by_prep[0]["cash"], 0)
+
+        self.assertEqual(payload["appliedCash"], 307341263)
+        self.assertEqual(payload["appliedInstallment"], 1210000000)
+
+        # Verify bumped cache-buster is rendered on base/login pages
+        base_html = (settings.BASE_DIR / "templates" / "base.html").read_text(encoding="utf-8")
+        login_html = (settings.BASE_DIR / "templates" / "auth" / "login.html").read_text(encoding="utf-8")
+        self.assertIn("sanadban.js' %}?v=3.7", base_html)
+        self.assertIn("sanadban.js' %}?v=3.7", login_html)
+
+
+class VillaLandRatesTestCase(TestCase):
+    """Comprehensive tests for ویلایی (پلاک ثبتی) rates, Excel import/export, API, and Section 9."""
+
+    def setUp(self):
+        reset_cache()
+        self.admin_user = User.objects.create_superuser("villa_admin", "v@example.com", "pass1234")
+        UserProfile.objects.update_or_create(
+            user=self.admin_user,
+            defaults={"is_housing_chief": True, "allowed_stages": "all"},
+        )
+        self.client = Client()
+        self.client.force_login(self.admin_user)
+
+        self.villa_abmo = VillaLandRate.objects.create(
+            registry_plaque="11507/957/3825",
+            project_name="آبمواسپاد",
+            plot_number="2825",
+            street_width="خیابان 12 متری",
+            land_area=Decimal("197.75"),
+            rent_current=Decimal("29186533.5000"),
+            rent_to_date=Decimal("40749732.9800"),
+            preparation_cost=Decimal("2849930100.0000"),
+        )
+        self.villa_parnian = VillaLandRate.objects.create(
+            registry_plaque="114/4/2151",
+            project_name="خانه سازان پویا 3 پرنیان",
+            plot_number="101",
+            land_area=Decimal("200.00"),
+            rent_current=Decimal("15000000"),
+            rent_to_date=Decimal("22000000"),
+            preparation_cost=Decimal("1800000000"),
+        )
+
+    def test_plaque_normalization_and_swapped_order_lookup(self):
+        self.assertEqual(normalize_registry_plaque("۱۱۵۰۷\\۹۵۷-۳۸۲۵"), "11507/957/3825")
+        cands = plaque_candidates(main_plaque=11507, separated_plaque=3825, sub_plaque=957)
+        self.assertIn("11507/957/3825", cands)
+        self.assertIn("11507/3825/957", cands)
+
+        # Qanavat swapped order + fuzzy project match: آبمو اسپاد 2 قنوات -> آبمواسپاد
+        matched = get_villa_rate(
+            project="آبمو اسپاد 2 قنوات",
+            main_plaque=11507,
+            separated_plaque=3825,
+            sub_plaque=957,
+        )
+        self.assertIsNotNone(matched)
+        self.assertEqual(matched.pk, self.villa_abmo.pk)
+
+        # Parnian canonical order (main / separated / sub)
+        matched_p = get_villa_rate(
+            project="خانه سازان پویا 3 پرنیان",
+            main_plaque=114,
+            separated_plaque=4,
+            sub_plaque=2151,
+        )
+        self.assertIsNotNone(matched_p)
+        self.assertEqual(matched_p.pk, self.villa_parnian.pk)
+
+        # Cross-phase protection: پویا 2 must NOT match پویا 3
+        wrong_phase = get_villa_rate(
+            project="خانه سازان پویا 2 پرنیان",
+            main_plaque=114,
+            separated_plaque=4,
+            sub_plaque=2151,
+        )
+        self.assertIsNone(wrong_phase)
+
+    def test_exact_values_preserved_and_personal_columns_ignored_in_excel(self):
+        import io
+        import openpyxl
+
+        wb = openpyxl.Workbook()
+        ws1 = wb.active
+        ws1.title = "آبمواسپاد"
+        ws1.append(["پلاک", "پلاک ثبتی", "مساحت", "معبر", "تعاونی", "اجاره405", "اجاره تا405", "آماده سازی"])
+        ws1.append([2695, "11507/957/3695", 197.75, "خیابان 12 متری", "آبمواسپاد", 29186533.5, 40749732.98, 2849930100])
+        ws1.append([2694, "11507/957/3694", 200.00, "خیابان 12 متری", "آبمواسپاد", 29518200, 41212800, 2882315800])
+
+        ws2 = wb.create_sheet("Sheet2")
+        ws2.append(["شهرک اول"])
+        ws2.append(["ردیف", "نام و نام خانوادگی", "کدملی", "شماره تماس", "پلاک ثبتی", "مساحت (مترمربع)", "نحوه واگذاری", "هزینه به ازای هر متر", "هزینه آماده سازی"])
+        ws2.append([1, "علی رضایی", "0381234567", "09121234567", "10/223/1234", 200, "فرماندهی انتظامی", 12000000, None])
+        ws2.append([2, "سارا محمدی", "0389999999", "09129999999", "10/223/1235", 195, "نیروگاه", 12000000, 2300000000])
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        rows, problems = read_villa_rates_from_excel(buf)
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(problems, [])
+
+        by_key = {(r["project_name"], r["registry_plaque"]): r for r in rows}
+        row_3695 = by_key[("آبمواسپاد", "11507/957/3695")]
+        # Exact values preserved without re-multiplying rounded 197.75
+        self.assertEqual(row_3695["rent_current"], Decimal("29186533.5"))
+        self.assertEqual(row_3695["rent_to_date"], Decimal("40749732.98"))
+        self.assertEqual(row_3695["preparation_cost"], Decimal("2849930100"))
+
+        row_1234 = by_key[("شهرک اول", "10/223/1234")]
+        self.assertEqual(row_1234["preparation_cost"], Decimal("2400000000"))
+        self.assertEqual(row_1234["allocation_type"], "فرماندهی انتظامی")
+        # Strictly zero personal data keys or content
+        for forbidden_key in ("نام", "full_name", "national_id", "کدملی", "mobile", "phone"):
+            self.assertNotIn(forbidden_key, row_1234)
+        self.assertNotIn("علی رضایی", str(row_1234))
+
+        row_1235 = by_key[("شهرک اول", "10/223/1235")]
+        # Explicit preparation total is kept unmodified rather than overridden by 195 * 12M
+        self.assertEqual(row_1235["preparation_cost"], Decimal("2300000000"))
+
+    def test_villa_dossier_auto_calc_and_isolation_from_apartment(self):
+        # Locked villa dossier must stay unchanged
+        locked_v = HousingDossier.objects.create(
+            archive_number=990001,
+            full_name="تست قفل",
+            national_id="0381111111",
+            site="قنوات",
+            construction_type="ویلایی",
+            project="آبمو اسپاد 2 قنوات",
+            main_plaque=11507,
+            separated_plaque=3825,
+            sub_plaque=957,
+            is_locked=True,
+            current_year_rent=100,
+        )
+        self.assertEqual(locked_v.current_year_rent, 100)
+
+        # Open Qanavat villa dossier auto-populates exact Section 9 fields
+        open_v = HousingDossier.objects.create(
+            archive_number=990002,
+            full_name="تست قنوات",
+            national_id="0382222222",
+            site="قنوات",
+            construction_type="ویلایی",
+            project="آبمو اسپاد 2 قنوات",
+            main_plaque=11507,
+            separated_plaque=3825,
+            sub_plaque=957,
+        )
+        self.assertEqual(open_v.total_land_share, Decimal("197.75"))
+        self.assertEqual(open_v.current_year_rent, 29186534)
+        self.assertEqual(open_v.past_years_rent, 40749733)
+        self.assertEqual(open_v.preparation_cost, 2849930100)
+        self.assertEqual(str(open_v.land_lease_year), "1405")
+        self.assertEqual(open_v.plot_number, 2825)
+
+        # Apartment dossier with matching plaque numbers must NOT use VillaLandRate
+        apt_d = HousingDossier.objects.create(
+            archive_number=990003,
+            full_name="تست آپارتمانی",
+            national_id="0383333333",
+            site="سایت 560 هکتاری",
+            construction_type="آپارتمانی",
+            project="آبمواسپاد",
+            main_plaque=11507,
+            separated_plaque=3825,
+            sub_plaque=957,
+        )
+        self.assertEqual(apt_d.current_year_rent, 0)
+        self.assertEqual(apt_d.preparation_cost, 0)
+
+    def test_villa_admin_tabs_upload_update_export_bulk_and_detail_api(self):
+        import io
+        import json
+        import openpyxl
+
+        # 1. Admin tab view renders ویلایی rows
+        resp = self.client.get("/admin/land-rates/?tab=villa")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+        self.assertIn("ویلایی (پلاک ثبتی)", html)
+        self.assertIn("11507/957/3825", html)
+        self.assertIn("/api/land-rates/export-excel/", html)
+        self.assertIn("/api/land-rates/villa/export-excel/", html)
+
+        # 2. Inline update API
+        up_resp = self.client.post(
+            f"/api/land-rates/villa/{self.villa_abmo.pk}/update/",
+            data=json.dumps({"street_width": "خیابان ۱۴ متری"}),
+            content_type="application/json",
+        )
+        self.assertEqual(up_resp.status_code, 200)
+        self.assertTrue(up_resp.json()["success"])
+        self.villa_abmo.refresh_from_db()
+        self.assertEqual(self.villa_abmo.street_width, "خیابان ۱۴ متری")
+
+        # 3. Upload Excel API (ignoring personal columns + preserving exact numbers)
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(["ردیف", "نام و نام خانوادگی", "کدملی", "پلاک ثبتی", "مساحت", "هزینه به ازای هر متر", "هزینه آماده سازی"])
+        ws.append([1, "متقاضی نمونه", "0387777777", "10/223/888", 210, 10000000, None])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        buf.name = "villa_upload.xlsx"
+
+        ul_resp = self.client.post(
+            "/api/land-rates/villa/upload-excel/",
+            {"excel_file": buf, "default_project": "شهرک اول"},
+        )
+        self.assertEqual(ul_resp.status_code, 200)
+        self.assertTrue(ul_resp.json()["success"])
+        self.assertTrue(VillaLandRate.objects.filter(registry_plaque="10/223/888", project_name="شهرک اول").exists())
+
+        # 4. Export Excel API contains zero personal data headers
+        ex_resp = self.client.get("/api/land-rates/villa/export-excel/")
+        self.assertEqual(ex_resp.status_code, 200)
+        ex_wb = openpyxl.load_workbook(io.BytesIO(ex_resp.content))
+        ex_headers = [c.value for c in ex_wb.active[1]]
+        self.assertNotIn("نام و نام خانوادگی", ex_headers)
+        self.assertNotIn("کدملی", ex_headers)
+        self.assertIn("پلاک ثبتی", ex_headers)
+
+        # 5. Live calculation API for ویلایی
+        api_resp = self.client.get(
+            "/api/calculate-land-rates/",
+            {
+                "site": "قنوات",
+                "construction_type": "ویلایی",
+                "project": "آبمو اسپاد 2 قنوات",
+                "main_plaque": "11507",
+                "separated_plaque": "3825",
+                "sub_plaque": "957",
+            },
+        )
+        self.assertEqual(api_resp.status_code, 200)
+        payload = api_resp.json()
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["data"]["rate_type"], "villa")
+        self.assertEqual(payload["data"]["preparation_cost"], 2849930100)
+        self.assertEqual(payload["data"]["rent_current_exact"], "29186533.5")
+
+        # 6. Bulk apply API updates villa dossiers missing Section 9 values
+        dossier = HousingDossier.objects.create(
+            archive_number=990004,
+            full_name="تست گروهی ویلایی",
+            national_id="0384444444",
+            site="قنوات",
+            construction_type="ویلایی",
+            project="شهرک اول",
+            main_plaque=10,
+            separated_plaque=888,
+            sub_plaque=223,
+        )
+        HousingDossier.objects.filter(pk=dossier.pk).update(preparation_cost=0, total_land_share=None)
+        ba_resp = self.client.post("/api/land-rates/villa/bulk-apply/", {"project": "شهرک اول"})
+        self.assertEqual(ba_resp.status_code, 200)
+        self.assertEqual(ba_resp.json()["updated_count"], 1)
+        dossier.refresh_from_db()
+        self.assertEqual(dossier.preparation_cost, 2100000000)
+
+        # 7. Dossier detail view injects villa land_rate_info cleanly
+        det_resp = self.client.get(f"/dossier/{dossier.pk}/")
+        self.assertEqual(det_resp.status_code, 200)
+        det_html = det_resp.content.decode("utf-8")
+        self.assertIn("جزئیات نرخ ویلایی", det_html)
+        self.assertIn("10/223/888", det_html)
+

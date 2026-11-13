@@ -37,6 +37,36 @@ MAX_STAGE = 22
 TOTAL_STAGES = 22
 
 # =========================================================================
+# 4-Place Document Location Mapping
+# =========================================================================
+LOCATION_LABELS: Dict[str, str] = {
+    "rah_azarm": "کارگزاری ره آزرم",
+    "zamin_tarsim": "کارگزاری زمین ترسیم",
+    "directorate": "اداره کل راه و شهرسازی",
+    "archive": "بایگانی",
+}
+
+STAGE_LOCATION_KEYS: Dict[int, str] = {
+    1: "rah_azarm",
+    2: "rah_azarm",
+    7: "rah_azarm",
+    8: "rah_azarm",
+    9: "rah_azarm",
+    17: "zamin_tarsim",
+    18: "zamin_tarsim",
+    22: "archive",
+}
+
+
+def get_stage_location(stage: int, is_locked: bool = False, status: str = "") -> Tuple[str, str]:
+    """Return (location_key, location_label) for a dossier's current stage/status."""
+    if is_locked or stage >= MAX_STAGE or status in ("COMPLETED", "REJECTED_RED", "DELETED"):
+        key = "archive"
+    else:
+        key = STAGE_LOCATION_KEYS.get(stage, "directorate")
+    return key, LOCATION_LABELS[key]
+
+# =========================================================================
 # Official 22-Step Stage Roles
 # Format: stage_number -> (unit, role_title, stage_title)
 # =========================================================================
@@ -49,7 +79,7 @@ STAGE_ROLES: Dict[int, Tuple[str, str, str]] = {
     6: ("directorate", "کارشناس برنامه ریزی مسکن (معرفی به بانک)", "تایید آورده، خروجی اکسل و ثبت شماره نامه معرفی به بانک"),
     7: ("brokerage", "کارشناس تشکیل پرونده کارگزاری", "اسکن مدارک، دفترچه اقساط و ثبت شماره فرم ج"),
     8: ("brokerage", "کارشناس ممیزی و کنترل پرونده ره آزرم", "بازبینی، کنترل و تطبیق سایر فیلدهای اطلاعاتی پرونده پیش از تأیید رئیس"),
-    9: ("brokerage", "مدیرعامل کارگزاری (رئیس کارگزاری ره آزرم)", "تأیید و امضای مدیرعامل کارگزاری ره آزرم"),
+    9: ("brokerage", "مدیرعامل کارگزاری ", "تأیید و امضای مدیرعامل کارگزاری ره آزرم"),
     10: ("directorate", "کارشناس نهضت ملی مسکن و استعلام تسهیلات", "بررسی و انطباق کارشناس نهضت ملی مسکن"),
     11: ("directorate", "کارشناس ثبت فرم ج اداره کل", "بررسی و ثبت فرم ج اداره کل"),
     12: ("directorate", "کارشناس فنی و مهندسی", "بررسی کارشناس فنی و مهندسی"),

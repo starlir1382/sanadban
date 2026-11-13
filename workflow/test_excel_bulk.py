@@ -1260,3 +1260,96 @@ class ExcelBulkOperationsTestCase(TestCase):
         self.assertEqual(d.applicant_phone, "09121112233")
         self.assertTrue(WorkflowSignatureLog.objects.filter(dossier=d, action="EXCEL_UPDATE").exists())
         self.assertGreaterEqual(DossierFieldChangeLog.objects.filter(dossier=d).count(), 4)
+
+    def test_failure_report_is_slim_with_reason_summary_sheet(self):
+        """Failure report has a grouped reason summary sheet and slim 4-column error rows."""
+        from workflow.excel_utils import get_report_file_path
+
+        headers = ["کد ملی متقاضی", "نام متقاضی", "پروژه", "شماره طبقه"]
+        rows = [
+            ["0999888771", "الف", "پروژه ۱", "2"],
+            ["0999888772", "ب", "پروژه ۲", "3"],
+            ["", "ج", "پروژه ۳", "1"],
+        ]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["failed_count"], 3)
+        self.assertIsNotNone(res["report_url"])
+
+        report_uuid = res["report_url"].strip("/").split("/")[-1]
+        fpath = get_report_file_path(report_uuid, self.admin_user.id)
+        self.assertIsNotNone(fpath)
+
+        wb = openpyxl.load_workbook(fpath, read_only=True, data_only=True)
+        self.assertEqual(wb.sheetnames[:2], ["خلاصه علل رد", "موارد رد شده"])
+
+        sum_rows = list(wb["خلاصه علل رد"].iter_rows(values_only=True))
+        self.assertEqual(sum_rows[0], ("علت رد", "تعداد"))
+        counts_map = {r[0]: r[1] for r in sum_rows[1:]}
+        self.assertEqual(counts_map.get("کد ملی متقاضی در سامانه یافت نشد."), 2)
+
+        err_rows = list(wb["موارد رد شده"].iter_rows(values_only=True))
+        self.assertEqual(err_rows[0], ("ردیف اکسل", "کد ملی", "نام متقاضی / همسر", "علت رد"))
+        self.assertEqual(len(err_rows), 4)  # header + 3 rejected rows
+        wb.close()
+
+    def test_success_report_skips_unchanged_rows_and_original_columns(self):
+        """Success report only includes changed dossiers and omits all original Excel columns."""
+        from workflow.excel_utils import get_report_file_path
+
+        HousingDossier.objects.create(
+            national_id="0441112233",
+            first_name="تغییریافته",
+            archive_number=100201,
+            project="پروژه قدیم",
+        )
+        HousingDossier.objects.create(
+            national_id="0441112244",
+            first_name="بدون‌تغییر",
+            archive_number=100202,
+            project="پروژه ثابت",
+        )
+
+        headers = ["کد ملی متقاضی", "نام پروژه مسکونی", "شماره طبقه"]
+        rows = [
+            ["0441112233", "پروژه جدید", None],
+            ["0441112244", "پروژه ثابت", None],
+        ]
+        f = make_excel_file(headers, rows)
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 1)
+        self.assertEqual(res["unchanged_count"], 1)
+        self.assertIsNotNone(res["success_report_url"])
+
+        report_uuid = res["success_report_url"].strip("/").split("/")[-1]
+        fpath = get_report_file_path(report_uuid, self.admin_user.id)
+        wb = openpyxl.load_workbook(fpath, read_only=True, data_only=True)
+        ws = wb.active
+        out_rows = list(ws.iter_rows(values_only=True))
+        self.assertEqual(
+            out_rows[0],
+            ("ردیف اکسل", "شماره بایگانی", "کد ملی", "نام متقاضی", "وضعیت", "توضیحات و تغییرات اعمال‌شده"),
+        )
+        self.assertEqual(len(out_rows), 2)  # header + 1 updated row only
+        self.assertEqual(out_rows[1][2], "0441112233")
+        wb.close()
+
+    def test_update_all_unchanged_returns_no_success_report(self):
+        """When all valid rows are unchanged, no empty success report workbook is created."""
+        HousingDossier.objects.create(
+            national_id="0441112255",
+            first_name="ثابت",
+            archive_number=100203,
+            project="پروژه یکسان",
+        )
+        f = make_excel_file(["کد ملی متقاضی", "نام پروژه مسکونی"], [["0441112255", "پروژه یکسان"]])
+        res = process_excel_update(f, user=self.admin_user, preview=False)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["updated_count"], 0)
+        self.assertEqual(res["unchanged_count"], 1)
+        self.assertIsNone(res["success_report_url"])

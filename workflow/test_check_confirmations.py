@@ -146,9 +146,64 @@ class CheckConfirmationWorkflowTest(TestCase):
             is_cash_rent_confirmed=False
         )
 
-        # Check Admin requests status=checks_ticked
-        self.client.login(username="check_admin", password="password123")
+        # Only alireza_nazari can see and filter by چک‌های تاییدشده (checks_ticked)
+        alireza = User.objects.create_user(username="alireza_nazari", password="password123", is_superuser=True, is_staff=True)
+        alireza.profile.full_name = "علیرضا نظری"
+        alireza.profile.allowed_stages = "all"
+        alireza.profile.organization = "system"
+        alireza.profile.save()
+
+        other_admin = User.objects.create_user(username="other_admin_chk", password="password123", is_superuser=True, is_staff=True)
+        other_admin.profile.allowed_stages = "all"
+        other_admin.profile.save()
+
+        self.client.force_login(alireza)
         resp = self.client.get(reverse("dossier_list") + "?status=checks_ticked")
         self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context["can_view_approved_checks"])
+        self.assertContains(resp, "چک‌های تاییدشده (آماده امضا)")
         self.assertContains(resp, "100050")
         self.assertNotContains(resp, "100051")
+
+        # Check admin and other admins do NOT see چک‌های تاییدشده or filter by checks_ticked
+        for denied in (self.check_admin_user, other_admin):
+            self.client.force_login(denied)
+            r_denied = self.client.get(reverse("dossier_list") + "?status=checks_ticked")
+            self.assertEqual(r_denied.status_code, 200)
+            self.assertFalse(r_denied.context["can_view_approved_checks"])
+            self.assertEqual(r_denied.context["status_filter"], "")
+            self.assertNotContains(r_denied, "چک‌های تاییدشده (آماده امضا)")
+            self.assertContains(r_denied, "100051")
+
+    def test_check_service_fee_hidden_from_frontend_and_no_default_bank(self):
+        self.client.login(username="check_admin", password="password123")
+        detail_resp = self.client.get(reverse("dossier_detail", kwargs={"pk": self.dossier.archive_number}))
+        self.assertEqual(detail_resp.status_code, 200)
+        self.assertNotContains(detail_resp, "کارمزد خدمات چک")
+
+        dossier_json = json.loads(detail_resp.context["dossier_json"])
+        form_data = dossier_json["form"]
+        self.assertNotIn("check_service_fee", form_data)
+        self.assertEqual(form_data["decile_loan_bank"], "")
+        self.assertEqual(form_data["check_entries"][0]["bank_name"], "")
+        self.assertEqual(form_data["preparation_check_entries"][0]["bank_name"], "")
+
+        save_url = reverse("dossier_save", kwargs={"pk": self.dossier.archive_number})
+        save_resp = self.client.post(
+            save_url,
+            data=json.dumps({
+                "current_stage": 18,
+                "check_service_fee": 9999999,
+                "check_entries": [
+                    {"cash_date": "1406/01/15", "check_amount": 1000000000, "check_sayadi_code": "1234567890123456", "bank_name": "بانک ملت"}
+                ],
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(save_resp.status_code, 200)
+        save_data = save_resp.json()
+        self.assertNotIn("check_service_fee", save_data)
+
+        self.dossier.refresh_from_db()
+        # Backend still calculates and stores check_service_fee (0.5% of 1,000,000,000 = 5,000,000)
+        self.assertEqual(self.dossier.check_service_fee, 5000000)

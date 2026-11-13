@@ -1,5 +1,10 @@
 from django.utils import timezone
 import jdatetime
+from .field_permissions import (
+    can_user_manage_stage17_18_tracking,
+    can_user_view_approved_checks,
+    is_alireza_nazari_user,
+)
 
 def to_persian_digits(s):
     persian_digits = {'0': '۰', '1': '۱', '2': '۲', '3': '۳', '4': '۴', '5': '۵', '6': '۶', '7': '۷', '8': '۸', '9': '۹'}
@@ -45,10 +50,18 @@ def jalali_date_context(request):
     time_str = f"{to_persian_digits(f'{now.hour:02d}')}:{to_persian_digits(f'{now.minute:02d}')}"
     date_time_str = f"{short_str} - {time_str}"
     
+    u = getattr(request, "user", None)
+    profile = getattr(u, "profile", None) if u and u.is_authenticated else None
+    is_readonly_user = bool(profile and getattr(profile, "is_readonly", False))
+
     return {
         "today_jalali": full_str,
         "today_jalali_short": short_str,
         "today_time_jalali": time_str,
         "today_date_time_jalali": date_time_str,
         "server_tz_offset": "+03:30",
+        "can_manage_directorate_shipments": can_user_manage_stage17_18_tracking(getattr(request, "user", None)),
+        "can_view_approved_checks": can_user_view_approved_checks(getattr(request, "user", None)),
+        "is_alireza_nazari": is_alireza_nazari_user(getattr(request, "user", None)),
+        "is_readonly_user": is_readonly_user,
     }

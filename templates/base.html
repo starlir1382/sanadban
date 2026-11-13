@@ -29,10 +29,10 @@
     <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
 
     <!-- SanadBan Enterprise Design System -->
-    <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.0">
+    <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.1">
     {% block extra_css %}{% endblock %}
     <!-- Dark Mode Theme Engine (Loaded after page-specific styles for optimal cascade) -->
-    <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}?v=3.0">
+    <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}?v=3.2">
 
     <!-- Alpine.js Cloak & FOUC Prevention -->
     <style>
@@ -44,7 +44,7 @@
             -webkit-font-feature-settings: "ss01" 1;
             font-variant-numeric: tabular-nums;
         }
-        html, body { overflow-x: hidden !important; max-width: 100vw; }
+        html, body { overflow-x: clip !important; max-width: 100vw; }
         .sticky-action-bar[x-cloak] { display: none !important; }
         .modal-overlay[x-cloak], .scan-viewer-modal[x-cloak] { display: none !important; }
 
@@ -83,7 +83,7 @@
 
     <!-- Alpine.js & HTMX Core Scripts -->
     <script src="{% static 'js/vendor/htmx.min.js' %}"></script>
-    <script src="{% static 'js/sanadban.js' %}?v=3.1"></script>
+    <script src="{% static 'js/sanadban.js' %}?v=3.7"></script>
     <script defer src="{% static 'js/vendor/alpine.min.js' %}"></script>
 
     

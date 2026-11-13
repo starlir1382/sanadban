@@ -338,41 +338,93 @@
 
   /* Stage cell */
   .dl-stage {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
-    gap: 0.12rem;
-    text-align: right;
+    gap: 0.18rem;
+    text-align: center;
+  }
+  .dl-stage-head {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    gap: 0.26rem;
   }
   .dl-stage-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.32rem;
-    padding: 0.22rem 0.65rem;
-    border-radius: 8px;
-    font-size: 0.78rem;
+    justify-content: center;
+    gap: 0.22rem;
+    padding: 0.16rem 0.52rem;
+    border-radius: 7px;
+    font-size: 0.72rem;
     font-weight: 700;
     border: 1px solid transparent;
-    line-height: 1.4;
+    line-height: 1.25;
     white-space: nowrap;
+    flex-shrink: 0;
   }
   .dl-stage-pill .lbl { font-weight: 600; opacity: 0.85; }
   .dl-stage-pill .no  { font-weight: 800; }
   .dl-stage-pill.brokerage  { background: var(--c-primary-soft); color: #4338ca; border-color: var(--c-primary-line); }
   .dl-stage-pill.directorate { background: var(--c-green-soft);  color: #047857; border-color: #a7f3d0; }
   .dl-stage-pill.done       { background: #dcfce7; color: #166534; border-color: #86efac; }
-  .dl-stage-title {
-    font-size: 0.67rem;
+  .dl-stage-loc {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0.15rem 0.5rem;
+    border-radius: 7px;
+    text-align: center;
+    border: 1px solid transparent;
+  }
+  .dl-stage-loc-name {
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .dl-stage-role {
+    font-size: 0.6rem;
     font-weight: 500;
-    color: var(--c-soft);
+    opacity: 0.74;
+    line-height: 1.15;
+    text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 190px;
-    line-height: 1.25;
-    text-align: right;
+    max-width: 100%;
     display: block;
+  }
+  .dl-stage-loc.loc-rah_azarm    { background: #eef2ff; color: #3730a3; border-color: #c7d2fe; }
+  .dl-stage-loc.loc-zamin_tarsim { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; }
+  .dl-stage-loc.loc-directorate  { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .dl-stage-loc.loc-archive      { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+  .dl-stage-title {
+    width: 100%;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--c-text);
+    line-height: 1.28;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dl-stage-foot {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
   }
   .dl-date {
     display: inline-flex;
@@ -384,7 +436,7 @@
     white-space: nowrap;
   }
   .dl-date svg { color: var(--c-soft); flex-shrink: 0; }
-  .dl-stage-meta { display: flex; align-items: center; justify-content: flex-start; gap: 0.35rem; flex-wrap: wrap; }
+  .dl-stage-meta { display: flex; align-items: center; justify-content: center; gap: 0.35rem; flex-wrap: wrap; }
   .dl-status { display: inline-flex; align-items: center; gap: 3px; font-size: 0.67rem; font-weight: 800; padding: 1px 6px; border-radius: 6px; white-space: nowrap; border: 1px solid transparent; }
   .dl-status.red    { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
   .dl-status.orange { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
@@ -633,11 +685,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 0.65rem;
+    flex-wrap: nowrap;
     margin-bottom: 1.25rem;
     background: #ffffff;
-    padding: 0.6rem 0.8rem;
+    padding: 0.5rem 0.7rem;
     border-radius: var(--radius);
     border: 1px solid var(--c-line);
     box-shadow: var(--shadow);
@@ -645,17 +697,25 @@
   .dl-tabs-group {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
-    flex-wrap: wrap;
+    gap: 0.3rem;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .dl-tabs-group::-webkit-scrollbar {
+    display: none;
   }
   .dl-tab-item {
     display: inline-flex;
     align-items: center;
-    gap: 0.55rem;
-    padding: 0.55rem 1.15rem;
-    border-radius: 12px;
-    font-size: 0.84rem;
+    gap: 0.4rem;
+    padding: 0.48rem 0.78rem;
+    border-radius: 11px;
+    font-size: 0.8rem;
     font-weight: 800;
+    white-space: nowrap;
+    flex-shrink: 0;
     cursor: pointer;
     border: 1.5px solid transparent;
     background: transparent;
@@ -698,7 +758,22 @@
   .dl-tabs-actions {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .dl-tabs-actions .dl-btn {
+    padding: 0.48rem 0.8rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  @media (max-width: 1024px) {
+    .dl-tabs-nav {
+      flex-wrap: wrap;
+    }
+    .dl-tabs-group {
+      flex-wrap: wrap;
+    }
   }
 
   /* ---------- Admin Monitoring KPI Cards ---------- */
@@ -857,7 +932,7 @@
   /* ---------- Table spacing ---------- */
   .dl-table { table-layout: fixed; min-width: 1180px; }
   .dl-table thead th { padding: 0.72rem 0.65rem; }
-  .dl-table tbody td { padding: 0.68rem 0.65rem; }
+  .dl-table tbody td { padding: 0.56rem 0.65rem; }
 
   /* Checkbox column (rightmost in RTL) */
   .dl-table thead th:first-child,
@@ -959,6 +1034,55 @@
     opacity: 0.9;
     white-space: nowrap;
   }
+
+  /* Standalone Stage 17/18 2x2 tracking box between Applicant and Project */
+  .dl-track-td { vertical-align: middle; text-align: center; padding: 0.35rem 0.4rem !important; }
+  .dl-track-box {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem;
+    width: 100%;
+    max-width: 224px;
+    margin-inline: auto;
+    padding: 0.22rem;
+    border-radius: 9px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .dl-track-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    gap: 1px;
+    padding: 0.16rem 0.28rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    text-align: center;
+    line-height: 1.25;
+    min-width: 0;
+  }
+  .dl-track-chip .lbl {
+    font-size: 0.61rem;
+    font-weight: 700;
+    opacity: 0.88;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .dl-track-chip .dt {
+    font-size: 0.66rem;
+    font-weight: 800;
+    white-space: nowrap;
+    direction: ltr;
+  }
+  .dl-track-chip.visit-17 { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .dl-track-chip.visit-18 { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+  .dl-track-chip.ship-loan { background: #ecfeff; color: #0e7490; border-color: #a5f3fc; }
+  .dl-track-chip.ship-prep { background: #f0fdf4; color: #047857; border-color: #bbf7d0; }
   .dl-stage-title {
     max-width: 100%;
     white-space: normal;
