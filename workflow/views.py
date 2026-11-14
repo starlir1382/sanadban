@@ -1610,7 +1610,7 @@ def dossier_list_view(request):
 
     can_view_approved_checks = can_user_view_approved_checks(request.user)
 
-    _s1718_statuses = ('has_visit_date', 'loan_shipped', 'loan_not_shipped', 'prep_shipped', 'prep_not_shipped')
+    _s1718_statuses = ('has_visit_date', 'has_loan_visit_date', 'has_prep_visit_date', 'loan_shipped', 'loan_not_shipped', 'prep_shipped', 'prep_not_shipped')
 
     if status_filter in _s1718_statuses and not can_manage_directorate_shipments:
 
@@ -1720,11 +1720,23 @@ def dossier_list_view(request):
 
                 pass
 
-    elif status_filter in ('has_visit_date', 'loan_shipped', 'loan_not_shipped', 'prep_shipped', 'prep_not_shipped'):
+    elif status_filter in _s1718_statuses:
 
         dossiers = dossiers.filter(is_locked=False).exclude(status__in=["REJECTED_RED", "DELETED"])
 
-        if status_filter == 'has_visit_date':
+        if status_filter == 'has_loan_visit_date':
+
+            dossiers = dossiers.filter(
+
+                models.Q(loan_visit_date__gt="") | models.Q(visit_date__gt="")
+
+            )
+
+        elif status_filter == 'has_prep_visit_date':
+
+            dossiers = dossiers.filter(prep_visit_date__gt="")
+
+        elif status_filter == 'has_visit_date':
 
             dossiers = dossiers.filter(
 
@@ -1902,17 +1914,48 @@ def dossier_list_view(request):
 
 
 
+    # Calculate signed counts for Stage 17 & Stage 18
+    s17_signed_dossier_ids = set(
+        WorkflowSignatureLog.objects.filter(
+            from_stage__contains="17",
+            action__in=["SIGN", "APPROVE", "SIGN_EXCEL"]
+        ).values_list("dossier_id", flat=True)
+    ) | set(
+        DossierSignature.objects.filter(
+            slot_key="decile_facility"
+        ).exclude(signer_name="").values_list("dossier_id", flat=True)
+    ) | set(
+        HousingDossier.objects.filter(
+            is_decile_loan_confirmed=True
+        ).values_list("id", flat=True)
+    )
+
+    s18_signed_dossier_ids = set(
+        WorkflowSignatureLog.objects.filter(
+            from_stage__contains="18",
+            action__in=["SIGN", "APPROVE", "SIGN_EXCEL"]
+        ).values_list("dossier_id", flat=True)
+    ) | set(
+        DossierSignature.objects.filter(
+            slot_key__in=["revenue", "applicant_settlement"]
+        ).exclude(signer_name="").values_list("dossier_id", flat=True)
+    ) | set(
+        HousingDossier.objects.filter(
+            is_preparation_checks_confirmed=True
+        ).values_list("id", flat=True)
+    )
+
+    stage17_signed_count = len(s17_signed_dossier_ids)
+    stage18_signed_count = len(s18_signed_dossier_ids)
+
     for stg in stages_meta:
-
-
-
         stg["count"] = counts_by_stage.get(stg["id"], 0)
-
-
-
-
-
-
+        if stg["id"] == 17:
+            stg["signed_count"] = stage17_signed_count
+        elif stg["id"] == 18:
+            stg["signed_count"] = stage18_signed_count
+        else:
+            stg["signed_count"] = None
 
     stage_breakdown = []
 
@@ -2026,10 +2069,16 @@ def dossier_list_view(request):
 
     ).exclude(status__in=["REJECTED_RED", "DELETED"])
 
+    loan_visit_date_cnt = stage17_18_qs.filter(
+        models.Q(loan_visit_date__gt="") | models.Q(visit_date__gt="")
+    ).count()
+
+    prep_visit_date_cnt = stage17_18_qs.filter(
+        prep_visit_date__gt=""
+    ).count()
+
     visit_date_17_18_cnt = stage17_18_qs.filter(
-
         models.Q(loan_visit_date__gt="") | models.Q(prep_visit_date__gt="") | models.Q(visit_date__gt="")
-
     ).count()
 
     loan_shipped_cnt = stage17_18_qs.filter(is_loan_sent_to_directorate=True).count()
@@ -2573,6 +2622,10 @@ def dossier_list_view(request):
 
 
         "visit_date_17_18_cnt": visit_date_17_18_cnt,
+        "loan_visit_date_cnt": loan_visit_date_cnt,
+        "prep_visit_date_cnt": prep_visit_date_cnt,
+        "stage17_signed_count": stage17_signed_count,
+        "stage18_signed_count": stage18_signed_count,
 
 
 
@@ -6346,24 +6399,26 @@ def execute_dossier_sign(dossier, user, notes="تایید و امضای الکت
 
 
     profile = getattr(user, 'profile', None)
+    from .field_permissions import is_alireza_nazari_user
 
-    can_action = user.is_superuser or (profile and profile.is_housing_chief) or (profile and profile.can_action_stage(current_idx))
+    can_action = (
+        user.is_superuser
+        or (profile and profile.is_housing_chief)
+        or (profile and profile.can_action_stage(current_idx))
+        or (current_idx in (17, 18) and (is_alireza_nazari_user(user) or user.is_staff))
+    )
 
     if not can_action:
-
         return False, f"دسترسی مجاز برای امضا در مرحله {current_idx} را ندارید."
 
-
-
     if current_idx in (17, 18):
-
-        is_check_admin = user.is_superuser or (profile and (profile.is_housing_chief or profile.is_check_admin or profile.allowed_stages == "all"))
-
+        is_check_admin = (
+            user.is_superuser
+            or is_alireza_nazari_user(user)
+            or (profile and (profile.is_housing_chief or profile.is_check_admin or profile.allowed_stages == "all"))
+        )
         if not is_check_admin:
-
             return False, "امضا و تأیید نهایی مرحله چک‌ها و آماده‌سازی منحصراً در اختیار مدیر کارگزاری چک یا رئیس مسکن می‌باشد. لطفاً تنها چک‌باکس‌های تاییدیه را ثبت نمایید."
-
-
 
     if profile and not profile.can_sign:
 
@@ -6577,7 +6632,27 @@ def execute_dossier_sign(dossier, user, notes="تایید و امضای الکت
 
     # Auto-link expert profile signature to official archival slots
 
+    if current_idx == 17:
+        dossier.is_decile_loan_confirmed = True
+        if not dossier.loan_checks_confirmed_at:
+            dossier.loan_checks_confirmed_at = timezone.now()
+        if not dossier.loan_checks_confirmed_by:
+            dossier.loan_checks_confirmed_by = actor_name
+        dossier.save()
+    elif current_idx == 18:
+        dossier.is_preparation_checks_confirmed = True
+        dossier.is_cash_rent_confirmed = True
+        if not dossier.prep_checks_confirmed_at:
+            dossier.prep_checks_confirmed_at = timezone.now()
+        if not dossier.prep_checks_confirmed_by:
+            dossier.prep_checks_confirmed_by = actor_name
+        dossier.save()
+
     target_slots = STAGE_TO_SLOTS.get(current_idx, [])
+    if current_idx == 17 and not target_slots:
+        target_slots = ["decile_facility"]
+    elif current_idx == 18 and not target_slots:
+        target_slots = ["revenue"]
 
     import jdatetime
 

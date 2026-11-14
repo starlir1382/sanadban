@@ -145,7 +145,7 @@
     if (bar) bar.style.display = 'none';
   }
 
-  async function executeBatchSign() {
+  async function executeBatchSign(targetStage = null) {
     const chks = document.querySelectorAll('#dossier-table-body .dossier-chk:checked');
     const archiveNumbers = Array.from(chks).map(c => parseInt(c.value, 10)).filter(n => !isNaN(n));
     if (archiveNumbers.length === 0) {
@@ -153,11 +153,24 @@
       return;
     }
     
-    if (!confirm(`آیا از تأیید و امضای الکترونیکی ${archiveNumbers.length} پرونده انتخابی اطمینان دارید؟`)) {
+    let confirmMsg = `آیا از تأیید و امضای الکترونیکی ${archiveNumbers.length} پرونده انتخابی اطمینان دارید؟`;
+    if (targetStage === 17 || targetStage === '17') {
+      confirmMsg = `آیا از تأیید و امضای مرحله ۱۷ (تسهیلات چک) برای ${archiveNumbers.length} پرونده انتخابی اطمینان دارید؟`;
+    } else if (targetStage === 18 || targetStage === '18') {
+      confirmMsg = `آیا از تأیید و امضای مرحله ۱۸ (آماده‌سازی) برای ${archiveNumbers.length} پرونده انتخابی اطمینان دارید؟`;
+    } else if (targetStage === 'both' || targetStage === '17,18') {
+      confirmMsg = `آیا از تأیید و امضای مراحل ۱۷ و ۱۸ برای ${archiveNumbers.length} پرونده انتخابی اطمینان دارید؟`;
+    }
+
+    if (!confirm(confirmMsg)) {
       return;
     }
 
-    const btn = document.getElementById('batch-sign-btn');
+    let btn = document.getElementById('batch-sign-btn');
+    if (targetStage === 17 || targetStage === '17') btn = document.getElementById('batch-sign-17-btn') || btn;
+    else if (targetStage === 18 || targetStage === '18') btn = document.getElementById('batch-sign-18-btn') || btn;
+    else if (targetStage === 'both') btn = document.getElementById('batch-sign-both-btn') || btn;
+
     const originalText = btn ? btn.innerHTML : '';
     if (btn) {
       btn.disabled = true;
@@ -172,7 +185,10 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ archive_numbers: archiveNumbers })
+        body: JSON.stringify({ 
+          archive_numbers: archiveNumbers,
+          target_stage: targetStage
+        })
       });
       const res = await resp.json();
       if (res.status === 'success') {
@@ -188,13 +204,13 @@
           return;
         }
         if (window.SanadbanToast) {
-          window.SanadbanToast.show(`تعداد ${res.signed_count} پرونده با موفقیت امضا و منتقل شد.`, 'success');
+          window.SanadbanToast.show(res.message || `تعداد ${res.signed_count} پرونده با موفقیت امضا شد.`, 'success');
         } else {
-          alert(`تعداد ${res.signed_count} پرونده با موفقیت امضا شد.`);
+          alert(res.message || `تعداد ${res.signed_count} پرونده با موفقیت امضا شد.`);
         }
         setTimeout(() => {
           location.reload();
-        }, 1200);
+        }, 1100);
       } else {
         alert(res.message || 'خطا در ثبت امضا');
         if (btn) {
@@ -478,7 +494,7 @@
         {% endif %}
         {% if status_filter %}
         <span style="font-size: 0.74rem; font-weight: 700; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 999px;">
-          فیلتر: {% if status_filter == 'pending_red' %}فرم ج قرمز ارجاعی{% elif status_filter == 'deleted_all' %}حذف‌شده / ردشده{% elif status_filter == 'deleted' %}بایگانی حذفی{% elif status_filter == 'red_form_j' %}فرم ج قرمز{% elif status_filter == 'checks_ticked' %}دارای چک تیک‌خورده{% elif status_filter == 'has_visit_date' %}دارای تاریخ مراجعه{% elif status_filter == 'loan_shipped' %}تسهیلات چک ارسال‌شده{% elif status_filter == 'loan_not_shipped' %}تسهیلات چک ارسال‌نشده{% elif status_filter == 'prep_shipped' %}آماده‌سازی ارسال‌شده{% elif status_filter == 'prep_not_shipped' %}آماده‌سازی ارسال‌نشده{% else %}{{ status_filter }}{% endif %}
+          فیلتر: {% if status_filter == 'pending_red' %}فرم ج قرمز ارجاعی{% elif status_filter == 'deleted_all' %}حذف‌شده / ردشده{% elif status_filter == 'deleted' %}بایگانی حذفی{% elif status_filter == 'red_form_j' %}فرم ج قرمز{% elif status_filter == 'checks_ticked' %}دارای چک تیک‌خورده{% elif status_filter == 'has_loan_visit_date' %}مراجعه تسهیلات چک{% elif status_filter == 'has_prep_visit_date' %}مراجعه آماده‌سازی{% elif status_filter == 'has_visit_date' %}دارای تاریخ مراجعه{% elif status_filter == 'loan_shipped' %}تسهیلات چک ارسال‌شده{% elif status_filter == 'loan_not_shipped' %}تسهیلات چک ارسال‌نشده{% elif status_filter == 'prep_shipped' %}آماده‌سازی ارسال‌شده{% elif status_filter == 'prep_not_shipped' %}آماده‌سازی ارسال‌نشده{% else %}{{ status_filter }}{% endif %}
         </span>
         {% endif %}
         {% if query %}
@@ -581,15 +597,29 @@
       {% endif %}
 
       {% if can_manage_directorate_shipments %}
-      <a href="{% url 'dossier_list' %}?status=has_visit_date{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
-         class="dl-scard {% if status_filter == 'has_visit_date' %}active{% elif visit_date_17_18_cnt > 0 %}has{% endif %}"
-         style="border-color: #93c5fd; background: #eff6ff;">
+      <!-- Separate Visit Date Cards for Stage 17 & Stage 18 -->
+      <a href="{% url 'dossier_list' %}?status=has_loan_visit_date{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
+         class="dl-scard {% if status_filter == 'has_loan_visit_date' %}active{% elif loan_visit_date_cnt > 0 %}has{% endif %}"
+         style="border-color: #93c5fd; background: #eff6ff;"
+         title="پرونده‌های دارای تاریخ مراجعه تسهیلات چک (مرحله ۱۷)">
         <div class="top">
           <span class="no" style="color: #1d4ed8;">📅</span>
-          {% if visit_date_17_18_cnt > 0 %}<span class="cnt fa-num" style="background: #1d4ed8; color: #fff;">{{ visit_date_17_18_cnt }}</span>{% endif %}
+          {% if loan_visit_date_cnt > 0 %}<span class="cnt fa-num" style="background: #1d4ed8; color: #fff;">{{ loan_visit_date_cnt }}</span>{% endif %}
         </div>
-        <div class="tt" style="color: #1e3a8a; font-weight: 800;">دارای تاریخ مراجعه</div>
-        <div class="rl" style="color: #1d4ed8;">{{ visit_date_17_18_cnt }} پرونده</div>
+        <div class="tt" style="color: #1e3a8a; font-weight: 800;">مراجعه تسهیلات چک (۱۷)</div>
+        <div class="rl" style="color: #1d4ed8;">{{ loan_visit_date_cnt }} پرونده</div>
+      </a>
+
+      <a href="{% url 'dossier_list' %}?status=has_prep_visit_date{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
+         class="dl-scard {% if status_filter == 'has_prep_visit_date' %}active{% elif prep_visit_date_cnt > 0 %}has{% endif %}"
+         style="border-color: #a7f3d0; background: #ecfdf5;"
+         title="پرونده‌های دارای تاریخ مراجعه آماده‌سازی (مرحله ۱۸)">
+        <div class="top">
+          <span class="no" style="color: #047857;">📅</span>
+          {% if prep_visit_date_cnt > 0 %}<span class="cnt fa-num" style="background: #047857; color: #fff;">{{ prep_visit_date_cnt }}</span>{% endif %}
+        </div>
+        <div class="tt" style="color: #065f46; font-weight: 800;">مراجعه آماده‌سازی (۱۸)</div>
+        <div class="rl" style="color: #047857;">{{ prep_visit_date_cnt }} پرونده</div>
       </a>
 
       <a href="{% url 'dossier_list' %}?status=loan_shipped{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}"
@@ -638,13 +668,29 @@
       {% endif %}
 
       {% for stg in stages_meta %}
-      <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="dl-scard {% if stage_filter == stg.id|stringformat:'i' %}active{% elif stg.count > 0 %}has{% endif %}" title="مرحله {{ stg.id }}: {{ stg.title }} — {{ stg.role }}">
+      <a href="{% url 'dossier_list' %}?stage={{ stg.id }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="dl-scard {% if stage_filter == stg.id|stringformat:'i' %}active{% elif stg.count > 0 %}has{% endif %}" title="مرحله {{ stg.id }}: {{ stg.title }} — {{ stg.role }}{% if stg.signed_count is not None %} (امضاشده: {{ stg.signed_count }}){% endif %}">
         <div class="top">
           <span class="no fa-num">{{ stg.id }}</span>
-          {% if stg.count > 0 %}<span class="cnt fa-num">{{ stg.count }}</span>{% endif %}
+          <div style="display: flex; align-items: center; gap: 4px;">
+            {% if stg.signed_count is not None %}
+            <span class="cnt-signed fa-num" style="background: #059669; color: #fff; font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; display: inline-flex; align-items: center; gap: 2px;" title="تعداد پرونده‌های امضاشده مرحله {{ stg.id }}">
+              ✓ {{ stg.signed_count }}
+            </span>
+            {% endif %}
+            {% if stg.count > 0 %}<span class="cnt fa-num" title="پرونده‌های حاضر در مرحله {{ stg.id }}">{{ stg.count }}</span>{% endif %}
+          </div>
         </div>
         <div class="tt">{{ stg.title }}</div>
-        <div class="rl">{{ stg.role }}</div>
+        <div class="rl">
+          {% if stg.signed_count is not None %}
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <span>{{ stg.role }}</span>
+              <span class="fa-num" style="color: #059669; font-weight: 800; font-size: 0.73rem;">امضاشده: {{ stg.signed_count }}</span>
+            </div>
+          {% else %}
+            {{ stg.role }}
+          {% endif %}
+        </div>
       </a>
       {% endfor %}
     </div>
@@ -693,10 +739,15 @@
       {% if can_manage_directorate_shipments %}
       <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed #e2e8f0;">
         <span style="font-size: 0.78rem; font-weight: 800; color: #475569;">ارسال به راه و شهرسازی و مراجعه (۱۷ و ۱۸):</span>
-        <a href="{% url 'dossier_list' %}?status=has_visit_date{% if query %}&q={{ query|urlencode }}{% endif %}"
-           class="dl-btn {% if status_filter == 'has_visit_date' %}primary{% else %}ghost{% endif %} fa-num"
+        <a href="{% url 'dossier_list' %}?status=has_loan_visit_date{% if query %}&q={{ query|urlencode }}{% endif %}"
+           class="dl-btn {% if status_filter == 'has_loan_visit_date' %}primary{% else %}ghost{% endif %} fa-num"
            style="min-height: 30px; padding: 0.22rem 0.7rem; font-size: 0.76rem;">
-          📅 دارای تاریخ مراجعه ({{ visit_date_17_18_cnt }})
+          📅 مراجعه تسهیلات چک ({{ loan_visit_date_cnt }})
+        </a>
+        <a href="{% url 'dossier_list' %}?status=has_prep_visit_date{% if query %}&q={{ query|urlencode }}{% endif %}"
+           class="dl-btn {% if status_filter == 'has_prep_visit_date' %}primary{% else %}ghost{% endif %} fa-num"
+           style="min-height: 30px; padding: 0.22rem 0.7rem; font-size: 0.76rem;">
+          📅 مراجعه آماده‌سازی ({{ prep_visit_date_cnt }})
         </a>
         <a href="{% url 'dossier_list' %}?status=loan_shipped{% if query %}&q={{ query|urlencode }}{% endif %}"
            class="dl-btn {% if status_filter == 'loan_shipped' %}primary{% else %}ghost{% endif %} fa-num"
@@ -970,21 +1021,44 @@
     </div>
     {% if not is_readonly_user %}
     <!-- Floating Batch Sign Action Bar -->
-    <div id="batch-action-bar" style="display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 1050; background: #0f172a; color: #fff; padding: 0.65rem 1.4rem; border-radius: 999px; box-shadow: 0 12px 35px rgba(15, 23, 42, 0.35); border: 1px solid rgba(255, 255, 255, 0.15); align-items: center; gap: 1rem; backdrop-filter: blur(8px);">
+    <div id="batch-action-bar" style="display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 1050; background: #0f172a; color: #fff; padding: 0.65rem 1.4rem; border-radius: 999px; box-shadow: 0 12px 35px rgba(15, 23, 42, 0.35); border: 1px solid rgba(255, 255, 255, 0.15); align-items: center; gap: 0.65rem; backdrop-filter: blur(8px); flex-wrap: wrap;">
       <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.86rem; font-weight: 700;">
         <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #2563eb; color: #fff; font-size: 0.8rem; font-weight: 900;" id="batch-selected-count" class="fa-num">0</span>
-        <span>پرونده انتخاب شده است</span>
+        <span>پرونده انتخاب شده</span>
       </div>
       <div style="height: 20px; width: 1px; background: rgba(255, 255, 255, 0.2);"></div>
+
+      {% if is_alireza_nazari %}
+      <!-- Alireza Nazari specific buttons: Stage 17, Stage 18, and Both -->
+      <button type="button" onclick="executeBatchSign(17)" id="batch-sign-17-btn" style="display: inline-flex; align-items: center; gap: 0.45rem; background: #0284c7; color: #fff; border: none; padding: 0.45rem 1.1rem; border-radius: 999px; font-family: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer;" title="امضای مرحله ۱۷ برای پرونده‌های انتخابی بدون تغییر مرحله فعلی">
+        <span>✍️ امضای مرحله ۱۷ (تسهیلات چک)</span>
+      </button>
+      <button type="button" onclick="executeBatchSign(18)" id="batch-sign-18-btn" style="display: inline-flex; align-items: center; gap: 0.45rem; background: #059669; color: #fff; border: none; padding: 0.45rem 1.1rem; border-radius: 999px; font-family: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer;" title="امضای مرحله ۱۸ برای پرونده‌های انتخابی بدون تغییر مرحله فعلی">
+        <span>✍️ امضای مرحله ۱۸ (آماده‌سازی)</span>
+      </button>
+      <button type="button" onclick="executeBatchSign('both')" id="batch-sign-both-btn" style="display: inline-flex; align-items: center; gap: 0.45rem; background: #4f46e5; color: #fff; border: none; padding: 0.45rem 1.1rem; border-radius: 999px; font-family: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer;" title="امضای همزمان مراحل ۱۷ و ۱۸ برای پرونده‌های انتخابی">
+        <span>✍️ امضای هر دو مرحله (۱۷ و ۱۸)</span>
+      </button>
+      {% else %}
       <button type="button" onclick="executeBatchSign()" id="batch-sign-btn" style="display: inline-flex; align-items: center; gap: 0.45rem; background: #2563eb; color: #fff; border: none; padding: 0.45rem 1.15rem; border-radius: 999px; font-family: inherit; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: background 0.15s ease;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
         <span>امضا و تأیید گروهی پرونده‌ها</span>
       </button>
+      {% if can_manage_directorate_shipments or is_full_admin %}
+      <button type="button" onclick="executeBatchSign(17)" id="batch-sign-17-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #0284c7; color: #fff; border: none; padding: 0.45rem 0.95rem; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;" title="امضای مرحله ۱۷ برای پرونده‌های انتخابی بدون تغییر مرحله فعلی">
+        <span>✍️ امضای ۱۷ (تسهیلات)</span>
+      </button>
+      <button type="button" onclick="executeBatchSign(18)" id="batch-sign-18-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #059669; color: #fff; border: none; padding: 0.45rem 0.95rem; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;" title="امضای مرحله ۱۸ برای پرونده‌های انتخابی بدون تغییر مرحله فعلی">
+        <span>✍️ امضای ۱۸ (آماده‌سازی)</span>
+      </button>
+      {% endif %}
+      {% endif %}
+
       {% if can_manage_directorate_shipments %}
-      <button type="button" onclick="executeBatchDirectorateShipment('LOAN')" id="batch-ship-loan-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #0284c7; color: #fff; border: none; padding: 0.45rem 1rem; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;">
+      <button type="button" onclick="executeBatchDirectorateShipment('LOAN')" id="batch-ship-loan-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #0369a1; color: #fff; border: none; padding: 0.45rem 1rem; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;">
         <span>📦 ارسال تسهیلات چک و چاپ</span>
       </button>
-      <button type="button" onclick="executeBatchDirectorateShipment('PREP')" id="batch-ship-prep-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #059669; color: #fff; border: none; padding: 0.45rem 1rem; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;">
+      <button type="button" onclick="executeBatchDirectorateShipment('PREP')" id="batch-ship-prep-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #047857; color: #fff; border: none; padding: 0.45rem 1rem; border-radius: 999px; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;">
         <span>📦 ارسال آماده‌سازی و چاپ</span>
       </button>
       {% endif %}

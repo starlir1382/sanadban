@@ -990,6 +990,8 @@ def batch_sign_dossiers_view(request):
     """
     Handles batch electronic signing of multiple dossiers selected via checkboxes
     on the user dashboard / inbox table.
+    Supports signing specific out-of-order target stages (e.g. Stage 17 or Stage 18)
+    without modifying the dossier's current_stage if not in that stage.
     """
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
@@ -998,24 +1000,38 @@ def batch_sign_dossiers_view(request):
         body = json.loads(request.body.decode('utf-8')) if request.body else {}
         archive_numbers = body.get("archive_numbers", [])
         notes = body.get("notes", "تایید و امضای الکترونیکی گروهی از کارتابل").strip()
+        target_stage_raw = body.get("target_stage")
     except Exception:
         archive_numbers = request.POST.getlist("archive_numbers")
         notes = request.POST.get("notes", "تایید و امضای الکترونیکی گروهی از کارتابل").strip()
+        target_stage_raw = request.POST.get("target_stage")
 
     if not archive_numbers:
         return JsonResponse({"status": "error", "message": "هیچ پرونده‌ای جهت امضا انتخاب نشده است."}, status=400)
 
+    from .field_permissions import is_alireza_nazari_user
+    from .views import execute_dossier_sign
+
     profile = getattr(request.user, 'profile', None)
+    is_alireza = is_alireza_nazari_user(request.user)
     is_admin = request.user.is_superuser or bool(profile and (profile.is_housing_chief or profile.allowed_stages == 'all'))
-    actor_name = profile.full_name if profile and profile.full_name else (request.user.get_full_name() or request.user.username)
-    actor_role = profile.role_title if profile and profile.role_title else "کارشناس اقدام"
+
+    # Determine target stages
+    target_stages = []
+    if target_stage_raw in (17, "17"):
+        target_stages = [17]
+    elif target_stage_raw in (18, "18"):
+        target_stages = [18]
+    elif target_stage_raw in ("both", "17,18", "all_17_18"):
+        target_stages = [17, 18]
+    elif is_alireza and not target_stage_raw:
+        # Default for Alireza Nazari if not explicitly specified
+        target_stages = [17, 18]
 
     signed_count = 0
     skipped_count = 0
     errors = []
     signed_dossiers = []
-
-    now_jalali = _format_tehran_jalali()
 
     for arch_num in archive_numbers:
         try:
@@ -1032,112 +1048,62 @@ def batch_sign_dossiers_view(request):
                 skipped_count += 1
                 continue
 
-            # Permission check for dossier's active stage
-            can_sign = is_admin or bool(profile and profile.can_action_stage(dossier.current_stage))
-            if not can_sign:
-                errors.append(f"پرونده #{num}: عدم دسترسی برای مرحله {dossier.current_stage} ({dossier.current_role})")
-                skipped_count += 1
-                continue
-
-            from .views import get_stage_sign_missing_fields
-            missing_fields = get_stage_sign_missing_fields(dossier, dossier.current_stage)
-            if missing_fields:
-                errors.append(
-                    f"پرونده #{num}: امکان امضای مرحله {dossier.current_stage} وجود ندارد؛ فیلدهای الزامی تکمیل نشده‌اند: "
-                    + "، ".join(missing_fields)
-                )
-                skipped_count += 1
-                continue
-
-            current_idx = dossier.current_stage
-            current_title = dossier.current_stage_title
-
-            raw_stamp = f"BATCH-{dossier.archive_number or dossier.id}-{current_idx}-{timezone.now().isoformat()}"
-            sig_hash = "SHA256: " + hashlib.sha256(raw_stamp.encode()).hexdigest()[:24]
-
-            # Dynamic jump to next unsigned stage
-            next_stage = dossier.find_next_actionable_stage(current_signed_stage=current_idx)
-
-            if next_stage >= 22 or current_idx >= MAX_STAGE:
-                dossier.current_stage = 22
-                dossier.is_locked = True
-                dossier.status = "COMPLETED"
-                action = "ARCHIVE"
-                action_label = "بایگانی قطعی پرونده"
-                to_stage_str = f"بایگانی نهایی (مرحله {MAX_STAGE})"
+            if target_stages:
+                # Sign specific stages (e.g. 17 or 18) using execute_dossier_sign
+                dossier_signed = False
+                for t_stg in target_stages:
+                    ok, res = execute_dossier_sign(dossier, request.user, notes=notes, target_stage=t_stg)
+                    if ok:
+                        dossier_signed = True
+                        signed_dossiers.append({
+                            "archive_number": dossier.archive_number,
+                            "id": dossier.id,
+                            "full_name": dossier.full_name,
+                            "national_id": dossier.national_id,
+                            "from_stage": t_stg,
+                            "to_stage": dossier.current_stage,
+                        })
+                    else:
+                        errors.append(f"پرونده #{num} مرحله {t_stg}: {res}")
+                if dossier_signed:
+                    signed_count += 1
+                else:
+                    skipped_count += 1
             else:
-                dossier.current_stage = next_stage
-                dossier.status = "IN_PROGRESS"
-                dossier.return_reason = ""
-                dossier.return_by = ""
-                dossier.return_from_stage = None
-                action = "SIGN"
-                action_label = "تایید و امضای الکترونیکی گروهی"
-                to_stage_str = f"مرحله {next_stage}: {STAGE_ROLES.get(next_stage, ('','',f'مرحله {next_stage}'))[2]}"
+                # Standard workflow signature for dossier.current_stage
+                current_idx = dossier.current_stage
+                can_sign = is_admin or bool(profile and profile.can_action_stage(current_idx))
+                if not can_sign:
+                    errors.append(f"پرونده #{num}: عدم دسترسی برای مرحله {current_idx} ({dossier.current_role})")
+                    skipped_count += 1
+                    continue
 
-            dossier.save()
-
-            WorkflowSignatureLog.objects.create(
-                dossier=dossier,
-                from_stage=f"مرحله {current_idx}: {current_title}",
-                to_stage=to_stage_str,
-                actor=actor_name,
-                role=actor_role,
-                action=action,
-                action_label=action_label,
-                signature_hash=sig_hash,
-                notes=notes
-            )
-
-            # Link signature image to slots if configured
-            # stage_to_slots mapped below
-            stage_to_slots_map = {
-                1: ["brokerage"],
-                3: ["form_j"],
-                4: ["other_facilities", "decile_facility"],
-                5: ["applicant_settlement"],
-                6: ["bank_facility"],
-                8: ["brokerage"],
-                9: ["brokerage"],
-                10: ["national_housing", "bank_facility"],
-                11: ["form_j"],
-                12: ["technical"],
-                13: ["real_estate"],
-                14: ["land_bank"],
-                15: ["legal"],
-                16: ["evaluation"],
-                17: ["decile_facility"],
-                18: ["revenue"],
-                19: ["contractor_settlement"],
-            }
-            target_slots = STAGE_TO_SLOTS.get(current_idx, [])
-            for slot_key in target_slots:
-                sig_obj, _ = DossierSignature.objects.get_or_create(dossier=dossier, slot_key=slot_key)
-                sig_obj.signer_name = actor_name
-                sig_obj.signer_title = actor_role
-                sig_obj.signed_date = now_jalali
-                sig_obj.uploaded_by = request.user.username
-                if profile and profile.signature_image:
-                    sig_obj.signature_image = profile.signature_image
-                sig_obj.save()
-
-            signed_count += 1
-            signed_dossiers.append({
-                "archive_number": dossier.archive_number,
-                "id": dossier.id,
-                "full_name": dossier.full_name,
-                "national_id": dossier.national_id,
-                "from_stage": current_idx,
-                "to_stage": dossier.current_stage,
-            })
+                ok, res = execute_dossier_sign(dossier, request.user, notes=notes)
+                if ok:
+                    signed_count += 1
+                    signed_dossiers.append({
+                        "archive_number": dossier.archive_number,
+                        "id": dossier.id,
+                        "full_name": dossier.full_name,
+                        "national_id": dossier.national_id,
+                        "from_stage": current_idx,
+                        "to_stage": dossier.current_stage,
+                    })
+                else:
+                    errors.append(f"پرونده #{num}: {res}")
+                    skipped_count += 1
 
         except Exception as e:
-            errors.append(f"پرونده #{arch_num}: {str(e)}")
+            errors.append(f"خطا در پردازش پرونده #{arch_num}: {str(e)}")
             skipped_count += 1
 
+    msg = f"{signed_count} پرونده با موفقیت امضا و تایید شد."
+    if skipped_count > 0:
+        msg += f" ({skipped_count} پرونده رد شد یا بدون تغییر ماند)"
+
     return JsonResponse({
-        "status": "success",
-        "message": f"امضای گروهی انجام شد: {signed_count} پرونده با موفقیت تایید و امضا شد.",
+        "status": "success" if signed_count > 0 or not errors else "error",
+        "message": msg,
         "signed_count": signed_count,
         "skipped_count": skipped_count,
         "signed_dossiers": signed_dossiers,

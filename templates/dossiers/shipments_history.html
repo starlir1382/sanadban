@@ -414,7 +414,7 @@
           <thead>
             <tr>
               <th>ردیف</th>
-              <th>بایگانی</th>
+              <th>شماره بایگانی / ردیف</th>
               <th>نام و نام خانوادگی</th>
               <th>کد ملی</th>
               <th>شماره تماس</th>
@@ -426,7 +426,7 @@
             {% for d in s.dossiers %}
             <tr>
               <td>{{ forloop.counter }}</td>
-              <td><a href="{% url 'dossier_detail' pk=d.archive_number %}" style="color: #0d9488; font-weight: 700; text-decoration: none;">{{ d.archive_number }}</a></td>
+              <td><a href="{% url 'dossier_detail' pk=d.url_pk %}" style="color: #0d9488; font-weight: 700; text-decoration: none;">{{ d.display_number }}</a></td>
               <td>{{ d.full_name }}</td>
               <td dir="ltr" style="text-align: right;">{{ d.national_id }}</td>
               <td dir="ltr" style="text-align: right;">{{ d.applicant_phone }}</td>

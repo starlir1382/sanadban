@@ -68,6 +68,8 @@ def _shipment_dossier_payload(d: HousingDossier, shipment_type: str = "LOAN") ->
     contractor_display = f"{d.project} ({d.site})" if (d.project and d.site) else (d.project or d.site or "-")
     return {
         "id": d.id,
+        "url_pk": d.url_pk,
+        "display_number": d.display_number,
         "archive_number": d.archive_number,
         "full_name": d.full_name,
         "national_id": d.national_id,
@@ -160,7 +162,7 @@ def directorate_shipments_list_view(request):
         dossiers = list(
             (s.prep_dossiers if s.shipment_type == "PREP" else s.loan_dossiers).all()
         )
-        dossiers.sort(key=lambda d: (d.current_stage, d.archive_number))
+        dossiers.sort(key=lambda d: (d.current_stage, d.archive_number if d.archive_number is not None else 0, d.id))
         shipment_cards.append({
             "id": s.id,
             "shipment_code": s.shipment_code,
@@ -225,7 +227,7 @@ def directorate_shipment_create_api(request):
     now_ts = timezone.now()
 
     with transaction.atomic():
-        locked_qs = HousingDossier.objects.select_for_update().filter(archive_number__in=archive_numbers)
+        locked_qs = HousingDossier.objects.select_for_update().filter(models.Q(archive_number__in=archive_numbers) | models.Q(id__in=archive_numbers))
         dossiers = list(locked_qs.order_by("current_stage", "archive_number"))
         if not dossiers:
             return JsonResponse({"status": "error", "message": "پرونده‌ای با شماره‌های انتخابی یافت نشد."}, status=404)
@@ -235,7 +237,7 @@ def directorate_shipment_create_api(request):
         fk_id_attr = f"{meta['fk_field']}_id"
         for d in dossiers:
             if d.is_locked or d.status in ("REJECTED_RED", "DELETED"):
-                locked_closed.append(f"{d.full_name} ({d.archive_number})")
+                locked_closed.append(f"{d.full_name} ({d.display_number})")
             elif getattr(d, meta["bool_field"]) or getattr(d, fk_id_attr):
                 already_shipped.append(f"{d.full_name} ({d.national_id})")
 
