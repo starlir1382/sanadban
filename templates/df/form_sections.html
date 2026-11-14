@@ -775,15 +775,20 @@
                     {% if can_manage_directorate_shipments %}
                     <div class="df-panel is-plain" style="margin-top: 0.9rem;">
                         <div class="df-panel-head">
-                            <div class="df-panel-title"><svg class="df-i"><use href="#i-cal"/></svg>پیگیری مراجعه متقاضی و ارسال به راه و شهرسازی — مرحله ۱۷ (تسهیلات چک)</div>
-                            <template x-if="form.loan_processed_at">
-                                <span class="df-pill fa-num" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.76rem;" title="تاریخ و ساعت ثبت اولیه پرونده وام">
-                                    ثبت اولیه سیستم: <strong x-text="form.loan_processed_at"></strong>
-                                </span>
+                            <div class="df-panel-title"><svg class="df-i"><use href="#i-cal"/></svg>پیگیری مراجعه متقاضی و ارسال به راه و شهرسازی — مرحله ۱۷ (تسهیلات چک)</div>
+
+                            <template x-if="form.loan_processed_at">
+
+                                <span class="df-pill fa-num" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.76rem;" title="تاریخ و ساعت ثبت اولیه پرونده وام">
+
+                                    ثبت اولیه سیستم: <strong x-text="form.loan_processed_at"></strong>
+
+                                </span>
+
                             </template>
                         </div>
                         <div class="df-grid">
-                            {% include "df/_date.html" with label="تاریخ مراجعه متقاضی — مرحله ۱۷ (شمسی)" cols=4 model="form.loan_visit_date" keyexpr="'loan_visit_date'" titleexpr="'تاریخ مراجعه مرحله ۱۷ (تسهیلات چک)'" ph="۱۴۰۵/۰۸/۲۰" ed="loan_visit_date" %}
+                            {% include "df/_date.html" with label="تاریخ مراجعه متقاضی — مرحله ۱۷ (شمسی)" cols=4 model="form.loan_visit_date" keyexpr="'loan_visit_date'" titleexpr="'تاریخ مراجعه مرحله ۱۷ (تسهیلات چک)'" ph="ثبت نشده (مثال: ۱۴۰۵/۰۸/۲۰)" ed="loan_visit_date" %}
                             <div class="df-field df-col-4">
                                 <label class="df-label">ثبت‌کننده مراجعه مرحله ۱۷</label>
                                 <div class="df-readonly-box fa-num">
@@ -870,15 +875,20 @@
                     {% if can_manage_directorate_shipments %}
                     <div class="df-panel is-plain" style="margin-top: 0.9rem;">
                         <div class="df-panel-head">
-                            <div class="df-panel-title"><svg class="df-i"><use href="#i-cal"/></svg>پیگیری مراجعه متقاضی و ارسال به راه و شهرسازی — مرحله ۱۸ (آماده‌سازی و اجاره)</div>
-                            <template x-if="form.prep_processed_at">
-                                <span class="df-pill fa-num" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.76rem;" title="تاریخ و ساعت ثبت اولیه پرونده آماده‌سازی">
-                                    ثبت اولیه سیستم: <strong x-text="form.prep_processed_at"></strong>
-                                </span>
+                            <div class="df-panel-title"><svg class="df-i"><use href="#i-cal"/></svg>پیگیری مراجعه متقاضی و ارسال به راه و شهرسازی — مرحله ۱۸ (آماده‌سازی و اجاره)</div>
+
+                            <template x-if="form.prep_processed_at">
+
+                                <span class="df-pill fa-num" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.76rem;" title="تاریخ و ساعت ثبت اولیه پرونده آماده‌سازی">
+
+                                    ثبت اولیه سیستم: <strong x-text="form.prep_processed_at"></strong>
+
+                                </span>
+
                             </template>
                         </div>
                         <div class="df-grid">
-                            {% include "df/_date.html" with label="تاریخ مراجعه متقاضی — مرحله ۱۸ (شمسی)" cols=4 model="form.prep_visit_date" keyexpr="'prep_visit_date'" titleexpr="'تاریخ مراجعه مرحله ۱۸ (آماده‌سازی و اجاره)'" ph="۱۴۰۵/۰۸/۲۰" ed="prep_visit_date" %}
+                            {% include "df/_date.html" with label="تاریخ مراجعه متقاضی — مرحله ۱۸ (شمسی)" cols=4 model="form.prep_visit_date" keyexpr="'prep_visit_date'" titleexpr="'تاریخ مراجعه مرحله ۱۸ (آماده‌سازی و اجاره)'" ph="ثبت نشده (مثال: ۱۴۰۵/۰۸/۲۰)" ed="prep_visit_date" %}
                             <div class="df-field df-col-4">
                                 <label class="df-label">ثبت‌کننده مراجعه مرحله ۱۸</label>
                                 <div class="df-readonly-box fa-num">

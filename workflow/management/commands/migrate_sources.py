@@ -23,11 +23,9 @@ def to_jalali_str(dt_val):
         dt_val = dt_val.strip()
         if not dt_val:
             return ""
-        # Check if already jalali (starts with 13 or 14)
         if dt_val.startswith("13") or dt_val.startswith("14"):
             return dt_val.replace("-", "/")
         try:
-            # Parse ISO date/datetime
             if "T" in dt_val:
                 dt = datetime.fromisoformat(dt_val.replace("Z", "+00:00"))
             elif " " in dt_val:
@@ -231,20 +229,22 @@ class Command(BaseCommand):
             # 3. Individual Checks
             cur.execute("SELECT * FROM records_checkdate WHERE record_id = ?", (r["id"],))
             checks = cur.fetchall()
-            for chk in checks:
+            for idx, chk in enumerate(checks):
                 if not dry_run:
+                    sayadi = str(chk["check_sayadi_code"] or "").strip()
                     DossierCheck.objects.get_or_create(
                         dossier=dossier,
                         check_type="LOAN",
-                        sayadi_id=str(chk["check_sayadi_code"] or "").strip(),
+                        check_sayadi_code=sayadi,
                         defaults={
-                            "amount": chk["check_amount"] or 0,
-                            "due_date": to_jalali_str(chk["cash_date"]),
+                            "row_number": idx + 1,
+                            "check_amount": chk["check_amount"] or 0,
+                            "cash_date": to_jalali_str(chk["cash_date"]),
                             "bank_name": chk["bank_name"] or "",
                         },
                     )
 
-            # 4. Scans & Attachments
+            # 4. Commitment Scan
             if r["commitment_scan"] and media_dir and not dry_run:
                 src_path = os.path.join(media_dir, r["commitment_scan"])
                 if os.path.isfile(src_path):
@@ -273,6 +273,39 @@ class Command(BaseCommand):
                             "uploaded_by": "انتقال سیستم قبلی",
                         },
                     )
+
+            # 5. Check Scans
+            cur.execute("SELECT * FROM records_checkscan WHERE record_id = ?", (r["id"],))
+            scans = cur.fetchall()
+            for sc in scans:
+                if sc["scanned_file"] and media_dir and not dry_run:
+                    sc_src = os.path.join(media_dir, sc["scanned_file"])
+                    if os.path.isfile(sc_src):
+                        target_dir = os.path.join(r"d:\ZaminTarsim\sanadban\uploads", nid)
+                        os.makedirs(target_dir, exist_ok=True)
+                        sc_fname = os.path.basename(sc_src)
+                        sc_dst = os.path.join(target_dir, sc_fname)
+                        if not os.path.exists(sc_dst):
+                            shutil.copy2(sc_src, sc_dst)
+
+                        hasher = hashlib.sha256()
+                        with open(sc_dst, "rb") as sf:
+                            for chunk in iter(lambda: sf.read(4096), b""):
+                                hasher.update(chunk)
+                        sc_hash = hasher.hexdigest()
+
+                        DossierAttachment.objects.get_or_create(
+                            dossier=dossier,
+                            doc_type="LOAN_CHECK",
+                            file_name=sc_fname,
+                            defaults={
+                                "stage": 17,
+                                "title": "اسکن چک وام دهک",
+                                "file_sha256": sc_hash,
+                                "preview_url": f"/uploads/{nid}/{sc_fname}",
+                                "uploaded_by": "انتقال سیستم قبلی",
+                            },
+                        )
 
             updated_fields_count += 1
 

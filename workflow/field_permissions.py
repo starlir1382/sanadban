@@ -252,24 +252,18 @@ def is_alireza_nazari_user(user) -> bool:
 def can_user_manage_stage17_18_tracking(user) -> bool:
     if getattr(getattr(user, 'profile', None), 'is_readonly', False):
         return False
-    """
-    Stage 17/18 visit tracking & Directorate shipments are restricted strictly to:
-    1) User 'alireza_nazari' / 'alireza-nazari', and
-    2) Active experts specifically assigned to stages 17 and/or 18 (not admins, chiefs,
-       'system' organization, or 'all'-stages users).
-    """
     if not user or not user.is_authenticated or not user.is_active:
         return False
+    if user.is_superuser or user.is_staff:
+        return True
     username_norm = (getattr(user, "username", "") or "").strip().lower()
     if username_norm in STAGE17_18_TRACKING_USERS:
         return True
-    if user.is_superuser:
-        return False
     profile = getattr(user, "profile", None)
     if not profile or not profile.is_active_expert:
         return False
     if profile.is_housing_chief or profile.organization == "system" or str(profile.allowed_stages).strip() == "all":
-        return False
+        return True
     try:
         stages = {
             int(s.strip())
@@ -278,19 +272,24 @@ def can_user_manage_stage17_18_tracking(user) -> bool:
         }
     except Exception:
         return False
-    return bool(stages) and stages.issubset({17, 18})
+    return bool(stages & {17, 18})
 
 
 def get_stage17_18_allowed_stages_set(user) -> set:
     """Return the exact subset of {17, 18} the user may act upon, or empty set."""
     if not can_user_manage_stage17_18_tracking(user):
         return set()
+    if user.is_superuser or user.is_staff:
+        return {17, 18}
     username_norm = (getattr(user, "username", "") or "").strip().lower()
     if username_norm in STAGE17_18_TRACKING_USERS:
         return {17, 18}
+    profile = getattr(user, "profile", None)
+    if profile and (profile.is_housing_chief or profile.organization == "system" or str(profile.allowed_stages).strip() == "all"):
+        return {17, 18}
     allowed = get_user_allowed_stages_set(user)
     if allowed == "all":
-        return set()
+        return {17, 18}
     return {s for s in allowed if s in (17, 18)}
 
 

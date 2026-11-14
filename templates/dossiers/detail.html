@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block title %}پرونده مسکن متقاضی: {{ dossier.full_name|default:'پرونده مسکن' }} (شماره بایگانی: {{ dossier.archive_number }}) | سامانه مسکن یار{% endblock %} {% block content %}
+{% extends 'base.html' %} {% load static %} {% block title %}پرونده مسکن متقاضی: {{ dossier.full_name|default:'پرونده مسکن' }} ({{ dossier.display_number }}) | سامانه مسکن یار{% endblock %} {% block content %}
 {% csrf_token %}
 <script id="dossier-server-json" type="application/json">
   {{ dossier_json|safe }}
@@ -1145,7 +1145,7 @@
         </button>
 
         <a
-          href="{% url 'land_bank_print' pk=dossier.archive_number %}"
+          href="{% url 'land_bank_print' pk=dossier.url_pk %}"
           target="_blank"
           class="btn btn-outline"
           x-show="currentStage === 15"
@@ -1211,7 +1211,7 @@
           <div class="dt-menu" x-show="moreOpen" x-cloak style="display: none">
             {% if not dossier.is_locked and is_full_admin and not is_view_only %}
             <a
-              href="{% url 'dossier_swap_spouse' pk=dossier.archive_number %}"
+              href="{% url 'dossier_swap_spouse' pk=dossier.url_pk %}"
               onclick="
                 return confirm(
                   'آیا از تعویض متقاضی اصلی با همسر و ارجاع پرونده به مرحله ۳ جهت استعلام فرم ج اطمینان دارید؟',
@@ -1223,49 +1223,49 @@
             </a>
             {% endif %}
             <a
-              href="{% url 'dossier_summary_print' pk=dossier.archive_number %}"
+              href="{% url 'dossier_summary_print' pk=dossier.url_pk %}"
               target="_blank"
             >
               🖨 چاپ فرم مراحل و امضاها (۱۴ امضا)
             </a>
             <a
-              href="{% url 'folder_label_print' pk=dossier.archive_number %}"
+              href="{% url 'folder_label_print' pk=dossier.url_pk %}"
               target="_blank"
             >
               🖨 چاپ برچسب / لیبل پوشه
             </a>
             <a
-              href="{% url 'dossier_print_affidavit' pk=dossier.archive_number %}"
+              href="{% url 'dossier_print_affidavit' pk=dossier.url_pk %}"
               target="_blank"
             >
               🖨 چاپ اقرارنامه تعهد به تقسیط
             </a>
             <a
-              href="{% url 'dossier_print_info_form' pk=dossier.archive_number %}"
+              href="{% url 'dossier_print_info_form' pk=dossier.url_pk %}"
               target="_blank"
             >
               🖨 چاپ فرم اطلاعات متقاضی و سکونت
             </a>
             <a
-              href="{% url 'land_bank_print' pk=dossier.archive_number %}"
+              href="{% url 'land_bank_print' pk=dossier.url_pk %}"
               target="_blank"
             >
               🖨 چاپ سند عرصه و قدرالسهم (arse - A4 افقی)
             </a>
             <a
-              :href="'/dossier/' + archiveNumber + '/print/checks/?type=loan&auto_archive=1'"
+              :href="'/dossier/' + (archiveNumber || dossierId) + '/print/checks/?type=loan&auto_archive=1'"
               target="_blank"
             >
               🖨 چاپ برگه چک‌های تسهیلات وام دهک
             </a>
             <a
-              :href="'/dossier/' + archiveNumber + '/print/checks/?type=prep&auto_archive=1'"
+              :href="'/dossier/' + (archiveNumber || dossierId) + '/print/checks/?type=prep&auto_archive=1'"
               target="_blank"
             >
               🖨 چاپ برگه چک‌های اقساط آماده‌سازی و اجاره
             </a>
             <a
-              :href="'/dossier/' + archiveNumber + '/print/rejection-letter/'"
+              :href="'/dossier/' + (archiveNumber || dossierId) + '/print/rejection-letter/'"
               target="_blank"
               x-show="isRejected"
               x-cloak

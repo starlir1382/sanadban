@@ -364,7 +364,7 @@ class HousingDossier(models.Model):
 
     national_id = models.CharField(max_length=10, unique=True, db_index=True, verbose_name="کدملی / شماره پیشنویس")
 
-    archive_number = models.PositiveIntegerField(unique=True, db_index=True, verbose_name="شماره بایگانی")
+    archive_number = models.PositiveIntegerField(null=True, blank=True, unique=True, db_index=True, verbose_name="شماره بایگانی")
 
     current_stage = models.PositiveSmallIntegerField(default=1, db_index=True, verbose_name="مرحله جاری (۱ تا ۲۱)")
 
@@ -927,7 +927,7 @@ class HousingDossier(models.Model):
 
         verbose_name_plural = "پرونده‌های مسکن متقاضیان"
 
-        ordering = ["-archive_number"]
+        ordering = ["-id"]
 
     def recompute_derived_fields(self, skip: set[str] = ()):
         skip_set = set(skip)
@@ -1045,12 +1045,17 @@ class HousingDossier(models.Model):
 
         self.recompute_derived_fields()
 
-        # Auto-increment archive_number starting strictly from 100001
-        if not self.archive_number:
+        # Auto-increment archive_number starting strictly from 100001 only when reaching stage >= 8 or locked
+        if (self.current_stage >= 8 or self.is_locked) and not self.archive_number:
             max_num = HousingDossier.objects.aggregate(models.Max('archive_number'))['archive_number__max']
             self.archive_number = (max_num + 1) if max_num else 100001
 
         super().save(*args, **kwargs)
+
+    @property
+    def url_pk(self) -> int:
+        """Returns archive_number if set, otherwise id (row number)."""
+        return self.archive_number if self.archive_number else self.id
 
     @property
     def is_numbered_archive(self) -> bool:
@@ -1060,7 +1065,7 @@ class HousingDossier(models.Model):
     @property
     def display_number(self) -> str:
         """Returns official archive number for stages >= 8, or 'ردیف {id}' before stage 8."""
-        if self.is_numbered_archive and self.archive_number:
+        if self.archive_number:
             return str(self.archive_number)
         return f"ردیف {self.id}"
 
@@ -1287,7 +1292,8 @@ class HousingDossier(models.Model):
 
     def __str__(self):
 
-        return f"{self.full_name} (#{self.archive_number} - کد: {self.national_id})"
+        arch_lbl = f"#{self.archive_number}" if self.archive_number else f"ردیف {self.id}"
+        return f"{self.full_name} ({arch_lbl} - کد: {self.national_id})"
 
 class DossierCheck(models.Model):
 
@@ -1333,7 +1339,7 @@ class DossierCheck(models.Model):
 
         type_lbl = "دهک" if self.check_type == "LOAN" else "آماده‌سازی"
 
-        return f"چک {type_lbl} {self.row_number} پرونده #{self.dossier.archive_number} - {self.check_amount:,} ریال"
+        return f"چک {type_lbl} {self.row_number} پرونده #{self.dossier.archive_number or self.dossier.id} - {self.check_amount:,} ریال"
 
 class DossierAttachment(models.Model):
 
@@ -1496,7 +1502,7 @@ class WorkflowSignatureLog(models.Model):
 
     def __str__(self):
 
-        return f"{self.dossier.archive_number}: {self.action_label} توسط {self.actor}"
+        return f"{self.dossier.archive_number or self.dossier.id}: {self.action_label} توسط {self.actor}"
 
     @property
     def timestamp_jalali(self):
@@ -1553,7 +1559,7 @@ class DossierFieldChangeLog(models.Model):
 
     def __str__(self):
 
-        return f"{self.dossier.archive_number}: {self.field_label} ({self.old_value} -> {self.new_value}) توسط {self.changed_by}"
+        return f"{self.dossier.archive_number or self.dossier.id}: {self.field_label} ({self.old_value} -> {self.new_value}) توسط {self.changed_by}"
 
     @property
     def timestamp_jalali(self):
@@ -1668,13 +1674,13 @@ class DossierSignature(models.Model):
 
             return ""
 
-        msg = f"{self.dossier.archive_number}|{self.slot_key}|{self.signer_name}|{self.signed_date}"
+        msg = f"{self.dossier.archive_number or self.dossier.id}|{self.slot_key}|{self.signer_name}|{self.signed_date}"
 
         return hmac.new(settings.SECRET_KEY.encode(), msg.encode(), hashlib.sha256).hexdigest()[:8].upper()
 
     def __str__(self):
 
-        return f"امضای {self.get_slot_key_display()} پرونده #{self.dossier.archive_number}"
+        return f"امضای {self.get_slot_key_display()} پرونده #{self.dossier.archive_number or self.dossier.id}"
 
 class UserProfile(models.Model):
 

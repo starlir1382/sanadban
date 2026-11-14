@@ -1939,13 +1939,19 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
 
         instances_to_create: List[HousingDossier] = []
         for idx, item in enumerate(valid_rows, start=1):
-            max_num += 1
             data = dict(item["data"])
-            data.pop("archive_number", None)
+            explicit_arch = data.pop("archive_number", None)
             clean_data = {k: v for k, v in data.items() if k in valid_model_fields}
 
             dossier = HousingDossier(**clean_data)
-            dossier.archive_number = max_num
+            if dossier.current_stage >= 8 or dossier.is_locked:
+                if explicit_arch:
+                    dossier.archive_number = explicit_arch
+                else:
+                    max_num += 1
+                    dossier.archive_number = max_num
+            else:
+                dossier.archive_number = None
 
             # Auto-fill bank from ProjectBankMapping if empty
             if dossier.project and dossier.project in bank_mappings:
@@ -1986,7 +1992,7 @@ def process_excel_create(file_obj: Any, user: Any, preview: bool = False, is_pre
                             created_count += 1
                     except Exception as row_err:
                         err_item = {
-                            "row": d.archive_number,
+                            "row": d.archive_number or d.id or idx,
                             "national_id": d.national_id,
                             "name": d.full_name,
                             "reasons": [f"خطای پایگاه داده در ذخیره رکورد: {str(row_err)}"],

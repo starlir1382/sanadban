@@ -934,16 +934,20 @@ DOSSIER_FIELD_LABELS = {
 
     "loan_visited_by": "ثبت‌کننده مراجعه مرحله ۱۷",
 
-    "loan_visited_at": "زمان ثبت مراجعه مرحله ۱۷",
-
+    "loan_visited_at": "زمان ثبت مراجعه مرحله ۱۷",
+
+
+
     "loan_processed_at": "زمان ثبت اولیه وام دهک",
 
     "prep_visit_date": "تاریخ مراجعه مرحله ۱۸ - آماده‌سازی (شمسی)",
 
     "prep_visited_by": "ثبت‌کننده مراجعه مرحله ۱۸",
 
-    "prep_visited_at": "زمان ثبت مراجعه مرحله ۱۸",
-
+    "prep_visited_at": "زمان ثبت مراجعه مرحله ۱۸",
+
+
+
     "prep_processed_at": "زمان ثبت اولیه آماده‌سازی",
 
     "is_loan_sent_to_directorate": "وضعیت ارسال تسهیلات چک به راه و شهرسازی",
@@ -3190,10 +3194,21 @@ def _get_dossier_by_pk(pk):
 
     from django.http import Http404
 
-    d = HousingDossier.objects.filter(models.Q(archive_number=pk) | models.Q(id=pk)).first()
+    try:
+        num = int(pk)
+    except (ValueError, TypeError):
+        raise Http404(f"شناسه پرونده نامعتبر است: {pk}")
+
+    if num >= 100001:
+        d = HousingDossier.objects.filter(archive_number=num).first()
+        if not d:
+            d = HousingDossier.objects.filter(id=num).first()
+    else:
+        d = HousingDossier.objects.filter(id=num).first()
+        if not d:
+            d = HousingDossier.objects.filter(archive_number=num).first()
 
     if not d:
-
         raise Http404(f"پرونده با شناسه {pk} یافت نشد.")
 
     return d
@@ -3590,7 +3605,9 @@ def dossier_detail_view(request, pk):
 
     dossier_data = {
 
+        "id": dossier.id,
 
+        "url_pk": dossier.url_pk,
 
         "archive_number": dossier.archive_number,
 
@@ -4188,7 +4205,8 @@ def dossier_detail_view(request, pk):
 
 
 
-            "loan_visited_at": dossier.loan_visited_at_jalali,
+            "loan_visited_at": dossier.loan_visited_at_jalali,
+
             "loan_processed_at": dossier.loan_processed_at_jalali,
 
 
@@ -4205,7 +4223,8 @@ def dossier_detail_view(request, pk):
 
 
 
-            "prep_visited_at": dossier.prep_visited_at_jalali,
+            "prep_visited_at": dossier.prep_visited_at_jalali,
+
             "prep_processed_at": dossier.prep_processed_at_jalali,
 
 
@@ -6608,11 +6627,12 @@ def electronic_sign_action(request, pk):
 
     """Interactive electronic signature. Uses the same logic as Excel group signing."""
 
-    dossier = get_object_or_404(
+    dossier = HousingDossier.objects.select_for_update().filter(
+        models.Q(archive_number=pk) | models.Q(id=pk)
+    ).first()
 
-        HousingDossier.objects.select_for_update(), archive_number=pk
-
-    )
+    if not dossier:
+        raise Http404(f"پرونده با شناسه {pk} یافت نشد.")
 
 
 
@@ -6704,7 +6724,7 @@ def electronic_sign_action(request, pk):
 
     if can_access_next:
 
-        redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.archive_number})
+        redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.url_pk})
 
     else:
 
@@ -6714,7 +6734,7 @@ def electronic_sign_action(request, pk):
 
             if dossier.is_locked:
 
-                messages.success(request, f"پرونده #{dossier.archive_number} تایید و به بایگانی نهایی منتقل گردید.")
+                messages.success(request, f"پرونده #{dossier.archive_number or dossier.id} تایید و به بایگانی نهایی منتقل گردید.")
 
             elif prev_stage == 7 and dossier.current_stage >= 8:
 
@@ -6732,7 +6752,7 @@ def electronic_sign_action(request, pk):
 
                     request,
 
-                    f"پرونده #{dossier.archive_number} با موفقیت به مرحله {dossier.current_stage} ({dossier.current_stage_title}) ارسال گردید.",
+                    f"پرونده #{dossier.archive_number or dossier.id} با موفقیت به مرحله {dossier.current_stage} ({dossier.current_stage_title}) ارسال گردید.",
 
                 )
 
@@ -6754,7 +6774,7 @@ def electronic_sign_action(request, pk):
 
     if dossier.status == "REJECT_RED_PENDING":
 
-        msg = f"پرونده #{dossier.archive_number} به دلیل کد قرمز فرم «ج» با موفقیت به کارتابل مدیر سامانه ارجاع داده شد."
+        msg = f"پرونده #{dossier.archive_number or dossier.id} به دلیل کد قرمز فرم «ج» با موفقیت به کارتابل مدیر سامانه ارجاع داده شد."
 
         try:
 
@@ -6880,7 +6900,12 @@ def return_stage_action(request, pk):
 
 
 
-    dossier = HousingDossier.objects.select_for_update().get(archive_number=pk)
+    dossier = HousingDossier.objects.select_for_update().filter(
+        models.Q(archive_number=pk) | models.Q(id=pk)
+    ).first()
+
+    if not dossier:
+        raise Http404(f"پرونده با شناسه {pk} یافت نشد.")
 
 
 
@@ -7080,7 +7105,7 @@ def return_stage_action(request, pk):
 
 
 
-    raw_stamp = f"RETURN-{dossier.archive_number}-{current_idx}-{target_stage}-{timezone.now().isoformat()}"
+    raw_stamp = f"RETURN-{dossier.archive_number or dossier.id}-{current_idx}-{target_stage}-{timezone.now().isoformat()}"
 
 
 
@@ -7212,7 +7237,7 @@ def return_stage_action(request, pk):
 
 
 
-        redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.archive_number})
+        redirect_url = reverse("dossier_detail", kwargs={"pk": dossier.url_pk})
 
 
 
@@ -7228,7 +7253,7 @@ def return_stage_action(request, pk):
 
 
 
-            messages.info(request, f"پرونده #{dossier.archive_number} جهت اصلاح به مرحله {target_stage} ({target_title}) بازگردانده شد.")
+            messages.info(request, f"پرونده #{dossier.archive_number or dossier.id} جهت اصلاح به مرحله {target_stage} ({target_title}) بازگردانده شد.")
 
 
 
@@ -8288,7 +8313,7 @@ def generate_and_archive_doc_view(request, pk, doc_type):
 
         )
 
-        print_url = f"/dossier/{dossier.archive_number}/print/affidavit/?auto_print=1"
+        print_url = f"/dossier/{dossier.url_pk}/print/affidavit/?auto_print=1"
 
 
 
@@ -8330,7 +8355,7 @@ def generate_and_archive_doc_view(request, pk, doc_type):
 
         )
 
-        print_url = f"/dossier/{dossier.archive_number}/print/info-form/?auto_print=1"
+        print_url = f"/dossier/{dossier.url_pk}/print/info-form/?auto_print=1"
 
 
 
@@ -9034,7 +9059,7 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=
 
 
 
-    preview_url = f"/dossier/{dossier.archive_number}/print/checks/?type={check_type_norm}&auto_archive=0"
+    preview_url = f"/dossier/{dossier.url_pk}/print/checks/?type={check_type_norm}&auto_archive=0"
 
 
 
@@ -9050,7 +9075,7 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=
 
 
 
-    att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.archive_number}/print/checks/").filter(doc_type=doc_type).first()
+    att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.url_pk}/print/checks/").filter(doc_type=doc_type).first()
 
     if not att:
 
@@ -9138,7 +9163,7 @@ def _ensure_check_receipt_attachment(user, dossier, check_type="loan", scan_url=
 
 
 
-    raw_hash = f"{dossier.archive_number}-CHECK-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}"
+    raw_hash = f"{dossier.archive_number or dossier.id}-CHECK-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}"
 
 
 
@@ -10230,7 +10255,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
 
 
-            file_sha = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-{clean_name}-{idx}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
+            file_sha = "SHA256: " + hashlib.sha256(f"{dossier.archive_number or dossier.id}-{clean_name}-{idx}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
 
 
 
@@ -10330,11 +10355,11 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
 
 
-        receipt_filename = f"check_receipt_{dossier.archive_number}_{check_type_norm}.html"
+        receipt_filename = f"check_receipt_{dossier.archive_number or dossier.id}_{check_type_norm}.html"
 
 
 
-        receipt_hash = "SHA256: " + hashlib.sha256(f"{dossier.archive_number}-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
+        receipt_hash = "SHA256: " + hashlib.sha256(f"{dossier.archive_number or dossier.id}-RECEIPT-{check_type_norm}-{timezone.now().isoformat()}".encode('utf-8')).hexdigest()[:24]
 
 
 
@@ -10346,7 +10371,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
 
 
-        print_preview_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}"
+        print_preview_url = f"/dossier/{dossier.url_pk}/print/checks/{preview_query}"
 
 
 
@@ -10354,7 +10379,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
 
 
-        receipt_att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.archive_number}/print/checks/").filter(doc_type=doc_type).first()
+        receipt_att = dossier.attachments.filter(preview_url__startswith=f"/dossier/{dossier.url_pk}/print/checks/").filter(doc_type=doc_type).first()
 
 
 
@@ -10542,7 +10567,7 @@ def upload_check_scan_and_create_receipt_view(request, pk):
 
 
 
-        print_url = f"/dossier/{dossier.archive_number}/print/checks/{preview_query}&auto_print=1"
+        print_url = f"/dossier/{dossier.url_pk}/print/checks/{preview_query}&auto_print=1"
 
 
 
@@ -10724,7 +10749,7 @@ def reject_red_form_j_action(request, pk):
 
 
 
-    letter_num = str(data.get("letter_number") or f"1403/رد/{dossier.archive_number}").strip()
+    letter_num = str(data.get("letter_number") or f"1403/رد/{dossier.archive_number or dossier.id}").strip()
 
 
 
@@ -10816,7 +10841,7 @@ def reject_red_form_j_action(request, pk):
 
 
 
-    raw_hash = f"{dossier.archive_number}-REJECT_RED-{letter_num}-{letter_date}-{timezone.now().isoformat()}"
+    raw_hash = f"{dossier.archive_number or dossier.id}-REJECT_RED-{letter_num}-{letter_date}-{timezone.now().isoformat()}"
 
 
 
@@ -11256,7 +11281,7 @@ def return_red_form_j_action(request, pk):
 
 
 
-    raw_hash = f"{dossier.archive_number}-RETURN_RED-{old_stage}-{target_stage}-{timezone.now().isoformat()}"
+    raw_hash = f"{dossier.archive_number or dossier.id}-RETURN_RED-{old_stage}-{target_stage}-{timezone.now().isoformat()}"
 
 
 
@@ -11510,7 +11535,7 @@ def archive_delete_dossier_action(request, pk):
 
     import hashlib
 
-    raw_hash = f"{dossier.archive_number}-DELETE-{timezone.now().isoformat()}"
+    raw_hash = f"{dossier.archive_number or dossier.id}-DELETE-{timezone.now().isoformat()}"
 
     sig_hash = hashlib.sha256(raw_hash.encode('utf-8')).hexdigest()
 
@@ -11570,7 +11595,7 @@ def archive_delete_dossier_action(request, pk):
 
         "status": "success",
 
-        "message": f"پرونده #{dossier.archive_number} با موفقیت حذف و به بایگانی راکد منتقل گردید (از آمار فعال کسر شد).",
+        "message": f"پرونده #{dossier.archive_number or dossier.id} با موفقیت حذف و به بایگانی راکد منتقل گردید (از آمار فعال کسر شد).",
 
         "dossier_status": dossier.status,
 
@@ -11700,7 +11725,7 @@ def restore_deleted_dossier_action(request, pk):
 
         "status": "success",
 
-        "message": f"پرونده #{dossier.archive_number} با موفقیت بازیابی شد و به چرخه فعال مرحله {dossier.current_stage} بازگشت.",
+        "message": f"پرونده #{dossier.archive_number or dossier.id} با موفقیت بازیابی شد و به چرخه فعال مرحله {dossier.current_stage} بازگشت.",
 
         "dossier_status": dossier.status,
 
@@ -16264,7 +16289,7 @@ def upload_dossier_signature_view(request, pk):
 
 
 
-                file_name = f"sig_{dossier.archive_number}_{slot_key}.png"
+                file_name = f"sig_{dossier.archive_number or dossier.id}_{slot_key}.png"
 
 
 
@@ -18422,6 +18447,8 @@ def bank_letter_submit_api(request):
 
     # Direct finalization (when letter_number is provided)
 
+    letter_number = raw_letter_number
+
     if not letter_number:
 
         batch_cnt = BankLetter.objects.count() + 1
@@ -20100,7 +20127,7 @@ def export_notary_letter_word_view(request, pk):
 
 
 
-    response["Content-Disposition"] = f'attachment; filename="notary_letter_{dossier.archive_number}.doc"'
+    response["Content-Disposition"] = f'attachment; filename="notary_letter_{dossier.archive_number or dossier.id}.doc"'
 
 
 
@@ -20148,7 +20175,7 @@ def export_dossier_summary_word_view(request, pk):
 
 
 
-    resp["Content-Disposition"] = f'attachment; filename="dossier_summary_{dossier.archive_number}.doc"'
+    resp["Content-Disposition"] = f'attachment; filename="dossier_summary_{dossier.archive_number or dossier.id}.doc"'
 
 
 

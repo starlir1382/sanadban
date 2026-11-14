@@ -662,6 +662,7 @@ document.addEventListener("alpine:init", () => {
     returnFromStage: null,
     stages: STAGES_22,
     archiveNumber: null,
+    dossierId: null,
     isLoaded: false,
     isLocked: false,
     userCanAction: true,
@@ -1160,6 +1161,8 @@ document.addEventListener("alpine:init", () => {
           const serverData = JSON.parse(serverDataEl.textContent);
           if (serverData.archive_number)
             this.archiveNumber = serverData.archive_number;
+          if (serverData.id)
+            this.dossierId = serverData.id;
           if (typeof serverData.current_stage !== "undefined")
             this.currentStage = Number(serverData.current_stage);
           if (typeof serverData.is_locked !== "undefined")
@@ -1513,7 +1516,7 @@ document.addEventListener("alpine:init", () => {
         const payload = Object.assign({}, this.form, {
           current_stage: this.currentStage,
         });
-        const res = await fetch(`/dossier/${this.archiveNumber}/save/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/save/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1629,7 +1632,7 @@ document.addEventListener("alpine:init", () => {
         const csrf =
           document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
         const resp = await fetch(
-          `/dossier/${this.archiveNumber}/attachment/${item.id}/edit-image/`,
+          `/dossier/${this.archiveNumber || this.dossierId}/attachment/${item.id}/edit-image/`,
           {
             method: "POST",
             headers: {
@@ -1672,7 +1675,7 @@ document.addEventListener("alpine:init", () => {
       try {
         const csrf =
           document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
-        await fetch(`/dossier/${this.archiveNumber}/attachment/reorder/`, {
+        await fetch(`/dossier/${this.archiveNumber || this.dossierId}/attachment/reorder/`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
           body: JSON.stringify({ ordered_ids: orderedIds }),
@@ -1857,7 +1860,7 @@ document.addEventListener("alpine:init", () => {
         formData.append("upload_token", this._makeUploadToken());
 
         const { ok, data } = await this._postFormDataWithProgress(
-          `/dossier/${this.archiveNumber}/upload-scan/`,
+          `/dossier/${this.archiveNumber || this.dossierId}/upload-scan/`,
           formData,
           {
             onProgress: ({ percent }) => {
@@ -1947,7 +1950,7 @@ document.addEventListener("alpine:init", () => {
       try {
         const csrfToken = this.getCSRFToken();
         const res = await fetch(
-          `/dossier/${this.archiveNumber}/attachment/${attId}/delete/`,
+          `/dossier/${this.archiveNumber || this.dossierId}/attachment/${attId}/delete/`,
           {
             method: "POST",
             headers: {
@@ -2278,7 +2281,7 @@ document.addEventListener("alpine:init", () => {
         formData.append("upload_token", this._makeUploadToken());
 
         const { ok, data } = await this._postFormDataWithProgress(
-          `/dossier/${this.archiveNumber}/checks/upload-scan-and-create-receipt/`,
+          `/dossier/${this.archiveNumber || this.dossierId}/checks/upload-scan-and-create-receipt/`,
           formData,
           {
             onProgress: ({ percent }) => {
@@ -2357,7 +2360,7 @@ document.addEventListener("alpine:init", () => {
         }
 
         const { ok, data } = await this._postFormDataWithProgress(
-          `/dossier/${this.archiveNumber}/checks/upload-scan-and-create-receipt/`,
+          `/dossier/${this.archiveNumber || this.dossierId}/checks/upload-scan-and-create-receipt/`,
           formData,
           {
             onProgress: ({ percent }) => {
@@ -2398,7 +2401,7 @@ document.addEventListener("alpine:init", () => {
     },
 
     printCheckScans(type = "prep") {
-      const printUrl = `/dossier/${this.archiveNumber}/print/checks/?type=${type}&auto_archive=1&auto_print=1`;
+      const printUrl = `/dossier/${this.archiveNumber || this.dossierId}/print/checks/?type=${type}&auto_archive=1&auto_print=1`;
       window.open(printUrl, "_blank");
     },
 
@@ -2444,9 +2447,9 @@ document.addEventListener("alpine:init", () => {
     },
 
     async generateAndArchiveDocument(docType) {
-      if (!this.archiveNumber) return;
+      if (!this.archiveNumber && !this.dossierId) return;
       try {
-        const res = await fetch(`/dossier/${this.archiveNumber}/generate-doc/${docType}/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/generate-doc/${docType}/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2713,7 +2716,7 @@ document.addEventListener("alpine:init", () => {
 
         const { ok: responseOk, data: resData } =
           await this._postFormDataWithProgress(
-            `/dossier/${this.archiveNumber}/upload-scan/`,
+            `/dossier/${this.archiveNumber || this.dossierId}/upload-scan/`,
             formData,
             {
               onProgress: ({ percent, loadedMb, totalMb, speedStr }) => {
@@ -3900,7 +3903,7 @@ document.addEventListener("alpine:init", () => {
       }
       const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
       try {
-        const res = await fetch(`/dossier/${this.archiveNumber}/sign/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/sign/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -3949,7 +3952,7 @@ document.addEventListener("alpine:init", () => {
       const csrfToken =
         document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
       try {
-        const res = await fetch(`/dossier/${this.archiveNumber}/sign/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/sign/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -4101,7 +4104,7 @@ document.addEventListener("alpine:init", () => {
         document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
 
       try {
-        const res = await fetch(`/dossier/${this.archiveNumber}/return/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/return/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -4180,7 +4183,7 @@ document.addEventListener("alpine:init", () => {
       this.isSaving = true;
       try {
         const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
-        const res = await fetch(`/dossier/${this.archiveNumber}/delete-archive/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/delete-archive/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -4224,7 +4227,7 @@ document.addEventListener("alpine:init", () => {
       this.isSaving = true;
       try {
         const csrfToken = document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
-        const res = await fetch(`/dossier/${this.archiveNumber}/restore/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/restore/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -4270,7 +4273,7 @@ document.addEventListener("alpine:init", () => {
       try {
         const csrfToken =
           document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
-        const res = await fetch(`/dossier/${this.archiveNumber}/reject-red/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/reject-red/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -4335,7 +4338,7 @@ document.addEventListener("alpine:init", () => {
       try {
         const csrfToken =
           document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
-        const res = await fetch(`/dossier/${this.archiveNumber}/return-red/`, {
+        const res = await fetch(`/dossier/${this.archiveNumber || this.dossierId}/return-red/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

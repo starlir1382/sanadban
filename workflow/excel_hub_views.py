@@ -39,6 +39,27 @@ from .stages import (
     MAX_STAGE,
     TOTAL_STAGES,
 )
+
+
+def _get_dossier_by_pk(pk):
+    from django.http import Http404
+    try:
+        num = int(pk)
+    except (ValueError, TypeError):
+        raise Http404(f"شناسه پرونده نامعتبر است: {pk}")
+
+    if num >= 100001:
+        d = HousingDossier.objects.filter(archive_number=num).first()
+        if not d:
+            d = HousingDossier.objects.filter(id=num).first()
+    else:
+        d = HousingDossier.objects.filter(id=num).first()
+        if not d:
+            d = HousingDossier.objects.filter(archive_number=num).first()
+
+    if not d:
+        raise Http404(f"پرونده با شناسه {pk} یافت نشد.")
+    return d
 def _check_admin_access(user):
     if not user.is_authenticated:
         return False
@@ -856,7 +877,7 @@ def swap_applicant_spouse_view(request, pk):
     if not is_admin:
         return JsonResponse({"status": "error", "message": "عملیات تعویض متقاضی با همسر صرفاً مختص مدیر ارشد سامانه و رئیس مسکن می‌باشد."}, status=403)
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
     if dossier.is_locked:
         return JsonResponse({"status": "error", "message": "پرونده قفل دائم/بایگانی شده است و امکان تغییر متقاضی وجود ندارد."}, status=400)
 
@@ -999,7 +1020,9 @@ def batch_sign_dossiers_view(request):
     for arch_num in archive_numbers:
         try:
             num = int(arch_num)
-            dossier = HousingDossier.objects.select_for_update().filter(archive_number=num).first()
+            dossier = HousingDossier.objects.select_for_update().filter(
+                models.Q(archive_number=num) | models.Q(id=num)
+            ).first()
             if not dossier:
                 skipped_count += 1
                 continue
@@ -1029,7 +1052,7 @@ def batch_sign_dossiers_view(request):
             current_idx = dossier.current_stage
             current_title = dossier.current_stage_title
 
-            raw_stamp = f"BATCH-{dossier.archive_number}-{current_idx}-{timezone.now().isoformat()}"
+            raw_stamp = f"BATCH-{dossier.archive_number or dossier.id}-{current_idx}-{timezone.now().isoformat()}"
             sig_hash = "SHA256: " + hashlib.sha256(raw_stamp.encode()).hexdigest()[:24]
 
             # Dynamic jump to next unsigned stage
@@ -1175,7 +1198,7 @@ def reorder_attachments_view(request, pk):
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
     if dossier.is_locked:
         return JsonResponse({"status": "error", "message": "این پرونده قفل و بایگانی شده است."}, status=400)
 
@@ -1224,7 +1247,7 @@ def edit_attachment_image_view(request, pk, attachment_id):
     if request.method != "POST":
         return HttpResponseBadRequest("فقط درخواست POST مجاز است.")
 
-    dossier = get_object_or_404(HousingDossier, archive_number=pk)
+    dossier = _get_dossier_by_pk(pk)
     if dossier.is_locked:
         return JsonResponse({"status": "error", "message": "این پرونده قفل و بایگانی شده است."}, status=400)
 
