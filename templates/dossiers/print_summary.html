@@ -366,7 +366,7 @@
             <div class="document-meta">
               <span>
                 {% if dossier.current_stage >= 8 or dossier.is_locked %}
-                شماره پرونده بایگانی: <strong>{{ dossier.archive_number|default:'-' }}</strong>
+                شماره پرونده بایگانی: <strong>{{ dossier.display_number }}</strong>
                 {% else %}
                 شماره پرونده: <strong style="color: #64748b;">فاقد شماره بایگانی (ردیف {{ dossier.id }})</strong>
                 {% endif %}

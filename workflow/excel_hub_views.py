@@ -1057,6 +1057,8 @@ def batch_sign_dossiers_view(request):
                         dossier_signed = True
                         signed_dossiers.append({
                             "archive_number": dossier.archive_number,
+                            "display_number": dossier.display_number,
+                            "url_pk": dossier.url_pk,
                             "id": dossier.id,
                             "full_name": dossier.full_name,
                             "national_id": dossier.national_id,
@@ -1083,6 +1085,8 @@ def batch_sign_dossiers_view(request):
                     signed_count += 1
                     signed_dossiers.append({
                         "archive_number": dossier.archive_number,
+                        "display_number": dossier.display_number,
+                        "url_pk": dossier.url_pk,
                         "id": dossier.id,
                         "full_name": dossier.full_name,
                         "national_id": dossier.national_id,

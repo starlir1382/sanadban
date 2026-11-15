@@ -1521,7 +1521,7 @@
               class="fa-num"
             >
               پرونده شماره:
-              <span style="font-weight: 700" x-text="archiveNumber"></span> •
+              <span style="font-weight: 700" x-text="archiveNumber ? ('#' + archiveNumber) : ('ردیف ' + dossierId)"></span> •
               متقاضی: <strong>{{ dossier.full_name|default:'---' }}</strong>
             </div>
           </div>

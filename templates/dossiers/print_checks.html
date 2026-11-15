@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>رسید چک‌های صیادی - پرونده {{ dossier.archive_number }}</title>
+    <title>رسید چک‌های صیادی - پرونده {{ dossier.display_number }}</title>
     <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
     <style>
         @page {
@@ -474,7 +474,7 @@
             <div class="overlay-row">
                 <div class="info-item">
                     <span class="label">کد رهگیری:</span>
-                    <span class="value code">ZTK-{{ dossier.archive_number }}</span>
+                    <span class="value code">ZTK-{{ dossier.display_number }}</span>
                 </div>
                 <div class="info-item">
                     <span class="label-s">پیمانکار:</span>
@@ -506,7 +506,7 @@
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 0.5rem;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                 <h3 style="font-size: 1.1rem; color: #1e293b; margin: 0 0 0.5rem 0;">تصویر اسکن چک‌های صیادی متقاضی</h3>
                 <p style="font-size: 0.85rem; color: #64748b; max-width: 450px; line-height: 1.6; margin: 0 auto 1rem auto;">
-                    پرونده بایگانی {{ dossier.archive_number }} • متقاضی: {{ dossier.full_name }}
+                    پرونده بایگانی {{ dossier.display_number }} • متقاضی: {{ dossier.full_name }}
                     <br>
                     {% if check_type == 'prep' %}
                         اقساط آماده‌سازی و اجاره (tashilatCheck)

@@ -23,10 +23,13 @@ def _pg_connect(dbname):
         import psycopg2
         import psycopg2.extras
         return psycopg2.connect(cursor_factory=psycopg2.extras.RealDictCursor, **params)
-    except ImportError:
-        import psycopg
-        from psycopg.rows import dict_row
-        return psycopg.connect(row_factory=dict_row, **params)
+    except Exception:
+        try:
+            import psycopg
+            from psycopg.rows import dict_row
+            return psycopg.connect(row_factory=dict_row, **params)
+        except Exception:
+            return None
 
 
 def to_jalali_str(dt_val):
@@ -124,7 +127,12 @@ def run_auto_migration(apps, schema_editor):
     # 1. Migrate ScanCheck
     # ------------------------------------------------------------------
     if scancheck_db:
-        conn = _pg_connect(scancheck_db)
+        try:
+            conn = _pg_connect(scancheck_db)
+        except Exception:
+            conn = None
+        if not conn:
+            return
         try:
             cur = conn.cursor()
 

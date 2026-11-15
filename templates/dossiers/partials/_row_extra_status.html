@@ -35,14 +35,24 @@
   </span>
   {% endif %}
 
-  {% if d.list_notary_letter_code %}
-  <span class="dl-extra-chip notary" title="نامه معرفی به دفترخانه: {{ d.list_notary_letter_code }}{% if d.notary_office_number %} - دفترخانه {{ d.notary_office_number }}{% endif %}{% if d.list_notary_letter_date %} ({{ d.list_notary_letter_date }}){% endif %}">
-    <span class="dl-extra-main"><span class="lbl">نامه دفترخانه:</span> <strong class="code">{{ d.list_notary_letter_code }}</strong></span>
-    {% if d.list_notary_letter_date %}<span class="dt">{{ d.list_notary_letter_date }}</span>{% endif %}
+  {% if d.notary_office_number or d.list_notary_letter_code %}
+  <span class="dl-extra-chip notary" title="دفترخانه اسناد رسمی{% if d.notary_office_number %}: دفترخانه شماره {{ d.notary_office_number }}{% endif %}{% if d.list_notary_letter_code %} (نامه: {{ d.list_notary_letter_code }}){% endif %}{% if d.list_notary_letter_date %} - {{ d.list_notary_letter_date }}{% endif %}">
+    <span class="dl-extra-main">
+      {% if d.notary_office_number %}
+        <span class="lbl">دفترخانه:</span> <strong class="code" style="color: #92400e; font-weight: 900;">{{ d.notary_office_number }}</strong>
+      {% else %}
+        <span class="lbl">نامه دفترخانه:</span> <strong class="code">{{ d.list_notary_letter_code }}</strong>
+      {% endif %}
+    </span>
+    {% if d.notary_office_number and d.list_notary_letter_code %}
+      <span class="dt">نامه: {{ d.list_notary_letter_code }}</span>
+    {% elif d.list_notary_letter_date %}
+      <span class="dt">{{ d.list_notary_letter_date }}</span>
+    {% endif %}
   </span>
   {% else %}
-  <span class="dl-extra-chip empty" title="نامه معرفی به دفترخانه ثبت نشده است">
-    <span class="dl-extra-main"><span class="lbl">نامه دفترخانه</span></span>
+  <span class="dl-extra-chip empty" title="دفترخانه ثبت نشده است">
+    <span class="dl-extra-main"><span class="lbl">دفترخانه</span></span>
     <span class="dt">ندارد</span>
   </span>
   {% endif %}

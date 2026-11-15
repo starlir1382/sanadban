@@ -23,10 +23,13 @@ def _pg_connect(dbname):
         import psycopg2
         import psycopg2.extras
         return psycopg2.connect(cursor_factory=psycopg2.extras.RealDictCursor, **params)
-    except ImportError:
-        import psycopg
-        from psycopg.rows import dict_row
-        return psycopg.connect(row_factory=dict_row, **params)
+    except Exception:
+        try:
+            import psycopg
+            from psycopg.rows import dict_row
+            return psycopg.connect(row_factory=dict_row, **params)
+        except Exception:
+            return None
 
 
 def _connect_legacy_db(dbname_or_path):

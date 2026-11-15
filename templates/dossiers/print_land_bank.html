@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فرم مشخصات مالک، ملک و قدرالسهم (مرحله ۱۳) - بایگانی {{ dossier.archive_number }}</title>
+    <title>فرم مشخصات مالک، ملک و قدرالسهم (مرحله ۱۳) - بایگانی {{ dossier.display_number }}</title>
 
     <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
 
@@ -313,7 +313,7 @@
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 <span>چاپ سند (Ctrl + P)</span>
             </button>
-            <a href="{% url 'dossier_detail' pk=dossier.archive_number %}" class="btn-back">
+            <a href="{% url 'dossier_detail' pk=dossier.url_pk %}" class="btn-back">
                 بازگشت به پرونده
             </a>
         </div>

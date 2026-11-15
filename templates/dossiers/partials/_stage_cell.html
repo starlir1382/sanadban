@@ -18,8 +18,13 @@
       <span>{{ d.stage_entry_date_jalali|default:'-' }}</span>
     </span>
 
-    {% if d.status == 'REJECTED_RED' or d.status == 'DELETED' or d.status == 'REJECT_RED_PENDING' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked or can_view_approved_checks and d.has_pending_check_signature %}
+    {% if d.notary_office_number or d.status == 'REJECTED_RED' or d.status == 'DELETED' or d.status == 'REJECT_RED_PENDING' or d.is_red_form_j or d.status == 'RETURNED' or d.current_stage == 22 or d.is_locked or can_view_approved_checks and d.has_pending_check_signature %}
     <div class="dl-stage-meta">
+      {% if d.notary_office_number %}
+        <span class="dl-status" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-weight: 800;" title="شماره دفترخانه اسناد رسمی: {{ d.notary_office_number }}">
+          دفترخانه {{ d.notary_office_number }}
+        </span>
+      {% endif %}
       {% if d.status == 'DELETED' %}
         <span class="dl-status gray" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700;" title="حذف و بایگانی{% if d.deletion_reason %}: {{ d.deletion_reason }}{% endif %}">🗑 حذف و راکد</span>
       {% elif d.status == 'REJECTED_RED' %}

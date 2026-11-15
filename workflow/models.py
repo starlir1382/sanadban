@@ -768,6 +768,16 @@ class HousingDossier(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
 
     @property
+    def valid_check_items(self):
+        """Returns only non-empty check items that have an actual amount, valid sayadi code, or date."""
+        return [
+            c for c in self.check_items.all()
+            if (c.check_amount and c.check_amount > 0)
+            or (c.check_sayadi_code and c.check_sayadi_code.strip() and c.check_sayadi_code.strip() != '---')
+            or (c.cash_date and c.cash_date.strip() and c.cash_date.strip() != '---')
+        ]
+
+    @property
     def has_confirmed_checks(self) -> bool:
         return bool(self.is_cash_rent_confirmed or self.is_decile_loan_confirmed or self.is_preparation_checks_confirmed)
 

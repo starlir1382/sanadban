@@ -1180,7 +1180,13 @@ def get_token_search_condition(token: str):
 
 
 
-            models.Q(registration_section__icontains=term)
+            models.Q(registration_section__icontains=term) |
+            models.Q(applicant_phone__icontains=term) |
+            models.Q(bank_name__icontains=term) |
+            models.Q(main_plaque__icontains=term) |
+            models.Q(block_code__icontains=term) |
+            models.Q(unit_number__icontains=term) |
+            models.Q(notary_office_number__icontains=term)
 
 
 
@@ -2451,6 +2457,7 @@ def dossier_list_view(request):
 
 
 
+    dossiers = dossiers.prefetch_related('check_items')
     per_page = max(50, len(comma_items) + 10) if len(comma_items) > 1 else 50
 
     paginator = Paginator(dossiers, per_page)
@@ -15295,53 +15302,21 @@ def audit_logs_view(request):
 
 
     query = request.GET.get("q", "").strip()
-
-
-
-    archive_num = request.GET.get("archive_number", "").strip()
-
-
-
-
-
-
+    archive_num = (request.GET.get("archive_number") or request.GET.get("archive") or "").strip()
 
     field_changes = DossierFieldChangeLog.objects.select_related("dossier").order_by("-timestamp")
-
-
-
     signature_logs = WorkflowSignatureLog.objects.select_related("dossier").order_by("-timestamp")
 
-
-
-
-
-
-
     if archive_num:
-
-
-
         try:
-
-
-
             num = int(archive_num)
-
-
-
-            field_changes = field_changes.filter(dossier__archive_number=num)
-
-
-
-            signature_logs = signature_logs.filter(dossier__archive_number=num)
-
-
-
+            field_changes = field_changes.filter(
+                models.Q(dossier__archive_number=num) | models.Q(dossier__id=num)
+            )
+            signature_logs = signature_logs.filter(
+                models.Q(dossier__archive_number=num) | models.Q(dossier__id=num)
+            )
         except ValueError:
-
-
-
             pass
 
 
@@ -15374,10 +15349,9 @@ def audit_logs_view(request):
 
 
 
-            models.Q(new_value__icontains=query)
-
-
-
+            models.Q(new_value__icontains=query) |
+            models.Q(dossier__full_name__icontains=query) |
+            models.Q(dossier__national_id__icontains=query)
         )
 
 
@@ -15394,10 +15368,9 @@ def audit_logs_view(request):
 
 
 
-            models.Q(notes__icontains=query)
-
-
-
+            models.Q(notes__icontains=query) |
+            models.Q(dossier__full_name__icontains=query) |
+            models.Q(dossier__national_id__icontains=query)
         )
 
 
@@ -16804,7 +16777,9 @@ def _serialize_bank_letter_dossier(d, b_code, b_name, include_financials=False):
 
 
 
-        "archive_number": d.archive_number,
+        "archive_number": d.archive_number or d.id,
+        "display_number": d.display_number,
+        "url_pk": d.url_pk,
 
 
 
@@ -18306,7 +18281,7 @@ def bank_letter_submit_api(request):
 
 
 
-    dossiers = HousingDossier.objects.filter(archive_number__in=clean_archives)
+    dossiers = HousingDossier.objects.filter(models.Q(archive_number__in=clean_archives) | models.Q(id__in=clean_archives))
 
     if not dossiers.exists():
 
@@ -18318,7 +18293,7 @@ def bank_letter_submit_api(request):
 
         # Strictly enforce stage 6 for regular bank introduction letter
 
-        non_stage6 = [d.archive_number for d in dossiers if d.current_stage != 6]
+        non_stage6 = [d.display_number for d in dossiers if d.current_stage != 6]
 
         if non_stage6:
 

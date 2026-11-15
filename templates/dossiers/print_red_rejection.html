@@ -109,7 +109,7 @@
             <div class="fa-num" style="width: 32%; text-align: left; font-size: 8.5pt; line-height: 1.8;">
                 <div><strong>شماره ابلاغیه:</strong> {{ dossier.rejection_letter_number|default:'1403/رد/100001' }}</div>
                 <div><strong>تاریخ ابلاغ:</strong> {{ dossier.rejection_letter_date|default:today_jalali }}</div>
-                <div><strong>شماره پرونده:</strong> #{{ dossier.archive_number }}</div>
+                <div><strong>شماره پرونده:</strong> #{{ dossier.display_number }}</div>
                 <div><strong>وضعیت:</strong> <span style="color: #dc2626; font-weight: bold;">رد صلاحیت قطعی (فرم ج قرمز)</span></div>
             </div>
         </div>
@@ -127,7 +127,7 @@
         <!-- Formal Body Text -->
         <div style="text-align: justify; line-height: 2; font-size: 10pt; margin-bottom: 20px;">
             سلام علیکم؛<br>
-            احتراماً، پیرو درخواست و ثبت‌نام جنابعالی در طرح نهضت ملی مسکن به شماره بایگانی <strong class="fa-num">#{{ dossier.archive_number }}</strong>، به استحضار می‌رساند حسب استعلامات جامع و برخط به عمل آمده از سامانه وزارت راه و شهرسازی و بانک اطلاعاتی سازمان ملی زمین و مسکن، وضعیت استعلام فرم «ج» جنابعالی یا همسر محترمتان به شرح ذیل <strong>«قرمز» (دارای سابقه مسکن / مالکیت دولتی / استفاده از تسهیلات یارانه‌ای قبلی)</strong> اعلام گردیده است.
+            احتراماً، پیرو درخواست و ثبت‌نام جنابعالی در طرح نهضت ملی مسکن به شماره بایگانی <strong class="fa-num">#{{ dossier.display_number }}</strong>، به استحضار می‌رساند حسب استعلامات جامع و برخط به عمل آمده از سامانه وزارت راه و شهرسازی و بانک اطلاعاتی سازمان ملی زمین و مسکن، وضعیت استعلام فرم «ج» جنابعالی یا همسر محترمتان به شرح ذیل <strong>«قرمز» (دارای سابقه مسکن / مالکیت دولتی / استفاده از تسهیلات یارانه‌ای قبلی)</strong> اعلام گردیده است.
             <br><br>
             مستند به <strong>ماده (۱) آیین‌نامه اجرایی قانون ساماندهی و حمایت از تولید و عرضه مسکن</strong> و ضوابط ابلاغی وزارت راه و شهرسازی، فاقد مسکن بودن متقاضی و افراد تحت تکفل وی از شروط اساسی و غیرقابل چشم‌پوشی جهت بهره‌مندی از امکانات، اراضی و تسهیلات مسکن دولتی می‌باشد.
         </div>
@@ -203,7 +203,7 @@
         <!-- Watermark / Footer Security -->
         <div class="fa-num" style="position: absolute; bottom: 12mm; right: 20mm; left: 20mm; border-top: 1px solid #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; font-size: 7.5pt; color: #64748b;">
             <span>سامانه جامع پایش و ثبت قرارداد مسکن (مسکن یار) • سند رسمی غیرقابل تغییر</span>
-            <span>شناسه امنیتی: RED-{{ dossier.archive_number }}-{{ dossier.national_id }} • تاریخ صدور: {{ today_jalali }}</span>
+            <span>شناسه امنیتی: RED-{{ dossier.display_number }}-{{ dossier.national_id }} • تاریخ صدور: {{ today_jalali }}</span>
         </div>
     </div>
 

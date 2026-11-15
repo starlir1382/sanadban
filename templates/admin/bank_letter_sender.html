@@ -154,7 +154,7 @@
                 list = list.filter(d => 
                     (d.full_name && d.full_name.toLowerCase().includes(q)) ||
                     (d.national_id && d.national_id.includes(q)) ||
-                    String(d.archive_number).includes(q) ||
+                    (d.archive_number && String(d.archive_number).includes(q)) || (d.id && String(d.id).includes(q)) || (d.display_number && d.display_number.includes(q)) ||
                     (d.project && d.project.toLowerCase().includes(q))
                 );
             }
@@ -1165,7 +1165,7 @@
                             <template x-for="(d, idx) in (selectedPendingBatch ? (selectedPendingBatch.dossiers || []) : [])" :key="d.archive_number">
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 3px 8px; text-align: center;" class="fa-num" x-text="idx + 1"></td>
-                                    <td style="padding: 3px 8px; font-weight: 800;" class="fa-num" x-text="d.archive_number"></td>
+                                    <td style="padding: 3px 8px; font-weight: 800;" class="fa-num" x-text="d.display_number || d.archive_number || ('ردیف ' + d.id)"></td>
                                     <td style="padding: 3px 8px;" x-text="d.full_name"></td>
                                     <td style="padding: 3px 8px;" class="fa-num" x-text="d.national_id"></td>
                                     <td style="padding: 3px 8px;" x-text="d.project"></td>
@@ -1329,7 +1329,7 @@
                                     <template x-for="(doc, bidx) in tickedDossiers" :key="doc.archive_number">
                                         <tr style="border-bottom: 1px solid #f1f5f9;">
                                             <td style="padding: 4px 8px; text-align: center;" class="fa-num" x-text="bidx + 1"></td>
-                                            <td style="padding: 4px 8px; font-weight: 800;" class="fa-num" x-text="doc.archive_number"></td>
+                                            <td style="padding: 4px 8px; font-weight: 800;" class="fa-num" x-text="doc.display_number || doc.archive_number || ('ردیف ' + doc.id)"></td>
                                             <td style="padding: 4px 8px;" x-text="doc.full_name"></td>
                                             <td style="padding: 4px 8px;" class="fa-num" x-text="doc.national_id"></td>
                                             <td style="padding: 4px 8px;" x-text="doc.project"></td>
@@ -1931,7 +1931,7 @@
                             
                             <!-- 5. کدملی -->
                             <td style="border: 1px solid #000000; padding: 5px 3px; font-weight: 700;" class="fa-num">
-                                <a :href="'/dossier/' + doc.archive_number + '/'" target="_blank" style="text-decoration: none; color: inherit;" title="مشاهده پروفایل پرونده">
+                                <a :href="'/dossier/' + (doc.url_pk || doc.archive_number || doc.id) + '/'" target="_blank" style="text-decoration: none; color: inherit;" title="مشاهده پروفایل پرونده">
                                     <span x-text="doc.national_id"></span>
                                 </a>
                             </td>

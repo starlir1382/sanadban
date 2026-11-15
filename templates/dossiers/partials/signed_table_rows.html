@@ -1,9 +1,9 @@
 {% for d in dossiers %}
-<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }}">
+<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.id }} {{ d.display_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }}">
   
   <!-- 1. Archive Number -->
   <td class="t-center fa-num">
-    <span class="dl-id" title="شماره بایگانی رسمی پرونده">{{ d.archive_number }}</span>
+    <span class="dl-id" title="شماره بایگانی رسمی پرونده">{{ d.display_number }}</span>
   </td>
 
   <!-- 2. Applicant -->

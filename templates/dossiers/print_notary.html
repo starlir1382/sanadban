@@ -3,7 +3,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>معرفی‌نامه رسمی دفتر اسناد رسمی - پرونده {{ dossier.archive_number|default:'100001' }}</title>
+    <title>معرفی‌نامه رسمی دفتر اسناد رسمی - پرونده {{ dossier.display_number|default:'100001' }}</title>
     <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
     <link rel="stylesheet" href="{% static 'css/sanadban.css' %}">
     <style>
@@ -84,7 +84,7 @@
             </div>
 
             <div class="letterhead-left fa-num">
-                <div><strong>شماره پرونده بایگانی:</strong> {{ dossier.archive_number|default:'100001' }}</div>
+                <div><strong>شماره پرونده بایگانی:</strong> {{ dossier.display_number|default:'100001' }}</div>
                 <div><strong>شماره نامه محضر:</strong> {{ dossier.notary_letter_number|default:dossier.archive_number }}</div>
                 <div><strong>کد ملی متقاضی:</strong> {{ dossier.national_id|default:'0012345678' }}</div>
                 <div><strong>تاریخ نامه:</strong> {{ dossier.notary_letter_date|default:today_jalali }}</div>

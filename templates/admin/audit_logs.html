@@ -220,12 +220,16 @@
 
                         <!-- Dossier Archive # -->
                         <td style="padding: 0.75rem 1rem;">
-                            <a href="{% url 'dossier_detail' pk=c.dossier.archive_number %}#audit-timeline-section" 
+                            {% if c.dossier %}
+                            <a href="{% url 'dossier_detail' pk=c.dossier.url_pk %}#audit-timeline-section" 
                                style="color: #2563eb; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 4px;"
-                               title="مشاهده پرونده #{{ c.dossier.archive_number }}">
-                                <span class="fa-num">#{{ c.dossier.archive_number }}</span>
+                               title="مشاهده پرونده {{ c.dossier.display_number }}">
+                                <span class="fa-num">#{{ c.dossier.display_number }}</span>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                             </a>
+                            {% else %}
+                            <span style="color: #94a3b8;">-</span>
+                            {% endif %}
                         </td>
 
                         <!-- Field Name & Label -->
@@ -312,11 +316,16 @@
 
                         <!-- Dossier Archive # -->
                         <td style="padding: 0.75rem 1rem;">
-                            <a href="{% url 'dossier_detail' pk=s.dossier.archive_number %}#audit-timeline-section" 
-                               style="color: #2563eb; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-                                <span class="fa-num">#{{ s.dossier.archive_number }}</span>
+                            {% if s.dossier %}
+                            <a href="{% url 'dossier_detail' pk=s.dossier.url_pk %}#audit-timeline-section" 
+                               style="color: #2563eb; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 4px;"
+                               title="مشاهده پرونده {{ s.dossier.display_number }}">
+                                <span class="fa-num">#{{ s.dossier.display_number }}</span>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                             </a>
+                            {% else %}
+                            <span style="color: #94a3b8;">-</span>
+                            {% endif %}
                         </td>
 
                         <!-- Action Badge -->

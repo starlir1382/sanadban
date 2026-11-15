@@ -1,0 +1,256 @@
+{% load static persian_tags %}
+<!-- Collapsible Dossier Detail Drawer (Compact 3-Box Grid - No Checks Clutter) -->
+<tr class="dl-detail-row" id="dossier-detail-{{ d.id }}" style="display: none;">
+  <td colspan="7" class="dl-detail-td">
+    <div class="dl-detail-wrap">
+      
+      <div class="dl-boxes-grid fa-num">
+        
+        <!-- Box 1: متقاضی و اطلاعات تماس -->
+        <div class="dl-box">
+          <div class="dl-box-head">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>متقاضی و اطلاعات تماس</span>
+          </div>
+          
+          <div class="dl-box-body">
+            {% if d.applicant_phone %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">شماره تماس:</span>
+              <a href="tel:{{ d.applicant_phone }}" class="dl-box-val phone" title="تماس با متقاضی">
+                {{ d.applicant_phone }}
+              </a>
+            </div>
+            {% endif %}
+
+            {% if d.father_name %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">نام پدر:</span>
+              <span class="dl-box-val">
+                {{ d.father_name }}{% if d.applicant_id_number %} <span class="muted">(ش.ش: {{ d.applicant_id_number }})</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.spouse_full_name %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">مشخصات همسر:</span>
+              <span class="dl-box-val">
+                {{ d.spouse_full_name }}{% if d.spouse_national_id %} <span class="muted">({{ d.spouse_national_id }})</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.decile %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">دهک درآمدی:</span>
+              <span class="dl-box-val">
+                دهک <strong style="color: #4338ca;">{{ d.decile }}</strong>
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.applicant_landline_phone or d.applicant_address %}
+            <div class="dl-box-item" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="dl-box-lbl">نشانی محل سکونت:</span>
+              <span class="dl-box-val" style="font-weight: 500; font-size: 0.76rem; color: #475569; text-align: right;">
+                {% if d.applicant_landline_phone %}تلفن: <span class="phone">{{ d.applicant_landline_phone }}</span> • {% endif %}
+                {{ d.applicant_address|default:'' }}
+                {% if d.applicant_postal_code %}<span class="muted"> (کد پستی: {{ d.applicant_postal_code }})</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if 'قرمز' in d.applicant_form_j_status %}
+            <div class="dl-box-item" style="background: #fef2f2; padding: 4px 6px; border-radius: 6px; border: 1px solid #fecaca;">
+              <span class="dl-box-lbl" style="color: #991b1b;">هشدار فرم «ج»:</span>
+              <span class="dl-box-val" style="color: #dc2626; font-weight: 800;">
+                ⛔ {{ d.applicant_form_j_status }}
+              </span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Box 2: ملک، واحد و پلاک ثبتی -->
+        <div class="dl-box">
+          <div class="dl-box-head">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>واحد مسکونی و پلاک ثبتی</span>
+          </div>
+
+          <div class="dl-box-body">
+            {% if d.main_plaque or d.separated_plaque or d.sub_plaque %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">پلاک ثبتی:</span>
+              <span class="dl-box-val pelak">
+                {% if d.main_plaque %}
+                  اصلی: {{ d.main_plaque }}{% if d.separated_plaque %} / مفروز: {{ d.separated_plaque }}{% endif %}{% if d.sub_plaque %} / فرعی: {{ d.sub_plaque }}{% endif %}
+                {% else %}
+                  مفروز: {{ d.separated_plaque|default:'' }} / فرعی: {{ d.sub_plaque|default:'' }}
+                {% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.block_code or d.unit_number or d.block_name %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">بلوک و واحد:</span>
+              <span class="dl-box-val highlight">
+                بلوک {{ d.block_code|default:d.block_name|default:'-' }} • واحد {{ d.unit_number|default:d.unit_code|default:'-' }}{% if d.floor_number %} (طبقه {{ d.floor_number }}){% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.unit_area or d.net_unit_area %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">متراژ واحد:</span>
+              <span class="dl-box-val">
+                {{ d.unit_area|default:d.net_unit_area }} <span class="unit">مترمربع</span>
+                {% if d.bedroom_count %}<span class="muted" style="font-size: 0.74rem;"> ({{ d.bedroom_count }} خواب)</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.plot_number or d.registration_section %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">قطعه و بخش ثبتی:</span>
+              <span class="dl-box-val">
+                {% if d.plot_number %}قطعه: {{ d.plot_number }}{% endif %}
+                {% if d.registration_section %}<span class="muted"> (بخش: {{ d.registration_section }})</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.base_cost_without_loan and d.base_cost_without_loan > 0 %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">قیمت پایه واحد:</span>
+              <span class="dl-box-val">
+                {{ d.base_cost_without_loan|fa_number }} <span class="unit">ریال</span>
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.notary_office_number %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">دفترخانه اسناد:</span>
+              <span class="dl-box-val" style="color: #92400e; font-weight: 800;">
+                دفترخانه {{ d.notary_office_number }}
+              </span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Box 3: مکاتبات، پیگیری و تسهیلات -->
+        <div class="dl-box">
+          <div class="dl-box-head">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+            <span>بانک، مکاتبات و پیگیری‌ها</span>
+          </div>
+
+          <div class="dl-box-body">
+            {% if d.bank_name %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">بانک عامل:</span>
+              <span class="dl-box-val bank">
+                {{ d.bank_name }}{% if d.bank_branch %} (شعبه {{ d.bank_branch }}){% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.rah_letter %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">نامه راه و شهرسازی:</span>
+              <span class="dl-box-val">
+                {{ d.rah_letter }}{% if d.rah_letter_date %} <span class="muted">({{ d.rah_letter_date }})</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.current_year_rent and d.current_year_rent > 0 %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">اجاره عرصه:</span>
+              <span class="dl-box-val rent">
+                {{ d.current_year_rent|fa_number }} <span class="unit">ریال</span>
+                {% if d.tenant_code %}<span class="muted" style="font-size: 0.72rem;"> (کد: {{ d.tenant_code }})</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.cash_preparation_amount and d.cash_preparation_amount > 0 %}
+            <div class="dl-box-item">
+              <span class="dl-box-lbl">پیش‌پرداخت آماده‌سازی:</span>
+              <span class="dl-box-val prep">
+                {{ d.cash_preparation_amount|fa_number }} <span class="unit">ریال</span>
+                {% if d.prepayment_code %}<span class="muted" style="font-size: 0.72rem;"> (کد: {{ d.prepayment_code }})</span>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            {% if d.bank_letter_number or d.notary_letter_number or d.deed_number %}
+            <div class="dl-box-item" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="dl-box-lbl">اسناد ثبتی:</span>
+              <span class="dl-box-val" style="font-size: 0.76rem; color: #475569; text-align: right;">
+                {% if d.bank_letter_number %}نامه بانک: <strong class="bank">{{ d.bank_letter_number }}</strong>{% if d.bank_letter_date %} ({{ d.bank_letter_date }}){% endif %}{% endif %}
+                {% if d.notary_letter_number %} • معرفی محضر: <strong>{{ d.notary_letter_number }}</strong>{% endif %}
+                {% if d.deed_number %} • سند عرصه: <strong>{{ d.deed_number }}</strong>{% endif %}
+              </span>
+            </div>
+            {% endif %}
+
+            <!-- تاریخ‌های پیگیری اداره کل (نام‌های مشخص و معنادار) -->
+            {% if d.loan_visit_date or d.prep_visit_date or d.visit_date or d.is_loan_sent_to_directorate or d.is_prep_sent_to_directorate %}
+            <div class="dl-box-item" style="flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 4px; border-top: 1px dashed #e2e8f0; margin-top: 2px;">
+              <span class="dl-box-lbl">تاریخ‌های پیگیری اداره کل:</span>
+              <div style="display: flex; gap: 4px; flex-wrap: wrap; width: 100%;">
+                {% if d.loan_visit_date %}
+                  <span class="dl-track-chip visit-17" title="تاریخ مراجعه تسهیلات (وام دهک): {{ d.loan_visit_date_display }}">
+                    <span class="lbl">مراجعه تسهیلات:</span>
+                    <span class="dt">{{ d.loan_visit_date_display }}</span>
+                  </span>
+                {% endif %}
+                {% if d.prep_visit_date %}
+                  <span class="dl-track-chip visit-18" title="تاریخ مراجعه آماده‌سازی: {{ d.prep_visit_date_display }}">
+                    <span class="lbl">مراجعه آماده‌سازی:</span>
+                    <span class="dt">{{ d.prep_visit_date_display }}</span>
+                  </span>
+                {% endif %}
+                {% if not d.loan_visit_date and not d.prep_visit_date and d.visit_date %}
+                  <span class="dl-track-chip visit-17" title="تاریخ مراجعه متقاضی: {{ d.visit_date_display }}">
+                    <span class="lbl">مراجعه متقاضی:</span>
+                    <span class="dt">{{ d.visit_date_display }}</span>
+                  </span>
+                {% endif %}
+                {% if d.is_loan_sent_to_directorate %}
+                  <span class="dl-track-chip ship-loan" title="ارسال تسهیلات به اداره کل{% if d.loan_directorate_sent_date_display %}: {{ d.loan_directorate_sent_date_display }}{% endif %}">
+                    <span class="lbl">ارسال تسهیلات:</span>
+                    <span class="dt">{{ d.loan_directorate_sent_date_display|default:'ارسال شده' }}</span>
+                  </span>
+                {% endif %}
+                {% if d.is_prep_sent_to_directorate %}
+                  <span class="dl-track-chip ship-prep" title="ارسال آماده‌سازی به اداره کل{% if d.prep_directorate_sent_date_display %}: {{ d.prep_directorate_sent_date_display }}{% endif %}">
+                    <span class="lbl">ارسال آماده‌سازی:</span>
+                    <span class="dt">{{ d.prep_directorate_sent_date_display|default:'ارسال شده' }}</span>
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- دکمه ورود به پرونده برای مشاهده جزئیات بیشتر و چک‌ها -->
+      <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 0.6rem; padding-top: 0.45rem; border-top: 1px solid #e2e8f0;">
+        <a href="{% url 'dossier_detail' pk=d.url_pk %}" class="dl-open" style="font-size: 0.78rem; padding: 0.35rem 0.85rem;" title="ورود به صفحه کامل پرونده برای مشاهده چک‌ها، اسناد و امضاها">
+          <span>ورود به پرونده کامل و مشاهده چک‌ها</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </a>
+      </div>
+
+    </div>
+  </td>
+</tr>

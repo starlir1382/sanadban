@@ -1,5 +1,10 @@
+{% load static persian_tags %}
 {% for d in dossiers %}
-<tr class="dossier-row" data-search="{{ d.archive_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.current_location_display }} {{ d.stage_entry_date_jalali }} {{ d.list_bank_letter_code }} {{ d.list_notary_letter_code }}{% if d.has_confirmed_checks %} چک تایید شده چک‌های تاییدشده{% endif %}{% if can_manage_directorate_shipments %}{% if d.visit_date %} تاریخ مراجعه {{ d.visit_date }}{% endif %}{% if d.is_loan_sent_to_directorate %} ارسال تسهیلات چک راه و شهرسازی {{ d.loan_directorate_sent_date }}{% if d.loan_directorate_shipment %} {{ d.loan_directorate_shipment.shipment_code }}{% endif %}{% endif %}{% if d.is_prep_sent_to_directorate %} ارسال آماده سازی آماده‌سازی راه و شهرسازی {{ d.prep_directorate_sent_date }}{% if d.prep_directorate_shipment %} {{ d.prep_directorate_shipment.shipment_code }}{% endif %}{% endif %}{% endif %}">
+<tr class="dossier-row" 
+    id="dossier-row-{{ d.id }}" 
+    data-dossier-id="{{ d.id }}" 
+    onclick="toggleDossierDetails({{ d.id }}, event)"
+    data-search="{{ d.archive_number }} {{ d.id }} {{ d.display_number }} {{ d.national_id }} {{ d.full_name }} {{ d.father_name }} {{ d.spouse_full_name }} {{ d.spouse_national_id }} {{ d.project }} {{ d.site }} {{ d.applicant_phone }} {{ d.bank_name }} {{ d.main_plaque }} {{ d.separated_plaque }} {{ d.sub_plaque }} {{ d.block_code }} {{ d.unit_number }} مرحله {{ d.current_stage }} {{ d.current_stage_title }} {{ d.current_role }} {{ d.current_unit }} {{ d.current_location_display }} {{ d.stage_entry_date_jalali }} {{ d.list_bank_letter_code }} {{ d.list_notary_letter_code }} {% if d.notary_office_number %}دفترخانه {{ d.notary_office_number }}{% endif %}{% if d.has_confirmed_checks %} چک تایید شده چک‌های تاییدشده{% endif %}{% if can_manage_directorate_shipments %}{% if d.visit_date %} تاریخ مراجعه {{ d.visit_date }}{% endif %}{% if d.is_loan_sent_to_directorate %} ارسال تسهیلات چک راه و شهرسازی {{ d.loan_directorate_sent_date }}{% if d.loan_directorate_shipment %} {{ d.loan_directorate_shipment.shipment_code }}{% endif %}{% endif %}{% if d.is_prep_sent_to_directorate %} ارسال آماده سازی آماده‌سازی راه و شهرسازی {{ d.prep_directorate_sent_date }}{% if d.prep_directorate_shipment %} {{ d.prep_directorate_shipment.shipment_code }}{% endif %}{% endif %}{% endif %}">
   
   <!-- Checkbox for Batch Signing -->
   <td class="t-center dl-td-chk">
@@ -21,59 +26,27 @@
     {% endif %}
   </td>
 
-  <!-- 2. Applicant + national id (Clean 2 lines max, no spouse on home page) -->
+  <!-- 2. Applicant + national id with accordion toggle button -->
   <td>
     <div class="dl-person">
+      <span class="dl-chevron-icon" aria-hidden="true">
+        <svg class="dl-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </span>
       <div class="dl-person-info">
         <div class="dl-name" title="{{ d.full_name }}">{{ d.full_name }}</div>
         <div class="dl-subline fa-num">
           <span>کدملی: <span class="dl-nid">{{ d.national_id }}</span></span>
+          {% if d.notary_office_number %}
+          <span style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 0.72rem; margin-right: 4px;" title="شماره دفترخانه اسناد رسمی">
+            دفترخانه {{ d.notary_office_number }}
+          </span>
+          {% endif %}
         </div>
       </div>
     </div>
   </td>
 
-  {% if can_manage_directorate_shipments %}
-  <!-- 2b. Standalone Stage 17/18 2x2 tracking box (between Applicant and Project/Site) -->
-  <td class="dl-track-td fa-num">
-    {% if d.loan_visit_date or d.prep_visit_date or d.visit_date or d.is_loan_sent_to_directorate or d.is_prep_sent_to_directorate %}
-    <div class="dl-track-box">
-      {% if d.loan_visit_date %}
-        <span class="dl-track-chip visit-17" title="تاریخ مراجعه مرحله ۱۷ (تسهیلات چک): {{ d.loan_visit_date_display }}">
-          <span class="lbl">مراجعه ۱۷</span>
-          <span class="dt">{{ d.loan_visit_date_display }}</span>
-        </span>
-      {% endif %}
-      {% if d.prep_visit_date %}
-        <span class="dl-track-chip visit-18" title="تاریخ مراجعه مرحله ۱۸ (آماده‌سازی): {{ d.prep_visit_date_display }}">
-          <span class="lbl">مراجعه ۱۸</span>
-          <span class="dt">{{ d.prep_visit_date_display }}</span>
-        </span>
-      {% endif %}
-      {% if not d.loan_visit_date and not d.prep_visit_date and d.visit_date %}
-        <span class="dl-track-chip visit-17" title="تاریخ مراجعه متقاضی: {{ d.visit_date_display }}">
-          <span class="lbl">مراجعه</span>
-          <span class="dt">{{ d.visit_date_display }}</span>
-        </span>
-      {% endif %}
-      {% if d.is_loan_sent_to_directorate %}
-        <span class="dl-track-chip ship-loan" title="تسهیلات چک ارسال شده به راه و شهرسازی{% if d.loan_directorate_sent_date_display %}: {{ d.loan_directorate_sent_date_display }}{% endif %}{% if d.loan_directorate_shipment %} ({{ d.loan_directorate_shipment.shipment_code }}){% endif %}">
-          <span class="lbl">ارسال چک</span>
-          <span class="dt">{{ d.loan_directorate_sent_date_display|default:'ارسال شده' }}</span>
-        </span>
-      {% endif %}
-      {% if d.is_prep_sent_to_directorate %}
-        <span class="dl-track-chip ship-prep" title="آماده‌سازی ارسال شده به راه و شهرسازی{% if d.prep_directorate_sent_date_display %}: {{ d.prep_directorate_sent_date_display }}{% endif %}{% if d.prep_directorate_shipment %} ({{ d.prep_directorate_shipment.shipment_code }}){% endif %}">
-          <span class="lbl">ارسال آماده‌سازی</span>
-          <span class="dt">{{ d.prep_directorate_sent_date_display|default:'ارسال شده' }}</span>
-        </span>
-      {% endif %}
-    </div>
-    {% endif %}
-  </td>
-  {% endif %}
-
-  <!-- 3. Project + Site (Clean 2 lines max, no bank text) -->
+  <!-- 3. Project + Site -->
   <td>
     <div class="dl-project" title="{{ d.project }}">{{ d.project }}</div>
     <div class="dl-subline fa-num">
@@ -102,8 +75,12 @@
     </div>
   </td>
 </tr>
+
+<!-- Collapsible Detail Row -->
+{% include "dossiers/partials/_row_details.html" with d=d %}
+
 {% empty %}
-<tr>
+<tr id="server-empty-row">
   <td colspan="7">
     <div class="dl-empty" style="padding: 2.5rem 1rem; text-align: center; color: var(--color-text-muted, #64748b);">
       <div class="dl-empty-ic" style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-app, #f8fafc); border: 1px solid var(--color-border, #e2e8f0); color: var(--color-text-subtle, #94a3b8); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">
