@@ -91,6 +91,10 @@ html {
 }
 
 /* Custom Dark Scrollbars */
+html[data-theme="dark"] {
+  scrollbar-width: thin;
+  scrollbar-color: #1e293b #080c14;
+}
 html[data-theme="dark"] ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -432,6 +436,10 @@ html[data-theme="dark"] .dl-extra-chip.notary {
   background: rgba(139, 92, 246, 0.14) !important;
   color: #c4b5fd !important;
   border-color: rgba(139, 92, 246, 0.32) !important;
+}
+html[data-theme="dark"] .dl-notary-corner-code {
+  color: #ddd6fe !important;
+  background: rgba(139, 92, 246, 0.28) !important;
 }
 html[data-theme="dark"] .dl-extra-chip.empty {
   background: #141c2e !important;

@@ -21,6 +21,7 @@ from workflow.land_rates import (
     compute_land_values,
     compute_villa_land_values,
     get_rate,
+    get_rate_status,
     get_villa_rate,
     apply_land_calculation,
     read_villa_rates_from_excel,
@@ -84,6 +85,7 @@ class LandRatesMatchingTestCase(TestCase):
         self.assertEqual(rate_fuzzy.block_name, "W18")
 
     def test_apply_land_calculation_populates_missing_fields_and_calculates(self):
+        # 1. When plot is missing, rates are calculated safely but renovation_code is NEVER guessed
         dossier = HousingDossier(
             national_id="0012345678",
             full_name="علی محمدی",
@@ -93,18 +95,26 @@ class LandRatesMatchingTestCase(TestCase):
             storage_area=Decimal("5.00"),
             parking_area=Decimal("0.00"),
         )
-        # Verify initial un-saved state
-        self.assertFalse(dossier.block_name)
-        self.assertIsNone(dossier.plot_number)
         self.assertFalse(dossier.renovation_code)
-
         applied = apply_land_calculation(dossier)
         self.assertTrue(applied)
-
-        # Missing dossier metadata should be auto-filled from matched LandRate
         self.assertEqual(dossier.block_name, "K46")
         self.assertEqual(dossier.plot_number, 307)
-        self.assertEqual(dossier.renovation_code, "8-806-12-5-2")
+        # Strict rule: renovation_code must NOT be auto-filled without verified plot
+        self.assertEqual(dossier.renovation_code, "")
+
+        # 2. When exact plot and block are provided, verified renovation_code is populated
+        dossier2 = HousingDossier(
+            national_id="0012345679",
+            full_name="علی محمدی ۲",
+            project="تدبیر عمران محنا",
+            plot_number=307,
+            block_name="K46",
+            net_unit_area=Decimal("90.00"),
+        )
+        applied2 = apply_land_calculation(dossier2)
+        self.assertTrue(applied2)
+        self.assertEqual(dossier2.renovation_code, "8-806-12-5-2")
 
         # Section 9 values should be calculated
         # total area = 95.00, coeff = 0.731738046 -> share = 69.52
@@ -120,7 +130,8 @@ class LandRatesMatchingTestCase(TestCase):
             national_id="0098765432",
             full_name="رضا حسینی",
             project="تدبیر عمران محنا",
-            block_code="k46",
+            plot_number=307,
+            block_name="K46",
             net_unit_area=Decimal("88.00"),
         )
         d.save()
@@ -269,7 +280,8 @@ class LandRatesApiTestCase(TestCase):
         d1.refresh_from_db()
         self.assertEqual(d1.block_name, "K46")
         self.assertEqual(d1.plot_number, 307)
-        self.assertEqual(d1.renovation_code, "8-806-12-5-2")
+        # Without exact verified plot at start, renovation_code is safely not guessed
+        self.assertEqual(d1.renovation_code, "")
         self.assertGreater(d1.total_land_share, Decimal("0"))
 
 
@@ -961,4 +973,160 @@ class VillaLandRatesTestCase(TestCase):
         det_html = det_resp.content.decode("utf-8")
         self.assertIn("جزئیات نرخ ویلایی", det_html)
         self.assertIn("10/223/888", det_html)
+
+    def test_ambiguity_guard_and_get_rate_status(self):
+        """Tests that get_rate_status protects ambiguous blocks across different plots."""
+        # Create two rates in different plots with different rates for same block MM
+        LandRate.objects.create(
+            renovation_code="8-999-1-1-1-0-0",
+            project_name="پروژه تست ابهام",
+            plot_number="100",
+            block_name="MM",
+            share_coefficient=Decimal("0.5000"),
+            rent_current_per_m2=Decimal("100000"),
+            rent_to_date_per_m2=Decimal("200000"),
+            prep_per_m2=Decimal("5000000"),
+        )
+        LandRate.objects.create(
+            renovation_code="8-999-1-2-1-0-0",
+            project_name="پروژه تست ابهام",
+            plot_number="200",
+            block_name="MM",
+            share_coefficient=Decimal("0.8000"),  # Different coefficient
+            rent_current_per_m2=Decimal("150000"),
+            rent_to_date_per_m2=Decimal("250000"),
+            prep_per_m2=Decimal("6000000"),
+        )
+        reset_cache()
+
+        # 1. Exact plot + block succeeds without ambiguity
+        rate_p100, status_p100, _ = get_rate_status(project="پروژه تست ابهام", plot="100", block="MM")
+        self.assertEqual(status_p100, "ok")
+        self.assertIsNotNone(rate_p100)
+        self.assertEqual(rate_p100.plot_number, "100")
+
+        # 2. Block only without plot triggers ambiguous status and returns rate=None
+        rate_ambig, status_ambig, msg_ambig = get_rate_status(project="پروژه تست ابهام", block="MM")
+        self.assertEqual(status_ambig, "ambiguous")
+        self.assertIsNone(rate_ambig)
+        self.assertIn("شماره قطعه یا کد نوسازی", msg_ambig)
+
+        # 3. get_rate() returns None for ambiguous match (legacy caller safety)
+        self.assertIsNone(get_rate(project="پروژه تست ابهام", block="MM"))
+
+        # 4. API returns success=False with ambiguous status and human-readable error
+        api_resp = self.client.get("/api/calculate-land-rates/?project=پروژه تست ابهام&block=MM")
+        self.assertEqual(api_resp.status_code, 200)
+        api_json = api_resp.json()
+        self.assertFalse(api_json["success"])
+        self.assertEqual(api_json["status"], "ambiguous")
+        self.assertIn("شماره قطعه یا کد نوسازی", api_json["error"])
+
+    def test_contradictory_code_cross_validation(self):
+        """
+        If a dossier carries a stale/guessed renovation_code that points to plot 100,
+        but the dossier's explicit plot is 200, the lookup must reject the contradictory
+        code and match plot 200 via (project, plot, block).
+        """
+        LandRate.objects.create(
+            renovation_code="8-888-1-1-1-0-0",
+            project_name="پروژه تست تناقض",
+            plot_number="100",
+            block_name="B1",
+            share_coefficient=Decimal("0.5000"),
+            rent_current_per_m2=Decimal("100000"),
+            rent_to_date_per_m2=Decimal("200000"),
+            prep_per_m2=Decimal("5000000"),
+        )
+        rate_200 = LandRate.objects.create(
+            renovation_code="8-888-2-1-1-0-0",
+            project_name="پروژه تست تناقض",
+            plot_number="200",
+            block_name="B1",
+            share_coefficient=Decimal("0.7000"),
+            rent_current_per_m2=Decimal("120000"),
+            rent_to_date_per_m2=Decimal("220000"),
+            prep_per_m2=Decimal("5500000"),
+        )
+        reset_cache()
+
+        # Passing code for plot 100, but plot is explicitly 200:
+        rate, status, msg = get_rate_status(
+            code="8-888-1-1-1-0-0",
+            project="پروژه تست تناقض",
+            plot="200",
+            block="B1"
+        )
+        self.assertEqual(status, "ok")
+        self.assertEqual(rate.plot_number, "200")
+        self.assertEqual(rate.match_tier, "project_plot_block")
+
+        # Dossier auto-calculation also fixes the renovation_code
+        dossier = HousingDossier.objects.create(
+            project="پروژه تست تناقض",
+            plot_number=200,
+            block_name="B1",
+            renovation_code="8-888-1-1-1",
+            net_unit_area=Decimal("100"),
+        )
+        self.assertTrue(apply_land_calculation(dossier))
+        self.assertEqual(dossier.renovation_code, "8-888-2-1-1")
+        self.assertEqual(dossier.total_land_share, Decimal("70.00"))
+
+    def test_ambiguous_or_nonexistent_block_rejected(self):
+        """Non-existent block numbers like LL1-15 or LL1/15 must NOT match LL/1 or LL/15 and must report not_found."""
+        LandRate.objects.create(
+            renovation_code="8-777-1-1-1-0-0",
+            project_name="پروژه تست سورنا",
+            plot_number="44",
+            block_name="LL/1",
+            share_coefficient=Decimal("0.6396"),
+            rent_current_per_m2=Decimal("441600"),
+            rent_to_date_per_m2=Decimal("463657"),
+            prep_per_m2=Decimal("5000000"),
+        )
+        LandRate.objects.create(
+            renovation_code="8-777-1-9-1-0-0",
+            project_name="پروژه تست سورنا",
+            plot_number="44",
+            block_name="LL/15",
+            share_coefficient=Decimal("0.6396"),
+            rent_current_per_m2=Decimal("441600"),
+            rent_to_date_per_m2=Decimal("463657"),
+            prep_per_m2=Decimal("5000000"),
+        )
+        reset_cache()
+
+        # 1. LL1-15 does not exist in DB -> not_found
+        rate, status, msg = get_rate_status(project="پروژه تست سورنا", plot="44", block="LL1-15")
+        self.assertEqual(status, "not_found")
+        self.assertIsNone(rate)
+        self.assertIn("یافت نشد", msg)
+
+        # 2. LL1/15 does not exist in DB -> not_found
+        rate, status, msg = get_rate_status(project="پروژه تست سورنا", plot="44", block="LL1/15")
+        self.assertEqual(status, "not_found")
+        self.assertIsNone(rate)
+
+        # 3. Valid LL/1 matches
+        rate1, status1, _ = get_rate_status(project="پروژه تست سورنا", plot="44", block="LL/1")
+        self.assertEqual(status1, "ok")
+        self.assertEqual(rate1.block_name, "LL/1")
+
+        # 4. Valid LL/15 matches
+        rate15, status15, _ = get_rate_status(project="پروژه تست سورنا", plot="44", block="LL/15")
+        self.assertEqual(status15, "ok")
+        self.assertEqual(rate15.block_name, "LL/15")
+
+        # 5. Dossier with LL1-15 and empty renovation code does NOT calculate
+        d = HousingDossier.objects.create(
+            project="پروژه تست سورنا",
+            plot_number=44,
+            block_name="LL1-15",
+            renovation_code="",
+            net_unit_area=Decimal("90"),
+        )
+        self.assertFalse(apply_land_calculation(d))
+        self.assertEqual(d.renovation_code, "")
+
 

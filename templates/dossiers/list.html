@@ -2,7 +2,7 @@
 {% load static %}
 {% load persian_tags %}
 
-{% block title %}{% if is_full_admin %}داشبورد نظارتی و رهگیری جامع پرونده‌ها | سامانه مسکن یار{% else %}کارپوشه تخصصی اقدام پرونده‌ها | سامانه مسکن یار{% endif %}{% endblock %}
+{% block title %}{% if is_full_admin %}داشبورد نظارتی و رهگیری جامع پرونده‌ها | مسکن یار{% else %}کارپوشه تخصصی اقدام پرونده‌ها | مسکن یار{% endif %}{% endblock %}
 
 {% block content %}
 <!-- Scripts for Full-Database AJAX Search -->
@@ -46,13 +46,19 @@
     const statusInput = document.querySelector('input[name=status]');
     const statusVal = statusInput ? statusInput.value : '{{ status_filter|default:"" }}';
     const sortVal = document.getElementById('sort-select')?.value || '{{ current_sort|default:"stage_asc" }}';
+    const tabInput = document.querySelector('input[name=tab]');
+    const tabVal = tabInput ? tabInput.value : '{{ active_tab_1718|default:"" }}';
 
     if (counterText) {
-      counterText.innerText = 'در حال جستجو در پایگاه داده...';
+      counterText.innerText = term ? 'در حال جستجو در تمام پرونده‌ها...' : 'در حال بارگذاری...';
     }
 
     try {
-      const url = `{% url "dossier_list" %}?q=${encodeURIComponent(term)}&stage=${encodeURIComponent(stageVal)}&status=${encodeURIComponent(statusVal)}&sort=${encodeURIComponent(sortVal)}&ajax=1`;
+      let url = `{% url "dossier_list" %}?q=${encodeURIComponent(term)}&stage=${encodeURIComponent(stageVal)}&status=${encodeURIComponent(statusVal)}&sort=${encodeURIComponent(sortVal)}`;
+      if (tabVal) {
+        url += `&tab=${encodeURIComponent(tabVal)}`;
+      }
+      url += `&ajax=1`;
       const resp = await fetch(url);
       const res = await resp.json();
 
@@ -62,12 +68,15 @@
           countBadge.innerText = res.count.toLocaleString('fa-IR') + ' پرونده یافت شد';
         }
         if (counterText) {
-          counterText.innerText = term ? `یافت شد: ${res.count.toLocaleString('fa-IR')} پرونده` : `تعداد پرونده‌ها: ${res.count.toLocaleString('fa-IR')} پرونده`;
+          counterText.innerText = term ? `یافت شد: ${res.count.toLocaleString('fa-IR')} پرونده (جستجو در تمام پرونده‌ها)` : `تعداد پرونده‌ها: ${res.count.toLocaleString('fa-IR')} پرونده`;
         }
         setCounterTone(res.count > 0 ? 'ok' : 'bad');
 
         // Update URL address bar without page reload
-        const newUrl = `{% url "dossier_list" %}?q=${encodeURIComponent(term)}&stage=${encodeURIComponent(stageVal)}&status=${encodeURIComponent(statusVal)}&sort=${encodeURIComponent(sortVal)}`;
+        let newUrl = `{% url "dossier_list" %}?q=${encodeURIComponent(term)}&stage=${encodeURIComponent(stageVal)}&status=${encodeURIComponent(statusVal)}&sort=${encodeURIComponent(sortVal)}`;
+        if (tabVal) {
+          newUrl += `&tab=${encodeURIComponent(tabVal)}`;
+        }
         window.history.replaceState({}, '', newUrl);
 
         if (typeof syncWorkflowClearFiltersBtn === 'function') {
@@ -437,6 +446,54 @@
       </a>
     </div>
   </div>
+  {% elif is_stage17_18_user %}
+  <div class="dl-tabs-nav" id="stage1718-tabs-nav">
+    <div class="dl-tabs-group">
+      <a href="{% url 'dossier_list' %}?tab=stage1718" class="dl-tab-item {% if active_tab_1718 == 'stage1718' %}active{% endif %}" style="text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>متوقف در مرحله ۱۷ و ۱۸</span>
+        <span class="dl-tab-badge fa-num">{{ count_stage1718 }}</span>
+      </a>
+
+      <a href="{% url 'dossier_list' %}?tab=other" class="dl-tab-item {% if active_tab_1718 == 'other' %}active{% endif %}" style="text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span>سایر مراحل</span>
+        <span class="dl-tab-badge fa-num">{{ count_other }}</span>
+      </a>
+
+      <a href="{% url 'dossier_list' %}?tab=all" class="dl-tab-item {% if active_tab_1718 == 'all' %}active{% endif %}" style="text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span>همه پرونده‌ها</span>
+        <span class="dl-tab-badge fa-num">{{ count_all }}</span>
+      </a>
+    </div>
+
+    <div class="dl-tabs-actions">
+      {% if can_manage_directorate_shipments %}
+      <a href="{% url 'directorate_shipments_list' %}" class="dl-btn ghost" id="nav-directorate-shipments-tab" style="text-decoration: none; background: #f0fdfa; border: 1px solid #99f6e4; color: #0f766e;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>تاریخچه ارسالی‌ها</span>
+      </a>
+      {% endif %}
+
+      {% if is_alireza_nazari %}
+      <a href="{% url 'stage17_18_excel_hub' %}" class="dl-btn ghost" id="nav-stage1718-excel-tab" style="text-decoration: none; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span>اکسل مراحل ۱۷ و ۱۸</span>
+      </a>
+      {% endif %}
+
+      <a href="{% url 'signed_dossiers_list' %}" class="dl-btn ghost" style="text-decoration: none; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>
+        <span>سوابق پرونده‌های امضا شده</span>
+      </a>
+
+      <a href="{% url 'dossier_list' %}?tab={{ active_tab_1718 }}" class="dl-btn ghost" title="تازه‌سازی اطلاعات">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        <span>تازه‌سازی</span>
+      </a>
+    </div>
+  </div>
   {% else %}
   <div class="dl-header">
     <div>
@@ -538,7 +595,7 @@
       <a href="{% url 'dossier_list' %}?status=pending_red{% if query %}&q={{ query|urlencode }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
          class="dl-scard {% if status_filter == 'pending_red' %}active{% elif red_pending_cnt > 0 %}has{% endif %}" 
          style="border-color: #f87171; background: #fff1f2;" 
-         title="کارتابل اختصاصی پرونده‌های قرمز فرم «ج» ارجاع شده به مدیر سامانه">
+         title="کارتابل اختصاصی پرونده‌های قرمز فرم «ج» ارجاع شده به مدیر سیستم">
         <div class="top">
           <span class="no" style="color: #be123c;">🚨</span>
           {% if red_pending_cnt > 0 %}<span class="cnt fa-num" style="background: #e11d48; color: #ffffff; font-weight: 800;">{{ red_pending_cnt }}</span>{% endif %}
@@ -700,6 +757,7 @@
   <!-- ===================== SEARCH & TOOLBAR ===================== -->
   <div class="dl-card dl-toolbar">
     <form method="GET" action="{% url 'dossier_list' %}" id="dossier-search-form" class="dl-form">
+      {% if active_tab_1718 %}<input type="hidden" name="tab" value="{{ active_tab_1718 }}" />{% endif %}
       {% if stage_filter %}<input type="hidden" name="stage" value="{{ stage_filter }}" />{% endif %}
       {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}" />{% endif %}
 
@@ -715,7 +773,7 @@
             oninput="filterDossierTable(this.value)"
             autocomplete="off"
             class="fa-num"
-            placeholder="جستجو" 
+            placeholder="{% if is_stage17_18_user %}جستجو در کل پرونده‌ها (شامل مرحله ۱۷، ۱۸ و سایر مراحل)...{% else %}جستجو{% endif %}" 
           />
           <button type="button" id="clear-search-btn" class="clear" onclick="clearSearchInput()" title="پاکسازی جستجو" {% if not query %}style="display: none;"{% endif %}>✕</button>
         </div>
@@ -728,11 +786,11 @@
 
         <div id="search-counter-badge" class="dl-counter fa-num">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-          <span id="search-counter-text">{% if query %}یافت شد: {{ dossiers.count }} پرونده{% else %}تعداد پرونده‌ها: {{ dossiers.count }} پرونده{% endif %}</span>
+          <span id="search-counter-text">{% if query %}یافت شد: {{ dossiers.count }} پرونده (جستجو در تمام پرونده‌ها){% else %}تعداد پرونده‌ها: {{ dossiers.count }} پرونده{% endif %}</span>
         </div>
 
         {% if has_active_filters %}
-        <a href="{% url 'dossier_list' %}?clear_filters=1" class="dl-btn red" title="حذف فیلتر و نمایش همه">✕ حذف فیلتر</a>
+        <a href="{% url 'dossier_list' %}?clear_filters=1{% if active_tab_1718 %}&tab={{ active_tab_1718 }}{% endif %}" class="dl-btn red" title="حذف فیلتر و نمایش همه">✕ حذف فیلتر</a>
         {% endif %}
       </div>
 
@@ -830,10 +888,25 @@
     <div class="dl-table-head">
       <div class="dl-table-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        {% if is_full_admin %}فهرست پرونده‌ها و وضعیت مراحل توقف{% else %}پرونده‌های منتظر اقدام تخصصی شما{% endif %}
+        {% if is_full_admin %}
+          فهرست پرونده‌ها و وضعیت مراحل توقف
+        {% elif is_stage17_18_user %}
+          {% if query %}
+            نتایج جستجو در تمام پرونده‌ها
+          {% elif active_tab_1718 == 'stage1718' %}
+            پرونده‌های متوقف در مرحله ۱۷ و ۱۸
+          {% elif active_tab_1718 == 'other' %}
+            پرونده‌های در حال اقدام در سایر مراحل
+          {% else %}
+            فهرست همه پرونده‌ها
+          {% endif %}
+        {% else %}
+          پرونده‌های منتظر اقدام تخصصی شما
+        {% endif %}
       </div>
       <div class="dl-table-meta fa-num">
         {% if stage_filter %}<span class="dl-badge-filter">فیلتر: مرحله {{ stage_filter }}</span>{% endif %}
+        {% if query and is_stage17_18_user %}<span class="dl-badge-filter" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">جستجو در تمام پرونده‌ها</span>{% endif %}
         <span id="search-result-count" class="dl-badge-count">{{ dossiers.count }} پرونده در این کارپوشه</span>
       </div>
     </div>
@@ -975,8 +1048,8 @@
 
       <div class="dl-pager-nav fa-num">
         {% if page_obj.has_previous %}
-        <a class="dl-pg" title="صفحه اول" href="?page=1{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">« اول</a>
-        <a class="dl-pg" title="صفحه قبل" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">قبلی</a>
+        <a class="dl-pg" title="صفحه اول" href="?page=1{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if active_tab_1718 %}&tab={{ active_tab_1718 }}{% endif %}">« اول</a>
+        <a class="dl-pg" title="صفحه قبل" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if active_tab_1718 %}&tab={{ active_tab_1718 }}{% endif %}">قبلی</a>
         {% endif %}
 
         {% for p in elided_page_range %}
@@ -985,13 +1058,13 @@
           {% elif p == page_obj.number %}
             <span class="dl-pg current">{{ p }}</span>
           {% else %}
-            <a class="dl-pg" href="?page={{ p }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">{{ p }}</a>
+            <a class="dl-pg" href="?page={{ p }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if active_tab_1718 %}&tab={{ active_tab_1718 }}{% endif %}">{{ p }}</a>
           {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <a class="dl-pg" title="صفحه بعد" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">بعدی</a>
-        <a class="dl-pg" title="صفحه آخر" href="?page={{ paginator.num_pages }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">آخر »</a>
+        <a class="dl-pg" title="صفحه بعد" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if active_tab_1718 %}&tab={{ active_tab_1718 }}{% endif %}">بعدی</a>
+        <a class="dl-pg" title="صفحه آخر" href="?page={{ paginator.num_pages }}{% if query %}&q={{ query|urlencode }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if active_tab_1718 %}&tab={{ active_tab_1718 }}{% endif %}">آخر »</a>
         {% endif %}
       </div>
     </div>
@@ -1058,7 +1131,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
         </div>
         <div class="admin-kpi-val">{{ admin_stats.total|default:total_all_dossiers }}</div>
-        <div class="admin-kpi-sub">کل رکوردهای ثبتی در سامانه مسکن‌یار</div>
+        <div class="admin-kpi-sub">کل رکوردهای ثبتی در مسکن یار</div>
       </div>
 
       <div class="admin-kpi-card green">
@@ -1195,7 +1268,7 @@
               <th>عنوان کامل مرحله</th>
               <th>واحد سازمانی و مسئول اقدام</th>
               <th style="width: 140px; text-align: center;">تعداد پرونده متوقف</th>
-              <th style="width: 180px;">سهم از کل سامانه</th>
+              <th style="width: 180px;">سهم از کل پرونده‌ها</th>
               <th style="width: 100px; text-align: center;">وضعیت</th>
               <th style="width: 120px; text-align: center;">عملیات</th>
             </tr>
@@ -1355,137 +1428,8 @@
   </div>
   {% endif %}
   <!-- ===================== END TAB 2 ===================== -->
-</div>
 
-<!-- Instant client-side search with Persian normalization -->
-<script>
-  function normalizeDossierQuery(str) {
-    if (!str) return "";
-    const faDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
-    const arDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
-    let res = str.toString().trim().toLowerCase();
-    for (let i = 0; i < 10; i++) {
-      res = res.replaceAll(faDigits[i], i.toString());
-      res = res.replaceAll(arDigits[i], i.toString());
-    }
-    return res
-      .replaceAll("ي", "ی")
-      .replaceAll("ك", "ک")
-      .replaceAll("#", "")
-      .replaceAll(",", "")
-      .replaceAll("،", "");
-  }
-
-  function setCounterTone(tone) {
-    const el = document.getElementById("search-counter-badge");
-    if (!el) return;
-    const tones = {
-      neutral: ["#eef2ff", "#c7d2fe", "#3730a3"],
-      ok: ["#ecfdf5", "#a7f3d0", "#047857"],
-      bad: ["#fef2f2", "#fecaca", "#b91c1c"],
-    };
-    const t = tones[tone] || tones.neutral;
-    el.style.background = t[0];
-    el.style.borderColor = t[1];
-    el.style.color = t[2];
-  }
-
-  // Toggle Collapsible Dossier Detail Drawer (Tashilat style)
-  function toggleDossierDetails(dossierId, event) {
-    if (event) {
-      if (event.target.closest('input, a, button, select, label, .dl-actions, .dl-track-box')) {
-        return;
-      }
-    }
-    const detailRow = document.getElementById('dossier-detail-' + dossierId);
-    const mainRow = document.getElementById('dossier-row-' + dossierId);
-    if (!detailRow) return;
-
-    const isCurrentlyOpen = detailRow.style.display !== 'none' && detailRow.style.display !== '';
-    if (isCurrentlyOpen) {
-      detailRow.style.display = 'none';
-      if (mainRow) mainRow.classList.remove('is-expanded');
-    } else {
-      detailRow.style.display = 'table-row';
-      if (mainRow) mainRow.classList.add('is-expanded');
-    }
-  }
-
-  function filterDossierTable(term) {
-    const clearBtn = document.getElementById("clear-search-btn");
-    if (clearBtn) {
-      clearBtn.style.display = term && term.trim().length > 0 ? "block" : "none";
-    }
-
-    const rawCommaParts = String(term || "").split(/[،,]/).map((p) => normalizeDossierQuery(p)).filter(Boolean);
-    const normTerm = normalizeDossierQuery(term);
-    const rows = document.querySelectorAll("#dossier-table-body tr.dossier-row");
-    const emptyRow = document.getElementById("client-empty-row");
-    const countBadge = document.getElementById("search-result-count");
-    const counterText = document.getElementById("search-counter-text");
-
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-      if (typeof triggerAjaxSearch === "function") {
-        triggerAjaxSearch((term || "").trim());
-      }
-    }, 400);
-
-    if (!normTerm || rawCommaParts.length === 0) {
-      rows.forEach((r) => (r.style.display = ""));
-      if (emptyRow) emptyRow.style.display = "none";
-      if (countBadge) countBadge.innerText = rows.length + " پرونده در این کارپوشه";
-      if (counterText) counterText.innerText = "تعداد پرونده‌ها: " + rows.length + " پرونده";
-      setCounterTone("neutral");
-      return;
-    }
-
-    const partTokenGroups = rawCommaParts
-      .map((p) => p.split(/\s+/).filter((t) => t.length > 0 && t !== "مرحله"))
-      .filter((g) => g.length > 0);
-    let matchCount = 0;
-
-    rows.forEach((row) => {
-      const rowData = normalizeDossierQuery(row.getAttribute("data-search") || row.innerText);
-      const isMatch =
-        partTokenGroups.length === 0 ||
-        partTokenGroups.some((tokens) => tokens.every((token) => rowData.includes(token)));
-      row.style.display = isMatch ? "" : "none";
-      const dId = row.getAttribute("data-dossier-id");
-      const detailRow = document.getElementById("dossier-detail-" + dId);
-      if (detailRow && !isMatch) {
-        detailRow.style.display = "none";
-        row.classList.remove("is-expanded");
-      }
-      if (isMatch) matchCount++;
-    });
-
-    if (emptyRow) emptyRow.style.display = matchCount === 0 ? "" : "none";
-
-    if (countBadge) countBadge.innerText = matchCount + " پرونده منطبق";
-    if (counterText) {
-      counterText.innerText = matchCount > 0
-        ? "یافت شد: " + matchCount + " پرونده (از مجموع " + rows.length + ")"
-        : "هیچ پرونده‌ای یافت نشد (۰ پرونده)";
-    }
-    setCounterTone(matchCount > 0 ? "ok" : "bad");
-  }
-
-  function clearSearchInput() {
-    const input = document.getElementById("table-search-input");
-    if (input) {
-      input.value = "";
-      clearTimeout(searchDebounceTimer);
-      filterDossierTable("");
-      clearTimeout(searchDebounceTimer);
-      if (typeof triggerAjaxSearch === "function") {
-        triggerAjaxSearch("");
-      }
-      input.focus();
-    }
-  }
-</script>
-  <!-- ===================== EXCEL STAGE SIGNATURES MODAL ===================== -->
+<!-- ===================== EXCEL STAGE SIGNATURES MODAL ===================== -->
   <div x-show="showExcelModal" x-cloak style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1.25rem;">
     <div @click.away="if (!excelUploading) showExcelModal = false" style="background: #ffffff; border-radius: 16px; width: 620px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); border: 1px solid #cbd5e1; direction: rtl;">
       
@@ -1579,5 +1523,134 @@
       </div>
     </div>
   </div>
+</div>
 
-{% endblock %}
+<!-- Instant client-side search with Persian normalization -->
+<script>
+  function normalizeDossierQuery(str) {
+    if (!str) return "";
+    const faDigits = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+    const arDigits = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+    let res = str.toString().trim().toLowerCase();
+    for (let i = 0; i < 10; i++) {
+      res = res.replaceAll(faDigits[i], i.toString());
+      res = res.replaceAll(arDigits[i], i.toString());
+    }
+    return res
+      .replaceAll("ي", "ی")
+      .replaceAll("ك", "ک")
+      .replaceAll("#", "")
+      .replaceAll(",", "")
+      .replaceAll("،", "");
+  }
+
+  function setCounterTone(tone) {
+    const el = document.getElementById("search-counter-badge");
+    if (!el) return;
+    const tones = {
+      neutral: ["#eef2ff", "#c7d2fe", "#3730a3"],
+      ok: ["#ecfdf5", "#a7f3d0", "#047857"],
+      bad: ["#fef2f2", "#fecaca", "#b91c1c"],
+    };
+    const t = tones[tone] || tones.neutral;
+    el.style.background = t[0];
+    el.style.borderColor = t[1];
+    el.style.color = t[2];
+  }
+
+  // Toggle Collapsible Dossier Detail Drawer (Tashilat style)
+  function toggleDossierDetails(dossierId, event) {
+    if (event) {
+      if (event.target.closest('input, a, button, select, label, .dl-actions, .dl-track-box, .tg-copyable')) {
+        return;
+      }
+    }
+    const detailRow = document.getElementById('dossier-detail-' + dossierId);
+    const mainRow = document.getElementById('dossier-row-' + dossierId);
+    if (!detailRow) return;
+
+    const isCurrentlyOpen = detailRow.style.display !== 'none' && detailRow.style.display !== '';
+    if (isCurrentlyOpen) {
+      detailRow.style.display = 'none';
+      if (mainRow) mainRow.classList.remove('is-expanded');
+    } else {
+      detailRow.style.display = 'table-row';
+      if (mainRow) mainRow.classList.add('is-expanded');
+    }
+  }
+
+  function filterDossierTable(term) {
+    const clearBtn = document.getElementById("clear-search-btn");
+    if (clearBtn) {
+      clearBtn.style.display = term && term.trim().length > 0 ? "block" : "none";
+    }
+
+    const rawCommaParts = String(term || "").split(/[،,]/).map((p) => normalizeDossierQuery(p)).filter(Boolean);
+    const normTerm = normalizeDossierQuery(term);
+    const rows = document.querySelectorAll("#dossier-table-body tr.dossier-row");
+    const emptyRow = document.getElementById("client-empty-row");
+    const countBadge = document.getElementById("search-result-count");
+    const counterText = document.getElementById("search-counter-text");
+
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      if (typeof triggerAjaxSearch === "function") {
+        triggerAjaxSearch((term || "").trim());
+      }
+    }, 400);
+
+    if (!normTerm || rawCommaParts.length === 0) {
+      rows.forEach((r) => (r.style.display = ""));
+      if (emptyRow) emptyRow.style.display = "none";
+      if (countBadge) countBadge.innerText = rows.length + " پرونده در این کارپوشه";
+      if (counterText) counterText.innerText = "تعداد پرونده‌ها: " + rows.length + " پرونده";
+      setCounterTone("neutral");
+      return;
+    }
+
+    const partTokenGroups = rawCommaParts
+      .map((p) => p.split(/\s+/).filter((t) => t.length > 0 && t !== "مرحله"))
+      .filter((g) => g.length > 0);
+    let matchCount = 0;
+
+    rows.forEach((row) => {
+      const rowData = normalizeDossierQuery(row.getAttribute("data-search") || row.innerText);
+      const isMatch =
+        partTokenGroups.length === 0 ||
+        partTokenGroups.some((tokens) => tokens.every((token) => rowData.includes(token)));
+      row.style.display = isMatch ? "" : "none";
+      const dId = row.getAttribute("data-dossier-id");
+      const detailRow = document.getElementById("dossier-detail-" + dId);
+      if (detailRow && !isMatch) {
+        detailRow.style.display = "none";
+        row.classList.remove("is-expanded");
+      }
+      if (isMatch) matchCount++;
+    });
+
+    if (emptyRow) emptyRow.style.display = matchCount === 0 ? "" : "none";
+
+    if (countBadge) countBadge.innerText = matchCount + " پرونده منطبق";
+    if (counterText) {
+      counterText.innerText = matchCount > 0
+        ? "یافت شد: " + matchCount + " پرونده (از مجموع " + rows.length + ")"
+        : "هیچ پرونده‌ای یافت نشد (۰ پرونده)";
+    }
+    setCounterTone(matchCount > 0 ? "ok" : "bad");
+  }
+
+  function clearSearchInput() {
+    const input = document.getElementById("table-search-input");
+    if (input) {
+      input.value = "";
+      clearTimeout(searchDebounceTimer);
+      filterDossierTable("");
+      clearTimeout(searchDebounceTimer);
+      if (typeof triggerAjaxSearch === "function") {
+        triggerAjaxSearch("");
+      }
+      input.focus();
+    }
+  }
+</script>
+  {% endblock %}

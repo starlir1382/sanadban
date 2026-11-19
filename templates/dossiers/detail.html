@@ -1,4 +1,4 @@
-{% extends 'base.html' %} {% load static %} {% block title %}پرونده مسکن متقاضی: {{ dossier.full_name|default:'پرونده مسکن' }} ({{ dossier.display_number }}) | سامانه مسکن یار{% endblock %} {% block content %}
+{% extends 'base.html' %} {% load static %} {% block title %}پرونده مسکن متقاضی: {{ dossier.full_name|default:'پرونده مسکن' }} ({{ dossier.display_number }}) | مسکن یار{% endblock %} {% block content %}
 {% csrf_token %}
 <script id="dossier-server-json" type="application/json">
   {{ dossier_json|safe }}
@@ -871,9 +871,9 @@
         </small>
       </h2>
       <div class="dt-meta fa-num">
-        <span>کد ملی: <b x-text="form.national_id"></b></span>
-        <span>پروژه: <b x-text="form.project"></b></span>
-        <span>سایت: <b x-text="form.site"></b></span>
+        <span class="tg-copyable" :data-copy="form.national_id" data-copy-label="کد ملی" title="کلیک برای کپی کد ملی">کد ملی: <b x-text="form.national_id"></b></span>
+        <span class="tg-copyable" :data-copy="form.project" data-copy-label="پروژه" title="کلیک برای کپی نام پروژه">پروژه: <b x-text="form.project"></b></span>
+        <span class="tg-copyable" :data-copy="form.site" data-copy-label="سایت" title="کلیک برای کپی نام سایت">سایت: <b x-text="form.site"></b></span>
         <span>واحد: <b x-text="form.unit_number"></b></span>
       </div>
     </div>
@@ -1113,36 +1113,7 @@
         <div x-show="isViewOnly" x-cloak style="display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1rem; border-radius: 8px; background: #eff6ff; color: #1e40af; border: 1.5px solid #bfdbfe; font-size: 0.84rem; font-weight: 800;">
           <span>🔒 حالت فقط خواندنی (مشاهده سوابق امضا)</span>
         </div>
-        <button
-          type="button"
-          class="btn btn-outline"
-          x-show="!isLocked && !isViewOnly"
-          x-cloak
-          @click="openUploadScanModal()"
-          style="
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border-color: #93c5fd;
-            color: #1d4ed8;
-            background: #eff6ff;
-          "
-          title="بارگذاری اسناد، مدارک و تصاویر"
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <span>بارگذاری مدرک / تصویر</span>
-        </button>
+
 
         <a
           href="{% url 'land_bank_print' pk=dossier.url_pk %}"
@@ -1326,7 +1297,7 @@
 
         <template x-if="!isRejected && isRedJ && status === 'REJECT_RED_PENDING'">
           <span style="display: inline-flex; align-items: center; gap: 6px; padding: 0.55rem 1rem; border-radius: 8px; background: #fff1f2; border: 1.5px solid #f43f5e; color: #be123c; font-size: 0.84rem; font-weight: 800;">
-            ⏳ ارجاع شده به مدیر سامانه (در انتظار بررسی و ابلاغ رد صلاحیت)
+            ⏳ ارجاع شده به مدیر سیستم (در انتظار بررسی و ابلاغ رد صلاحیت)
           </span>
         </template>
 
@@ -1338,9 +1309,9 @@
           x-cloak
           style="display: none; background: #dc2626; color: #fff; font-weight: 800; border: none; padding: 0.55rem 1.25rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(220,38,38,0.25);"
           @click="openSignatureModal()"
-          title="ارجاع پرونده به کارتابل مدیر سامانه جهت تعیین تکلیف فرم «ج» قرمز"
+          title="ارجاع پرونده به کارتابل مدیر سیستم جهت تعیین تکلیف فرم «ج» قرمز"
         >
-          <span>⛔ ارجاع به مدیر سامانه (فرم «ج» قرمز)</span>
+          <span>⛔ ارجاع به مدیر سیستم (فرم «ج» قرمز)</span>
         </button>
 
         <!-- Direct Action for Admin / Chief to Archive & Disqualify Red Dossier -->
@@ -1704,7 +1675,7 @@
           "
         >
           <div style="font-size: 0.88rem; color: #1e40af; line-height: 1.6">
-            برای مشاهده تمام فیلدها و فرم‌های ۲۲ گانه سامانه، می‌توانید حالت
+            برای مشاهده تمام فیلدها و فرم‌های ۲۲ گانه مسکن یار، می‌توانید حالت
             پیشرفته را فعال فرمایید.
           </div>
           <button

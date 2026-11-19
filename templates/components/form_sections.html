@@ -573,6 +573,10 @@
                     <label class="field-label"><span>مساحت پارکینگ (مترمربع)</span></label>
                     <input type="number" step="0.01" class="input-control fa-num" x-model="form.parking_area" :readonly="!isFieldEditable('parking_area')">
                 </div>
+                <div class="field-group col-3" :class="{'field-locked': !isFieldEditable('renovation_code')}">
+                    <label class="field-label"><span>کد نوسازی (شهرداری)</span></label>
+                    <input id="f_renovation_code_sec1" type="text" class="input-control fa-num" x-model="form.renovation_code" :readonly="!isFieldEditable('renovation_code')" placeholder="کد نوسازی">
+                </div>
             </div>
 
         </div>
@@ -1213,7 +1217,7 @@
                                 </div>
                                 <a href="{% url 'bank_letter_sender' %}" target="_blank"
                                    style="text-decoration: none; font-size: 0.78rem; font-weight: 700; color: #475569; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e2e8f0;">
-                                    <span>سامانه دسته‌بندی و ارسال نامه بانک</span>
+                                    <span>دسته‌بندی و ارسال نامه بانک</span>
                                 </a>
                             </div>
                         </div>
@@ -1319,7 +1323,7 @@
                         <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 8px; border: 1.5px solid; transition: all 0.2s; cursor: pointer; user-select: none;"
                                :style="form.has_sana ? 'background: #f0fdf4; border-color: #86efac; color: #166534;' : 'background: #f8fafc; border-color: #e2e8f0; color: #64748b;'">
                             <input type="checkbox" x-model="form.has_sana" :disabled="!isFieldEditable('has_sana')" style="width: 17px; height: 17px; accent-color: #10b981; cursor: pointer;">
-                            <span style="font-size: 0.84rem; font-weight: 700;">۵. تاییدیه سامانه ثنا</span>
+                            <span style="font-size: 0.84rem; font-weight: 700;">۵. تاییدیه ثنا</span>
                         </label>
 
                         <!-- 6. شناسنامه و کارت ملی -->
@@ -1532,16 +1536,188 @@
                     </div>
                 </div>
 
-                <!-- شماره تعهدنامه -->
-                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('commitment_number')}">
+                <!-- تیک دریافت سفته به جای چک (تسهیلات وام دهک) -->
+                <div class="field-group col-12" style="margin-top: 4px; margin-bottom: 4px;">
+                    <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.92rem; color: #92400e; cursor: pointer; user-select: none;">
+                            <input type="checkbox" x-model="form.loan_has_promissory_note" @change="toggleLoanPromissory()" :disabled="!isFieldEditable('decile_loan_amount')" style="width: 18px; height: 18px; accent-color: #ea580c; cursor: pointer;">
+                            <span>دریافت سفته به جای چک (تسهیلات وام دهک)</span>
+                        </label>
+                        <span class="fa-num" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; font-weight: 700;" :style="form.loan_has_promissory_note ? 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;' : 'background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;'" x-text="form.loan_has_promissory_note ? 'روش تسویه: سفته تضمین و تعهدنامه اقساط' : 'روش تسویه: چک‌های صیادی'"></span>
+                    </div>
+                </div>
+
+                <!-- مشخصات سفته و تعهدنامه اقساط خودکار تسهیلات (در صورت انتخاب سفته) -->
+                <div class="field-group col-12" x-show="form.loan_has_promissory_note" x-cloak style="margin-top: 4px;">
+                    <div style="background: #fffdfa; border: 1.5px solid #f59e0b; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 6px rgba(245,158,11,0.08);">
+                        <div style="background: #fef3c7; border-bottom: 1px solid #fde68a; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+                            <strong style="color: #92400e; font-size: 0.9rem;">مشخصات سفته و تعهدنامه پرداخت اقساط تسهیلات (بر اساس تولید و تقسیط خودکار)</strong>
+                            <span class="fa-num" style="font-size: 0.74rem; background: #ea580c; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 700;">سفته تضمین وام دهک</span>
+                        </div>
+                        <div style="padding: 12px 14px; background: #fffbeb; border-bottom: 1px dashed #fcd34d; font-size: 0.84rem; line-height: 1.8; color: #78350f;">
+                            <strong style="color: #9a3412;">متن تعهدنامه متقاضی:</strong>
+                            «اینجانب متعهد می‌گردم کلیه اقساط و مبالغ وام دهک را دقیقاً بر اساس مبالغ و سررسیدهای جدول <span style="font-weight: 800; color: #b45309;">تولید و تقسیط خودکار</span> در موعد مقرر پرداخت نمایم. سفته تضمین ذیل به شماره <strong class="fa-num" x-text="form.loan_promissory_number || '—'"></strong> به مبلغ <strong class="fa-num" x-text="formatNumber(form.loan_promissory_amount || form.decile_loan_amount || 0)"></strong> ریال، تا زمان تسویه کامل اقساط جهت ضمانت اجرای تعهد اخذ می‌گردد.»
+                        </div>
+                        <div class="fields-grid" style="padding: 14px;">
+                            <!-- شماره سفته -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile_loan_amount')}">
+                                <label class="field-label">
+                                    <span>شماره سفته</span>
+                                    <span class="required-mark" style="color: #dc2626;">*</span>
+                                </label>
+                                <input type="text" class="input-control fa-num" dir="ltr" x-model="form.loan_promissory_number" :readonly="!isFieldEditable('decile_loan_amount')" placeholder="مثال: س/۸۸۹۹۰۰">
+                            </div>
+                            <!-- مبلغ سفته -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile_loan_amount')}">
+                                <label class="field-label">
+                                    <span>مبلغ سفته (ریال)</span>
+                                    <span class="required-mark" style="color: #dc2626;">*</span>
+                                </label>
+                                <div class="currency-input-wrapper">
+                                    <input type="text" class="input-control fa-num"
+                                           :value="form.loan_promissory_amount ? formatNumber(form.loan_promissory_amount) : ''"
+                                           @input="updateFormattedAmount(form, 'loan_promissory_amount', $event); generateLoanPromissoryInstallmentsAuto(true)"
+                                           @blur="formatAmountOnBlur(form, 'loan_promissory_amount', $event); generateLoanPromissoryInstallmentsAuto(true)"
+                                           :readonly="!isFieldEditable('decile_loan_amount')" placeholder="۰">
+                                    <span class="currency-unit-tag">ریال</span>
+                                </div>
+                                <small class="fa-num" style="color: #92400e; font-size: 0.73rem; margin-top: 3px;" x-show="form.loan_promissory_amount">
+                                    معادل: <strong x-text="formatNumber(Math.round(form.loan_promissory_amount / 10))"></strong> تومان
+                                </small>
+                            </div>
+                            <!-- تاریخ سفته -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('decile_loan_amount')}">
+                                <label class="field-label">
+                                    <span>تاریخ سفته (شمسی)</span>
+                                    <span class="required-mark" style="color: #dc2626;">*</span>
+                                </label>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="text" class="input-control fa-num" dir="ltr" style="flex: 1;" x-model="form.loan_promissory_date" :readonly="!isFieldEditable('decile_loan_amount')" placeholder="۱۴۰۵/۰۵/۱۵">
+                                    <button type="button" @click="openDatePicker('loan_promissory_date', form.loan_promissory_date, 'تاریخ سفته تسهیلات')" :disabled="!isFieldEditable('decile_loan_amount')" class="btn-date-picker" title="انتخاب تاریخ">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- شماره تعهدنامه -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('commitment_number')}">
+                                <label class="field-label">
+                                    <span>شماره تعهدنامه محضری / ثبتی</span>
+                                </label>
+                                <input type="text" class="input-control fa-num" dir="ltr" x-model="form.commitment_number" :readonly="!isFieldEditable('commitment_number')" placeholder="مثال: ۱۲۴۰۵/ت">
+                            </div>
+                            <!-- تاریخ تعهدنامه -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('commitment_date')}">
+                                <label class="field-label">
+                                    <span>تاریخ تعهدنامه (شمسی)</span>
+                                </label>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="text" class="input-control fa-num" dir="ltr" style="flex: 1;" x-model="form.commitment_date" :readonly="!isFieldEditable('commitment_date')" placeholder="۱۴۰۵/۰۵/۱۵">
+                                    <button type="button" @click="openDatePicker('commitment_date', form.commitment_date, 'تاریخ تعهدنامه محضری')" :disabled="!isFieldEditable('commitment_date')" class="btn-date-picker" title="انتخاب تاریخ">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- تیک تایید اخذ تعهدنامه اقساط خودکار -->
+                            <div class="field-group col-4" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                                <label style="display: flex; align-items: center; gap: 7px; padding: 8px 10px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 700; color: #92400e;">
+                                    <input type="checkbox" x-model="form.loan_has_commitment_letter" :disabled="!isFieldEditable('decile_loan_amount')" style="width: 16px; height: 16px; accent-color: #ea580c;">
+                                    <span>تعهدنامه پرداخت اقساط خودکار اخذ شد</span>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- جدول تولید و تقسیط خودکار اقساط تعهدنامه تسهیلات -->
+                        <div style="border-top: 1px solid #fde68a; padding: 12px 14px; background: #fffaf0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <strong style="color: #9a3412; font-size: 0.86rem;">جدول سررسید و مبالغ اقساط متعهدشده (تولید و تقسیط خودکار):</strong>
+                                <button type="button" @click="generateLoanPromissoryInstallmentsAuto(true)" :disabled="!isFieldEditable('decile_loan_amount')" class="btn btn-primary" style="background: #ea580c; border: none; font-size: 0.78rem; font-weight: 700; padding: 4px 10px;">
+                                    <span>محاسبه و تقسیط خودکار اقساط</span>
+                                </button>
+                            </div>
+                            <div style="overflow-x: auto;">
+                                <table class="check-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px; text-align: center;">ردیف</th>
+                                            <th style="width: 32%;">تاریخ سررسید قسط (شمسی)</th>
+                                            <th style="width: 34%;">مبلغ قسط (ریال)</th>
+                                            <th style="width: 28%;">معادل به تومان</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="(inst, idx) in (form.loan_promissory_installments || [])" :key="idx">
+                                            <tr>
+                                                <td style="text-align: center;"><span class="fa-num" style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.76rem;" x-text="'قسط ' + (idx + 1)"></span></td>
+                                                <td><input type="text" class="input-control fa-num" dir="ltr" style="text-align: center; font-weight: 700;" x-model="inst.due_date" :readonly="!isFieldEditable('decile_loan_amount')"></td>
+                                                <td>
+                                                    <div class="currency-input-wrapper" style="width: 100%;">
+                                                        <input type="text" class="input-control fa-num" style="direction: ltr; font-weight: 800; font-size: 0.86rem; color: #047857;"
+                                                               :value="inst.amount ? formatNumber(inst.amount) : ''"
+                                                               @input="updateFormattedAmount(inst, 'amount', $event)"
+                                                               @blur="formatAmountOnBlur(inst, 'amount', $event)"
+                                                               :readonly="!isFieldEditable('decile_loan_amount')">
+                                                        <span class="currency-unit-tag">ریال</span>
+                                                    </div>
+                                                </td>
+                                                <td class="fa-num" style="font-weight: 700; color: #b45309;" x-text="formatNumber(Math.round((inst.amount || 0) / 10)) + ' تومان'"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- نوار عملیات: چاپ تعهدنامه جهت امضای متقاضی + بارگذاری اسکن‌ها -->
+                        <div style="border-top: 1.5px solid #fed7aa; padding: 12px 14px; background: #fffaf0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                <div>
+                                    <strong style="color: #9a3412; font-size: 0.88rem;">عملیات چاپ تعهدنامه جهت اخذ امضای متقاضی و بارگذاری مدارک:</strong>
+                                    <span style="font-size: 0.74rem; color: #64748b; display: block;">فرم تعهدنامه را چاپ نموده و پس از امضاء و اثر انگشت متقاضی، اسکن تعهدنامه و سفته را بارگذاری فرمایید.</span>
+                                </div>
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <button type="button" @click="printPromissoryCommitment('loan')" class="btn" style="background: #ea580c; color: #fff; font-weight: 800; font-size: 0.82rem; padding: 6px 14px;">
+                                        <span>چاپ تعهدنامه اقساط و سفته جهت امضای متقاضی 🖨️</span>
+                                    </button>
+                                    <input type="file" accept="image/*,application/pdf" id="compLoanCommitmentScanInput" @change="handlePromissoryScanUpload($event, 'loan', 'COMMITMENT_LETTER')" style="display:none;">
+                                    <button type="button" class="btn" style="background: #fff; color: #9a3412; border: 1px solid #fdba74; font-weight: 700; font-size: 0.8rem;" @click="document.getElementById('compLoanCommitmentScanInput').click()" :disabled="isUploadingInlineScan">
+                                        <span>بارگذاری اسکن تعهدنامه امضا شده 📄</span>
+                                    </button>
+                                    <input type="file" accept="image/*,application/pdf" id="compLoanPromissoryScanInput" @change="handlePromissoryScanUpload($event, 'loan', 'PROMISSORY_NOTE')" style="display:none;">
+                                    <button type="button" class="btn" style="background: #fff; color: #9a3412; border: 1px solid #fdba74; font-weight: 700; font-size: 0.8rem;" @click="document.getElementById('compLoanPromissoryScanInput').click()" :disabled="isUploadingInlineScan">
+                                        <span>بارگذاری اسکن سفته تضمین 📑</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- گالری اسکن‌های سفته و تعهدنامه تسهیلات -->
+                            <div x-data="{ cLoanScans: [] }" x-effect="cLoanScans = getPromissoryScans('loan')">
+                                <template x-if="cLoanScans.length > 0">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px;">
+                                        <template x-for="(scan, idx) in cLoanScans" :key="scan.id">
+                                            <div style="position: relative; background: #fff; border: 1px solid #fed7aa; border-radius: 8px; overflow: hidden;">
+                                                <div style="position: absolute; top: 4px; right: 4px; z-index: 2; background: rgba(0,0,0,0.7); color: #fff; font-size: 0.68rem; padding: 1px 6px; border-radius: 4px;" class="fa-num" x-text="scan.doc_type === 'COMMITMENT_LETTER' ? 'تعهدنامه' : 'سفته'"></div>
+                                                <button type="button" x-show="canDeleteAttachment(scan)" @click.stop="deleteAttachment(scan.id)" style="position: absolute; top: 4px; left: 4px; z-index: 2; background: #ef4444; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 0.7rem;">✕</button>
+                                                <div style="height: 100px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #fafafa;" @click="openPreview(scan)">
+                                                    <img :src="scan.preview_url" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                                </div>
+                                                <div style="padding: 4px 6px; font-size: 0.72rem; color: #334155;" class="fa-num" x-text="scan.title || scan.fileName"></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- شماره تعهدنامه (در صورت عدم انتخاب سفته) -->
+                <div class="field-group col-4" x-show="!form.loan_has_promissory_note" :class="{'field-locked': !isFieldEditable('commitment_number')}">
                     <label class="field-label">
                         <span>شماره تعهدنامه محضری / ثبتی</span>
                     </label>
                     <input type="text" class="input-control fa-num" style="direction: ltr;" x-model="form.commitment_number" :readonly="!isFieldEditable('commitment_number')" placeholder="مثال: ۱۲۴۰۵/ت">
                 </div>
 
-                <!-- تاریخ تعهدنامه -->
-                <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('commitment_date')}">
+                <!-- تاریخ تعهدنامه (در صورت عدم انتخاب سفته) -->
+                <div class="field-group col-4" x-show="!form.loan_has_promissory_note" :class="{'field-locked': !isFieldEditable('commitment_date')}">
                     <label class="field-label">
                         <span>تاریخ تعهدنامه (شمسی)</span>
                     </label>
@@ -1599,6 +1775,7 @@
             </div>
 
             <!-- ابزار هوشمند تولید خودکار اقلام چک و تاریخ سررسید (BankCheckTracker) -->
+            <div x-show="!form.loan_has_promissory_note">
             <div class="check-generator-box" style="margin-bottom: 1.25rem; background: #fffaf0; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 1.15rem; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.04);">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -1925,7 +2102,7 @@
 
                     <div x-show="isUploadingInlineScan" x-cloak style="margin-bottom: 0.75rem; padding: 0.65rem 0.9rem; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #9a3412;">
-                            <span>در حال بارگذاری اسکن چک و ثبت در سامانه... (لطفاً مجدداً کلیک نکنید)</span>
+                            <span>در حال بارگذاری اسکن چک و ثبت در سیستم... (لطفاً مجدداً کلیک نکنید)</span>
                             <span class="fa-num" x-text="inlineUploadProgress + '٪'"></span>
                         </div>
                         <div style="width: 100%; height: 6px; background: #ffedd5; border-radius: 999px; overflow: hidden;">
@@ -1949,6 +2126,8 @@
                         </div>
                     </template>
                 </div>
+            </div>
+
             </div>
 
             <!-- کارت تاییدیه دریافت چک‌های صیادی وام دهک -->
@@ -2169,6 +2348,179 @@
                     </div>
                 </div>
 
+                <!-- تیک دریافت سفته به جای چک (اقساط آماده‌سازی) -->
+                <div class="field-group col-12" style="margin-top: 8px; margin-bottom: 6px;">
+                    <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.92rem; color: #166534; cursor: pointer; user-select: none;">
+                            <input type="checkbox" x-model="form.prep_has_promissory_note" @change="togglePrepPromissory()" :disabled="!isFieldEditable('non_cash_preparation_amount')" style="width: 18px; height: 18px; accent-color: #15803d; cursor: pointer;">
+                            <span>دریافت سفته به جای چک (اقساط آماده‌سازی)</span>
+                        </label>
+                        <span class="fa-num" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; font-weight: 700;" :style="form.prep_has_promissory_note ? 'background:#dcfce7;color:#166534;border:1px solid #bbf7d0;' : 'background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;'" x-text="form.prep_has_promissory_note ? 'روش تسویه: سفته تضمین و تعهدنامه اقساط' : 'روش تسویه: چک‌های صیادی'"></span>
+                    </div>
+                </div>
+
+                <!-- مشخصات سفته و تعهدنامه اقساط خودکار آماده‌سازی (در صورت انتخاب سفته) -->
+                <div class="field-group col-12" x-show="form.prep_has_promissory_note" x-cloak style="margin-top: 4px; margin-bottom: 12px;">
+                    <div style="background: #fcfdfd; border: 1.5px solid #22c55e; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 6px rgba(34,197,94,0.08);">
+                        <div style="background: #dcfce7; border-bottom: 1px solid #bbf7d0; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+                            <strong style="color: #166534; font-size: 0.9rem;">مشخصات سفته و تعهدنامه پرداخت اقساط آماده‌سازی (بر اساس تولید و تقسیط خودکار)</strong>
+                            <span class="fa-num" style="font-size: 0.74rem; background: #15803d; color: #fff; padding: 2px 8px; border-radius: 6px; font-weight: 700;">سفته تضمین آماده‌سازی</span>
+                        </div>
+                        <div style="padding: 12px 14px; background: #f0fdf4; border-bottom: 1px dashed #86efac; font-size: 0.84rem; line-height: 1.8; color: #14532d;">
+                            <strong style="color: #15803d;">متن تعهدنامه متقاضی:</strong>
+                            «اینجانب متعهد می‌گردم کلیه اقساط و مبالغ ۸۰٪ غیرنقدی آماده‌سازی را بر اساس مبالغ و سررسیدهای جدول <span style="font-weight: 800; color: #15803d;">تولید و تقسیط خودکار</span> در موعد مقرر و سررسیدهای ۶ ماهه پرداخت نمایم. سفته تضمین ذیل به شماره <strong class="fa-num" x-text="form.prep_promissory_number || '—'"></strong> به مبلغ <strong class="fa-num" x-text="formatNumber(form.prep_promissory_amount || form.non_cash_preparation_amount || 0)"></strong> ریال، تا زمان تسویه کامل اقساط جهت ضمانت اجرای تعهد اخذ می‌گردد.»
+                        </div>
+                        <div class="fields-grid" style="padding: 14px;">
+                            <!-- شماره سفته -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
+                                <label class="field-label">
+                                    <span>شماره سفته</span>
+                                    <span class="required-mark" style="color: #dc2626;">*</span>
+                                </label>
+                                <input type="text" class="input-control fa-num" dir="ltr" x-model="form.prep_promissory_number" :readonly="!isFieldEditable('non_cash_preparation_amount')" placeholder="مثال: س/۵۵۴۴۳۳">
+                            </div>
+                            <!-- مبلغ سفته -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
+                                <label class="field-label">
+                                    <span>مبلغ سفته (ریال)</span>
+                                    <span class="required-mark" style="color: #dc2626;">*</span>
+                                </label>
+                                <div class="currency-input-wrapper">
+                                    <input type="text" class="input-control fa-num"
+                                           :value="form.prep_promissory_amount ? formatNumber(form.prep_promissory_amount) : ''"
+                                           @input="updateFormattedAmount(form, 'prep_promissory_amount', $event); generatePrepPromissoryInstallmentsAuto(true)"
+                                           @blur="formatAmountOnBlur(form, 'prep_promissory_amount', $event); generatePrepPromissoryInstallmentsAuto(true)"
+                                           :readonly="!isFieldEditable('non_cash_preparation_amount')" placeholder="۰">
+                                    <span class="currency-unit-tag">ریال</span>
+                                </div>
+                                <small class="fa-num" style="color: #166534; font-size: 0.73rem; margin-top: 3px;" x-show="form.prep_promissory_amount">
+                                    معادل: <strong x-text="formatNumber(Math.round(form.prep_promissory_amount / 10))"></strong> تومان
+                                </small>
+                            </div>
+                            <!-- تاریخ سفته -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
+                                <label class="field-label">
+                                    <span>تاریخ سفته (شمسی)</span>
+                                    <span class="required-mark" style="color: #dc2626;">*</span>
+                                </label>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="text" class="input-control fa-num" dir="ltr" style="flex: 1;" x-model="form.prep_promissory_date" :readonly="!isFieldEditable('non_cash_preparation_amount')" placeholder="۱۴۰۵/۰۵/۱۵">
+                                    <button type="button" @click="openDatePicker('prep_promissory_date', form.prep_promissory_date, 'تاریخ سفته آماده‌سازی')" :disabled="!isFieldEditable('non_cash_preparation_amount')" class="btn-date-picker" title="انتخاب تاریخ">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- شماره تعهدنامه -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
+                                <label class="field-label">
+                                    <span>شماره تعهدنامه محضری / ثبتی</span>
+                                </label>
+                                <input type="text" class="input-control fa-num" dir="ltr" x-model="form.prep_commitment_number" :readonly="!isFieldEditable('non_cash_preparation_amount')" placeholder="مثال: ۴۴۳۳۲/ت">
+                            </div>
+                            <!-- تاریخ تعهدنامه -->
+                            <div class="field-group col-4" :class="{'field-locked': !isFieldEditable('non_cash_preparation_amount')}">
+                                <label class="field-label">
+                                    <span>تاریخ تعهدنامه (شمسی)</span>
+                                </label>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="text" class="input-control fa-num" dir="ltr" style="flex: 1;" x-model="form.prep_commitment_date" :readonly="!isFieldEditable('non_cash_preparation_amount')" placeholder="۱۴۰۵/۰۵/۱۵">
+                                    <button type="button" @click="openDatePicker('prep_commitment_date', form.prep_commitment_date, 'تاریخ تعهدنامه آماده‌سازی')" :disabled="!isFieldEditable('non_cash_preparation_amount')" class="btn-date-picker" title="انتخاب تاریخ">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- تیک تایید اخذ تعهدنامه اقساط خودکار -->
+                            <div class="field-group col-4" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                                <label style="display: flex; align-items: center; gap: 7px; padding: 8px 10px; background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 700; color: #166534;">
+                                    <input type="checkbox" x-model="form.prep_has_commitment_letter" :disabled="!isFieldEditable('non_cash_preparation_amount')" style="width: 16px; height: 16px; accent-color: #15803d;">
+                                    <span>تعهدنامه پرداخت اقساط خودکار اخذ شد</span>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- جدول تولید و تقسیط خودکار اقساط تعهدنامه آماده‌سازی -->
+                        <div style="border-top: 1px solid #bbf7d0; padding: 12px 14px; background: #f0fdf4;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <strong style="color: #166534; font-size: 0.86rem;">جدول سررسید و مبالغ اقساط ۶ ماهه متعهدشده (تولید و تقسیط خودکار):</strong>
+                                <button type="button" @click="generatePrepPromissoryInstallmentsAuto(true)" :disabled="!isFieldEditable('non_cash_preparation_amount')" class="btn btn-primary" style="background: #15803d; border: none; font-size: 0.78rem; font-weight: 700; padding: 4px 10px;">
+                                    <span>محاسبه و تقسیط خودکار اقساط</span>
+                                </button>
+                            </div>
+                            <div style="overflow-x: auto;">
+                                <table class="check-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px; text-align: center;">ردیف</th>
+                                            <th style="width: 32%;">تاریخ سررسید قسط (شمسی)</th>
+                                            <th style="width: 34%;">مبلغ قسط (ریال)</th>
+                                            <th style="width: 28%;">معادل به تومان</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="(inst, idx) in (form.prep_promissory_installments || [])" :key="idx">
+                                            <tr>
+                                                <td style="text-align: center;"><span class="fa-num" style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.76rem;" x-text="'قسط ' + (idx + 1)"></span></td>
+                                                <td><input type="text" class="input-control fa-num" dir="ltr" style="text-align: center; font-weight: 700;" x-model="inst.due_date" :readonly="!isFieldEditable('non_cash_preparation_amount')"></td>
+                                                <td>
+                                                    <div class="currency-input-wrapper" style="width: 100%;">
+                                                        <input type="text" class="input-control fa-num" style="direction: ltr; font-weight: 800; font-size: 0.86rem; color: #15803d;"
+                                                               :value="inst.amount ? formatNumber(inst.amount) : ''"
+                                                               @input="updateFormattedAmount(inst, 'amount', $event)"
+                                                               @blur="formatAmountOnBlur(inst, 'amount', $event)"
+                                                               :readonly="!isFieldEditable('non_cash_preparation_amount')">
+                                                        <span class="currency-unit-tag">ریال</span>
+                                                    </div>
+                                                </td>
+                                                <td class="fa-num" style="font-weight: 700; color: #15803d;" x-text="formatNumber(Math.round((inst.amount || 0) / 10)) + ' تومان'"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- نوار عملیات: چاپ تعهدنامه جهت امضای متقاضی + بارگذاری اسکن‌ها -->
+                        <div style="border-top: 1.5px solid #86efac; padding: 12px 14px; background: #f0fdf4;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                <div>
+                                    <strong style="color: #166534; font-size: 0.88rem;">عملیات چاپ تعهدنامه جهت اخذ امضای متقاضی و بارگذاری مدارک:</strong>
+                                    <span style="font-size: 0.74rem; color: #64748b; display: block;">فرم تعهدنامه را چاپ نموده و پس از امضاء و اثر انگشت متقاضی، اسکن تعهدنامه و سفته را بارگذاری فرمایید.</span>
+                                </div>
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <button type="button" @click="printPromissoryCommitment('prep')" class="btn" style="background: #15803d; color: #fff; font-weight: 800; font-size: 0.82rem; padding: 6px 14px;">
+                                        <span>چاپ تعهدنامه اقساط و سفته جهت امضای متقاضی 🖨️</span>
+                                    </button>
+                                    <input type="file" accept="image/*,application/pdf" id="compPrepCommitmentScanInput" @change="handlePromissoryScanUpload($event, 'prep', 'COMMITMENT_LETTER')" style="display:none;">
+                                    <button type="button" class="btn" style="background: #fff; color: #166534; border: 1px solid #86efac; font-weight: 700; font-size: 0.8rem;" @click="document.getElementById('compPrepCommitmentScanInput').click()" :disabled="isUploadingInlineScan">
+                                        <span>بارگذاری اسکن تعهدنامه امضا شده 📄</span>
+                                    </button>
+                                    <input type="file" accept="image/*,application/pdf" id="compPrepPromissoryScanInput" @change="handlePromissoryScanUpload($event, 'prep', 'PROMISSORY_NOTE')" style="display:none;">
+                                    <button type="button" class="btn" style="background: #fff; color: #166534; border: 1px solid #86efac; font-weight: 700; font-size: 0.8rem;" @click="document.getElementById('compPrepPromissoryScanInput').click()" :disabled="isUploadingInlineScan">
+                                        <span>بارگذاری اسکن سفته تضمین 📑</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- گالری اسکن‌های سفته و تعهدنامه آماده‌سازی -->
+                            <div x-data="{ cPrepScans: [] }" x-effect="cPrepScans = getPromissoryScans('prep')">
+                                <template x-if="cPrepScans.length > 0">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px;">
+                                        <template x-for="(scan, idx) in cPrepScans" :key="scan.id">
+                                            <div style="position: relative; background: #fff; border: 1px solid #86efac; border-radius: 8px; overflow: hidden;">
+                                                <div style="position: absolute; top: 4px; right: 4px; z-index: 2; background: rgba(0,0,0,0.7); color: #fff; font-size: 0.68rem; padding: 1px 6px; border-radius: 4px;" class="fa-num" x-text="scan.doc_type === 'COMMITMENT_LETTER' ? 'تعهدنامه' : 'سفته'"></div>
+                                                <button type="button" x-show="canDeleteAttachment(scan)" @click.stop="deleteAttachment(scan.id)" style="position: absolute; top: 4px; left: 4px; z-index: 2; background: #ef4444; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 0.7rem;">✕</button>
+                                                <div style="height: 100px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #fafafa;" @click="openPreview(scan)">
+                                                    <img :src="scan.preview_url" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                                </div>
+                                                <div style="padding: 4px 6px; font-size: 0.72rem; color: #334155;" class="fa-num" x-text="scan.title || scan.fileName"></div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="!form.prep_has_promissory_note">
                 <!-- ابزار هوشمند تولید خودکار چک‌های اقساط آماده‌سازی (tashilatCheck) -->
                 <div class="check-generator-box" style="margin-top: 1.25rem; margin-bottom: 1.25rem; background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 1.15rem; box-shadow: 0 2px 6px rgba(22, 101, 52, 0.04);">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
@@ -2494,7 +2846,7 @@
 
                         <div x-show="isUploadingInlineScan" x-cloak style="margin-bottom: 0.75rem; padding: 0.65rem 0.9rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #166534;">
-                                <span>در حال بارگذاری اسکن چک و ثبت در سامانه... (لطفاً مجدداً کلیک نکنید)</span>
+                                <span>در حال بارگذاری اسکن چک و ثبت در سیستم... (لطفاً مجدداً کلیک نکنید)</span>
                                 <span class="fa-num" x-text="inlineUploadProgress + '٪'"></span>
                             </div>
                             <div style="width: 100%; height: 6px; background: #dcfce7; border-radius: 999px; overflow: hidden;">
@@ -2518,6 +2870,8 @@
                             </div>
                         </template>
                     </div>
+                </div>
+
                 </div>
 
                 <!-- کارت تاییدیه دریافت چک‌های اقساط آماده‌سازی -->

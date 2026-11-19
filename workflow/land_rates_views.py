@@ -31,6 +31,7 @@ from .land_rates import (
     serialize_rate_breakdown,
     serialize_villa_rate_breakdown,
     get_rate,
+    get_rate_status,
     get_villa_rate,
     apply_land_calculation,
     read_rates_from_excel,
@@ -645,22 +646,25 @@ def calculate_land_rates_api(request):
             },
         })
 
-    rate = get_rate(code=code, project=project, plot=plot, block=block)
-    if not rate:
-        desc = (
-            f"کد «{code}»" if code
-            else f"پروژه «{project}» - بلوک «{block}»" if block
-            else f"پروژه «{project}» - قطعه «{plot}»"
-        )
+    rate, status, msg = get_rate_status(code=code, project=project, plot=plot, block=block)
+    if status != "ok" or not rate:
         return JsonResponse({
             "success": False,
-            "error": f"نرخ مصوبی برای {desc} در جدول نرخ‌های عرصه یافت نشد.",
+            "status": status,
+            "error": msg or "نرخ مصوبی در جدول نرخ‌های عرصه یافت نشد.",
             "rate_found": False,
             "rate_type": "apartment",
         })
 
+    match_tier = getattr(rate, "match_tier", None)
     vals = compute_land_values(net, storage, parking, rate)
     breakdown = serialize_rate_breakdown(rate) or {}
+
+    # Never auto-populate renovation_code if it was inferred from block-only or plot-only fallbacks
+    if match_tier not in ("code", "project_plot_block"):
+        breakdown["renovation_code"] = ""
+    breakdown["match_tier"] = match_tier
+
     return JsonResponse({
         "success": True,
         "rate_found": True,

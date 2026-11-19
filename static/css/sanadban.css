@@ -32,6 +32,36 @@
   display: none !important;
 }
 
+/* ==========================================================================
+   Custom Modern Scrollbars (Day / Light Mode Default)
+   ========================================================================== */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #2563eb;
+}
+
 :root {
   /* Unified Calm Neutral Palette with 1 Accent Color (#2563eb) */
 
@@ -280,7 +310,7 @@ html {
 
   -webkit-font-smoothing: antialiased;
 
-  overflow-x: clip !important;
+  overflow-x: hidden !important;
 
   max-width: 100vw;
 }
@@ -302,7 +332,7 @@ body {
 
   font-variant-numeric: tabular-nums;
 
-  overflow-x: clip !important;
+  overflow-x: hidden !important;
 
   max-width: 100vw;
 
@@ -837,6 +867,12 @@ button:active:not(:disabled),
   padding: 0 1.5rem;
 
   width: 100%;
+
+  min-width: 0;
+
+  box-sizing: border-box;
+
+  overflow-x: hidden;
 }
 
 /* Dossier Header & Fast Meta Banner */
@@ -4111,4 +4147,136 @@ button:active:not(:disabled),
   .scan-toolbar-controls .toolbar-btn span {
     display: none !important;
   }
+}
+
+
+/* ==========================================================================
+   Telegram-Style Click-to-Copy (National ID, Project, Site, etc.)
+   ========================================================================== */
+.tg-copyable {
+  position: relative;
+  cursor: copy !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 6px;
+  padding: 1px 5px;
+  margin: -1px -3px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.tg-copyable:hover {
+  background: rgba(99, 102, 241, 0.09) !important;
+  color: #3730a3 !important;
+  border-color: rgba(99, 102, 241, 0.22);
+}
+
+.dl-project.tg-copyable {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.tg-copyable:active {
+  transform: scale(0.96);
+}
+
+.tg-copyable.tg-copied-flash {
+  background: rgba(16, 185, 129, 0.22) !important;
+  color: #047857 !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  transition: all 0.1s ease;
+}
+
+/* Telegram Floating Pill ("کپی شد") right above clicked element */
+.tg-copied-pill {
+  position: fixed;
+  z-index: 1000000;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  direction: rtl;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  animation: tgCopiedFloat 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  white-space: nowrap;
+}
+
+@keyframes tgCopiedFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.85);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.95);
+  }
+}
+
+/* Telegram Bottom Floating Toast Pill */
+.tg-bottom-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(30px);
+  opacity: 0;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  padding: 0.55rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  z-index: 1000000;
+  direction: rtl;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.tg-bottom-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Dark Mode Adjustments */
+html[data-theme="dark"] .tg-copyable:hover {
+  background: rgba(129, 140, 248, 0.16) !important;
+  color: #a5b4fc !important;
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+html[data-theme="dark"] .tg-copyable.tg-copied-flash {
+  background: rgba(16, 185, 129, 0.3) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
 }

@@ -14,504 +14,828 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#102542">
+    <meta name="theme-color" content="#1e293b">
 
-    <title>ورود به سامانه مسکن یار</title>
+    <title>مسکن یار</title>
 
-    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="alternate icon" href="{% static 'img/favicon.png' %}">
+
+    <!-- Preload Primary Persian Webfonts (Prevents Font Flash/Swap on Refresh) -->
+    <link rel="preload" href="{% static 'fonts/webfonts/Vazirmatn-Regular.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'fonts/webfonts/Vazirmatn-Bold.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'fonts/webfonts/Vazirmatn-SemiBold.woff2' %}" as="font" type="font/woff2" crossorigin>
+
+    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}?v=1.1">
     <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.2">
     <link rel="stylesheet" href="{% static 'css/dark-theme.css' %}?v=1.0">
     <script src="{% static 'js/sanadban.js' %}?v=3.7"></script>
 
     <style>
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Custom Modern Scrollbars (Day & Dark) */
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        ::-webkit-scrollbar-thumb:active {
+            background: #2563eb;
+        }
+        [data-theme="dark"] {
+            scrollbar-color: #1e293b #080c14;
+        }
+        [data-theme="dark"] ::-webkit-scrollbar-track {
+            background: #080c14;
+        }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+        }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        :root {
+            --primary-blue: #1d72b8;
+            --primary-blue-hover: #155d97;
+            --input-bg: #fdf8e2;
+            --input-border: #f0e1b6;
+            --input-focus-border: #1d72b8;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --card-radius: 24px;
         }
 
         body {
-            min-height: 100vh; min-height: 100dvh;
+            min-height: 100vh;
+            min-height: 100dvh;
             margin: 0;
-            padding: 32px 24px;
+            padding: 24px 16px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #0b172a;
+            background-image: url('{% static "img/login_bg.jpg" %}');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             position: relative;
-            isolation: isolate;
             overflow-x: hidden;
-            font-family: 'Vazirmatn', sans-serif;
-            background:
-                radial-gradient(ellipse at 15% 10%, rgba(59, 130, 246, .20), transparent 40%),
-                radial-gradient(ellipse at 85% 90%, rgba(14, 165, 233, .13), transparent 40%),
-                #0b172a;
         }
 
-        body::before {
-            content: "";
+        /* Backdrop filter overlay for depth and contrast */
+        .login-backdrop {
             position: fixed;
             inset: 0;
-            z-index: -1;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.48) 0%, rgba(30, 41, 59, 0.42) 100%);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 1;
             pointer-events: none;
-            opacity: .22;
-            background-image: radial-gradient(#93c5fd 1px, transparent 1px);
-            background-size: 28px 28px;
         }
 
+        /* Floating Theme Switcher */
+        .theme-toggle-floating {
+            position: fixed;
+            top: 20px;
+            left: 24px;
+            z-index: 9999;
+        }
+
+        /* Login Card Container */
         .login-card {
+            position: relative;
+            z-index: 2;
             width: 100%;
-            max-width: 540px;
+            max-width: 920px;
+            min-height: 490px;
+            background: #ffffff;
+            border-radius: var(--card-radius);
+            box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.45), 0 12px 28px -5px rgba(0, 0, 0, 0.30);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            display: flex;
+            flex-direction: row; /* RTL: right panel first, left panel second */
             overflow: hidden;
-            background: #fff;
-            border: 1px solid rgba(255, 255, 255, .14);
-            border-radius: 24px;
-            box-shadow: 0 28px 80px rgba(0, 0, 0, .30);
-            animation: appear .35s ease-out;
+            animation: cardAppear 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
-        .login-header {
-            padding: 42px 38px 34px;
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(16px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ----------------------------------------------------
+           RIGHT PANEL: Brand, Logos & Identity (Navy Blue Theme)
+           ---------------------------------------------------- */
+        .login-brand-panel {
+            flex: 0 0 42%;
+            width: 42%;
+            background: linear-gradient(155deg, #0b1f38 0%, #12335c 42%, #17457c 78%, #1e5597 100%);
+            padding: 48px 32px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
             text-align: center;
-            color: #fff;
-            background: linear-gradient(145deg, #142f52, #1e40af);
+            color: #ffffff;
+            position: relative;
+            box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.14);
         }
 
-        .login-emblem {
-            width: 70px;
-            height: 70px;
-            margin: 0 auto 20px;
+        /* Subtle mesh glow inside brand panel */
+        .login-brand-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 18%, rgba(96, 165, 250, 0.22), transparent 60%);
+            pointer-events: none;
+        }
+
+        .brand-logos-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 1px solid rgba(147, 197, 253, .35);
-            border-radius: 19px;
-            background: rgba(255, 255, 255, .09);
+            gap: 28px;
+            width: 100%;
+            margin-bottom: 26px;
+            position: relative;
+            z-index: 2;
         }
 
-        .login-header h1 {
+        /* Bare logos without white glass shade */
+        .brand-logo-tile {
+            flex: 0 1 64px;
+            max-width: 64px;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            background: none;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        .brand-logo-tile:hover {
+            transform: translateY(-2px) scale(1.05);
+            opacity: 0.95;
+        }
+
+        .brand-logo-tile img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+        }
+
+        .brand-logo-tile--color img {
+            width: 100%;
+            height: 100%;
+            background: none;
+            border-radius: 0;
+            padding: 0;
+            filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+        }
+
+        .brand-titles-group {
+            position: relative;
+            z-index: 2;
+            margin: auto 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .brand-emblem-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 22px;
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+        }
+
+        .brand-emblem-icon:hover {
+            transform: scale(1.05) translateY(-2px);
+        }
+
+        .brand-emblem-icon img {
+            width: 130px;
+            height: auto;
+            max-height: none;
+            filter: drop-shadow(0 6px 16px rgba(7, 20, 38, 0.45)) drop-shadow(0 0 16px rgba(56, 189, 248, 0.28));
+        }
+
+        .brand-system-name {
+            position: relative;
+            z-index: 2;
             margin: 0 0 8px;
-            font-size: 1.65rem;
-            font-weight: 800;
-            letter-spacing: -.4px;
+            font-size: 2.1rem;
+            font-weight: 900;
+            color: #93c5fd;
+            text-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+            line-height: 1.3;
+            letter-spacing: 0;
         }
 
-        .login-header p {
+        .brand-province-subtitle {
+            position: relative;
+            z-index: 2;
             margin: 0;
-            color: #cbdcf7;
-            font-size: .9rem;
-            line-height: 1.9;
+            font-size: 1rem;
+            font-weight: 500;
+            color: rgba(224, 242, 254, 0.8);
+            line-height: 1.4;
+            letter-spacing: 0.2px;
         }
 
-        .login-body {
-            padding: 38px 42px;
+        /* In the normal flow now, with the same structure as the date/time footer */
+        .brand-sub-consultant {
+            position: static;
+            width: 100%;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.14);
+            text-align: center;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: rgba(203, 213, 225, 0.6);
         }
 
-        .welcome-title {
-            margin: 0 0 8px;
-            color: #172554;
-            font-size: 1.2rem;
-            font-weight: 800;
+        .brand-desktop-logos {
+            display: contents;
         }
 
-        .welcome-description {
-            margin: 0 0 30px;
-            color: #64748b;
-            font-size: .88rem;
-            line-height: 1.9;
+        /* Mobile-only brand footer (hidden on desktop) */
+        .login-brand-footer-mobile {
+            display: none;
         }
 
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 10px;
-            color: #334155;
-            font-size: .92rem;
-            font-weight: 700;
-        }
-
-        .input-wrapper {
+        /* ----------------------------------------------------
+           LEFT PANEL: Login Form, Inputs & Dynamic Clock
+           ---------------------------------------------------- */
+        .login-form-panel {
+            flex: 0 0 58%;
+            width: 58%;
+            padding: 38px 48px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #ffffff;
             position: relative;
         }
 
-        .input-icon {
-            position: absolute;
-            top: 50%;
-            right: 16px;
-            width: 21px;
-            height: 21px;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            pointer-events: none;
+        .form-content-wrap {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex: 1;
+            margin-bottom: 8px;
         }
 
-        .form-input {
-            display: block;
+        .form-header-area {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .form-main-title {
+            font-size: 1.52rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.3px;
+            margin: 0;
+        }
+
+        .login-alerts-box {
+            margin-bottom: 16px;
+        }
+
+        .alert-msg {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            line-height: 1.7;
+        }
+
+        .alert-msg-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .alert-msg-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+
+        .login-inputs-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .input-field-group {
+            position: relative;
+        }
+
+        .input-field-group label {
+            display: none; /* Reference design uses full-height styled inputs with placeholders */
+        }
+
+        /* Matching the soft cream/yellow tint from the reference photo */
+        .styled-input {
             width: 100%;
-            height: 56px;
-            padding: 0 48px;
-            border: 1px solid #dbe3ef;
-            border-radius: 12px;
-            outline: none;
-            background: #f8fafc;
-            color: #0f172a;
+            height: 52px;
+            padding: 0 16px;
+            border-radius: 10px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: #1e293b;
             font-family: inherit;
             font-size: 1rem;
-            font-feature-settings: "ss01" 1;
-            -webkit-font-feature-settings: "ss01" 1;
-            font-variant-numeric: tabular-nums;
-            transition: border-color .2s, box-shadow .2s, background .2s;
+            font-weight: 600;
+            outline: none;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
         }
 
-        .form-input:focus {
-            border-color: #3b82f6;
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, .11);
+        .styled-input:focus {
+            border-color: var(--primary-blue);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(29, 114, 184, 0.18);
+        }
+
+        .styled-input::placeholder {
+            color: #8c8266;
+            font-size: 0.92rem;
+            font-weight: 500;
         }
 
         .username-input {
             direction: ltr;
             text-align: left;
+            padding-right: 44px;
         }
 
         .password-input {
             direction: ltr;
             text-align: left;
-            padding-left: 52px;
+            padding-right: 44px;
+            padding-left: 44px;
+            letter-spacing: 2px;
         }
 
-        .form-input::placeholder {
-            color: #a0aec0;
-            font-size: .88rem;
-        }
-
-        .password-toggle {
+        .input-lead-icon {
             position: absolute;
-            left: 10px;
             top: 50%;
-            width: 34px;
-            height: 34px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            right: 14px;
             transform: translateY(-50%);
-            padding: 0;
-            border: 0;
-            border-radius: 7px;
-            background: transparent;
-            color: #64748b;
-            cursor: pointer;
-        }
-
-        .password-toggle:hover {
-            background: #eaf1fb;
-            color: #1d4ed8;
-        }
-
-        .password-toggle:focus-visible {
-            outline: 2px solid #2563eb;
-            outline-offset: 2px;
-        }
-
-        .password-toggle svg {
             width: 20px;
             height: 20px;
-        }
-
-        .login-button {
-            width: 100%;
-            min-height: 56px;
-            margin-top: 8px;
+            color: #8a7c5b;
+            pointer-events: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 9px;
-            border: 0;
-            border-radius: 12px;
-            background: #2563eb;
-            color: #fff;
+        }
+
+        .password-eye-btn {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: #8a7c5b;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        .password-eye-btn:hover {
+            color: var(--primary-blue);
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Vivid Blue Action Button matching the reference photo */
+        .btn-submit-login {
+            width: 100%;
+            height: 50px;
+            margin-top: 4px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-blue);
+            color: #ffffff;
             font-family: inherit;
-            font-size: 1rem;
-            font-feature-settings: "ss01" 1;
-            -webkit-font-feature-settings: "ss01" 1;
-            font-variant-numeric: tabular-nums;
+            font-size: 1.06rem;
             font-weight: 800;
             cursor: pointer;
-            box-shadow: 0 5px 14px rgba(37, 99, 235, .20);
-            transition: background .2s, transform .2s, box-shadow .2s;
-        }
-
-        .login-button:hover {
-            background: #1d4ed8;
-            box-shadow: 0 7px 18px rgba(37, 99, 235, .28);
-        }
-
-        .login-button:active {
-            transform: scale(.99);
-        }
-
-        .login-button:focus-visible {
-            outline: 3px solid #93c5fd;
-            outline-offset: 3px;
-        }
-
-        .login-button svg {
-            width: 20px;
-            height: 20px;
-        }
-
-        .alert {
+            box-shadow: 0 6px 18px rgba(29, 114, 184, 0.32);
+            transition: all 0.2s ease;
             display: flex;
-            align-items: flex-start;
-            gap: 9px;
-            margin-bottom: 20px;
-            padding: 13px 14px;
-            border-radius: 10px;
-            font-size: .85rem;
-            line-height: 1.9;
-            overflow-wrap: anywhere;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .alert svg {
-            flex: 0 0 20px;
-            width: 20px;
-            height: 20px;
-            margin-top: 3px;
+        .btn-submit-login:hover {
+            background: var(--primary-blue-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 22px rgba(29, 114, 184, 0.40);
         }
 
-        .alert-error {
-            border: 1px solid #fecaca;
-            background: #fef2f2;
-            color: #991b1b;
+        .btn-submit-login:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(29, 114, 184, 0.25);
         }
 
-        .alert-success {
-            border: 1px solid #a7f3d0;
-            background: #ecfdf5;
-            color: #065f46;
-        }
-
-        .login-footer {
-            padding: 19px 24px;
-            border-top: 1px solid #edf0f5;
-            background: #f8fafc;
+        /* Bottom Time & Date Row matching reference: ساعت in left, تاریخ in right */
+        .login-clock-footer {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            font-weight: 600;
             color: #64748b;
-            text-align: center;
-            font-size: .8rem;
-            line-height: 1.9;
+            font-variant-numeric: tabular-nums;
         }
 
-        .login-footer span {
-            display: block;
-            margin-top: 2px;
+        .live-date-text {
+            color: #475569;
+        }
+
+        .live-time-text {
+            direction: ltr;
+            color: #475569;
+            font-family: inherit;
+        }
+
+        /* ----------------------------------------------------
+           DARK THEME OVERRIDES
+           ---------------------------------------------------- */
+        [data-theme="dark"] .login-card {
+            background: #0f172a;
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 25px 65px -10px rgba(0, 0, 0, 0.7), 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="dark"] .login-brand-panel,
+        [data-theme="dark"] .login-brand-footer-mobile {
+            background: linear-gradient(155deg, #061324 0%, #0d223f 45%, #13325c 80%, #1a437a 100%);
+            box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
+        }
+
+        [data-theme="dark"] .login-form-panel {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .form-main-title {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .form-sub-hint {
             color: #94a3b8;
-            font-size: .74rem;
         }
 
-        @keyframes appear {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        [data-theme="dark"] .styled-input {
+            background: #1e293b;
+            border-color: #334155;
+            color: #f8fafc;
         }
 
-        /* Large desktop monitors */
-        @media (min-width: 1200px) {
+        [data-theme="dark"] .styled-input:focus {
+            background: #0f172a;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+        }
+
+        [data-theme="dark"] .styled-input::placeholder {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .input-lead-icon,
+        [data-theme="dark"] .password-eye-btn {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .login-clock-footer {
+            border-top-color: #1e293b;
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .live-date-text,
+        [data-theme="dark"] .live-time-text {
+            color: #cbd5e1;
+        }
+
+        /* ----------------------------------------------------
+           RESPONSIVE DESIGN (Tablets & Mobile)
+           ---------------------------------------------------- */
+        @media (max-width: 820px) {
             .login-card {
-                max-width: 580px;
+                flex-direction: column;
+                max-width: 480px;
+                min-height: auto;
             }
 
-            .login-header {
-                padding-top: 46px;
-                padding-bottom: 38px;
+            .login-brand-panel {
+                width: 100%;
+                flex: none;
+                padding: 24px 20px 20px;
+                justify-content: center;
+                border-radius: var(--card-radius) var(--card-radius) 0 0;
+                box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.12);
             }
 
-            .login-body {
-                padding: 42px 48px;
+            .brand-desktop-logos {
+                display: none !important;
+            }
+
+            .brand-titles-group {
+                margin: 0;
+                gap: 4px;
+            }
+
+            .brand-emblem-icon {
+                margin-bottom: 2px;
+            }
+
+            .brand-emblem-icon img {
+                width: 86px;
+                max-height: 62px;
+            }
+
+            .brand-system-name {
+                font-size: 1.55rem;
+                margin: 0;
+            }
+
+            .brand-province-subtitle {
+                font-size: 0.88rem;
+            }
+
+            .login-form-panel {
+                width: 100%;
+                flex: none;
+                padding: 28px 24px 20px;
+                border-radius: 0;
+            }
+
+            .login-clock-footer {
+                margin-top: 24px;
+            }
+
+            .login-brand-footer-mobile {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                background: linear-gradient(155deg, #0b1f38 0%, #12335c 42%, #17457c 78%, #1e5597 100%);
+                padding: 14px 16px 12px;
+                border-radius: 0 0 var(--card-radius) var(--card-radius);
+                position: relative;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+                color: #ffffff;
+                text-align: center;
+            }
+
+            .login-brand-footer-mobile .brand-logos-row {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                width: 100%;
+                margin-bottom: 0;
+            }
+
+            .login-brand-footer-mobile .brand-logo-tile {
+                flex: 0 1 34px;
+                max-width: 34px;
+                padding: 0;
+                background: none;
+                border: none;
+                box-shadow: none;
+            }
+
+            .login-brand-footer-mobile .brand-sub-consultant-mobile {
+                margin-top: 8px;
+                font-size: 0.74rem;
+                font-weight: 500;
+                color: rgba(203, 213, 225, 0.6);
+                text-align: center;
             }
         }
 
-        /* Mobile and small tablets */
-        @media (max-width: 600px) {
+        @media (max-width: 420px) {
             body {
-                padding: 20px 15px;
+                padding: 12px 10px;
             }
 
             .login-card {
-                max-width: 100%;
                 border-radius: 18px;
             }
 
-            .login-header {
-                padding: 28px 20px 24px;
+            .login-brand-panel {
+                padding: 20px 16px 18px;
+                border-radius: 18px 18px 0 0;
             }
 
-            .login-emblem {
-                width: 60px;
-                height: 60px;
-                margin-bottom: 16px;
-                border-radius: 16px;
+            .brand-emblem-icon img {
+                width: 76px;
+                max-height: 54px;
             }
 
-            .login-header h1 {
+            .brand-system-name {
+                font-size: 1.38rem;
+            }
+
+            .brand-province-subtitle {
+                font-size: 0.80rem;
+            }
+
+            .login-form-panel {
+                padding: 22px 16px 16px;
+            }
+
+            .form-main-title {
                 font-size: 1.25rem;
             }
 
-            .login-header p {
-                font-size: .8rem;
+            .styled-input {
+                height: 48px;
+                font-size: 0.95rem;
             }
 
-            .login-body {
-                padding: 25px 22px;
+            .btn-submit-login {
+                height: 46px;
+                font-size: 0.98rem;
             }
 
-            .welcome-title {
-                font-size: 1.08rem;
+            .login-brand-footer-mobile {
+                padding: 12px 14px 10px;
+                border-radius: 0 0 18px 18px;
             }
 
-            .welcome-description {
-                font-size: .81rem;
-                margin-bottom: 25px;
+            .login-brand-footer-mobile .brand-logos-row {
+                gap: 12px;
             }
 
-            .form-group {
-                margin-bottom: 20px;
+            .login-brand-footer-mobile .brand-logo-tile {
+                flex: 0 1 28px;
+                max-width: 28px;
+                padding: 0;
+                background: none;
+                border: none;
+                box-shadow: none;
             }
 
-            .form-label {
-                font-size: .85rem;
-                margin-bottom: 8px;
-            }
-
-            .form-input {
-                height: 51px;
-                font-size: .9rem;
-            }
-
-            .form-input::placeholder {
-                font-size: .79rem;
-            }
-
-            .login-button {
-                min-height: 51px;
-                font-size: .92rem;
-            }
-
-            .login-footer {
-                padding: 15px 18px;
-                font-size: .74rem;
-            }
-
-            .login-footer span {
-                font-size: .69rem;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .login-body {
-                padding: 22px 17px;
-            }
-
-            .login-header h1 {
-                font-size: 1.12rem;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation: none !important;
-                transition: none !important;
+            .login-brand-footer-mobile .brand-sub-consultant-mobile {
+                margin-top: 6px;
+                font-size: 0.68rem;
             }
         }
     </style>
 </head>
 
 <body>
-    <!-- Floating Login Theme Switcher -->
-    <div style="position: fixed; top: 20px; left: 24px; z-index: 9999;">
+    <!-- Background Blur & Vignette Overlay -->
+    <div class="login-backdrop" aria-hidden="true"></div>
+
+    <!-- Floating Theme Switcher -->
+    <div class="theme-toggle-floating">
         <button type="button" class="sb-theme-toggle-btn" onclick="window.SanadbanTheme.toggle()" title="تغییر تم (کلید میانبر: Alt+T)">
             <span class="sb-theme-icon">
                 <svg class="sb-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 <svg class="sb-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             </span>
-
         </button>
     </div>
 
+    <!-- Main Centered Login Card -->
     <main class="login-card">
 
-        <header class="login-header">
-            <div class="login-emblem" aria-hidden="true">
-                <svg width="34" height="34" viewBox="0 0 24 24"
-                     fill="none" stroke="#93c5fd" stroke-width="1.8"
-                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 10 12 3l9 7"></path>
-                    <path d="M5 9v11h14V9"></path>
-                    <path d="M9 20v-7h6v7"></path>
-                </svg>
+        <!-- RIGHT PANEL (Desktop) / TOP BANNER (Mobile): Identity & System Name -->
+        <aside class="login-brand-panel">
+            <div class="brand-titles-group">
+                <div class="brand-emblem-icon" title="سامانه مسکن یار">
+                    <img src="{% static 'img/emblem_ice_blue.png' %}" alt="نماد مسکن یار">
+                </div>
+                <h1 class="brand-system-name">مسکن یار</h1>
+                <div class="brand-province-subtitle">نهضت ملی مسکن استان قم</div>
             </div>
 
-            <h1>سامانه جامع مسکن یار</h1>
-        </header>
-
-        <section class="login-body">
-
-            <h2 class="welcome-title">ورود به حساب کاربری</h2>
-            
-
-            {% if error %}
-                <div class="alert alert-error" role="alert">
-                    <svg viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M12 8v5"></path>
-                        <path d="M12 16h.01"></path>
-                    </svg>
-                    <span>{{ error }}</span>
-                </div>
-            {% endif %}
-
-            {% if messages %}
-                {% for msg in messages %}
-                    <div class="alert alert-success" role="status">
-                        <svg viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2">
-                            <path d="m5 12 4 4L19 6"></path>
-                        </svg>
-                        <span>{{ msg }}</span>
+            <div class="brand-desktop-logos">
+                <div class="brand-logos-row">
+                    <div class="brand-logo-tile" title="وزارت راه و شهرسازی">
+                        <img src="{% static 'img/logo_rah_shahrsazi_white.png' %}" alt="وزارت راه و شهرسازی">
                     </div>
-                {% endfor %}
-            {% endif %}
+                    <div class="brand-logo-tile brand-logo-tile--color" title="کارگزار نهضت ملی مسکن: شرکت مهندسین مشاور ره آزرم بین‌الملل">
+                        <img src="{% static 'img/logo_rah_azaram_white.png' %}" alt="کارگزاری ره آزرم">
+                    </div>
+                    <div class="brand-logo-tile" title="شرکت مهندسان مشاور زمین ترسیم خاورمیانه">
+                        <img src="{% static 'img/logo_zamintarsim_white_tight.png' %}" alt="زمین ترسیم خاورمیانه">
+                    </div>
+                </div>
 
-            <form method="POST" action="{% url 'login' %}">
-                {% csrf_token %}
+                <div class="brand-sub-consultant">مهندسان مشاور زمین ترسیم خاورمیانه</div>
+            </div>
+        </aside>
 
-                <input type="hidden" name="next" value="{{ next|default:'' }}">
+        <!-- LEFT PANEL: User Login Form -->
+        <section class="login-form-panel">
+            <div class="form-content-wrap">
+                <header class="form-header-area">
+                    <h2 class="form-main-title">ورود کاربران</h2>
+                </header>
 
-                <div class="form-group">
-                    <label class="form-label" for="login-username">
-                        نام کاربری
-                    </label>
+                <!-- Error & Success Messages -->
+                <div class="login-alerts-box">
+                    {% if error %}
+                        <div class="alert-msg alert-msg-error" role="alert">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <span>{{ error }}</span>
+                        </div>
+                    {% endif %}
 
-                    <div class="input-wrapper">
-                        <svg class="input-icon" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="1.8"
-                             stroke-linecap="round" stroke-linejoin="round"
-                             aria-hidden="true">
-                            <circle cx="12" cy="8" r="4"></circle>
-                            <path d="M5 21v-2a7 7 0 0 1 14 0v2"></path>
-                        </svg>
+                    {% if messages %}
+                        {% for msg in messages %}
+                            <div class="alert-msg alert-msg-success" role="status">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m5 12 4 4L19 6"></path>
+                                </svg>
+                                <span>{{ msg }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
 
+                <!-- Django Authentication Form -->
+                <form method="POST" action="{% url 'login' %}" class="login-inputs-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next|default:'' }}">
+
+                    <!-- Username Field with reference yellow-tinted style -->
+                    <div class="input-field-group">
+                        <label for="login-username">نام کاربری</label>
+                        <span class="input-lead-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </span>
                         <input
                             type="text"
                             name="username"
                             id="login-username"
-                            class="form-input username-input"
-                            placeholder="نام کاربری خود را وارد کنید"
+                            class="styled-input username-input"
+                            placeholder="نام کاربری"
                             autocomplete="username"
                             autocapitalize="none"
                             spellcheck="false"
@@ -519,79 +843,83 @@
                             autofocus
                         >
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="login-password">
-                        کلمه عبور
-                    </label>
-
-                    <div class="input-wrapper">
-                        <svg class="input-icon" viewBox="0 0 24 24"
-                             fill="none" stroke="currentColor" stroke-width="1.8"
-                             stroke-linecap="round" stroke-linejoin="round"
-                             aria-hidden="true">
-                            <rect x="3" y="11" width="18" height="11" rx="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-
+                    <!-- Password Field with eye toggle button -->
+                    <div class="input-field-group">
+                        <label for="login-password">کلمه عبور</label>
+                        <span class="input-lead-icon" aria-hidden="true">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </span>
                         <input
                             type="password"
                             name="password"
                             id="login-password"
-                            class="form-input password-input"
-                            placeholder="کلمه عبور خود را وارد کنید"
+                            class="styled-input password-input"
+                            placeholder="••••"
                             autocomplete="current-password"
                             required
                         >
-
                         <button
                             type="button"
-                            class="password-toggle"
+                            class="password-eye-btn"
                             id="password-toggle"
-                            aria-label="نمایش کلمه عبور"
-                            aria-pressed="false"
-                            title="نمایش یا پنهان کردن کلمه عبور"
+                            aria-label="نمایش یا پنهان کردن رمز عبور"
+                            title="نمایش یا پنهان کردن رمز عبور"
                         >
-                            <svg id="eye-icon" viewBox="0 0 24 24"
-                                 fill="none" stroke="currentColor"
-                                 stroke-width="1.8" stroke-linecap="round"
-                                 stroke-linejoin="round"
-                                 aria-hidden="true">
+                            <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
                             </svg>
                         </button>
                     </div>
+
+                    <!-- Vivid Blue Login Button matching reference photo -->
+                    <button type="submit" class="btn-submit-login">
+                        <span>ورود</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Footer matching reference: تاریخ in right, ساعت in left -->
+            <footer class="login-clock-footer">
+                <div class="live-date-text" id="live-date-display">
+                    تاریخ: ...
                 </div>
-
-                <button type="submit" class="login-button">
-                    <span>ورود به سامانه</span>
-                    <svg viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2"
-                         stroke-linecap="round" stroke-linejoin="round"
-                         aria-hidden="true">
-                        <path d="M5 12h14"></path>
-                        <path d="m12 5 7 7-7 7"></path>
-                    </svg>
-                </button>
-            </form>
-
+                <div class="live-time-text" id="live-time-display">
+                    ساعت: 00:00:00
+                </div>
+            </footer>
         </section>
 
-        <footer class="login-footer">
-            شرکت مهندسان مشاور زمین ترسیم خاورمیانه
-            <span>وزارت راه و شهرسازی · کلیه حقوق محفوظ است</span>
-        </footer>
+        <!-- BOTTOM PANEL (Mobile Only): Logos & Organization Identity -->
+        <aside class="login-brand-footer-mobile" aria-label="لوگوها و هویت سازمانی">
+            <div class="brand-logos-row">
+                <div class="brand-logo-tile" title="وزارت راه و شهرسازی">
+                    <img src="{% static 'img/logo_rah_shahrsazi_white.png' %}" alt="وزارت راه و شهرسازی">
+                </div>
+                <div class="brand-logo-tile brand-logo-tile--color" title="کارگزار نهضت ملی مسکن: شرکت مهندسین مشاور ره آزرم بین‌الملل">
+                    <img src="{% static 'img/logo_rah_azaram_white.png' %}" alt="کارگزاری ره آزرم">
+                </div>
+                <div class="brand-logo-tile" title="شرکت مهندسان مشاور زمین ترسیم خاورمیانه">
+                    <img src="{% static 'img/logo_zamintarsim_white_tight.png' %}" alt="زمین ترسیم خاورمیانه">
+                </div>
+            </div>
+
+            <div class="brand-sub-consultant-mobile">مهندسان مشاور زمین ترسیم خاورمیانه</div>
+        </aside>
 
     </main>
 
     <script>
         (() => {
+            // Password toggle logic
             const password = document.getElementById('login-password');
             const toggle = document.getElementById('password-toggle');
             const eyeIcon = document.getElementById('eye-icon');
-            const form = document.querySelector('.login-card form');
+            const form = document.querySelector('.login-inputs-form');
 
             const eyeOpen = `
                 <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path>
@@ -604,31 +932,21 @@
                 <path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.5 10.5 0 0 0 4-.8"></path>
             `;
 
-            toggle.addEventListener('click', () => {
-                const visible = password.type === 'password';
+            if (toggle && password && eyeIcon) {
+                toggle.addEventListener('click', () => {
+                    const isVisible = password.type === 'text';
+                    password.type = isVisible ? 'password' : 'text';
+                    eyeIcon.innerHTML = isVisible ? eyeOpen : eyeClosed;
+                    toggle.setAttribute('aria-pressed', String(!isVisible));
+                });
+            }
 
-                password.type = visible ? 'text' : 'password';
-                eyeIcon.innerHTML = visible ? eyeClosed : eyeOpen;
-
-                toggle.setAttribute('aria-pressed', String(visible));
-                toggle.setAttribute(
-                    'aria-label',
-                    visible ? 'پنهان کردن کلمه عبور' : 'نمایش کلمه عبور'
-                );
-            });
-
+            // Sync CSRF token on pageshow/load
             function syncCsrfToken() {
-                const match = document.cookie.match(
-                    /(?:^|;\s*)csrftoken=([^;]*)/
-                );
-
-                const tokenInput = form.querySelector(
-                    'input[name="csrfmiddlewaretoken"]'
-                );
-
+                const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+                const tokenInput = form ? form.querySelector('input[name="csrfmiddlewaretoken"]') : null;
                 if (match && tokenInput) {
                     const token = decodeURIComponent(match[1]);
-
                     if (tokenInput.value !== token) {
                         tokenInput.value = token;
                     }
@@ -637,10 +955,41 @@
 
             window.addEventListener('pageshow', syncCsrfToken);
             document.addEventListener('DOMContentLoaded', syncCsrfToken);
+            if (form) form.addEventListener('submit', syncCsrfToken);
 
-            form.addEventListener('submit', syncCsrfToken);
+            // Dynamic live clock and Persian Shamsi date matching reference photo exactly
+            const dateDisplay = document.getElementById('live-date-display');
+            const timeDisplay = document.getElementById('live-time-display');
+
+            function updateClock() {
+                const now = new Date();
+
+                // Format time as HH:MM:SS
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                if (timeDisplay) {
+                    timeDisplay.textContent = `ساعت: ${hours}:${minutes}:${seconds}`;
+                }
+
+                // Format Persian Shamsi date
+                if (dateDisplay) {
+                    try {
+                        const formatter = new Intl.DateTimeFormat('fa-IR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        dateDisplay.textContent = `تاریخ: ${formatter.format(now)}`;
+                    } catch (e) {
+                        dateDisplay.textContent = `تاریخ: ${now.toLocaleDateString('fa-IR')}`;
+                    }
+                }
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
         })();
     </script>
-
 </body>
 </html>

@@ -111,13 +111,12 @@ def normalize_block(b: Any) -> str:
 
 
 def clean_block_fuzzy(b: Any) -> str:
-    """Strips punctuation/street suffixes like '-16' or '-2' or '/1'."""
+    """Canonical block: normalizes digits/Persian characters and strips punctuation (slashes, hyphens, spaces).
+    Preserves all letters and digits without truncating, preventing collisions like P-1 vs P-4 or BB1 vs BB15.
+    """
     if not b:
         return ""
     s = str(b).translate(_DIGITS).replace("ي", "ی").replace("ك", "ک").strip().upper()
-    m = re.match(r"^([A-Z0-9]+)", re.sub(r"[^A-Z0-9-]", "", s))
-    if m:
-        s = m.group(1)
     return re.sub(r"[^A-Z0-9]", "", s)
 
 
@@ -204,14 +203,39 @@ def reset_cache():
     reset_villa_cache()
 
 
+def rates_are_consistent(rate1: Any, rate2: Any) -> bool:
+    """Checks if two LandRate candidates have matching coefficient (within 0.0001) and identical rial rates."""
+    if rate1 is rate2:
+        return True
+    c1 = _dec(getattr(rate1, "share_coefficient", 0))
+    c2 = _dec(getattr(rate2, "share_coefficient", 0))
+    if abs(c1 - c2) > Decimal("0.0001"):
+        return False
+    if _rial(_dec(getattr(rate1, "rent_current_per_m2", 0))) != _rial(_dec(getattr(rate2, "rent_current_per_m2", 0))):
+        return False
+    if _rial(_dec(getattr(rate1, "rent_to_date_per_m2", 0))) != _rial(_dec(getattr(rate2, "rent_to_date_per_m2", 0))):
+        return False
+    if _rial(_dec(getattr(rate1, "prep_per_m2", 0))) != _rial(_dec(getattr(rate2, "prep_per_m2", 0))):
+        return False
+    return True
+
+
+def all_candidates_consistent(candidates: List[Any]) -> bool:
+    """Returns True if all rates in candidates list have consistent coefficient and rial rates."""
+    if not candidates:
+        return False
+    first = candidates[0]
+    return all(rates_are_consistent(first, c) for c in candidates[1:])
+
+
 def _ensure_cache():
     if time.time() - _CACHE["at"] > _TTL or not _CACHE["by_code"]:
         from .models import LandRate
         by_code = {}
         by_proj_plot_blk = {}
-        by_proj_blk = {}
-        by_clean_proj_blk = {}
-        by_proj_plot = {}
+        by_proj_blk: Dict[Tuple[str, str], List[Any]] = {}
+        by_clean_proj_blk: Dict[Tuple[str, str], List[Any]] = {}
+        by_proj_plot: Dict[Tuple[str, str], List[Any]] = {}
         by_block_fuzzy: Dict[str, List[Tuple[Any, str, frozenset]]] = {}
         by_plot_fuzzy: Dict[str, List[Tuple[Any, str, frozenset]]] = {}
         all_rates = []
@@ -232,23 +256,28 @@ def _ensure_cache():
             blk_norm = normalize_block(r.block_name)
             clean_b = clean_block_fuzzy(r.block_name)
 
-            if p_norm and plot_norm and blk_norm:
-                by_proj_plot_blk[(p_norm, plot_norm, blk_norm)] = r
+            for kp in (p_norm, clean_p):
+                for kb in (blk_norm, clean_b):
+                    if kp and plot_norm and kb:
+                        by_proj_plot_blk[(kp, plot_norm, kb)] = r
 
-            if clean_p and plot_norm and clean_b:
-                by_proj_plot_blk[(clean_p, plot_norm, clean_b)] = r
+            if p_norm and blk_norm:
+                by_proj_blk.setdefault((p_norm, blk_norm), []).append(r)
 
-            if p_norm and blk_norm and (p_norm, blk_norm) not in by_proj_blk:
-                by_proj_blk[(p_norm, blk_norm)] = r
+            if clean_p and clean_b:
+                by_clean_proj_blk.setdefault((clean_p, clean_b), []).append(r)
 
-            if clean_p and clean_b and (clean_p, clean_b) not in by_clean_proj_blk:
-                by_clean_proj_blk[(clean_p, clean_b)] = r
+            if clean_p and blk_norm and clean_b != blk_norm:
+                by_clean_proj_blk.setdefault((clean_p, blk_norm), []).append(r)
 
-            if p_norm and plot_norm and (p_norm, plot_norm) not in by_proj_plot:
-                by_proj_plot[(p_norm, plot_norm)] = r
+            if p_norm and clean_b and clean_b != blk_norm:
+                by_proj_blk.setdefault((p_norm, clean_b), []).append(r)
 
-            if clean_p and plot_norm and (clean_p, plot_norm) not in by_proj_plot:
-                by_proj_plot[(clean_p, plot_norm)] = r
+            if p_norm and plot_norm:
+                by_proj_plot.setdefault((p_norm, plot_norm), []).append(r)
+
+            if clean_p and plot_norm and (clean_p, plot_norm) != (p_norm, plot_norm):
+                by_proj_plot.setdefault((clean_p, plot_norm), []).append(r)
 
             if clean_p or p_tokens:
                 entry = (r, clean_p, p_tokens)
@@ -311,6 +340,33 @@ def _pick_best_fuzzy_candidate(candidates, clean_p: str, p_tokens: frozenset):
     return best_rate
 
 
+def get_rate_status(
+    code: Any = None,
+    project: Any = None,
+    plot: Any = None,
+    block: Any = None
+) -> Tuple[Optional[Any], str, str]:
+    """
+    Finds LandRate with status reporting ("ok", "ambiguous", "not_found").
+    Attaches rate.match_tier ("code", "project_plot_block", "project_plot", "project_block").
+    Memoizes results in _CACHE["memo"].
+    """
+    _ensure_cache()
+
+    memo_key = (code or "", project or "", plot or "", block or "")
+    memo = _CACHE["memo"]
+    if memo_key in memo:
+        return memo[memo_key]
+
+    rate, status, msg, match_tier = _get_rate_uncached(code=code, project=project, plot=plot, block=block)
+    if rate is not None:
+        setattr(rate, "match_tier", match_tier)
+    res = (rate, status, msg)
+    if len(memo) < 20000:
+        memo[memo_key] = res
+    return res
+
+
 def get_rate(
     code: Any = None,
     project: Any = None,
@@ -321,21 +377,12 @@ def get_rate(
     Finds LandRate using hierarchical lookup:
     1. By exact or stripped کد نوسازی (with or without -0-0)
     2. By (پروژه + شماره قطعه + بلوک)
-    3. By (پروژه + بلوک) -> guess & calculate with only project and block!
-    4. By (پروژه + شماره قطعه)
-    5. Fuzzy project & block matching
+    3. By (پروژه + شماره قطعه) [all blocks in plot have consistent rates]
+    4. By (پروژه + بلوک) [guarded: only if all matching plots share identical rates]
+    Returns LandRate if unambiguous match found; None if ambiguous or not found.
     """
-    _ensure_cache()
-
-    memo_key = (code or "", project or "", plot or "", block or "")
-    memo = _CACHE["memo"]
-    if memo_key in memo:
-        return memo[memo_key]
-
-    result = _get_rate_uncached(code=code, project=project, plot=plot, block=block)
-    if len(memo) < 20000:
-        memo[memo_key] = result
-    return result
+    rate, status, _ = get_rate_status(code=code, project=project, plot=plot, block=block)
+    return rate if status == "ok" else None
 
 
 def _get_rate_uncached(
@@ -343,21 +390,12 @@ def _get_rate_uncached(
     project: Any = None,
     plot: Any = None,
     block: Any = None
-):
-    # 1. Match by renovation_code
-    if code:
-        norm_c = normalize_code(code)
-        if norm_c in _CACHE["by_code"]:
-            return _CACHE["by_code"][norm_c]
-        stripped_c = strip_code(norm_c)
-        if stripped_c in _CACHE["by_code"]:
-            return _CACHE["by_code"][stripped_c]
-
+) -> Tuple[Optional[Any], str, str, Optional[str]]:
     p_str = str(project or "")
     plot_str = str(plot or "")
     blk_str = str(block or "")
 
-    # If plot is not explicitly provided, try extracting from project string
+    # Early Plot Extraction 1: extract from project string if embedded (e.g. 'سازه کاران قطعه 243')
     if not plot_str and "قطعه" in p_str:
         m = re.search(r"قطعه\s*(\d+)", p_str.translate(_DIGITS))
         if m:
@@ -370,68 +408,146 @@ def _get_rate_uncached(
     blk_norm = normalize_block(blk_str)
     clean_b = clean_block_fuzzy(blk_str)
 
+    # Early Plot Extraction 2: check if block has embedded plot e.g. HH180 -> blk HH, plot 180
+    # Only attempt if blk_norm / clean_b is NOT already a known valid block for this project
+    is_known_block = (
+        (p_norm, blk_norm) in _CACHE["by_proj_blk"] or
+        (clean_p, clean_b) in _CACHE["by_clean_proj_blk"] or
+        (clean_p, blk_norm) in _CACHE["by_clean_proj_blk"]
+    )
+    if not plot_norm and clean_b and not is_known_block:
+        m_split = re.match(r"^([A-Z]+)(\d+)$", clean_b)
+        if m_split:
+            cand_b, cand_plot = m_split.group(1), m_split.group(2)
+            if (clean_p, cand_plot, cand_b) in _CACHE["by_proj_plot_blk"] or (p_norm, cand_plot, cand_b) in _CACHE["by_proj_plot_blk"]:
+                clean_b = cand_b
+                blk_norm = cand_b
+                plot_norm = cand_plot
+
+    # Early Plot Extraction 3: if block is pure digits and no plot set (e.g. block='68'), check if plot exists for this project
+    if not plot_norm and clean_b.isdigit():
+        if (p_norm, clean_b) in _CACHE["by_proj_plot"] or (clean_p, clean_b) in _CACHE["by_proj_plot"]:
+            plot_norm = clean_b
+            clean_b = ""
+            blk_norm = ""
+
+    # 1. Match by renovation_code (Unique, 0 mismatches)
+    if code:
+        norm_c = normalize_code(code)
+        cand = _CACHE["by_code"].get(norm_c) or _CACHE["by_code"].get(strip_code(norm_c))
+        if cand:
+            # Cross-validation: Check if code contradicts explicit plot or explicit block
+            # (Guards against old leftover guessed codes that belonged to a different parcel or wrong block)
+            contradicts_plot = bool(plot_norm and cand.plot_number and normalize_plot(cand.plot_number) != plot_norm)
+            contradicts_block = False
+            if blk_norm and cand.block_name:
+                cand_blk_norm = normalize_block(cand.block_name)
+                cand_blk_clean = clean_block_fuzzy(cand.block_name)
+                m_letter_unit = re.match(r"^([A-Z\u0600-\u06FF]+)[\/\-](\d+)$", blk_norm)
+                letters_pref = clean_block_fuzzy(m_letter_unit.group(1)) if m_letter_unit else ""
+                if not (
+                    blk_norm == cand_blk_norm
+                    or clean_b == cand_blk_clean
+                    or (letters_pref and letters_pref == cand_blk_clean)
+                ):
+                    contradicts_block = True
+
+            if not contradicts_plot and not contradicts_block:
+                return cand, "ok", "نرخ مصوب بر اساس کد نوسازی یافت شد.", "code"
+            # If code contradicts explicit plot or block, ignore the stale/guessed code and fall through to steps 2-4
+
     # 2. Match by (project, plot, block) if plot is provided
     if (p_norm or clean_p) and plot_norm and (blk_norm or clean_b):
         for kp in (p_norm, clean_p):
             for kb in (blk_norm, clean_b):
                 if (kp, plot_norm, kb) in _CACHE["by_proj_plot_blk"]:
-                    return _CACHE["by_proj_plot_blk"][(kp, plot_norm, kb)]
+                    return _CACHE["by_proj_plot_blk"][(kp, plot_norm, kb)], "ok", "نرخ مصوب بر اساس قطعه و بلوک یافت شد.", "project_plot_block"
 
-        # 2b. Fuzzy project matching restricted to exact plot + block before falling back to block-only
-        target_b = clean_b or blk_norm
-        plot_blk_candidates = [
-            entry for entry in _CACHE["by_plot_fuzzy"].get(plot_norm, ())
-            if clean_block_fuzzy(entry[0].block_name) == target_b or normalize_block(entry[0].block_name) == blk_norm
-        ]
-        matched_rate = _pick_best_fuzzy_candidate(plot_blk_candidates, clean_p, p_tokens)
-        if matched_rate:
-            return matched_rate
+        # Fuzzy block resolution within this (project, plot)
+        plot_rates = []
+        for kp in (p_norm, clean_p):
+            if (kp, plot_norm) in _CACHE["by_proj_plot"]:
+                plot_rates.extend(_CACHE["by_proj_plot"][(kp, plot_norm)])
+        if not plot_rates:
+            for e in _CACHE["by_plot_fuzzy"].get(plot_norm, ()):
+                if _project_match_score(clean_p, e[1], p_tokens, e[2]) > 0:
+                    plot_rates.append(e[0])
 
-    # 3. Match by (project, block) -> GUESS WITH ONLY PROJECT AND BLOCK CODE
+        if plot_rates:
+            cand_rates = []
+            m_letter_unit = re.match(r"^([A-Z\u0600-\u06FF]+)[\/\-](\d+)$", blk_norm)
+            letters_prefix = clean_block_fuzzy(m_letter_unit.group(1)) if m_letter_unit else ""
+
+            for r in plot_rates:
+                r_clean = re.sub(r"[^A-Z0-9]", "", str(r.block_name).upper())
+                if r_clean and (r_clean == clean_b or (letters_prefix and r_clean == letters_prefix)):
+                    if r not in cand_rates:
+                        cand_rates.append(r)
+
+            if len(cand_rates) == 1:
+                return cand_rates[0], "ok", "نرخ مصوب بر اساس قطعه و بلوک یافت شد.", "project_plot_block"
+            elif len(cand_rates) > 1:
+                # If ambiguous between multiple blocks in this plot, do NOT guess!
+                return None, "ambiguous", "برای محاسبه، شماره قطعه یا کد نوسازی را وارد کنید (بلوک انتخابی دارای چند تطابق در این قطعه است).", None
+            else:
+                avail = ", ".join(sorted(set(str(r.block_name) for r in plot_rates if r.block_name)))
+                return None, "not_found", f"بلوک «{blk_str}» در جدول مصوب قطعه {plot_norm} یافت نشد (بلوک‌های موجود: {avail}).", None
+
+    # 3. Match by (project, plot) - Promoted to 3rd priority!
+    # Guard: Only apply plot-level rate if block was NOT entered (is empty).
+    # If user explicitly entered a block name (e.g. bb15/1) that failed in Step 2,
+    # do NOT silently pick a different block from this plot!
+    if (p_norm or clean_p or p_tokens) and plot_norm and not blk_str.strip():
+        candidates = []
+        for kp in (p_norm, clean_p):
+            if (kp, plot_norm) in _CACHE["by_proj_plot"]:
+                candidates.extend(_CACHE["by_proj_plot"][(kp, plot_norm)])
+        if not candidates and plot_norm in _CACHE["by_plot_fuzzy"]:
+            candidates = [
+                e[0] for e in _CACHE["by_plot_fuzzy"][plot_norm]
+                if _project_match_score(clean_p, e[1], p_tokens, e[2]) > 0
+            ]
+        seen = set()
+        unique_cand = []
+        for c in candidates:
+            if c.id not in seen:
+                seen.add(c.id)
+                unique_cand.append(c)
+
+        if unique_cand:
+            if all_candidates_consistent(unique_cand):
+                return unique_cand[0], "ok", "نرخ مصوب بر اساس قطعه یافت شد.", "project_plot"
+            return None, "ambiguous", "برای محاسبه دقیق، کد بلوک یا کد نوسازی را وارد نمایید (قطعه دارای بلوک‌های با نرخ‌های متفاوت است).", None
+
+    # 4. Match by (project, block) - Guarded fallback only when NO plot could be found
     if (p_norm or clean_p or p_tokens) and (blk_norm or clean_b):
-        if (p_norm, blk_norm) in _CACHE["by_proj_blk"]:
-            return _CACHE["by_proj_blk"][(p_norm, blk_norm)]
-        if (clean_p, clean_b) in _CACHE["by_clean_proj_blk"]:
-            return _CACHE["by_clean_proj_blk"][(clean_p, clean_b)]
-        if (clean_p, blk_norm) in _CACHE["by_clean_proj_blk"]:
-            return _CACHE["by_clean_proj_blk"][(clean_p, blk_norm)]
-        if (p_norm, clean_b) in _CACHE["by_proj_blk"]:
-            return _CACHE["by_proj_blk"][(p_norm, clean_b)]
+        candidates = []
+        for kp in (p_norm, clean_p):
+            for kb in (blk_norm, clean_b):
+                if (kp, kb) in _CACHE["by_proj_blk"]:
+                    candidates.extend(_CACHE["by_proj_blk"][(kp, kb)])
+                if (kp, kb) in _CACHE["by_clean_proj_blk"]:
+                    candidates.extend(_CACHE["by_clean_proj_blk"][(kp, kb)])
 
-        # Fuzzy project matching for this block using scored lookup
         target_b = clean_b or blk_norm
-        matched_rate = _pick_best_fuzzy_candidate(_CACHE["by_block_fuzzy"].get(target_b, ()), clean_p, p_tokens)
-        if matched_rate:
-            return matched_rate
+        if target_b in _CACHE["by_block_fuzzy"]:
+            for e in _CACHE["by_block_fuzzy"][target_b]:
+                if _project_match_score(clean_p, e[1], p_tokens, e[2]) > 0:
+                    candidates.append(e[0])
 
-    # 4. Fallback: Check if block has embedded plot e.g. HH180 -> blk HH, plot 180
-    if not plot_norm and clean_b:
-        m_split = re.match(r"^([A-Z]+)(\d+)$", clean_b)
-        if m_split:
-            cand_b, cand_plot = m_split.group(1), m_split.group(2)
-            rate_cand = (
-                _CACHE["by_proj_plot_blk"].get((clean_p, cand_plot, cand_b))
-                or _CACHE["by_proj_plot_blk"].get((p_norm, cand_plot, cand_b))
-            )
-            if rate_cand:
-                return rate_cand
+        seen = set()
+        unique_cand = []
+        for c in candidates:
+            if c.id not in seen:
+                seen.add(c.id)
+                unique_cand.append(c)
 
-    # Check if block is numeric e.g. '68' -> treat as plot if no block matched
-    if not plot_norm and clean_b.isdigit():
-        plot_norm = clean_b
+        if unique_cand:
+            if all_candidates_consistent(unique_cand):
+                return unique_cand[0], "ok", "نرخ مصوب بر اساس بلوک یافت شد.", "project_block"
+            return None, "ambiguous", "برای محاسبه، شماره قطعه یا کد نوسازی را وارد کنید (بلوک انتخابی دارای چند نرخ در قطعات مختلف است).", None
 
-    # 5. Match by (project, plot)
-    if (p_norm or clean_p or p_tokens) and plot_norm:
-        if (p_norm, plot_norm) in _CACHE["by_proj_plot"]:
-            return _CACHE["by_proj_plot"][(p_norm, plot_norm)]
-        if (clean_p, plot_norm) in _CACHE["by_proj_plot"]:
-            return _CACHE["by_proj_plot"][(clean_p, plot_norm)]
-
-        matched_rate = _pick_best_fuzzy_candidate(_CACHE["by_plot_fuzzy"].get(plot_norm, ()), clean_p, p_tokens)
-        if matched_rate:
-            return matched_rate
-
-    return None
+    return None, "not_found", "نرخ مصوبی برای این مشخصات در جدول نرخ‌های عرصه یافت نشد.", None
 
 
 def apply_land_calculation(dossier: Any, skip: Any = ()) -> bool:
@@ -476,18 +592,25 @@ def apply_land_calculation(dossier: Any, skip: Any = ()) -> bool:
     code = getattr(dossier, F_CODE, "")
     blk = getattr(dossier, "block_name", "") or getattr(dossier, "block_code", "")
 
-    rate = get_rate(code=code, project=proj, plot=plot, block=blk)
-    if rate is None:
+    rate, status, msg = get_rate_status(code=code, project=proj, plot=plot, block=blk)
+    if status != "ok" or rate is None:
         return False
+    match_tier = getattr(rate, "match_tier", None)
 
-    # Auto-fill missing dossier details from matched LandRate
-    if not code and rate.renovation_code and "renovation_code" not in skip_set:
-        setattr(dossier, "renovation_code", strip_code(rate.renovation_code))
+    # STRICT AUTO-FILL: Never guess or paste renovation_code from block-only or plot-only fallbacks!
+    # Auto-fill missing or heal contradictory renovation_code ONLY when matched by exact verified (project + plot + block).
+    if rate.renovation_code and match_tier == "project_plot_block" and "renovation_code" not in skip_set:
+        if not code or (normalize_code(code) != normalize_code(rate.renovation_code) and strip_code(code) != strip_code(rate.renovation_code)):
+            setattr(dossier, "renovation_code", strip_code(rate.renovation_code))
+
+    # Auto-fill missing plot_number if known
     if not plot and rate.plot_number and "plot_number" not in skip_set:
         try:
             setattr(dossier, "plot_number", int(float(rate.plot_number)))
         except Exception:
             pass
+
+    # Auto-fill missing block_name if known
     if not getattr(dossier, "block_name", "") and rate.block_name and "block_name" not in skip_set:
         setattr(dossier, "block_name", rate.block_name)
 

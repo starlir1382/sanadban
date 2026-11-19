@@ -773,14 +773,14 @@ class WorkflowRequirementsTestCase(TestCase):
         sec1_fields = [
             "national_id", "first_name", "last_name", "applicant_phone",
             "applicant_address", "site", "project", "block_name",
-            "unit_number", "bedroom_count", "net_unit_area", "bank_name", "bank_branch"
+            "unit_number", "bedroom_count", "net_unit_area", "bank_name", "bank_branch", "renovation_code"
         ]
         for f in sec1_fields:
             self.assertTrue(can_user_edit_field(self.user_stage_2, f), f"Stage 2 should edit {f}")
 
         sec2_and_4_fields = [
             "registration_section", "main_plaque", "separated_plaque",
-            "sub_plaque", "plot_number", "renovation_code",
+            "sub_plaque", "plot_number",
             "rah_letter", "rah_letter_date", "base_cost_without_loan"
         ]
         for f in sec2_and_4_fields:
@@ -1269,7 +1269,7 @@ class DossierListLayoutAndExtrasTestCase(TestCase):
         # Row 3: Stage 18 signed (prep) + Notary letter code & date
         self.assertIn("آماده‌سازی : پرداخت شده", html)
         self.assertIn(j_prep, html)
-        self.assertIn("نامه دفترخانه:", html)
+        self.assertIn("دفترخانه", html)
         self.assertIn("1405/ص/5521", html)
         self.assertIn("1405/08/20", html)
 
@@ -1292,7 +1292,7 @@ class DossierListLayoutAndExtrasTestCase(TestCase):
         self.assertEqual(ajax_notary.status_code, 200)
         notary_html = ajax_notary.json()["html"]
         self.assertIn("100962", notary_html)
-        self.assertIn("نامه دفترخانه:", notary_html)
+        self.assertIn("دفترخانه", notary_html)
         self.assertIn('dl-stage-loc loc-directorate', notary_html)
         self.assertIn('کارشناس صدور نامه محضر', notary_html)
 

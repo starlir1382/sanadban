@@ -2,7 +2,7 @@
 {% load static %}
 {% load persian_tags %}
 
-{% block title %}سامانه ممیزی و ردگیری تغییرات داده‌ها (Audit Trail) | سامانه مسکن یار{% endblock %}
+{% block title %}ممیزی و ردگیری تغییرات داده‌ها (Audit Trail) | مسکن یار{% endblock %}
 
 {% block content %}
 <style>
@@ -64,7 +64,7 @@
         <div>
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
                 <span style="background: #0284c7; color: #fff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 999px;">
-                    امنیت و ممیزی سامانه
+                    امنیت و ممیزی سیستم
                 </span>
                 <span style="background: #f59e0b; color: #78350f; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 999px;">
                     مدیر ارشد و رئیس مسکن
@@ -153,7 +153,7 @@
                 <div style="font-size: 0.78rem; color: #64748b; font-weight: 700;">سطح دسترسی ممیزی</div>
                 <div style="font-size: 0.95rem; font-weight: 800; color: #0f172a;">
                     {% if request.user.is_superuser %}
-                     مدیر ارشد کل سامانه
+                     مدیر ارشد کل سیستم
                     {% elif request.user.profile.is_housing_chief %}
                      رئیس مسکن با اختیارات تام
                     {% else %}

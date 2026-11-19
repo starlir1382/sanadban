@@ -69,7 +69,7 @@ FIELD_STAGE_MAP = {
     "separated_plaque": [8, 9, 12],
     "sub_plaque": [8, 9, 12],
     "plot_number": [8, 9, 12],
-    "renovation_code": [8, 9, 12],
+    "renovation_code": [1, 2, 8, 9, 12],
     "base_cost_without_loan": [8, 9, 19],
 
     # Step 3 & Step 11: کارشناس بررسی فرم ج (عالمی) / کارشناس ثبت فرم ج اداره کل
@@ -86,7 +86,7 @@ FIELD_STAGE_MAP = {
     # Step 4: وام صندوق، نامه پیمانکار، تسهیلات دهک (قابل ویرایش در مرحله 4 و تسویه پیمانکار مرحله 18)
     "fund_loan_amount": [4, 19],
     "contractor_letter_amount": [4, 19],
-    "decile_loan_amount": [4, 19],
+    "decile_loan_amount": [4, 17, 18, 19],
 
     # Step 5: ارسال پیامک تعیین آورده نقدی و ثبت تاریخ (وصالی)
     "applicant_equity": [5],
@@ -118,11 +118,11 @@ FIELD_STAGE_MAP = {
     "deed_date": [8, 9, 12],
 
     # Step 15: کارشناس ارزیابی (قدرالسهم، اجاره و آماده‌سازی)
-    "total_land_share": [16],
-    "past_years_rent": [16],
-    "current_year_rent": [16],
-    "land_lease_year": [16],
-    "preparation_cost": [16],
+    "total_land_share": [16, 17, 18],
+    "past_years_rent": [16, 17, 18],
+    "current_year_rent": [16, 17, 18],
+    "land_lease_year": [16, 17, 18],
+    "preparation_cost": [16, 17, 18],
 
     # Step 17: دریافت چک‌های وام دهک
     "decile_loan_bank": [17, 18],
@@ -136,6 +136,12 @@ FIELD_STAGE_MAP = {
     "check_service_fee": [17, 18],
     "commitment_number": [17, 18],
     "commitment_date": [17, 18],
+    "loan_has_promissory_note": [17, 18],
+    "loan_promissory_number": [17, 18],
+    "loan_promissory_amount": [17, 18],
+    "loan_promissory_date": [17, 18],
+    "loan_has_commitment_letter": [17, 18],
+    "loan_promissory_installments_json": [17, 18],
     "check_entries_json": [17, 18],
     "is_decile_loan_confirmed": [17, 18],
 
@@ -149,6 +155,14 @@ FIELD_STAGE_MAP = {
     "preparation_service_fee": [17, 18],
     "preparation_check_count": [17, 18],
     "total_preparation_check_amount": [17, 18],
+    "prep_has_promissory_note": [17, 18],
+    "prep_promissory_number": [17, 18],
+    "prep_promissory_amount": [17, 18],
+    "prep_promissory_date": [17, 18],
+    "prep_commitment_number": [17, 18],
+    "prep_commitment_date": [17, 18],
+    "prep_has_commitment_letter": [17, 18],
+    "prep_promissory_installments_json": [17, 18],
     "preparation_check_entries_json": [17, 18],
     "is_preparation_checks_confirmed": [17, 18],
     "visit_date": [17, 18],

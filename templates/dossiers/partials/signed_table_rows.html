@@ -12,7 +12,7 @@
       <div class="dl-person-info">
         <div class="dl-name" title="{{ d.full_name }}">{{ d.full_name }}</div>
         <div class="dl-subline fa-num">
-          <span>کدملی: <span class="dl-nid">{{ d.national_id }}</span></span>
+          <span class="tg-copyable" data-copy="{{ d.national_id }}" data-copy-label="کد ملی" title="کلیک برای کپی کد ملی">کدملی: <b class="dl-nid">{{ d.national_id }}</b></span>
           {% if d.father_name %}<span style="margin-right: 6px; color: #64748b;">(نام پدر: {{ d.father_name }})</span>{% endif %}
         </div>
       </div>
@@ -21,10 +21,10 @@
 
   <!-- 3. Project & Site -->
   <td>
-    <div class="dl-project" title="{{ d.project }}">{{ d.project }}</div>
+    <div class="dl-project tg-copyable" data-copy="{{ d.project }}" data-copy-label="پروژه" title="کلیک برای کپی نام پروژه">{{ d.project }}</div>
     {% if d.site %}
     <div class="dl-subline fa-num">
-      <span>سایت {{ d.site }}</span>
+      <span class="tg-copyable" data-copy="{{ d.site }}" data-copy-label="سایت" title="کلیک برای کپی نام سایت">سایت {{ d.site }}</span>
     </div>
     {% endif %}
   </td>
@@ -57,7 +57,7 @@
     <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 3px; line-height: 1.4;">
       {% if d.user_sig_info.not_signed_by_viewer %}
       <span style="color: #94a3b8; font-size: 0.74rem; font-weight: 600;">توسط شما امضا نشده</span>
-      <span style="color: #64748b; font-size: 0.72rem;" title="امضای ثبت‌شده در سامانه">{{ d.user_sig_info.actor|truncatechars:20 }} • {{ d.user_sig_info.date }}{% if d.user_sig_info.time %} ({{ d.user_sig_info.time }}){% endif %}</span>
+      <span style="color: #64748b; font-size: 0.72rem;" title="امضای ثبت‌شده در سیستم">{{ d.user_sig_info.actor|truncatechars:20 }} • {{ d.user_sig_info.date }}{% if d.user_sig_info.time %} ({{ d.user_sig_info.time }}){% endif %}</span>
       {% else %}
       <span class="dl-sig-date">{{ d.user_sig_info.date }}</span>
         {% if d.user_sig_info.time %}

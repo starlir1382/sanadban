@@ -126,11 +126,12 @@
 
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('construction_type')}">
                         <label class="df-label" for="f_construction_type">نوع ساخت</label>
+                        <!-- isApartmentSite helper is available in Alpine context -->
                         <select id="f_construction_type" class="df-input" x-model="form.construction_type"
-                                :disabled="!isFieldEditable('construction_type') || isApartmentSite(form.site) !== null">
-                            <option value="آپارتمانی" x-show="isApartmentSite(form.site) !== false">آپارتمانی</option>
-                            <option value="ویلایی" x-show="isApartmentSite(form.site) !== true">ویلایی</option>
-                            <option value="ویلایی (نیمه کاره)" x-show="form.construction_type === 'ویلایی (نیمه کاره)' && isApartmentSite(form.site) !== true">ویلایی</option>
+                                :disabled="!isFieldEditable('construction_type')">
+                            <option value="آپارتمانی">آپارتمانی</option>
+                            <option value="ویلایی">ویلایی</option>
+                            <option value="ویلایی (نیمه کاره)" x-show="form.construction_type === 'ویلایی (نیمه کاره)'">ویلایی (نیمه کاره)</option>
                         </select>
                     </div>
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('bedroom_count')}">
@@ -157,7 +158,7 @@
                     {% include "df/_field.html" with name="unit_number" label="شماره واحد" cols=3 num=1 mode="numeric" ph="شماره واحد" %}
                     <div class="df-field df-col-3" :class="{'is-locked': !isFieldEditable('unit_direction')}">
                         <label class="df-label" for="f_unit_direction">جهت واحد</label>
-                        <select id="f_unit_direction" class="df-input" x-model="form.unit_direction" :disabled="!isFieldEditable('unit_direction') || isVillaConstruction()">
+                        <select id="f_unit_direction" class="df-input" x-model="form.unit_direction" :disabled="!isFieldEditable('unit_direction')">
                             <option value="شمال غربی">شمال غربی</option>
                             <option value="شمال شرقی">شمال شرقی</option>
                             <option value="جنوب غربی">جنوب غربی</option>
@@ -174,6 +175,7 @@
                     {% include "df/_field.html" with name="storage_area" label="مساحت انباری (m²)" cols=3 num=1 mode="decimal" ph="مساحت انباری را وارد کنید" %}
                     {% include "df/_field.html" with name="parking_number" label="شماره پارکینگ" cols=3 num=1 mode="numeric" ph="شماره پارکینگ را وارد کنید" %}
                     {% include "df/_field.html" with name="parking_area" label="مساحت پارکینگ (m²)" cols=3 num=1 mode="decimal" ph="مساحت پارکینگ را وارد کنید" %}
+                    {% include "df/_field.html" with name="renovation_code" sfx="_sec1" label="کد نوسازی (شهرداری)" cols=3 num=1 ph="کد نوسازی" %}
                 </div>
             </fieldset>
         </div>
@@ -447,7 +449,7 @@
                                     <span style="font-weight:600;">در انتظار تجمیع در محموله و ارسال به بانک (مرحله ۶)</span>
                                 </div>
                                 <a class="df-btn df-btn-xs" target="_blank" href="{% url 'bank_letter_sender' %}" style="text-decoration:none;">
-                                    <svg class="df-i"><use href="#i-link"/></svg>سامانه دسته‌بندی و ارسال نامه بانک
+                                    <svg class="df-i"><use href="#i-link"/></svg>دسته‌بندی و ارسال نامه بانک
                                 </a>
                             </div>
                         </div>
@@ -483,7 +485,7 @@
                         {% include "df/_doc_check.html" with name="has_info_form" label="فرم اطلاعات" %}
                         {% include "df/_doc_check.html" with name="has_form_j" label="برگه فرم «ج»" %}
                         {% include "df/_doc_check.html" with name="has_affidavit" label="اقرارنامه محضری" %}
-                        {% include "df/_doc_check.html" with name="has_sana" label="تاییدیه سامانه ثنا" %}
+                        {% include "df/_doc_check.html" with name="has_sana" label="تاییدیه ثنا" %}
                         {% include "df/_doc_check.html" with name="has_national_id_doc" label="شناسنامه و کارت ملی" %}
                     </div>
                 </div>
@@ -744,8 +746,32 @@
                         </div>
 
                         {% include "df/_money.html" with name="decile_loan_amount" sfx="_checks" label="مبلغ کل وام دهک" cols=4 on="recalculateChecks()" onblur="recalculateChecks()" %}
-                        {% include "df/_field.html" with name="commitment_number" label="شماره تعهدنامه" cols=4 ltr=1 num=1 ph="۱۲۴۰۵/ت" %}
-                        {% include "df/_date.html" with label="تاریخ تعهدنامه (شمسی)" cols=4 model="form.commitment_date" keyexpr="'commitment_date'" titleexpr="'تاریخ تعهدنامه محضری'" ph="۱۴۰۵/۰۵/۱۵" ed="commitment_date" %}
+                        <template x-if="!form.loan_has_promissory_note">
+                            <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('commitment_number')}">
+                                {% include "df/_field.html" with name="commitment_number" label="شماره تعهدنامه" cols=12 ltr=1 num=1 ph="۱۲۴۰۵/ت" %}
+                            </div>
+                        </template>
+                        <template x-if="!form.loan_has_promissory_note">
+                            <div class="df-field df-col-4">
+                                {% include "df/_date.html" with label="تاریخ تعهدنامه (شمسی)" cols=12 model="form.commitment_date" keyexpr="'commitment_date'" titleexpr="'تاریخ تعهدنامه محضری'" ph="۱۴۰۵/۰۵/۱۵" ed="commitment_date" %}
+                            </div>
+                        </template>
+
+                        <!-- تیک دریافت سفته به جای چک (تسهیلات وام دهک) -->
+                        <div class="df-field df-col-12" style="margin-top: 4px; margin-bottom: 4px;">
+                            <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.92rem; color: #92400e; cursor: pointer; user-select: none;">
+                                    <input type="checkbox" x-model="form.loan_has_promissory_note" @change="toggleLoanPromissory()" :disabled="!isFieldEditable('loan_promissory_amount')" style="width: 18px; height: 18px; accent-color: #ea580c; cursor: pointer;">
+                                    <span>دریافت سفته به جای چک (تسهیلات وام دهک)</span>
+                                </label>
+                                <span class="df-pill fa-num" :class="form.loan_has_promissory_note ? 'df-pill-amber' : 'df-pill-muted'" x-text="form.loan_has_promissory_note ? 'روش تسویه: سفته تضمین و تعهدنامه اقساط' : 'روش تسویه: چک‌های صیادی'"></span>
+                            </div>
+                        </div>
+
+                        <!-- پنل سفته و تعهدنامه اقساط خودکار تسهیلات (در صورت انتخاب سفته) -->
+                        <template x-if="form.loan_has_promissory_note">
+                            {% include "df/_promissory_section.html" with theme="amber" kind="loan" title="مشخصات سفته و تعهدنامه پرداخت اقساط وام دهک (بر اساس تولید و تقسیط خودکار)" badge="سفته تضمین تسهیلات" num_field="loan_promissory_number" amount_field="loan_promissory_amount" date_field="loan_promissory_date" date_title="تاریخ سفته تسهیلات" commitment_num_field="commitment_number" commitment_date_field="commitment_date" commitment_date_title="تاریخ تعهدنامه محضری" has_commitment_field="loan_has_commitment_letter" installments_field="loan_promissory_installments" recalc_method="generateLoanPromissoryInstallmentsAuto(true)" ed="loan_promissory_amount" ceiling_expr="form.decile_loan_amount" ceiling_label="سقف وام دهک" scan_input_commitment="loanCommitmentScanInput" scan_input_promissory="loanPromissoryScanInput" gen_count_model="checkGenerator.count" gen_start_model="checkGenerator.startDate" gen_interval_model="checkGenerator.interval" gen_interval_text="سالانه (+۱ سال)" %}
+                        </template>
                         {% include "df/_field.html" with name="decile_bank_letter_number" label="شماره نامه بانک دهک" cols=6 ltr=1 num=1 ph="شماره نامه راه و شهرسازی به بانک دهک" %}
                         {% include "df/_date.html" with label="تاریخ نامه بانک دهک (شمسی)" cols=6 model="form.decile_bank_letter_date" keyexpr="'decile_bank_letter_date'" titleexpr="'تاریخ نامه بانک دهک'" ph="۱۴۰۵/۰۵/۱۵" ed="decile_bank_letter_date" %}
                         <div class="df-field df-col-12" style="margin-top: -0.25rem;">
@@ -764,14 +790,18 @@
                         </div>
                     </div>
 
-                    {% include "df/_check_generator.html" with theme="amber" title="تولید خودکار چک‌های وام دهک" gen="checkGenerator" datemodel="checkGenerator.startDate" action="generateChecksAuto()" ed="decile_loan_amount" min=1 max=12 c1=3 c2=4 c3=5 c4=6 ph="۱۴۰۶/۰۷/۳۰" keyexpr="'checkGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول'" interval=1 %}
+                    <div x-show="!form.loan_has_promissory_note">
+                        {% include "df/_check_generator.html" with theme="amber" title="تولید خودکار چک‌های وام دهک" gen="checkGenerator" datemodel="checkGenerator.startDate" action="generateChecksAuto()" ed="decile_loan_amount" min=1 max=12 c1=3 c2=4 c3=5 c4=6 ph="۱۴۰۶/۰۷/۳۰" keyexpr="'checkGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول'" interval=1 %}
 
-                    {% include "df/_check_table.html" with theme="amber" title="سررسید و مبلغ چک‌های صیادی" entries="form.check_entries" ed="decile_loan_amount" add="addCheckEntry" remove="removeCheckEntry" recalc="recalculateChecks" row="چک" keyexpr="'check_' + idx" titleexpr="'سررسید چک ' + (idx + 1)" ph_date="۱۴۰۶/۰۷/۳۰" total="form.total_check_amount" ceiling="form.decile_loan_amount" ceiling_label="سقف وام دهک" %}
+                        {% include "df/_check_table.html" with theme="amber" title="سررسید و مبلغ چک‌های صیادی" entries="form.check_entries" ed="decile_loan_amount" add="addCheckEntry" remove="removeCheckEntry" recalc="recalculateChecks" row="چک" keyexpr="'check_' + idx" titleexpr="'سررسید چک ' + (idx + 1)" ph_date="۱۴۰۶/۰۷/۳۰" total="form.total_check_amount" ceiling="form.decile_loan_amount" ceiling_label="سقف وام دهک" %}
 
-                    {% include "df/_check_scans.html" with theme="amber" kind="loan" getter="getLoanCheckScans" input_id="loanCheckScanFileInput" title="اسکن چک‌های وام دهک" %}
+                        {% include "df/_check_scans.html" with theme="amber" kind="loan" getter="getLoanCheckScans" input_id="loanCheckScanFileInput" title="اسکن چک‌های وام دهک" %}
 
-                    {% include "df/_confirm_card.html" with name="is_decile_loan_confirmed" title="تایید دریافت و کنترل چک‌های وام دهک" hint="اصالت چک‌های صیادی بر اساس سقف وام دهک تایید شد." by_field="loan_checks_confirmed_by" at_field="loan_checks_confirmed_at" %}
-
+                        {% include "df/_confirm_card.html" with name="is_decile_loan_confirmed" title="تایید دریافت و کنترل چک‌های وام دهک" hint="اصالت چک‌های صیادی بر اساس سقف وام دهک تایید شد." by_field="loan_checks_confirmed_by" at_field="loan_checks_confirmed_at" %}
+                    </div>
+                    <div x-show="form.loan_has_promissory_note">
+                        {% include "df/_confirm_card.html" with name="is_decile_loan_confirmed" title="تایید اخذ سفته تضمین و تعهدنامه پرداخت اقساط وام دهک" hint="اصالت سفته تضمین، تطبیق اقساط خودکار و تعهدنامه امضا شده متقاضی تایید گردید." by_field="loan_checks_confirmed_by" at_field="loan_checks_confirmed_at" %}
+                    </div>
                     {% if can_manage_directorate_shipments %}
                     <div class="df-panel is-plain" style="margin-top: 0.9rem;">
                         <div class="df-panel-head">
@@ -861,16 +891,39 @@
                             {% include "df/_money.html" with name="cash_preparation_amount" label="پیش‌پرداخت آماده‌سازی (۲۰٪ نقد)" cols=4 %}
                             {% include "df/_field.html" with name="prepayment_code" label="کد رهگیری فیش پیش‌پرداخت" cols=4 ltr=1 num=1 ph="۲۲/۱۱۴۴۳۳۵۵" %}
                             {% include "df/_money.html" with name="non_cash_preparation_amount" label="اقساط آماده‌سازی (۸۰٪)" cols=4 %}
+
+                            <!-- تیک دریافت سفته به جای چک (آماده‌سازی) -->
+                            <div class="df-field df-col-12" style="margin-top: 6px; margin-bottom: 2px;">
+                                <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.92rem; color: #166534; cursor: pointer; user-select: none;">
+                                        <input type="checkbox" x-model="form.prep_has_promissory_note" @change="togglePrepPromissory()" :disabled="!isFieldEditable('prep_promissory_amount')" style="width: 18px; height: 18px; accent-color: #15803d; cursor: pointer;">
+                                        <span>دریافت سفته به جای چک (اقساط آماده‌سازی)</span>
+                                    </label>
+                                    <span class="df-pill fa-num" :class="form.prep_has_promissory_note ? 'df-pill-green' : 'df-pill-muted'" x-text="form.prep_has_promissory_note ? 'روش تسویه: سفته تضمین و تعهدنامه اقساط' : 'روش تسویه: چک‌های صیادی'"></span>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- پنل سفته و تعهدنامه اقساط خودکار آماده‌سازی (در صورت انتخاب سفته) -->
+                        <template x-if="form.prep_has_promissory_note">
+                            {% include "df/_promissory_section.html" with theme="green" kind="prep" title="مشخصات سفته و تعهدنامه پرداخت اقساط آماده‌سازی (بر اساس تولید و تقسیط خودکار)" badge="سفته تضمین آماده‌سازی" num_field="prep_promissory_number" amount_field="prep_promissory_amount" date_field="prep_promissory_date" date_title="تاریخ سفته آماده‌سازی" commitment_num_field="prep_commitment_number" commitment_date_field="prep_commitment_date" commitment_date_title="تاریخ تعهدنامه آماده‌سازی" has_commitment_field="prep_has_commitment_letter" installments_field="prep_promissory_installments" recalc_method="generatePrepPromissoryInstallmentsAuto(true)" ed="prep_promissory_amount" ceiling_expr="form.non_cash_preparation_amount" ceiling_label="سقف ۸۰٪ آماده‌سازی" scan_input_commitment="prepCommitmentScanInput" scan_input_promissory="prepPromissoryScanInput" gen_count_model="prepCheckGenerator.count" gen_start_model="prepCheckGenerator.startDate" gen_interval_model="prepCheckGenerator.interval" gen_interval_text="شش‌ماهه (+۶ ماه طبق ضوابط آماده‌سازی)" %}
+                        </template>
+
+
                     </div>
 
-                    {% include "df/_check_generator.html" with theme="green" title="تولید خودکار چک‌های اقساط آماده‌سازی" gen="prepCheckGenerator" datemodel="prepCheckGenerator.startDate" action="generatePrepChecksAuto()" ed="non_cash_preparation_amount" min=1 max=10 c1=2 c2=3 c3=4 ph="۱۴۰۵/۰۲/۱۵" keyexpr="'prepCheckGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول آماده‌سازی'" interval_text="شش‌ماهه (+۶ ماه)" %}
+                    <div x-show="!form.prep_has_promissory_note">
+                        {% include "df/_check_generator.html" with theme="green" title="تولید خودکار چک‌های اقساط آماده‌سازی" gen="prepCheckGenerator" datemodel="prepCheckGenerator.startDate" action="generatePrepChecksAuto()" ed="non_cash_preparation_amount" min=1 max=10 c1=2 c2=3 c3=4 ph="۱۴۰۵/۰۲/۱۵" keyexpr="'prepCheckGenerator.startDate'" titleexpr="'تاریخ سررسید چک اول آماده‌سازی'" interval_text="شش‌ماهه (+۶ ماه)" %}
 
-                    {% include "df/_check_table.html" with theme="green" title="سررسید و مبلغ چک‌های اقساط آماده‌سازی" entries="form.preparation_check_entries" ed="non_cash_preparation_amount" add="addPrepCheckEntry" remove="removePrepCheckEntry" recalc="recalculatePrepChecks" row="قسط" keyexpr="'prep_check_' + idx" titleexpr="'سررسید چک آماده‌سازی ' + (idx + 1)" ph_date="۱۴۰۵/۰۲/۱۵" total="form.total_preparation_check_amount" ceiling="form.non_cash_preparation_amount" ceiling_label="سقف ۸۰٪ آماده‌سازی" %}
+                        {% include "df/_check_table.html" with theme="green" title="سررسید و مبلغ چک‌های اقساط آماده‌سازی" entries="form.preparation_check_entries" ed="non_cash_preparation_amount" add="addPrepCheckEntry" remove="removePrepCheckEntry" recalc="recalculatePrepChecks" row="قسط" keyexpr="'prep_check_' + idx" titleexpr="'سررسید چک آماده‌سازی ' + (idx + 1)" ph_date="۱۴۰۵/۰۲/۱۵" total="form.total_preparation_check_amount" ceiling="form.non_cash_preparation_amount" ceiling_label="سقف ۸۰٪ آماده‌سازی" %}
 
-                    {% include "df/_check_scans.html" with theme="green" kind="prep" getter="getPrepCheckScans" input_id="prepCheckScanFileInput" title="اسکن چک‌های اقساط آماده‌سازی" %}
+                        {% include "df/_check_scans.html" with theme="green" kind="prep" getter="getPrepCheckScans" input_id="prepCheckScanFileInput" title="اسکن چک‌های اقساط آماده‌سازی" %}
 
-                    {% include "df/_confirm_card.html" with name="is_preparation_checks_confirmed" title="تایید دریافت و کنترل چک‌های اقساط آماده‌سازی" hint="اصالت چک‌های صیادی ۸۰٪ آماده‌سازی تایید شد." by_field="prep_checks_confirmed_by" at_field="prep_checks_confirmed_at" %}
+                        {% include "df/_confirm_card.html" with name="is_preparation_checks_confirmed" title="تایید دریافت و کنترل چک‌های اقساط آماده‌سازی" hint="اصالت چک‌های صیادی ۸۰٪ آماده‌سازی تایید شد." by_field="prep_checks_confirmed_by" at_field="prep_checks_confirmed_at" %}
+                    </div>
+                    <div x-show="form.prep_has_promissory_note">
+                        {% include "df/_confirm_card.html" with name="is_preparation_checks_confirmed" title="تایید اخذ سفته تضمین و تعهدنامه پرداخت اقساط آماده‌سازی" hint="اصالت سفته تضمین، تطبیق اقساط خودکار ۶ ماهه و تعهدنامه امضا شده متقاضی تایید گردید." by_field="prep_checks_confirmed_by" at_field="prep_checks_confirmed_at" %}
+                    </div>
 
                     {% if can_manage_directorate_shipments %}
                     <div class="df-panel is-plain" style="margin-top: 0.9rem;">

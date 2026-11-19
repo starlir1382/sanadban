@@ -10,8 +10,20 @@
                 var theme = saved ? saved : 'light';
                 document.documentElement.setAttribute('data-theme', theme);
 
-                var savedMode = localStorage.getItem('sb-ui-mode');
-                var mode = savedMode ? savedMode : 'simple';
+                {% if request.user.is_authenticated %}
+                    {% with profile=request.user.profile %}
+                    {% if request.user.is_superuser or request.user.is_staff or profile.is_housing_chief or profile.can_change_ui_mode %}
+                        var savedMode = localStorage.getItem('sb-ui-mode');
+                        var mode = savedMode || "{{ profile.ui_mode|default:'simple'|escapejs }}";
+                    {% else %}
+                        var mode = "{{ profile.ui_mode|default:'simple'|escapejs }}";
+                        try { localStorage.setItem('sb-ui-mode', mode); } catch (err) {}
+                    {% endif %}
+                    {% endwith %}
+                {% else %}
+                    var savedMode = localStorage.getItem('sb-ui-mode');
+                    var mode = savedMode ? savedMode : 'simple';
+                {% endif %}
                 document.documentElement.setAttribute('data-ui-mode', mode);
             } catch (e) {}
         })();
@@ -21,12 +33,16 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f8fafc">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">
     <meta name="color-scheme" content="light dark">
-    <title>{% block title %}سامانه مسکن یار | مدیریت پرونده و گردش کار نهضت ملی مسکن{% endblock %}</title>
+    <title>{% block title %}مسکن یار{% endblock %}</title>
 
     <!-- Persian Typography (Vazirmatn) -->
     <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}?v=4.0">
     <link rel="alternate icon" href="{% static 'img/favicon.png' %}?v=4.0">
-    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
+    <!-- Persian Typography (Vazirmatn) Preloads (Prevents Font Flash/Swap on Refresh) -->
+    <link rel="preload" href="{% static 'fonts/webfonts/Vazirmatn-Regular.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'fonts/webfonts/Vazirmatn-Bold.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'fonts/webfonts/Vazirmatn-SemiBold.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}?v=1.1">
 
     <!-- SanadBan Enterprise Design System -->
     <link rel="stylesheet" href="{% static 'css/sanadban.css' %}?v=3.1">
@@ -44,7 +60,8 @@
             -webkit-font-feature-settings: "ss01" 1;
             font-variant-numeric: tabular-nums;
         }
-        html, body { overflow-x: clip !important; max-width: 100vw; }
+        html, body { overflow-x: hidden !important; max-width: 100vw; width: 100%; }
+        .main-wrapper { min-width: 0 !important; max-width: 100vw !important; width: 100% !important; box-sizing: border-box !important; overflow-x: hidden !important; }
         .sticky-action-bar[x-cloak] { display: none !important; }
         .modal-overlay[x-cloak], .scan-viewer-modal[x-cloak] { display: none !important; }
 
@@ -120,7 +137,7 @@
                     <button type="button" 
                             onclick="document.getElementById('loginAuthModal').remove()" 
                             style="width: 100%; padding: 0.85rem 1.5rem; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; border: none; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);">
-                        تایید و ورود به سامانه
+                        تایید و ورود به مسکن یار
                     </button>
 
                     <div style="margin-top: 0.85rem; font-size: 0.78rem; color: #94a3b8;">

@@ -144,18 +144,30 @@ class ProjectCatalogStrictDropdownTests(TestCase):
         self.assertEqual(legacy.father_name, "حسین")
         self.assertEqual(legacy.project, "عامر مستقل 1")
 
-    def test_villa_always_defaults_and_enforces_north_direction(self):
-        villa = HousingDossier.objects.create(
+    def test_villa_defaults_north_if_empty_and_allows_changing_direction_and_type(self):
+        villa_default = HousingDossier.objects.create(
             archive_number=100992,
             national_id="0399990003",
-            full_name="متقاضی ویلایی",
+            full_name="متقاضی ویلایی پیش فرض",
             current_stage=1,
             site="قنوات",
             project="اعتمادگستر خاورمیانه قنوات",
             construction_type="ویلایی (نیمه کاره)",
+            unit_direction="",
+        )
+        self.assertEqual(villa_default.unit_direction, "شمالی")
+
+        villa_custom = HousingDossier.objects.create(
+            archive_number=100995,
+            national_id="0399990006",
+            full_name="متقاضی ویلایی جهت تغییریافته",
+            current_stage=1,
+            site="قنوات",
+            project="اعتمادگستر خاورمیانه قنوات",
+            construction_type="ویلایی",
             unit_direction="جنوبی",
         )
-        self.assertEqual(villa.unit_direction, "شمالی")
+        self.assertEqual(villa_custom.unit_direction, "جنوبی")
 
         apt = HousingDossier.objects.create(
             archive_number=100993,
@@ -170,11 +182,13 @@ class ProjectCatalogStrictDropdownTests(TestCase):
         self.assertEqual(apt.unit_direction, "جنوب شرقی")
 
         self.client.force_login(self.expert)
-        resp = self.client.get(reverse("dossier_detail", kwargs={"pk": villa.archive_number}))
+        resp = self.client.get(reverse("dossier_detail", kwargs={"pk": villa_custom.archive_number}))
         self.assertEqual(resp.status_code, 200)
         html = resp.content.decode("utf-8")
-        self.assertIn("|| isVillaConstruction()", html)
+        self.assertNotIn("|| isVillaConstruction()", html)
+        self.assertNotIn("isApartmentSite(form.site) !== null", html)
         self.assertIn('id="f_unit_direction"', html)
+        self.assertIn('id="f_construction_type"', html)
         self.assertNotIn("form.construction_type !== 'آپارتمانی'", html)
         self.assertIn('<option value="5">طبقه ۵</option>', html)
         server_start = html.index('<script id="dossier-server-json" type="application/json">')
@@ -182,6 +196,25 @@ class ProjectCatalogStrictDropdownTests(TestCase):
         payload_json = json.loads(
             html[server_start + len('<script id="dossier-server-json" type="application/json">'):server_end].strip()
         )
-        self.assertEqual(payload_json["form"]["unit_direction"], "شمالی")
+        self.assertEqual(payload_json["form"]["unit_direction"], "جنوبی")
+        self.assertEqual(payload_json["form"]["construction_type"], "ویلایی")
         js_src = open("static/js/sanadban.js", encoding="utf-8").read()
         self.assertIn("syncUnitDirectionByConstruction", js_src)
+
+    def test_site_raisi_resolves_to_raisi_560_hektar(self):
+        self.assertEqual(resolve_catalog_field("site", "رئیسی"), (True, "رئیسی 560 هکتار"))
+        self.assertEqual(resolve_catalog_field("site", "رییسی"), (True, "رئیسی 560 هکتار"))
+        self.assertEqual(resolve_catalog_field("site", "شهید رئیسی"), (True, "رئیسی 560 هکتار"))
+        self.assertEqual(resolve_catalog_field("site", "سایت رئیسی"), (True, "رئیسی 560 هکتار"))
+
+        # Test saving "رئیسی" directly converts to "رئیسی 560 هکتار"
+        self.client.force_login(self.expert)
+        url = reverse("dossier_save", kwargs={"pk": self.dossier.archive_number})
+        resp = self.client.post(
+            url,
+            data=json.dumps({"site": "رئیسی"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.dossier.refresh_from_db()
+        self.assertEqual(self.dossier.site, "رئیسی 560 هکتار")

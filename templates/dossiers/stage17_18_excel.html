@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static persian_tags %}
 
-{% block title %}مرکز اکسل مراحل ۱۷ و ۱۸ (تسهیلات و آماده‌سازی) | سامانه مسکن یار{% endblock %}
+{% block title %}مرکز اکسل مراحل ۱۷ و ۱۸ (تسهیلات و آماده‌سازی) | مسکن یار{% endblock %}
 
 {% block content %}
 <style>
@@ -109,7 +109,7 @@
   /* Grid of 2 Stages */
   .s1718-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(480px, 100%), 1fr));
     gap: 1.5rem;
   }
   .s1718-card {
@@ -307,6 +307,63 @@
       grid-template-columns: 1fr;
     }
   }
+
+  /* Responsive Overrides */
+  @media (max-width: 768px) {
+    .s1718-page {
+      padding: 0.85rem 0.75rem 2.5rem;
+    }
+    .s1718-header {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 1rem;
+      gap: 0.85rem;
+    }
+    .s1718-title-wrap h1 {
+      font-size: 1.15rem;
+    }
+    .s1718-actions {
+      width: 100%;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .s1718-btn {
+      width: 100%;
+      justify-content: center;
+      min-height: 44px;
+    }
+    .s1718-card {
+      padding: 1.1rem;
+      border-radius: 16px;
+    }
+    .s1718-banner {
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 0.85rem 1rem;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .s1718-downloads-box {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .s1718-btn-dl-template,
+    .s1718-btn-dl-export {
+      width: 100%;
+      min-height: 42px;
+    }
+    .s1718-stats-row {
+      padding: 0.6rem 0.75rem;
+    }
+    .s1718-stat-val {
+      font-size: 0.95rem;
+    }
+    .s1718-stat-label {
+      font-size: 0.7rem;
+    }
+  }
+
 </style>
 
 <div class="s1718-page fa-num" x-data="stage1718Manager()">

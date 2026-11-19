@@ -36,7 +36,7 @@
             <div class="dl-box-item">
               <span class="dl-box-lbl">مشخصات همسر:</span>
               <span class="dl-box-val">
-                {{ d.spouse_full_name }}{% if d.spouse_national_id %} <span class="muted">({{ d.spouse_national_id }})</span>{% endif %}
+                {{ d.spouse_full_name }}{% if d.spouse_national_id %} <span class="muted tg-copyable" data-copy="{{ d.spouse_national_id }}" data-copy-label="کد ملی همسر" title="کلیک برای کپی کد ملی همسر">({{ d.spouse_national_id }})</span>{% endif %}
               </span>
             </div>
             {% endif %}

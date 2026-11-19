@@ -26,7 +26,7 @@ Params: theme, kind (loan | prep – passed to the upload/print/delete handlers)
 
     <div x-show="isUploadingInlineScan" x-cloak style="margin-bottom: 0.75rem; padding: 0.65rem 0.9rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #1e3a8a;">
-            <span>در حال بارگذاری اسکن چک و ثبت در سامانه... (لطفاً مجدداً کلیک نکنید)</span>
+            <span>در حال بارگذاری اسکن چک و ثبت در سیستم... (لطفاً مجدداً کلیک نکنید)</span>
             <span class="fa-num" x-text="inlineUploadProgress + '٪'"></span>
         </div>
         <div style="width: 100%; height: 6px; background: #dbeafe; border-radius: 999px; overflow: hidden;">
@@ -46,7 +46,7 @@ Params: theme, kind (loan | prep – passed to the upload/print/delete handlers)
                         <img :src="scan.preview_url" :alt="scan.title || 'اسکن چک'">
                     </div>
                     <div class="df-thumb-foot fa-num">
-                        <strong :title="scan.title || scan.fileName" x-text="scan.title || scan.fileName"></strong>
+                        <strong :title="scan.fileName || scan.file_name || scan.title" x-text="scan.fileName || scan.file_name || scan.title" style="direction: ltr; display: inline-block;"></strong>
                         <span x-text="scan.uploadDate || scan.uploaded_at || 'امروز'"></span>
                     </div>
                 </div>

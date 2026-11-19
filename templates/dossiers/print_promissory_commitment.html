@@ -1,0 +1,356 @@
+{% load static humanize persian_tags %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تعهدنامه اقساط و سفته تضمین - پرونده {{ dossier.display_number|default:dossier.archive_number }}</title>
+    <link rel="stylesheet" href="{% static 'css/vendor/vazirmatn.css' %}">
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        body {
+            background: #f1f5f9;
+            color: #0f172a;
+            margin: 0;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: center;
+            font-family: "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-feature-settings: "ss01" 1;
+            -webkit-font-feature-settings: "ss01" 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .print-paper {
+            background: #fff;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 7mm;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .frame {
+            border: 0.4mm solid #475569;
+            border-radius: 3mm;
+            min-height: 280mm;
+            box-sizing: border-box;
+            padding: 8mm 9mm 6mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        @media print {
+            body {
+                background: #fff !important;
+                padding: 0 !important;
+                display: block !important;
+            }
+            .print-paper {
+                width: 100% !important;
+                min-height: auto !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+            .frame {
+                min-height: 275mm;
+                border: 0.35mm solid #334155;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        .no-print-toolbar {
+            position: fixed;
+            top: 1rem;
+            right: 2rem;
+            z-index: 1000;
+            display: flex;
+            gap: 0.6rem;
+        }
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-family: inherit;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6mm;
+        }
+        .header-table td {
+            vertical-align: middle;
+        }
+        .doc-title {
+            text-align: center;
+            font-size: 11.5pt;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+        .doc-subtitle {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #475569;
+            margin-top: 2px;
+        }
+        .meta-text {
+            font-size: 8pt;
+            line-height: 1.8;
+            color: #334155;
+        }
+        .info-box {
+            background: #f8fafc;
+            border: 0.3mm solid #cbd5e1;
+            border-radius: 2mm;
+            padding: 3mm 4mm;
+            margin-bottom: 4mm;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2mm 4mm;
+            font-size: 8.5pt;
+            line-height: 1.6;
+        }
+        .info-lbl {
+            color: #64748b;
+            font-weight: 600;
+        }
+        .info-val {
+            color: #0f172a;
+            font-weight: 800;
+        }
+        .body-text {
+            font-size: 8.8pt;
+            line-height: 2.1;
+            text-align: justify;
+            color: #1e293b;
+            margin-bottom: 4mm;
+        }
+        .body-text strong {
+            color: #000;
+            font-weight: 900;
+        }
+        .inst-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 3mm 0 4mm;
+            font-size: 8.5pt;
+        }
+        .inst-table th, .inst-table td {
+            border: 0.3mm solid #94a3b8;
+            padding: 5px 8px;
+            text-align: center;
+        }
+        .inst-table th {
+            background: #f1f5f9;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .inst-table tr:nth-child(even) {
+            background: #fafafa;
+        }
+        .signatures-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 5mm;
+            padding-top: 4mm;
+            border-top: 0.3mm dashed #94a3b8;
+        }
+        .sig-block {
+            width: 48%;
+            font-size: 8.5pt;
+            line-height: 1.6;
+        }
+        .fingerprint-box {
+            width: 28mm;
+            height: 32mm;
+            border: 0.35mm dashed #64748b;
+            border-radius: 2mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 7.5pt;
+            color: #94a3b8;
+            margin-top: 2mm;
+        }
+    </style>
+</head>
+<body class="fa-num">
+
+    <!-- Non-print Toolbar -->
+    <div class="no-print-toolbar no-print">
+        <button type="button" onclick="window.print()" class="btn-action" style="background: #2563eb; color: #fff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>چاپ تعهدنامه (Ctrl + P)</span>
+        </button>
+        <button type="button" onclick="window.close()" class="btn-action" style="background: #475569; color: #fff;">
+            <span>بستن</span>
+        </button>
+    </div>
+
+    <div class="print-paper">
+      <div class="frame">
+
+        <!-- Top Header -->
+        <div>
+            <table class="header-table">
+                <tr>
+                    <td style="width: 25%; text-align: right;" class="meta-text">
+                        <div><strong>جمهوری اسلامی ایران</strong></div>
+                        <div>وزارت راه و شهرسازی</div>
+                        <div>اداره کل راه و شهرسازی استان قم</div>
+                    </td>
+                    <td style="width: 50%; text-align: center;">
+                        <div class="doc-title">تعهدنامه رسمی پرداخت اقساط و ارائه سفته تضمین</div>
+                        <div class="doc-subtitle">({{ type_title }})</div>
+                    </td>
+                    <td style="width: 25%; text-align: left;" class="meta-text">
+                        <div>شماره پرونده: <strong>{{ dossier.display_number|default:dossier.archive_number }}</strong></div>
+                        <div>تاریخ صدور: <strong>{{ today_jalali }}</strong></div>
+                        <div>کد پیگیری: <strong>ZTK-{{ dossier.display_number|default:dossier.archive_number }}</strong></div>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Section 1: مشخصات متقاضی و مسکن -->
+            <div class="info-box">
+                <div class="info-grid">
+                    <div><span class="info-lbl">نام و نام‌خانوادگی: </span><span class="info-val">{{ dossier.full_name|default:"---" }}</span></div>
+                    <div><span class="info-lbl">کد ملی: </span><span class="info-val">{{ dossier.national_id|default:"---" }}</span></div>
+                    <div><span class="info-lbl">شماره تماس: </span><span class="info-val">{{ dossier.applicant_phone|default:"---" }}</span></div>
+                    <div><span class="info-lbl">نام پروژه: </span><span class="info-val">{{ dossier.project|default:"نهضت ملی مسکن" }}</span></div>
+                    <div><span class="info-lbl">بلوک و طبقه: </span><span class="info-val">بلوک {{ dossier.block_name|default:dossier.block_code|default:"-" }} - طبقه {{ dossier.floor_number|default:"-" }}</span></div>
+                    <div><span class="info-lbl">شماره واحد: </span><span class="info-val">{{ dossier.unit_number|default:dossier.unit_code|default:"-" }}</span></div>
+                    <div style="grid-column: span 3;"><span class="info-lbl">نشانی محل سکونت: </span><span class="info-val">{{ dossier.applicant_address|default:"قم" }}</span></div>
+                </div>
+            </div>
+
+            <!-- Section 2: مشخصات سفته تضمین -->
+            <div class="info-box" style="background: #fffdf7; border-color: #fde68a;">
+                <div class="info-grid">
+                    <div><span class="info-lbl">شماره سفته تسلیمی: </span><span class="info-val" style="color: #92400e;">{{ promissory_number|default:"ثبت نشده" }}</span></div>
+                    <div><span class="info-lbl">مبلغ سفته (ریال): </span><span class="info-val" style="color: #92400e;">{{ promissory_amount|fa_number }} ریال</span></div>
+                    <div><span class="info-lbl">تاریخ سفته: </span><span class="info-val">{{ promissory_date|default:today_jalali }}</span></div>
+                    <div style="grid-column: span 2;"><span class="info-lbl">مبلغ به حروف: </span><span class="info-val">{{ promissory_amount_words }} ریال</span></div>
+                    <div><span class="info-lbl">شماره تعهدنامه ثبتی: </span><span class="info-val">{{ commitment_number|default:"---" }}{% if commitment_date %} مورخ {{ commitment_date }}{% endif %}</span></div>
+                </div>
+            </div>
+
+            <!-- Section 3: متن رسمی تعهدنامه -->
+            <div class="body-text">
+                اینجانب <strong>{{ dossier.full_name }}</strong> با مشخصات فوق، با آگاهی و اراده کامل و با اختیار شرعی و قانونی اقرار و متعهد می‌گردم که جهت تضمین و پرداخت مبالغ <strong>{{ type_title }}</strong>، یک فقره سفته معتبر به شماره <strong>{{ promissory_number|default:"—" }}</strong> به مبلغ <strong>{{ promissory_amount|fa_number }} ریال</strong> (<strong>{{ promissory_amount_words }} ریال</strong>) تسلیم کارگزاری و اداره کل راه و شهرسازی استان قم نموده‌ام.
+                بدین‌وسیله صریحاً متعهد و ملتزم می‌شوم کلیه اقساط تعیین‌شده را دقیقاً بر اساس مبالغ، توالی و سررسیدهای مندرج در جدول <strong>«تولید و تقسیط خودکار مصوب»</strong> در جدول ذیل، در سررسیدهای مقرر به شماره حساب اعلامی واریز نموده و فیش واریزی را جهت درج در سوابق به کارگزاری تحویل نمایم:
+            </div>
+
+            <!-- Section 4: جدول اقساط متعهدشده (تولید و تقسیط خودکار) -->
+            <table class="inst-table">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">ردیف</th>
+                        <th style="width: 25%;">تاریخ سررسید قسط (شمسی)</th>
+                        <th style="width: 30%;">مبلغ قسط (ریال)</th>
+                        <th style="width: 35%;">معادل مبلغ (تومان)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in installments %}
+                    <tr>
+                        <td><strong>قسط {{ row.row_number|fa_digits }}</strong></td>
+                        <td><strong>{{ row.due_date|fa_digits }}</strong></td>
+                        <td style="font-weight: 800;">{{ row.amount|fa_number }} ریال</td>
+                        <td>{{ row.amount_toman|fa_number }} تومان</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="color: #64748b; padding: 12px;">قسطی تعریف نشده است (تسویه کامل طبق سفته تضمین).</td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background: #f8fafc; font-weight: 900;">
+                        <td colspan="2" style="text-align: left; padding-left: 14px;">جمع کل مبالغ اقساط:</td>
+                        <td style="color: #166534;">{{ total_installments_amount|fa_number }} ریال</td>
+                        <td style="color: #166534;">{{ total_installments_toman|fa_number }} تومان</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="body-text" style="margin-top: 2mm;">
+                اقرار و اعلام می‌دارم در صورت هرگونه تأخیر یا عدم پرداخت هر یک از اقساط فوق در موعد مقرر، سفته تضمینی تسلیم‌شده به شماره فوق به عنوان دین حال تلقی شده و اداره کل راه و شهرسازی استان قم و شرکت کارگزاری حق و اختیار دارند بدون نیاز به هرگونه اخطار قضایی، نسبت به مطالبه و وصول وجه سفته از مجاری قانونی و ثبتی اقدام نموده و نسبت به لغو تخصیص واحد و واگذاری آن به غیر اقدام نمایند و حق هرگونه اعتراض، شکایت و ادعایی را در کلیه مراجع از خود سلب و ساقط می‌نمایم.
+            </div>
+        </div>
+
+        <!-- Section 5 & 6: محل امضاء و اثر انگشت -->
+        <div class="signatures-area">
+            <!-- امضاء و اثر انگشت متقاضی -->
+            <div class="sig-block">
+                <div style="font-weight: 800; color: #0f172a; margin-bottom: 2mm;">
+                    محل امضاء و اثر انگشت متقاضی:
+                </div>
+                <div style="font-size: 8pt; color: #475569; margin-bottom: 3mm;">
+                    «مفاد این تعهدنامه مورد تأیید کامل اینجانب است.»
+                </div>
+                <div style="display: flex; gap: 6mm; align-items: flex-start;">
+                    <div class="fingerprint-box">
+                        محل اثر انگشت سبابه دست راست
+                    </div>
+                    <div style="flex: 1; padding-top: 5mm;">
+                        <div style="margin-bottom: 3mm;">نام متقاضی: <strong>{{ dossier.full_name }}</strong></div>
+                        <div style="margin-bottom: 3mm;">تاریخ: <strong>{{ today_jalali }}</strong></div>
+                        <div style="height: 15mm; border-bottom: 1px dotted #94a3b8; display: flex; align-items: flex-end; color: #94a3b8; font-size: 8pt;">
+                            امضاء متقاضی:
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- تأیید و امضای نماینده کارگزاری -->
+            <div class="sig-block" style="text-align: left; direction: ltr;">
+                <div style="direction: rtl; text-align: right;">
+                    <div style="font-weight: 800; color: #0f172a; margin-bottom: 2mm;">
+                        تأییدیه کارگزاری انتخاب و تحویل واحدها:
+                    </div>
+                    <div style="font-size: 8pt; color: #475569; margin-bottom: 3mm;">
+                        اصالت سفته، تعهدنامه و اثر انگشت متقاضی بررسی و ثبت گردید.
+                    </div>
+                    <div style="margin-bottom: 3mm; font-size: 8.5pt;">
+                        کارشناس اقدام‌کننده: <strong>{{ officer_name }}</strong>
+                    </div>
+                    <div style="margin-bottom: 3mm; font-size: 8.5pt;">
+                        تاریخ تأیید و بایگانی: <strong>{{ today_jalali }}</strong>
+                    </div>
+                    <div style="height: 18mm; border: 1px dashed #cbd5e1; border-radius: 2mm; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 8pt;">
+                        محل مهر و امضای رسمی کارگزاری
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto_print') === '1') {
+                setTimeout(() => window.print(), 350);
+            }
+        });
+    </script>
+</body>
+</html>

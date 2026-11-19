@@ -849,6 +849,18 @@ DOSSIER_FIELD_LABELS = {
 
 
     "commitment_date": "تاریخ تعهدنامه چک",
+    "loan_has_promissory_note": "دریافت سفته به جای چک (تسهیلات)",
+    "loan_promissory_number": "شماره سفته تسهیلات",
+    "loan_promissory_amount": "مبلغ سفته تسهیلات (ریال)",
+    "loan_promissory_date": "تاریخ سفته تسهیلات (شمسی)",
+    "loan_has_commitment_letter": "اخذ تعهدنامه اقساط تسهیلات",
+    "prep_has_promissory_note": "دریافت سفته به جای چک (آماده‌سازی)",
+    "prep_promissory_number": "شماره سفته آماده‌سازی",
+    "prep_promissory_amount": "مبلغ سفته آماده‌سازی (ریال)",
+    "prep_promissory_date": "تاریخ سفته آماده‌سازی (شمسی)",
+    "prep_commitment_number": "شماره تعهدنامه آماده‌سازی",
+    "prep_commitment_date": "تاریخ تعهدنامه آماده‌سازی (شمسی)",
+    "prep_has_commitment_letter": "اخذ تعهدنامه اقساط آماده‌سازی",
 
 
 
@@ -1452,11 +1464,19 @@ def _attach_dossier_list_extras(dossiers) -> None:
 
         notary_code = (getattr(d, "notary_letter_number", "") or "").strip()
 
-        notary_date = _fmt_jalali_date_short(getattr(d, "notary_letter_date", "") or "") if notary_code else ""
+        notary_raw_date = (
+            (getattr(d, "notary_letter_date", "") or "").strip()
+            or stg_dates.get(20, "")
+            or (d.stage_entry_date_jalali if getattr(d, "current_stage", 0) == 20 else "")
+            or ""
+        )
+        notary_date = _fmt_jalali_date_short(notary_raw_date) if notary_raw_date else ""
 
         d.list_notary_letter_code = notary_code
 
         d.list_notary_letter_date = notary_date
+
+        d.list_notary_office_number = getattr(d, "clean_notary_office_number", "") or getattr(d, "notary_office_number", "")
 
 
 
@@ -1494,7 +1514,7 @@ def dossier_list_view(request):
 
     filter_session_key = "dossier_list_filters"
 
-    explicit_filter_params = ("q", "stage", "status", "sort", "ajax")
+    explicit_filter_params = ("q", "stage", "status", "sort", "tab", "ajax")
 
 
 
@@ -1511,6 +1531,7 @@ def dossier_list_view(request):
             status_filter = ""
 
             sort = "stage_asc"
+            tab_filter = ""
 
         else:
 
@@ -1525,6 +1546,7 @@ def dossier_list_view(request):
         status_filter = request.GET.get("status", "").strip()
 
         sort = request.GET.get("sort", "stage_asc").strip() or "stage_asc"
+        tab_filter = request.GET.get("tab", "").strip()
 
         saved_filters = {}
 
@@ -1543,6 +1565,10 @@ def dossier_list_view(request):
         if sort != "stage_asc":
 
             saved_filters["sort"] = sort
+
+        if tab_filter:
+
+            saved_filters["tab"] = tab_filter
 
         if saved_filters:
 
@@ -1563,6 +1589,7 @@ def dossier_list_view(request):
         status_filter = str(saved_filters.get("status", "")).strip()
 
         sort = str(saved_filters.get("sort", "stage_asc")).strip() or "stage_asc"
+        tab_filter = str(saved_filters.get("tab", "")).strip()
 
 
 
@@ -1616,6 +1643,19 @@ def dossier_list_view(request):
 
     can_view_approved_checks = can_user_view_approved_checks(request.user)
 
+    is_stage17_18_user = (bool(set(user_allowed_stages) & {17, 18}) or can_manage_directorate_shipments) and not is_full_admin
+    count_stage1718 = 0
+    count_other = 0
+    count_all = 0
+
+    if is_stage17_18_user:
+        if not tab_filter or tab_filter not in ("stage1718", "other", "all"):
+            tab_filter = "stage1718"
+        base_active_1718 = HousingDossier.objects.filter(is_locked=False).exclude(status__in=["REJECTED_RED", "DELETED"])
+        count_stage1718 = base_active_1718.filter(current_stage__in=[17, 18]).count()
+        count_all = base_active_1718.count()
+        count_other = max(0, count_all - count_stage1718)
+
     _s1718_statuses = ('has_visit_date', 'has_loan_visit_date', 'has_prep_visit_date', 'loan_shipped', 'loan_not_shipped', 'prep_shipped', 'prep_not_shipped')
 
     if status_filter in _s1718_statuses and not can_manage_directorate_shipments:
@@ -1640,7 +1680,17 @@ def dossier_list_view(request):
 
     if not is_full_admin:
 
-        if can_manage_directorate_shipments:
+        if is_stage17_18_user:
+
+            dossiers = dossiers.filter(is_locked=False).exclude(status__in=["REJECTED_RED", "DELETED"])
+            if not query:
+                if tab_filter == "stage1718":
+                    dossiers = dossiers.filter(current_stage__in=[17, 18])
+                elif tab_filter == "other":
+                    dossiers = dossiers.exclude(current_stage__in=[17, 18])
+                # elif tab_filter == "all": dossiers keeps all active dossiers
+
+        elif can_manage_directorate_shipments:
 
             dossiers = dossiers.filter(is_locked=False).exclude(status__in=["REJECTED_RED", "DELETED"])
 
@@ -1774,7 +1824,7 @@ def dossier_list_view(request):
 
                 stg_val = int(stage_filter)
 
-                if is_full_admin or can_manage_directorate_shipments or stg_val in user_allowed_stages:
+                if is_full_admin or can_manage_directorate_shipments or is_stage17_18_user or stg_val in user_allowed_stages:
 
                     dossiers = dossiers.filter(current_stage=stg_val)
 
@@ -2545,6 +2595,16 @@ def dossier_list_view(request):
 
 
         "is_full_admin": is_full_admin,
+
+        "is_stage17_18_user": is_stage17_18_user,
+
+        "active_tab_1718": tab_filter,
+
+        "count_stage1718": count_stage1718,
+
+        "count_other": count_other,
+
+        "count_all": count_all,
 
 
 
@@ -3375,7 +3435,9 @@ def dossier_detail_view(request, pk):
 
         user_allowed = [int(s.strip()) for s in profile.allowed_stages.split(',') if s.strip().isdigit()] if profile and profile.allowed_stages else []
 
-        can_open_s1718 = can_manage_shipments and (not dossier.is_locked) and (dossier.status not in ("REJECTED_RED", "DELETED"))
+        is_user_stage17_18 = bool(set(user_allowed) & {17, 18}) or can_manage_shipments
+
+        can_open_s1718 = is_user_stage17_18 and (not dossier.is_locked) and (dossier.status not in ("REJECTED_RED", "DELETED"))
 
         if dossier.is_locked or (dossier.current_stage not in user_allowed and not can_open_s1718):
 
@@ -3933,7 +3995,7 @@ def dossier_detail_view(request, pk):
 
 
 
-            "unit_direction": "شمالی" if is_villa_construction(dossier.site, dossier.construction_type) else (dossier.unit_direction or "شمال غربی"),
+            "unit_direction": dossier.unit_direction or ("شمالی" if is_villa_construction(dossier.site, dossier.construction_type) else "شمال غربی"),
 
 
 
@@ -4170,6 +4232,12 @@ def dossier_detail_view(request, pk):
 
 
             "commitment_date": dossier.commitment_date or "",
+            "loan_has_promissory_note": bool(dossier.loan_has_promissory_note),
+            "loan_promissory_number": dossier.loan_promissory_number or "",
+            "loan_promissory_amount": dossier.loan_promissory_amount or 0,
+            "loan_promissory_date": dossier.loan_promissory_date or "",
+            "loan_has_commitment_letter": bool(dossier.loan_has_commitment_letter),
+            "loan_promissory_installments": dossier.get_loan_promissory_installments(),
 
 
 
@@ -4202,6 +4270,14 @@ def dossier_detail_view(request, pk):
 
 
             "total_preparation_check_amount": dossier.total_preparation_check_amount or sum(c.get("check_amount", 0) for c in prep_check_items_list),
+            "prep_has_promissory_note": bool(dossier.prep_has_promissory_note),
+            "prep_promissory_number": dossier.prep_promissory_number or "",
+            "prep_promissory_amount": dossier.prep_promissory_amount or 0,
+            "prep_promissory_date": dossier.prep_promissory_date or "",
+            "prep_commitment_number": dossier.prep_commitment_number or "",
+            "prep_commitment_date": dossier.prep_commitment_date or "",
+            "prep_has_commitment_letter": bool(dossier.prep_has_commitment_letter),
+            "prep_promissory_installments": dossier.get_prep_promissory_installments(),
 
 
 
@@ -5035,7 +5111,7 @@ def save_dossier_draft_view(request, pk):
 
 
 
-        "decile_loan_bank", "decile_bank_letter_number", "decile_bank_letter_date", "supported_institution", "commitment_number", "commitment_date",
+        "decile_loan_bank", "decile_bank_letter_number", "decile_bank_letter_date", "supported_institution", "commitment_number", "commitment_date", "loan_promissory_number", "loan_promissory_date", "prep_promissory_number", "prep_promissory_date", "prep_commitment_number", "prep_commitment_date",
 
 
 
@@ -5159,7 +5235,7 @@ def save_dossier_draft_view(request, pk):
 
 
 
-        "tenant_price", "preparation_service_fee",
+        "tenant_price", "preparation_service_fee", "loan_promissory_amount", "prep_promissory_amount",
 
 
 
@@ -5305,7 +5381,7 @@ def save_dossier_draft_view(request, pk):
 
 
 
-    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "is_married_confirmed", "is_preparation_checks_confirmed", "is_added_to_bank_shipment_list", "is_sent_to_bank", "has_installment_booklet", "has_info_form", "has_form_j", "has_affidavit", "has_sana", "has_national_id_doc", "is_land_deed_confirmed"]:
+    for field in ["is_sms_sent", "is_equity_funded", "is_cash_rent_confirmed", "is_decile_loan_confirmed", "loan_has_promissory_note", "loan_has_commitment_letter", "prep_has_promissory_note", "prep_has_commitment_letter", "is_married_confirmed", "is_preparation_checks_confirmed", "is_added_to_bank_shipment_list", "is_sent_to_bank", "has_installment_booklet", "has_info_form", "has_form_j", "has_affidavit", "has_sana", "has_national_id_doc", "is_land_deed_confirmed"]:
 
 
 
@@ -5581,11 +5657,23 @@ def save_dossier_draft_view(request, pk):
 
 
 
-    # Sync and persist Check entries list from BankCheckTracker
+    # If loan promissory note is selected, delete checks
+    is_loan_promissory = bool(parsed_updates.get("loan_has_promissory_note", dossier.loan_has_promissory_note))
+    if is_loan_promissory:
+        dossier.check_items.filter(check_type="LOAN").delete()
+        dossier.check_entries_json = "[]"
+        dossier.check_count = 0
+        dossier.check_amount = 0
+        dossier.last_check_amount = 0
+        dossier.total_check_amount = 0
+        parsed_updates["check_count"] = 0
+        parsed_updates["total_check_amount"] = 0
 
+    if "loan_promissory_installments" in data and isinstance(data["loan_promissory_installments"], list):
+        dossier.loan_promissory_installments_json = json.dumps(data["loan_promissory_installments"], ensure_ascii=False)
 
-
-    if "check_entries" in data and isinstance(data["check_entries"], list) and can_user_edit_field(request.user, "check_entries_json"):
+    # Sync and persist Check entries list from BankCheckTracker (only if not using promissory note)
+    if not is_loan_promissory and "check_entries" in data and isinstance(data["check_entries"], list) and can_user_edit_field(request.user, "check_entries_json"):
 
 
 
@@ -5777,11 +5865,21 @@ def save_dossier_draft_view(request, pk):
 
 
 
-    # Sync and persist Preparation Check entries list from tashilatCheck
+    # If prep promissory note is selected, delete prep checks
+    is_prep_promissory = bool(parsed_updates.get("prep_has_promissory_note", dossier.prep_has_promissory_note))
+    if is_prep_promissory:
+        dossier.check_items.filter(check_type="PREPARATION").delete()
+        dossier.preparation_check_entries_json = "[]"
+        dossier.preparation_check_count = 0
+        dossier.total_preparation_check_amount = 0
+        parsed_updates["preparation_check_count"] = 0
+        parsed_updates["total_preparation_check_amount"] = 0
 
+    if "prep_promissory_installments" in data and isinstance(data["prep_promissory_installments"], list):
+        dossier.prep_promissory_installments_json = json.dumps(data["prep_promissory_installments"], ensure_ascii=False)
 
-
-    if "preparation_check_entries" in data and isinstance(data["preparation_check_entries"], list) and can_user_edit_field(request.user, "preparation_check_entries_json"):
+    # Sync and persist Preparation Check entries list from tashilatCheck (only if not using promissory note)
+    if not is_prep_promissory and "preparation_check_entries" in data and isinstance(data["preparation_check_entries"], list) and can_user_edit_field(request.user, "preparation_check_entries_json"):
 
 
 
@@ -7627,7 +7725,7 @@ def lookup_preselected_unit_api(request):
 
 
 
-            "unit_direction": "شمالی" if is_villa_construction(unit.site, unit.construction_type) else unit.unit_direction,
+            "unit_direction": unit.unit_direction or ("شمالی" if is_villa_construction(unit.site, unit.construction_type) else ""),
 
 
 
@@ -8089,6 +8187,186 @@ def _render_html_template_to_jpg(template_name, context, nat_id, file_stem, land
 
 
 
+
+
+def num_to_persian_words(num):
+    if not num or num == 0:
+        return 'صفر'
+    num = int(num)
+    ykan = ['', 'یک', 'دو', 'سه', 'چهار', 'پنج', 'شش', 'هفت', 'هشت', 'نه']
+    dahgan = ['', 'ده', 'بیست', 'سی', 'چهل', 'پنجاه', 'شصت', 'هفتاد', 'هشتاد', 'نود']
+    dahyek = ['ده', 'یازده', 'دوازده', 'سیزده', 'چهارده', 'پانزده', 'شانزده', 'هفده', 'هجده', 'نوزده']
+    sadgan = ['', 'صد', 'دویست', 'سیصد', 'چهارصد', 'پانصد', 'ششصد', 'هفتصد', 'هشتصد', 'نهصد']
+    bakhsh = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون']
+
+    def three_digits_to_words(n):
+        c = n // 100
+        d = (n % 100) // 10
+        y = n % 10
+        parts = []
+        if c > 0:
+            parts.append(sadgan[c])
+        if d == 1:
+            parts.append(dahyek[y])
+        else:
+            if d > 0:
+                parts.append(dahgan[d])
+            if y > 0:
+                parts.append(ykan[y])
+        return ' و '.join(parts)
+
+    parts = []
+    step = 0
+    while num > 0:
+        remainder = num % 1000
+        if remainder > 0:
+            word = three_digits_to_words(remainder)
+            if step > 0:
+                word += ' ' + bakhsh[step]
+            parts.insert(0, word)
+        num //= 1000
+        step += 1
+    return ' و '.join(parts)
+
+
+@login_required(login_url='login')
+def dossier_print_promissory_commitment_view(request, pk):
+    """
+    Print-ready view for official commitment letter and promissory note installment agreement.
+    Auto-filled based on applicant identity, project, block, unit, promissory note and auto-installments.
+    """
+    dossier = _get_dossier_by_pk(pk)
+    promissory_type = request.GET.get("type", "loan").lower()
+    is_prep = promissory_type in ("prep", "preparation", "amadesazi", "18")
+
+    try:
+        import jdatetime
+        today_jalali = jdatetime.datetime.now().strftime("%Y/%m/%d")
+    except Exception:
+        today_jalali = timezone.now().strftime("%Y/%m/%d")
+
+    def _add_jalali_months(jdate_obj, months):
+        total_m = (jdate_obj.month - 1) + months
+        ny = jdate_obj.year + (total_m // 12)
+        nm = (total_m % 12) + 1
+        max_d = 31 if nm <= 6 else (30 if nm <= 11 else (30 if jdatetime.date(ny, 1, 1).isleap() else 29))
+        nd = min(jdate_obj.day, max_d)
+        return jdatetime.date(ny, nm, nd)
+
+    save_needed = False
+    if is_prep:
+        type_title = "اقساط غیرنقدی آماده‌سازی واحد مسکونی"
+        promissory_number = dossier.prep_promissory_number or request.GET.get("num", "")
+        # Resolve promissory amount with cascaded fallbacks
+        promissory_amount = (
+            int(request.GET.get("amount") or 0)
+            or dossier.prep_promissory_amount
+            or dossier.non_cash_preparation_amount
+            or dossier.total_preparation_check_amount
+            or int(round((dossier.preparation_cost or 0) * 0.8))
+            or 0
+        )
+        promissory_date = dossier.prep_promissory_date or today_jalali
+        commitment_number = dossier.prep_commitment_number
+        commitment_date = dossier.prep_commitment_date
+        installments = dossier.get_prep_promissory_installments()
+    else:
+        type_title = "تسهیلات وام دهک مسکن"
+        promissory_number = dossier.loan_promissory_number or request.GET.get("num", "")
+        # Resolve promissory amount with cascaded fallbacks
+        promissory_amount = (
+            int(request.GET.get("amount") or 0)
+            or dossier.loan_promissory_amount
+            or dossier.decile_loan_amount
+            or dossier.total_check_amount
+            or 0
+        )
+        promissory_date = dossier.loan_promissory_date or today_jalali
+        commitment_number = dossier.commitment_number
+        commitment_date = dossier.commitment_date
+        installments = dossier.get_loan_promissory_installments()
+
+    # Check if installments already exist and have positive amounts
+    has_valid_installments = installments and any((r.get("amount") or r.get("check_amount") or 0) > 0 for r in installments)
+
+    # If installments list is empty or has all 0s, auto-generate fallback rows based on promissory_amount
+    if not has_valid_installments and promissory_amount > 0:
+        count = 3 if is_prep else 4
+        base_amt = promissory_amount // count
+        last_amt = promissory_amount - (base_amt * (count - 1))
+        installments = []
+        try:
+            import jdatetime
+            cur_jdate = jdatetime.date.today()
+        except Exception:
+            cur_jdate = None
+
+        for i in range(count):
+            amt = last_amt if i == count - 1 else base_amt
+            if cur_jdate:
+                step = (i + 1) * 6 if is_prep else (i + 1) * 12
+                d_due = _add_jalali_months(cur_jdate, step)
+                due_date_str = d_due.strftime("%Y/%m/%d")
+            else:
+                due_date_str = f"سررسید قسط {i + 1}"
+            installments.append({
+                "row_number": i + 1,
+                "due_date": due_date_str,
+                "amount": amt,
+                "amount_toman": amt // 10,
+            })
+
+        if is_prep:
+            dossier.prep_promissory_installments_json = json.dumps(installments, ensure_ascii=False)
+            if not dossier.prep_promissory_amount:
+                dossier.prep_promissory_amount = promissory_amount
+            save_needed = True
+        else:
+            dossier.loan_promissory_installments_json = json.dumps(installments, ensure_ascii=False)
+            if not dossier.loan_promissory_amount:
+                dossier.loan_promissory_amount = promissory_amount
+            save_needed = True
+
+        if save_needed:
+            try:
+                uf = ["prep_promissory_installments_json", "prep_promissory_amount"] if is_prep else ["loan_promissory_installments_json", "loan_promissory_amount"]
+                dossier.save(update_fields=uf)
+            except Exception:
+                pass
+    else:
+        for idx, row in enumerate(installments):
+            amt = int(row.get("amount") or row.get("check_amount") or 0)
+            row["amount"] = amt
+            row["amount_toman"] = amt // 10
+            row["due_date"] = row.get("due_date") or row.get("cash_date") or ""
+            if "row_number" not in row:
+                row["row_number"] = idx + 1
+
+    total_installments = sum(r["amount"] for r in installments) if installments else promissory_amount
+    if promissory_amount == 0 and total_installments > 0:
+        promissory_amount = total_installments
+
+    promissory_amount_words = num_to_persian_words(promissory_amount)
+    officer_name = request.user.get_full_name() or request.user.username
+
+    context = {
+        "dossier": dossier,
+        "type_title": type_title,
+        "promissory_type": "prep" if is_prep else "loan",
+        "promissory_number": promissory_number,
+        "promissory_amount": promissory_amount,
+        "promissory_amount_words": promissory_amount_words,
+        "promissory_date": promissory_date,
+        "commitment_number": commitment_number,
+        "commitment_date": commitment_date,
+        "installments": installments,
+        "total_installments_amount": total_installments,
+        "total_installments_toman": total_installments // 10,
+        "today_jalali": today_jalali,
+        "officer_name": officer_name,
+    }
+
+    return render(request, "dossiers/print_promissory_commitment.html", context)
 
 
 @login_required(login_url='login')
@@ -11975,7 +12253,7 @@ def upload_scan_attachment_view(request, pk):
 
         and can_user_manage_stage17_18_tracking(request.user)
 
-        and doc_type in ("LOAN_CHECK", "PREP_CHECK", "CHECK_RECEIPT")
+        and doc_type in ("LOAN_CHECK", "PREP_CHECK", "CHECK_RECEIPT", "COMMITMENT_LETTER", "PROMISSORY_NOTE")
 
     )
 
@@ -13428,37 +13706,33 @@ def user_profile_view(request):
 @login_required
 
 @require_POST
-
 def set_ui_mode(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "احراز هویت الزامی است."}, status=401)
+
+    profile = getattr(request.user, "profile", None)
+    can_change = request.user.is_superuser or request.user.is_staff or (profile and (profile.is_housing_chief or profile.can_change_ui_mode))
+    if not can_change:
+        return JsonResponse({
+            "status": "error",
+            "message": "شما مجوز تغییر حالت نمایش را ندارید و موظف به استفاده از حالت تعیین‌شده در مدیریت کاربران هستید."
+        }, status=403)
 
     try:
-
         data = json.loads(request.body or "{}")
-
     except ValueError:
-
         data = {}
-
     mode = data.get("mode")
-
     if mode not in ("simple", "advanced"):
-
         return JsonResponse({"status": "error", "message": "حالت نامعتبر است."}, status=400)
 
-
-
-    profile, _ = UserProfile.objects.get_or_create(
-
-        user=request.user,
-
-        defaults={"full_name": request.user.get_full_name() or request.user.username},
-
-    )
-
+    if profile is None:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=request.user,
+            defaults={"full_name": request.user.get_full_name() or request.user.username},
+        )
     profile.ui_mode = mode
-
     profile.save(update_fields=["ui_mode"])
-
     return JsonResponse({"status": "success", "mode": mode})
 
 
@@ -14375,11 +14649,13 @@ def users_management_view(request):
 
             "parsed_stages": parsed_stages,
 
-
-
             "stage_pills": stage_pills,
 
+            "ui_mode": getattr(p, "ui_mode", "simple") if p else "simple",
 
+            "can_change_ui_mode": bool(p and p.can_change_ui_mode),
+
+            "allowed_to_change_ui_mode": bool(u.is_superuser or u.is_staff or (p and (p.is_housing_chief or p.can_change_ui_mode))),
 
         })
 
@@ -14591,13 +14867,16 @@ def edit_user_action(request, user_id):
 
         is_readonly = bool(request.POST.get("is_readonly"))
 
-
-
         can_sign = bool(request.POST.get("can_sign"))
 
 
 
         is_active = bool(request.POST.get("is_active"))
+
+        ui_mode = request.POST.get("ui_mode", "simple").strip()
+        if ui_mode not in ("simple", "advanced"):
+            ui_mode = "simple"
+        can_change_ui_mode = bool(request.POST.get("can_change_ui_mode"))
 
 
 
@@ -14747,7 +15026,9 @@ def edit_user_action(request, user_id):
 
         target_profile.can_sign = can_sign and not is_readonly
 
+        target_profile.ui_mode = ui_mode
 
+        target_profile.can_change_ui_mode = can_change_ui_mode
 
         target_profile.save()
 
@@ -14872,6 +15153,11 @@ def create_user_action(request):
         is_housing_chief = bool(request.POST.get("is_housing_chief"))
 
         is_readonly = bool(request.POST.get("is_readonly"))
+
+        ui_mode = request.POST.get("ui_mode", "simple").strip()
+        if ui_mode not in ("simple", "advanced"):
+            ui_mode = "simple"
+        can_change_ui_mode = bool(request.POST.get("can_change_ui_mode"))
 
 
 
@@ -15063,7 +15349,9 @@ def create_user_action(request):
 
             user_prof.must_change_password = False
 
+        user_prof.ui_mode = ui_mode
 
+        user_prof.can_change_ui_mode = can_change_ui_mode
 
         user_prof.save()
 
@@ -16851,7 +17139,7 @@ def _serialize_bank_letter_dossier(d, b_code, b_name, include_financials=False):
 
 
 
-        "unit_direction": "شمالی" if is_villa_construction(d.site, d.construction_type) else (d.unit_direction or "-"),
+        "unit_direction": d.unit_direction or ("شمالی" if is_villa_construction(d.site, d.construction_type) else "-"),
 
 
 
@@ -19353,7 +19641,7 @@ def _build_bank_workbook(bank_code, bank_name, project_names, dossiers_qs, proj_
 
 
 
-                "شمالی" if is_villa_construction(d.site, d.construction_type) else (d.unit_direction or ""),
+                d.unit_direction or ("شمالی" if is_villa_construction(d.site, d.construction_type) else ""),
 
 
 
@@ -20033,7 +20321,7 @@ def bank_letter_export_excel(request):
 
 
 
-            "شمالی" if is_villa_construction(d.site, d.construction_type) else (d.unit_direction or ""),
+            d.unit_direction or ("شمالی" if is_villa_construction(d.site, d.construction_type) else ""),
 
 
 

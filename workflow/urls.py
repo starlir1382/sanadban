@@ -18,6 +18,7 @@ urlpatterns = [
     path("dossier/<int:pk>/print/notary-letter/", views.notary_letter_print_view, name="notary_letter_print"),
     path("dossier/<int:pk>/print/folder-label/", views.folder_label_print_view, name="folder_label_print"),
     path("dossier/<int:pk>/print/affidavit/", views.dossier_print_affidavit_view, name="dossier_print_affidavit"),
+    path("dossier/<int:pk>/print/promissory-commitment/", views.dossier_print_promissory_commitment_view, name="dossier_print_promissory_commitment"),
     path("dossier/<int:pk>/print/info-form/", views.dossier_print_info_form_view, name="dossier_print_info_form"),
     path("dossier/<int:pk>/generate-doc/<str:doc_type>/", views.generate_and_archive_doc_view, name="dossier_generate_doc"),
     path("dossier/<int:pk>/print/land-bank/", views.land_bank_print_view, name="land_bank_print"),

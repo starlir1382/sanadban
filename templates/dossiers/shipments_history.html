@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static persian_tags %}
 
-{% block title %}تاریخچه محموله‌های ارسالی به راه و شهرسازی | سامانه مسکن یار{% endblock %}
+{% block title %}تاریخچه محموله‌های ارسالی به راه و شهرسازی | مسکن یار{% endblock %}
 
 {% block content %}
 <style>
@@ -321,6 +321,83 @@
   [data-theme="dark"] .sh-mini-table th {
     color: #94a3b8;
   }
+
+  /* Responsive Breakpoints */
+  @media (max-width: 768px) {
+    .sh-page {
+      padding: 0.85rem 0.75rem 2.5rem;
+    }
+    .sh-header {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 1rem;
+      gap: 0.85rem;
+    }
+    .sh-back-btn {
+      width: 100%;
+      justify-content: center;
+      min-height: 44px;
+    }
+    .sh-controls {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 0.85rem;
+      gap: 0.75rem;
+    }
+    .sh-filter-pills {
+      width: 100%;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      padding-bottom: 0.35rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .sh-filter-pills::-webkit-scrollbar {
+      display: none;
+    }
+    .sh-pill {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .sh-search-form {
+      max-width: 100%;
+      width: 100%;
+    }
+    .sh-card {
+      padding: 1rem;
+      border-radius: 14px;
+    }
+    .sh-card-top {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+    .sh-card-actions {
+      width: 100%;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .sh-toggle-btn {
+      flex: 1;
+      text-align: center;
+      min-height: 42px;
+    }
+    .sh-print-btn {
+      flex: 1;
+      justify-content: center;
+      min-height: 42px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .sh-title-wrap h1 {
+      font-size: 1.1rem;
+    }
+    .sh-code {
+      font-size: 1rem;
+    }
+  }
+
 </style>
 
 <div class="sh-page fa-num">

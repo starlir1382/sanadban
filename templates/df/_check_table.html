@@ -64,7 +64,7 @@ Rows are keyed by `check.id` when the backend provides one, otherwise by index.
 
     <div class="df-summary fa-num">
         <div>
-            مجموع <strong x-text="{{ entries }} ? {{ entries }}.length : 0"></strong> چک
+            مجموع <strong x-text="{{ entries }} ? {{ entries }}.length : 0"></strong> <span>{{ row }}</span>
         </div>
         <div>
             <span class="df-summary-total" x-text="formatNumber({{ total }} || 0)"></span>
@@ -75,7 +75,7 @@ Rows are keyed by `check.id` when the backend provides one, otherwise by index.
             <div>{{ ceiling_label }}: <strong x-text="formatNumber({{ ceiling }} || 0) + ' ریال'"></strong></div>
             <div>
                 <template x-if="({{ total }} || 0) === (Number({{ ceiling }}) || 0) && {{ total }} > 0">
-                    <span class="df-pill df-pill-green"><svg class="df-i"><use href="#i-check"/></svg>مجموع چک‌ها با سقف برابر است</span>
+                    <span class="df-pill df-pill-green"><svg class="df-i"><use href="#i-check"/></svg><span>مجموع چک‌ها با سقف برابر است</span></span>
                 </template>
                 <template x-if="({{ total }} || 0) < (Number({{ ceiling }}) || 0)">
                     <span class="df-pill" style="background:#fef3c7;color:#92400e;border-color:#fde68a;"><svg class="df-i"><use href="#i-alert"/></svg>مانده تا سقف: <strong x-text="formatNumber((Number({{ ceiling }}) || 0) - ({{ total }} || 0)) + ' ریال'"></strong></span>

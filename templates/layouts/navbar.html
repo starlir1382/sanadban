@@ -6,10 +6,22 @@
     <script>
         window.SB_UI_MODE_URL = "{% url 'set_ui_mode' %}";
         window.SB_CSRF_TOKEN = "{{ csrf_token }}";
+        {% if request.user.is_superuser or request.user.is_staff or profile.is_housing_chief or profile.can_change_ui_mode %}
+            window.SB_CAN_CHANGE_UI_MODE = true;
+        {% else %}
+            window.SB_CAN_CHANGE_UI_MODE = false;
+        {% endif %}
         (function() {
             var serverMode = "{{ profile.ui_mode|default:'simple'|escapejs }}";
-            var localMode = localStorage.getItem('sb-ui-mode');
-            var mode = localMode || serverMode || 'simple';
+            var mode = serverMode || 'simple';
+            if (window.SB_CAN_CHANGE_UI_MODE) {
+                var localMode = localStorage.getItem('sb-ui-mode');
+                if (localMode === 'simple' || localMode === 'advanced') {
+                    mode = localMode;
+                }
+            } else {
+                try { localStorage.setItem('sb-ui-mode', mode); } catch (e) {}
+            }
             document.documentElement.setAttribute('data-ui-mode', mode);
         })();
     </script>
@@ -43,9 +55,18 @@
             content: ""; position: absolute; inset-inline: 0; bottom: -1px; height: 2px; pointer-events: none;
             background: linear-gradient(90deg, transparent 0%, var(--sb-accent) 50%, transparent 100%); opacity: .55;
         }
+        .sb-header {
+            width: 100%;
+            max-width: 100vw;
+            box-sizing: border-box;
+            overflow: visible !important;
+        }
         .sb-container {
             max-width: 1680px; margin: 0 auto; padding: 0 1.5rem; height: 62px;
-            display: flex; align-items: center; justify-content: space-between; gap: 1.25rem;
+            width: 100%; box-sizing: border-box;
+            display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+            position: relative;
+            overflow: visible !important;
         }
 
         /* ---------- Brand ---------- */
@@ -95,6 +116,63 @@
             transform: scale(0.97);
         }
         .sb-link:hover, .sb-btn:hover { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(56, 189, 248, .3); }
+
+        /* ---------- Management Button (Pill style matching user button and clock) ---------- */
+        .sb-mgmt-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            white-space: nowrap;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 700;
+            line-height: 1;
+            padding: 0.35rem 0.95rem;
+            min-height: 38px;
+            border-radius: 999px !important;
+            border: 1px solid rgba(148, 197, 255, 0.22);
+            background: rgba(255, 255, 255, 0.05);
+            color: #d1d5db;
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sb-mgmt-btn .sb-mgmt-icon {
+            color: #38bdf8;
+            stroke: #38bdf8;
+            transition: transform 180ms ease, stroke 180ms ease;
+            flex-shrink: 0;
+        }
+        .sb-mgmt-btn .sb-chevron {
+            color: #93c5fd;
+            stroke: #93c5fd;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .sb-mgmt-btn:hover {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(56, 189, 248, 0.12)) !important;
+            border-color: rgba(56, 189, 248, 0.6) !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 14px rgba(56, 189, 248, 0.28) !important;
+            transform: translateY(-1px);
+        }
+        .sb-mgmt-btn:hover .sb-mgmt-icon {
+            transform: scale(1.12);
+            stroke: #7dd3fc;
+        }
+        .sb-mgmt-btn:active {
+            transform: scale(0.97);
+        }
+        .sb-mgmt-btn.is-active,
+        .sb-mgmt-btn[aria-expanded="true"] {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(56, 189, 248, 0.2)) !important;
+            border-color: #38bdf8 !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.4) !important;
+        }
         .sb-link[aria-current="page"] {
             color: #fff; background: linear-gradient(135deg, rgba(14,165,233,.3), rgba(56,189,248,.12));
             border-color: rgba(56,189,248,.5);
@@ -138,9 +216,9 @@
 
         /* ---------- Dropdowns ---------- */
         .sb-dropdown {
-            position: absolute; top: calc(100% + 14px); z-index: 120; width: 290px; padding: .5rem;
+            position: absolute; top: calc(100% + 10px); z-index: 1000; width: 290px; padding: .5rem;
             background: #fff; color: #1e293b; border-radius: 14px; border: 1px solid #e2e8f0;
-            box-shadow: 0 10px 24px rgba(2,12,27,.22);
+            box-shadow: 0 12px 32px -4px rgba(2,12,27,.3), 0 4px 12px -2px rgba(2,12,27,.12);
         }
         .sb-dropdown::before { /* little arrow */
             content: ""; position: absolute; top: -6px; width: 12px; height: 12px; background: #fff;
@@ -149,6 +227,7 @@
         .sb-dropdown--mgmt { left: 0; right: auto; transform-origin: top left; }
         .sb-dropdown--mgmt::before { left: 28px; right: auto; }
         .sb-dropdown--user { left: 0; right: auto; width: 310px; max-width: calc(100vw - 20px); transform-origin: top left; }
+        .sb-dropdown--user::before { left: 28px; right: auto; }
 
         /* Dropdown/panel animation: opacity + small slide only (GPU-friendly, no layout/paint cost) */
         .sb-t-enter { transition: opacity 150ms ease-out, transform 150ms ease-out; }
@@ -156,7 +235,46 @@
         .sb-t-from  { opacity: 0; transform: scale(0.96) translateY(-4px); }
         .sb-t-to    { opacity: 1; transform: scale(1) translateY(0); }
 
-        .sb-dropdown--user::before { left: 28px; right: auto; }
+        .sb-menu-theme-toggle {
+            display: flex; align-items: center; justify-content: space-between; width: 100%;
+            padding: .65rem .7rem; font-family: inherit; font-size: .95rem; font-weight: 700;
+            color: #1e293b; text-align: right; text-decoration: none;
+            background: transparent; border: 0; border-radius: 10px; cursor: pointer;
+            transition: background-color 150ms ease, color 150ms ease;
+        }
+        .sb-menu-theme-toggle:hover, .sb-menu-theme-toggle:focus-visible {
+            background: #f1f5f9;
+            outline: none;
+        }
+        html[data-theme="dark"] .sb-menu-theme-toggle {
+            color: #cbd5e1 !important;
+        }
+        html[data-theme="dark"] .sb-menu-theme-toggle:hover,
+        html[data-theme="dark"] .sb-menu-theme-toggle:focus-visible {
+            background: #1e293b !important;
+            color: #ffffff !important;
+        }
+
+        .sb-theme-switch-track {
+            position: relative; width: 40px; height: 22px; border-radius: 999px; flex-shrink: 0;
+            background: #cbd5e1; transition: background 200ms ease;
+            box-sizing: border-box;
+        }
+        .sb-theme-switch-thumb {
+            position: absolute; top: 3px; right: 3px; width: 16px; height: 16px;
+            border-radius: 50%; background: #ffffff;
+            transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            inset-inline-start: auto !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+        }
+        html[data-theme="dark"] .sb-theme-switch-track {
+            background: #0284c7 !important;
+        }
+        html[data-theme="dark"] .sb-theme-switch-thumb {
+            transform: translateX(-18px) !important;
+            inset-inline-start: auto !important;
+            right: 3px !important;
+        }
 
         .sb-menu-label { padding: .5rem .75rem .3rem; font-size: .78rem; font-weight: 700; color: #94a3b8; letter-spacing: .2px; }
         .sb-menu-item {
@@ -232,11 +350,40 @@
             .sb-mobile-label { padding: .75rem 1rem .25rem; font-size: .8rem; font-weight: 700; color: #7dd3fc; }
             .sb-dropdown--user { left: 0; right: auto; }
         }
+        @media (max-width: 900px) {
+            .sb-clock-pill { padding: 0.35rem 0.65rem; font-size: 0.8rem; }
+        }
         @media (max-width: 768px) {
             .sb-container { padding: 0 0.75rem; }
+            .sb-subtitle { display: none !important; }
+            .sb-clock-pill { display: none !important; }
+            .sb-mgmt-btn-top { display: none !important; }
+            .sb-brand { flex-shrink: 1; min-width: 0; }
+        }
+        @media (max-width: 640px) {
+            .sb-dropdown--user {
+                left: -42px !important;
+                right: auto !important;
+                width: min(310px, calc(100vw - 20px)) !important;
+                max-width: calc(100vw - 20px) !important;
+            }
+            .sb-dropdown--user::before {
+                left: 56px !important;
+                right: auto !important;
+            }
+            .sb-dropdown--mgmt {
+                left: -20px !important;
+                right: auto !important;
+                width: min(290px, calc(100vw - 20px)) !important;
+                max-width: calc(100vw - 20px) !important;
+            }
+            .sb-dropdown--mgmt::before {
+                left: 36px !important;
+                right: auto !important;
+            }
         }
         @media (max-width: 480px) {
-            .sb-container { height: 56px; padding: 0 0.5rem; gap: 0.5rem; }
+            .sb-container { height: 56px; padding: 0 0.5rem; gap: 0.4rem; }
             .sb-emblem { width: 32px; height: 32px; }
             .sb-title { font-size: 1rem; }
             .sb-actions { gap: 0.35rem; }
@@ -276,10 +423,10 @@
         <div class="sb-container">
 
             <!-- Brand -->
-            <a href="{% url 'dossier_list' %}" class="sb-brand" title="کارتابل و میز کار سامانه مسکن یار">
+            <a href="{% url 'dossier_list' %}" class="sb-brand" title="کارتابل و میز کار مسکن یار">
                 <span class="sb-emblem"><img src="{% static 'img/favicon.svg' %}" width="52" height="52"        alt="لوگو مسکن یار"></span>
                 <span class="sb-brand-text">
-                 <h1 class="sb-title">سامانه مسکن یار</h1>
+                 <h1 class="sb-title">مسکن یار</h1>
                 <span class="sb-subtitle">مهندسان مشاور زمین ترسیم خاورمیانه</span>
               </span>
             </a>
@@ -325,24 +472,26 @@
 
                 {% if is_manager %}
                 <!-- Management Hamburger Button -->
-                <div style="position: relative;" @click.away="mgmt = false">
-                    <button type="button" class="sb-btn" @click="mgmt = !mgmt; user = false"
-                            :aria-expanded="mgmt" aria-haspopup="true" aria-controls="sb-mgmt-menu"
-                            aria-label="منوی مدیریت سامانه"
-                            title="مدیریت سامانه (کلیک جهت باز شدن منو)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" aria-hidden="true">
+                <div class="sb-mgmt-btn-top" style="position: relative;" @click.outside="mgmt = false">
+                    <button type="button" class="sb-mgmt-btn"
+                            :class="{ 'is-active': mgmt }"
+                            @click.stop="mgmt = !mgmt; user = false; mobile = false"
+                            :aria-expanded="mgmt ? 'true' : 'false'" aria-haspopup="true" aria-controls="sb-mgmt-menu"
+                            aria-label="منوی مدیریت"
+                            title="مدیریت سیستم (کلیک جهت باز شدن منو)">
+                        <svg class="sb-mgmt-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" aria-hidden="true">
                             <line x1="4" y1="6" x2="20" y2="6"></line>
                             <line x1="4" y1="12" x2="20" y2="12"></line>
                             <line x1="4" y1="18" x2="20" y2="18"></line>
                         </svg>
-                        <span>مدیریت سامانه</span>
+                        <span>مدیریت</span>
                         <svg class="sb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" style="transition: transform 0.2s;" :style="mgmt ? 'transform: rotate(180deg);' : ''"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
 
                     <div id="sb-mgmt-menu" class="sb-dropdown sb-dropdown--mgmt" x-show="mgmt" x-cloak x-transition:enter="sb-t-enter" x-transition:enter-start="sb-t-from" x-transition:enter-end="sb-t-to" x-transition:leave="sb-t-leave" x-transition:leave-start="sb-t-to" x-transition:leave-end="sb-t-from">
                         <div class="sb-menu-label" style="display: flex; align-items: center; gap: 0.35rem; color: #0284c7; font-weight: 800; font-size: 0.78rem;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                            <span>مدیریت سامانه</span>
+                            <span>مدیریت سیستم</span>
                         </div>
                         <a href="{% url 'users_management' %}" class="sb-menu-item">
                             <span class="sb-chip sb-chip--blue"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
@@ -370,8 +519,8 @@
                 {% endif %}
 
                 {% if request.user.is_authenticated %}
-                <div style="position: relative;" @click.away="user = false">
-                    <button type="button" class="sb-user-btn" @click="user = !user; mgmt = false"
+                <div style="position: relative;" @click.outside="user = false">
+                    <button type="button" class="sb-user-btn" @click.stop="user = !user; mgmt = false; mobile = false"
                             :aria-expanded="user" aria-haspopup="true" aria-controls="sb-user-menu" aria-label="منوی کاربر">
                         {% if profile.avatar %}
                         <img src="{{ profile.avatar.url }}" alt="{{ profile.full_name }}" class="sb-avatar" style="object-fit: cover;">
@@ -380,7 +529,7 @@
                         {% endif %}
                         <span class="sb-user-text">
                             <div class="sb-user-name" title="{{ profile.full_name|default:request.user.username }}">{{ profile.full_name|default:request.user.username }}</div>
-                            <div class="sb-user-role">{% if profile.is_readonly %}حساب فقط خواندنی (رویت){% else %}{{ profile.role_title|default:'کارشناس سامانه' }}{% endif %}</div>
+                            <div class="sb-user-role">{% if profile.is_readonly %}حساب فقط خواندنی (رویت){% else %}{{ profile.role_title|default:'کارشناس' }}{% endif %}</div>
                         </span>
                         <svg class="sb-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2.2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
@@ -419,7 +568,7 @@
                         {% endif %}
 
                         <div class="sb-sep" style="padding-top: 4px; padding-bottom: 4px;">
-                            <button type="button" class="sb-menu-theme-toggle" onclick="window.SanadbanTheme.toggle()">
+                            <button type="button" class="sb-menu-item sb-menu-theme-toggle" onclick="window.SanadbanTheme.toggle()">
                                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                                     <span class="sb-chip sb-chip--slate" style="color: #38bdf8;">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -431,34 +580,36 @@
                                 </div>
                             </button>
                         </div>
+                        {% if request.user.is_superuser or request.user.is_staff or profile.is_housing_chief or profile.can_change_ui_mode %}
                         <div class="sb-sep" style="padding-top: 4px; padding-bottom: 4px;">
                             <button type="button" class="sb-menu-item" data-sb-mode-toggle aria-pressed="false"
-                                    onclick="window.SanadbanUiMode.toggle()">
+                                    onclick="window.SanadbanUiMode.toggle()" title="تغییر بین حالت ساده و پیشرفته">
                                 <span class="sb-chip sb-chip--sky"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg></span>
                                 <span style="flex: 1;">
-                                    <span style="display: block;">حالت ساده</span>
+                                    <span style="display: block;">حالت ساده (آسان)</span>
                                     <small style="font-weight: 600; font-size: .74rem; color: #64748b;">فقط بخش‌های مرتبط با من</small>
                                 </span>
                                 <span class="sb-switch" aria-hidden="true"></span>
                             </button>
                         </div>
+                        {% endif %}
                         <div class="sb-sep">
                             {# POST logout: required by Django 5+ #}
                             <form method="post" action="{% url 'logout' %}">
                                 {% csrf_token %}
                                 <button type="submit" class="sb-menu-item sb-menu-item--danger">
                                     <span class="sb-chip sb-chip--red"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
-                                    <span>خروج از سامانه</span>
+                                    <span>خروج</span>
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
                 {% else %}
-                <a href="{% url 'login' %}" class="sb-login">ورود به سامانه</a>
+                <a href="{% url 'login' %}" class="sb-login">ورود به مسکن یار</a>
                 {% endif %}
 
-                <button type="button" class="sb-burger" @click="mobile = !mobile"
+                <button type="button" class="sb-burger" @click.stop="mobile = !mobile; user = false; mgmt = false"
                         :aria-expanded="mobile" aria-controls="sb-mobile-panel" aria-label="باز و بسته کردن منو">
                     <svg x-show="!mobile" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                     <svg x-show="mobile" x-cloak width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -479,12 +630,37 @@
                 </button>
             </div>
 
+            {% if request.user.is_authenticated %}
+            <div class="sb-mobile-label">منوی کاربری</div>
+            <a href="{% url 'user_profile' %}" class="sb-link">پروفایل کاربری من</a>
+            <a href="{% url 'signed_dossiers_list' %}" class="sb-link">سوابق پرونده‌های امضا شده</a>
+            {% if can_manage_directorate_shipments %}
+            <a href="{% url 'directorate_shipments_list' %}" class="sb-link">تاریخچه ارسالی‌های راه و شهرسازی</a>
+            {% endif %}
+            {% if is_alireza_nazari %}
+            <a href="{% url 'stage17_18_excel_hub' %}" class="sb-link">ورود و خروج اکسل (۱۷ و ۱۸)</a>
+            {% endif %}
+            {% endif %}
+
             {% if is_manager %}
-            <div class="sb-mobile-label">مدیریت سامانه</div>
+            <div class="sb-mobile-label">مدیریت سیستم</div>
             <a href="{% url 'users_management' %}" class="sb-link">مدیریت کاربران و مراحل</a>
             <a href="{% url 'bank_letter_sender' %}" class="sb-link">ارسال دسته‌جمعی به بانک</a>
+            <a href="{% url 'excel_hub' %}" class="sb-link">مرکز اکسل و عملیات گروهی</a>
             <a href="{% url 'land_rates_admin' %}" class="sb-link">نرخ‌های مصوب عرصه (بخش ۹)</a>
             <a href="{% url 'audit_logs' %}" class="sb-link">ممیزی و ردگیری لاگ‌ها</a>
+            {% endif %}
+
+            {% if request.user.is_authenticated %}
+            <div style="padding: 0.5rem 1rem; border-top: 1px solid var(--sb-line); margin-top: 0.5rem;">
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="sb-link" style="width: 100%; justify-content: center; background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>خروج از حساب</span>
+                    </button>
+                </form>
+            </div>
             {% endif %}
         </nav>
     </header>

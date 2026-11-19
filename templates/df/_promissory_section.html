@@ -1,0 +1,308 @@
+{% comment %}
+Promissory note & installment commitment section for Loan / Prep.
+Handles:
+1. Promissory note & commitment letter metadata fields (number, amount, date, commitment number, date, checkbox)
+2. Automated installment schedule table generated based on automated breakdown
+3. Official print button (A4 commitment + installments + promissory details) for applicant signature & fingerprint
+4. Inline scan upload for signed commitment letter & promissory note
+5. Uploaded scans thumbnail gallery with preview & deletion
+{% endcomment %}
+<div class="df-field df-col-12" style="margin-top: 4px;">
+    <div class="df-panel df-theme-{{ theme }}" style="margin-bottom: 12px; border: 1.5px solid var(--t-accent, #f59e0b); background: #fffdfa; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.04);">
+        <!-- سربرگ پنل -->
+        <div class="df-panel-head" style="padding: 12px 16px;">
+            <div class="df-panel-title">
+                <svg class="df-i"><use href="#i-card"/></svg>
+                <span>{{ title }}</span>
+            </div>
+            <span class="df-pill df-pill-{{ theme }}">{{ badge }}</span>
+        </div>
+
+        <!-- متن رسمی تعهدنامه متقاضی -->
+        <div style="padding: 12px 16px; background: {% if theme == 'green' %}#f0fdf4{% else %}#fffbeb{% endif %}; border-bottom: 1px dashed {% if theme == 'green' %}#86efac{% else %}#fcd34d{% endif %}; font-size: 0.85rem; line-height: 1.85; color: {% if theme == 'green' %}#14532d{% else %}#78350f{% endif %};">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <svg class="df-i" style="width: 1.3em; height: 1.3em; flex-shrink: 0; margin-top: 2px;"><use href="#i-file"/></svg>
+                <div>
+                    <strong style="color: {% if theme == 'green' %}#15803d{% else %}#9a3412{% endif %};">متن تعهدنامه متقاضی:</strong>
+                    {% if kind == 'prep' %}
+                        «اینجانب متعهد می‌گردم کلیه اقساط و مبالغ ۸۰٪ غیرنقدی آماده‌سازی را بر اساس مبالغ و سررسیدهای جدول <span style="font-weight: 800; color: #15803d;">تولید و تقسیط خودکار</span> در موعد مقرر و سررسیدهای ۶ ماهه پرداخت نمایم. سفته تضمین ذیل به شماره <strong class="fa-num" x-text="form.prep_promissory_number || '—'"></strong> به مبلغ <strong class="fa-num" x-text="formatNumber(form.prep_promissory_amount || form.non_cash_preparation_amount || 0)"></strong> ریال، تا زمان تسویه کامل اقساط جهت ضمانت اجرای تعهد اخذ می‌گردد.»
+                    {% else %}
+                        «اینجانب متعهد می‌گردم کلیه اقساط و مبالغ وام دهک را دقیقاً بر اساس مبالغ و سررسیدهای جدول <span style="font-weight: 800; color: #b45309;">تولید و تقسیط خودکار</span> در موعد مقرر پرداخت نمایم. سفته تضمین ذیل به شماره <strong class="fa-num" x-text="form.loan_promissory_number || '—'"></strong> به مبلغ <strong class="fa-num" x-text="formatNumber(form.loan_promissory_amount || form.decile_loan_amount || 0)"></strong> ریال، تا زمان تسویه کامل اقساط جهت ضمانت اجرای تعهد اخذ می‌گردد.»
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- فیلدهای مشخصات سفته و تعهدنامه -->
+        <div class="df-grid" style="padding: 14px 16px;">
+            <!-- شماره سفته -->
+            <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('{{ ed }}')}">
+                <label class="df-label">
+                    <span>شماره سفته</span>
+                    <span class="required-mark" style="color: #dc2626;">*</span>
+                </label>
+                <input type="text" class="df-input fa-num" dir="ltr" x-model="form.{{ num_field }}" :readonly="!isFieldEditable('{{ ed }}')" placeholder="مثال: س/۸۸۹۹۰۰">
+            </div>
+
+            <!-- مبلغ سفته -->
+            <div class="df-field df-col-4" :class="{'is-locked': !isFieldEditable('{{ ed }}')}">
+                <label class="df-label">
+                    <span>مبلغ سفته (ریال)</span>
+                    <span class="required-mark" style="color: #dc2626;">*</span>
+                </label>
+                <div class="df-money">
+                    <input type="text" inputmode="numeric" class="df-input fa-num"
+                           :value="form.{{ amount_field }} ? formatNumber(form.{{ amount_field }}) : ''"
+                           @input="updateFormattedAmount(form, '{{ amount_field }}', $event); {{ recalc_method }}"
+                           @blur="formatAmountOnBlur(form, '{{ amount_field }}', $event); {{ recalc_method }}"
+                           :readonly="!isFieldEditable('{{ ed }}')" placeholder="۰">
+                    <span class="df-unit">ریال</span>
+                </div>
+                <small class="fa-num" style="color: {% if theme == 'green' %}#166534{% else %}#92400e{% endif %}; font-size: 0.74rem; margin-top: 3px;" x-show="form.{{ amount_field }}">
+                    معادل: <strong x-text="formatNumber(Math.round(form.{{ amount_field }} / 10))"></strong> تومان
+                </small>
+            </div>
+
+            <!-- تاریخ سفته -->
+            {% include "df/_date.html" with label="تاریخ سفته (شمسی)" cols=4 model="form."|add:date_field keyexpr="'"|add:date_field|add:"'" titleexpr="'"|add:date_title|add:"'" ph="۱۴۰۵/۰۵/۱۵" ed=ed %}
+
+            <!-- شماره تعهدنامه -->
+            {% include "df/_field.html" with name=commitment_num_field label="شماره تعهدنامه محضری / ثبتی" cols=4 ltr=1 num=1 ph="۱۲۴۰۵/ت" ed=ed %}
+
+            <!-- تاریخ تعهدنامه -->
+            {% include "df/_date.html" with label="تاریخ تعهدنامه (شمسی)" cols=4 model="form."|add:commitment_date_field keyexpr="'"|add:commitment_date_field|add:"'" titleexpr="'"|add:commitment_date_title|add:"'" ph="۱۴۰۵/۰۵/۱۵" ed=ed %}
+
+            <!-- تیک تایید اخذ تعهدنامه اقساط خودکار -->
+            <div class="df-field df-col-4" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                <label style="display: flex; align-items: center; gap: 7px; padding: 8px 10px; background: {% if theme == 'green' %}#dcfce7{% else %}#fef3c7{% endif %}; border: 1px solid {% if theme == 'green' %}#bbf7d0{% else %}#fde68a{% endif %}; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 700; color: {% if theme == 'green' %}#166534{% else %}#92400e{% endif %};">
+                    <input type="checkbox" x-model="form.{{ has_commitment_field }}" :disabled="!isFieldEditable('{{ ed }}')" style="width: 16px; height: 16px; accent-color: {% if theme == 'green' %}#15803d{% else %}#ea580c{% endif %};">
+                    <span>تعهدنامه پرداخت اقساط خودکار اخذ شد</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- ابزار تولید و تقسیط خودکار اقساط -->
+        <div style="border-top: 1px solid {% if theme == 'green' %}#bbf7d0{% else %}#fde68a{% endif %}; background: #fafbfc; padding: 12px 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg class="df-i" style="color: {% if theme == 'green' %}#15803d{% else %}#ea580c{% endif %};"><use href="#i-bolt"/></svg>
+                    <strong style="color: {% if theme == 'green' %}#166534{% else %}#9a3412{% endif %}; font-size: 0.88rem;">تنظیمات تولید و تقسیط خودکار اقساط متعهدشده:</strong>
+                </div>
+                <button type="button" class="df-btn df-btn-accent" @click="{{ recalc_method }}" :disabled="!isFieldEditable('{{ ed }}')">
+                    <svg class="df-i"><use href="#i-bolt"/></svg>
+                    <span>محاسبه و تقسیط خودکار اقساط</span>
+                </button>
+            </div>
+
+            <div class="df-grid">
+                <!-- تعداد اقساط -->
+                <div class="df-field df-col-4">
+                    <label class="df-label">تعداد اقساط:</label>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <input type="number" min="1" max="12" class="df-input fa-num" style="width: 65px; text-align: center; font-weight: 800;" x-model.number="{{ gen_count_model }}" @change="{{ recalc_method }}">
+                        <div style="display: flex; gap: 3px;">
+                            {% if kind == 'prep' %}
+                                <button type="button" class="df-btn df-btn-soft" style="padding: 2px 7px; font-size: 0.74rem;" @click="{{ gen_count_model }} = 2; {{ recalc_method }}">۲ قسط</button>
+                                <button type="button" class="df-btn df-btn-soft" style="padding: 2px 7px; font-size: 0.74rem;" @click="{{ gen_count_model }} = 3; {{ recalc_method }}">۳ قسط</button>
+                                <button type="button" class="df-btn df-btn-soft" style="padding: 2px 7px; font-size: 0.74rem;" @click="{{ gen_count_model }} = 4; {{ recalc_method }}">۴ قسط</button>
+                            {% else %}
+                                <button type="button" class="df-btn df-btn-soft" style="padding: 2px 7px; font-size: 0.74rem;" @click="{{ gen_count_model }} = 3; {{ recalc_method }}">۳ قسط</button>
+                                <button type="button" class="df-btn df-btn-soft" style="padding: 2px 7px; font-size: 0.74rem;" @click="{{ gen_count_model }} = 4; {{ recalc_method }}">۴ قسط</button>
+                                <button type="button" class="df-btn df-btn-soft" style="padding: 2px 7px; font-size: 0.74rem;" @click="{{ gen_count_model }} = 5; {{ recalc_method }}">۵ قسط</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تاریخ سررسید قسط اول -->
+                {% include "df/_date.html" with label="سررسید قسط اول (شمسی)" cols=4 model=gen_start_model keyexpr="'"|add:kind|add:"_gen_start'" titleexpr="'سررسید قسط اول'" ph="۱۴۰۶/۰۷/۳۰" ed=ed %}
+
+                <!-- فاصله اقساط -->
+                <div class="df-field df-col-4">
+                    <label class="df-label">توالی سررسیدها:</label>
+                    <div class="df-readonly-box fa-num" style="font-weight: 700; color: {% if theme == 'green' %}#166534{% else %}#9a3412{% endif %};">
+                        {{ gen_interval_text }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول اقساط تولید خودکار -->
+        <div style="border-top: 1px solid {% if theme == 'green' %}#bbf7d0{% else %}#fde68a{% endif %};">
+            <div class="df-scroll">
+                <table class="df-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px; text-align: center;">ردیف</th>
+                            <th style="width: 32%;">تاریخ سررسید قسط (شمسی)</th>
+                            <th style="width: 36%;">مبلغ قسط (ریال)</th>
+                            <th style="width: 32%;">معادل به تومان</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(inst, idx) in (form.{{ installments_field }} || [])" :key="idx">
+                            <tr>
+                                <td style="text-align: center;">
+                                    <span class="df-rowno fa-num" x-text="'قسط ' + (idx + 1)"></span>
+                                </td>
+                                <td>
+                                    <input type="text" class="df-input fa-num" dir="ltr" style="text-align: center; font-weight: 700;" x-model="inst.due_date" :readonly="!isFieldEditable('{{ ed }}')">
+                                </td>
+                                <td>
+                                    <div class="df-money">
+                                        <input type="text" inputmode="numeric" class="df-input fa-num"
+                                               :value="inst.amount ? formatNumber(inst.amount) : ''"
+                                               @input="updateFormattedAmount(inst, 'amount', $event)"
+                                               @blur="formatAmountOnBlur(inst, 'amount', $event)"
+                                               :readonly="!isFieldEditable('{{ ed }}')">
+                                        <span class="df-unit">ریال</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fa-num" style="font-weight: 700; color: {% if theme == 'green' %}#15803d{% else %}#b45309{% endif %};" x-text="formatNumber(Math.round((inst.amount || 0) / 10)) + ' تومان'"></span>
+                                </td>
+                            </tr>
+                        </template>
+                        <template x-if="!(form.{{ installments_field }} && form.{{ installments_field }}.length)">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 1.5rem; color: #64748b;">
+                                    هنوز اقساطی برای این تعهدنامه تولید نشده است. بر روی دکمه «محاسبه و تقسیط خودکار اقساط» کلیک کنید.
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- خلاصه تراز مجموع اقساط با سقف سفته -->
+            <div class="df-summary fa-num">
+                <div>
+                    مجموع <strong x-text="form.{{ installments_field }} ? form.{{ installments_field }}.length : 0"></strong> قسط تعهدنامه
+                </div>
+                <div>
+                    <span class="df-summary-total" x-text="formatNumber(getPromissoryInstallmentsTotal('{{ kind }}'))"></span>
+                    <span>ریال</span>
+                    <span class="df-pill">(<span x-text="formatNumber(Math.round(getPromissoryInstallmentsTotal('{{ kind }}') / 10))"></span> تومان)</span>
+                </div>
+                <div class="df-summary-sub">
+                    <div>{{ ceiling_label }}: <strong x-text="formatNumber(form.{{ amount_field }} || {{ ceiling_expr }} || 0) + ' ریال'"></strong></div>
+                    <div>
+                        <template x-if="getPromissoryInstallmentsTotal('{{ kind }}') === (Number(form.{{ amount_field }} || {{ ceiling_expr }}) || 0) && getPromissoryInstallmentsTotal('{{ kind }}') > 0">
+                            <span class="df-pill df-pill-green"><svg class="df-i"><use href="#i-check"/></svg>مجموع اقساط دقیقاً با مبلغ سفته منطبق است</span>
+                        </template>
+                        <template x-if="getPromissoryInstallmentsTotal('{{ kind }}') < (Number(form.{{ amount_field }} || {{ ceiling_expr }}) || 0)">
+                            <span class="df-pill" style="background:#fef3c7;color:#92400e;border-color:#fde68a;"><svg class="df-i"><use href="#i-alert"/></svg>مانده تا سقف سفته: <strong x-text="formatNumber((Number(form.{{ amount_field }} || {{ ceiling_expr }}) || 0) - getPromissoryInstallmentsTotal('{{ kind }}')) + ' ریال'"></strong></span>
+                        </template>
+                        <template x-if="getPromissoryInstallmentsTotal('{{ kind }}') > (Number(form.{{ amount_field }} || {{ ceiling_expr }}) || 0)">
+                            <span class="df-pill df-pill-red"><svg class="df-i"><use href="#i-alert"/></svg>مجموع اقساط از مبلغ سفته بیشتر است</span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نوار عملیات: چاپ تعهدنامه جهت امضای متقاضی + بارگذاری اسکن‌ها -->
+        <div style="border-top: 1.5px solid {% if theme == 'green' %}#86efac{% else %}#fde68a{% endif %}; background: {% if theme == 'green' %}#f0fdf4{% else %}#fffaf0{% endif %}; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                <div>
+                    <strong style="color: {% if theme == 'green' %}#166534{% else %}#9a3412{% endif %}; font-size: 0.92rem; display: block;">
+                        عملیات چاپ تعهدنامه جهت اخذ امضای متقاضی و بارگذاری اسکن مدارک:
+                    </strong>
+                    <span style="font-size: 0.77rem; color: #64748b; margin-top: 2px; display: block;">
+                        ابتدا تعهدنامه رسمی را چاپ نموده و پس از امضاء و اثر انگشت متقاضی، اسکن تعهدنامه و سفته را در بخش زیر بارگذاری نمایید.
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <!-- دکمه چاپ تعهدنامه -->
+                    <button type="button"
+                            class="df-btn df-btn-accent"
+                            @click="printPromissoryCommitment('{{ kind }}')"
+                            style="font-size: 0.85rem; font-weight: 800; padding: 7px 16px;"
+                            title="چاپ فرم رسمی تعهدنامه و جدول اقساط جهت امضاء و اثر انگشت متقاضی">
+                        <svg class="df-i"><use href="#i-print"/></svg>
+                        <span>چاپ تعهدنامه اقساط و سفته جهت امضای متقاضی 🖨️</span>
+                    </button>
+
+                    <!-- ورودی و دکمه بارگذاری اسکن تعهدنامه -->
+                    <input type="file" accept="image/*,application/pdf" id="{{ scan_input_commitment }}" @change="handlePromissoryScanUpload($event, '{{ kind }}', 'COMMITMENT_LETTER')" style="display:none;">
+                    <button type="button"
+                            class="df-btn df-btn-soft"
+                            @click="document.getElementById('{{ scan_input_commitment }}').click()"
+                            :disabled="isUploadingInlineScan"
+                            title="بارگذاری فایل اسکن تعهدنامه امضا شده توسط متقاضی">
+                        <svg class="df-i"><use href="#i-upload"/></svg>
+                        <span>بارگذاری اسکن تعهدنامه امضا شده 📄</span>
+                    </button>
+
+                    <!-- ورودی و دکمه بارگذاری اسکن سفته -->
+                    <input type="file" accept="image/*,application/pdf" id="{{ scan_input_promissory }}" @change="handlePromissoryScanUpload($event, '{{ kind }}', 'PROMISSORY_NOTE')" style="display:none;">
+                    <button type="button"
+                            class="df-btn df-btn-soft"
+                            @click="document.getElementById('{{ scan_input_promissory }}').click()"
+                            :disabled="isUploadingInlineScan"
+                            title="بارگذاری فایل اسکن سفته تضمین">
+                        <svg class="df-i"><use href="#i-upload"/></svg>
+                        <span>بارگذاری اسکن سفته تضمین 📑</span>
+                    </button>
+
+                    <!-- دکمه مشاهده در آلبوم اسناد -->
+                    <button type="button" class="df-btn" @click="tab = 'scans'; scrollToCategory('checks')" title="مشاهده کلیه مدارک در آلبوم اسناد">
+                        <svg class="df-i"><use href="#i-link"/></svg>
+                        <span>آلبوم اسناد</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- نوار پیشرفت بارگذاری -->
+            <div x-show="isUploadingInlineScan" x-cloak style="margin-bottom: 0.75rem; padding: 0.65rem 0.9rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #1e3a8a;">
+                    <span>در حال بارگذاری مدرک و ثبت در سیستم... (لطفاً مجدداً کلیک نکنید)</span>
+                    <span class="fa-num" x-text="inlineUploadProgress + '٪'"></span>
+                </div>
+                <div style="width: 100%; height: 6px; background: #dbeafe; border-radius: 999px; overflow: hidden;">
+                    <div :style="`width: ${Math.max(5, inlineUploadProgress)}%; height: 100%; background: #2563eb; transition: width 0.2s ease;`"></div>
+                </div>
+            </div>
+
+            <!-- گالری تصاویر اسکن شده سفته و تعهدنامه -->
+            <div x-data="{ pScans: [] }" x-effect="pScans = getPromissoryScans('{{ kind }}')">
+                <template x-if="pScans.length > 0">
+                    <div class="df-gallery">
+                        <template x-for="(scan, idx) in pScans" :key="scan.id">
+                            <div class="df-thumb" style="border: 1.5px solid {% if theme == 'green' %}#86efac{% else %}#fed7aa{% endif %};">
+                                <div class="df-thumb-no fa-num" style="display: flex; gap: 4px; align-items: center;">
+                                    <span class="df-pill fa-num" :class="scan.doc_type === 'COMMITMENT_LETTER' ? 'df-pill-blue' : 'df-pill-amber'" style="font-size: 0.68rem; padding: 1px 6px;" x-text="scan.doc_type === 'COMMITMENT_LETTER' ? 'تعهدنامه' : 'سفته'"></span>
+                                    <span x-text="(idx + 1) + ' / ' + pScans.length"></span>
+                                </div>
+                                <button type="button" class="df-thumb-del" x-show="canDeleteAttachment(scan)" title="حذف این مدرک" aria-label="حذف این مدرک" @click.stop="deleteAttachment(scan.id)">
+                                    <svg class="df-i" style="width:.8em;height:.8em;"><use href="#i-x"/></svg>
+                                </button>
+                                <div class="df-thumb-img" @click="openPreview(scan)">
+                                    <img :src="scan.preview_url" :alt="scan.title || 'اسکن سفته / تعهدنامه'">
+                                </div>
+                                <div class="df-thumb-foot fa-num">
+                                    <strong :title="scan.fileName || scan.file_name || scan.title" x-text="scan.fileName || scan.file_name || scan.title" style="direction: ltr; display: inline-block;"></strong>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 3px;">
+                                        <span x-text="scan.uploadDate || scan.uploaded_at || 'امروز'"></span>
+                                        <span style="color: #0284c7; cursor: pointer; font-weight: 700; font-size: 0.72rem;" @click.stop="openPreview(scan)">مشاهده 🔍</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <template x-if="pScans.length === 0">
+                    <div class="df-empty" style="border: 1.5px dashed {% if theme == 'green' %}#86efac{% else %}#fde68a{% endif %}; background: #ffffff; padding: 18px; border-radius: 10px;">
+                        <svg class="df-i" style="width: 2.2em; height: 2.2em; color: #94a3b8; margin-bottom: 6px;"><use href="#i-camera"/></svg>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: #475569;">هنوز هیچ برگه اسکن تعهدنامه یا سفته‌ای بارگذاری نشده است.</div>
+                        <div style="font-size: 0.76rem; color: #64748b; margin-top: 4px;">
+                            پس از پرینت، اخذ امضاء و اثر انگشت از متقاضی، می‌توانید اسکن تعهدنامه و سفته را با استفاده از دکمه‌های بالا بارگذاری نمایید.
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>

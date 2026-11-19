@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}مدیریت کاربران، کارشناسان و سطوح دسترسی مراحل | سامانه مسکن یار{% endblock %}
+{% block title %}مدیریت کاربران، کارشناسان و سطوح دسترسی مراحل | مسکن یار{% endblock %}
 
 {% block content %}
 <style>
@@ -83,14 +83,18 @@
             can_sign: true,
             is_active: true,
             allowed_stages: '',
-            selected_stages: []
+            selected_stages: [],
+            ui_mode: 'simple',
+            can_change_ui_mode: false
         },
 
         createUser: {
             is_housing_chief: false,
             is_readonly: false,
             can_sign: true,
-            selected_stages: ['1', '2', '3', '4']
+            selected_stages: ['1', '2', '3', '4'],
+            ui_mode: 'simple',
+            can_change_ui_mode: false
         },
 
         init() {
@@ -109,6 +113,8 @@
             if (!u) return;
             this.editUser = JSON.parse(JSON.stringify(u));
             this.editUser.is_readonly = Boolean(u.is_readonly);
+            this.editUser.ui_mode = u.ui_mode || 'simple';
+            this.editUser.can_change_ui_mode = Boolean(u.can_change_ui_mode);
             if (this.editUser.is_housing_chief || this.editUser.is_readonly || this.editUser.allowed_stages === 'all') {
                 this.editUser.selected_stages = [
                     '0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21'
@@ -213,7 +219,7 @@
         <div>
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
                 <span style="background: #2563eb; color: #fff; font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: 999px;">
-                    پنل مدیریت سامانه
+                    پنل مدیریت کاربران
                 </span>
                 <h2 style="font-size: 1.35rem; font-weight: 800; color: #0f2744; margin: 0;">
                     مدیریت کاربران، کارشناسان و کنترل دسترسی مراحل (۱ تا ۲۱)
@@ -243,7 +249,7 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             </div>
             <div>
-                <div style="font-size: 0.78rem; color: #64748b; font-weight: 600;">کل کاربران فعال سامانه</div>
+                <div style="font-size: 0.78rem; color: #64748b; font-weight: 600;">کل کاربران فعال</div>
                 <div style="font-size: 1.45rem; font-weight: 800; color: #0f2744;" class="fa-num">{{ users|length }}</div>
             </div>
         </div>
@@ -387,7 +393,7 @@
                 <span>فهرست کاربران و کنترل دسترسی مراحل</span>
             </div>
             <div style="font-size: 0.8rem; color: #64748b;" class="fa-num">
-                نمایش {{ users_data|length }} کاربر معتبر در سامانه
+                نمایش {{ users_data|length }} کاربر معتبر در مسکن یار
             </div>
         </div>
 
@@ -400,6 +406,7 @@
                         <th style="padding: 0.85rem 1rem;">سازمان متبوع</th>
                         <th style="padding: 0.85rem 1rem;">سمت / نقش سازمانی</th>
                         <th style="padding: 0.85rem 1rem;">مراحل مجاز اقدام (۱ تا ۲۱)</th>
+                        <th style="padding: 0.85rem 1rem; text-align: center;">حالت نمایش پرونده</th>
                         <th style="padding: 0.85rem 1rem; text-align: center;">مجوز امضا</th>
                         <th style="padding: 0.85rem 1rem; text-align: center;">وضعیت حساب</th>
                         <th style="padding: 0.85rem 1rem; text-align: center; width: 220px;">عملیات و مدیریت</th>
@@ -471,7 +478,7 @@
                             </span>
                             {% else %}
                             <span style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-size: 0.74rem; font-weight: 700; padding: 2px 7px; border-radius: 6px;">
-                                مدیریت سامانه
+                                مدیریت کاربران
                             </span>
                             {% endif %}
                         </td>
@@ -506,6 +513,28 @@
                                     {% empty %}
                                     <span style="color: #94a3b8; font-size: 0.75rem;">فاقد مرحله مجاز</span>
                                     {% endfor %}
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- UI Mode Badge -->
+                        <td style="padding: 0.85rem 1rem; text-align: center;">
+                            {% if u.ui_mode == 'advanced' %}
+                            <span style="background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-size: 0.74rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;">
+                                <span>⚙️</span>
+                                <span>پیشرفته</span>
+                            </span>
+                            {% else %}
+                            <span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.74rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;">
+                                <span>⚡</span>
+                                <span>آسان (ساده)</span>
+                            </span>
+                            {% endif %}
+                            <div style="font-size: 0.68rem; margin-top: 3px;">
+                                {% if u.allowed_to_change_ui_mode %}
+                                <span style="color: #16a34a; font-weight: 700;">✓ دسترسی تغییر دارد</span>
+                                {% else %}
+                                <span style="color: #94a3b8; font-weight: 600;">🔒 قفل شده</span>
                                 {% endif %}
                             </div>
                         </td>
@@ -718,6 +747,38 @@
                         </div>
                     </div>
 
+                    <!-- UI Mode & Permission Block -->
+                    <div style="grid-column: span 2; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 0.85rem 1rem;">
+                        <div style="font-weight: 800; font-size: 0.88rem; color: #0f2744; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+                            <span>تنظیمات حالت نمایش کاربر (آسان / پیشرفته)</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; align-items: center;">
+                            <div>
+                                <label for="edit-ui-mode" style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.3rem;">
+                                    حالت نمایش انتسابی به کاربر:
+                                </label>
+                                <select name="ui_mode" id="edit-ui-mode" x-model="editUser.ui_mode" class="input-control" style="width: 100%; height: 38px; font-size: 0.82rem; border: 1.5px solid #cbd5e1; border-radius: 6px; background: #ffffff;">
+                                    <option value="simple">حالت ساده (آسان) — فقط مراحل مرتبط (توصیه شده)</option>
+                                    <option value="advanced">حالت پیشرفته — نمایش کامل همه مراحل و تب‌ها</option>
+                                </select>
+                            </div>
+                            <div style="padding-top: 1.25rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" name="can_change_ui_mode" id="edit-can-change-ui-mode" x-model="editUser.can_change_ui_mode" style="width: 18px; height: 18px; accent-color: #0ea5e9;">
+                                    <div>
+                                        <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b;">
+                                            مجوز تغییر حالت توسط کاربر
+                                        </div>
+                                        <div style="font-size: 0.7rem; color: #64748b;">
+                                            در صورت عدم فعال‌سازی، کاربر فقط در حالت انتسابی فوق کار خواهد کرد.
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Additional Toggles -->
                     <div style="grid-column: span 1; display: flex; align-items: center; gap: 0.5rem;">
                         <input type="checkbox" name="can_sign" id="edit-can-sign" x-model="editUser.can_sign" :disabled="editUser.is_readonly" style="width: 16px; height: 16px; accent-color: #2563eb;">
@@ -755,7 +816,7 @@
             <div style="background: linear-gradient(135deg, #0f2744 0%, #1e3a8a 100%); color: #ffffff; padding: 1.15rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
                 <div style="font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                    <span>تعریف کاربر و کارشناس جدید سامانه</span>
+                    <span>تعریف کاربر و کارشناس جدید مسکن یار</span>
                 </div>
                 <button type="button" @click="showCreateModal = false" style="background: none; border: none; color: #cbd5e1; font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
@@ -882,6 +943,38 @@
                                 </div>
                             </label>
                             {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- UI Mode & Permission Block for Create Modal -->
+                    <div style="grid-column: span 2; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 0.85rem 1rem;">
+                        <div style="font-weight: 800; font-size: 0.88rem; color: #0f2744; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+                            <span>تنظیمات حالت نمایش کاربر (آسان / پیشرفته)</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; align-items: center;">
+                            <div>
+                                <label for="create-ui-mode" style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.3rem;">
+                                    حالت نمایش انتسابی:
+                                </label>
+                                <select name="ui_mode" id="create-ui-mode" x-model="createUser.ui_mode" class="input-control" style="width: 100%; height: 38px; font-size: 0.82rem; border: 1.5px solid #cbd5e1; border-radius: 6px; background: #ffffff;">
+                                    <option value="simple">حالت ساده (آسان) — توصیه شده</option>
+                                    <option value="advanced">حالت پیشرفته — نمایش کامل همه مراحل</option>
+                                </select>
+                            </div>
+                            <div style="padding-top: 1.25rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" name="can_change_ui_mode" id="create-can-change-ui-mode" x-model="createUser.can_change_ui_mode" style="width: 18px; height: 18px; accent-color: #0ea5e9;">
+                                    <div>
+                                        <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b;">
+                                            مجوز تغییر حالت توسط کاربر
+                                        </div>
+                                        <div style="font-size: 0.7rem; color: #64748b;">
+                                            در صورت عدم فعال‌سازی، کاربر فقط در حالت فوق کار می‌کند.
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
                         </div>
                     </div>
 

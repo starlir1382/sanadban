@@ -96,14 +96,10 @@
             <div style="text-align: center; width: 36%;">
                 <div style="font-size: 10.5pt; font-weight: bold; margin-bottom: 5px;">«بسمه تعالی»</div>
                 <div style="margin-bottom: 6px;">
-                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.6">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                        <line x1="2" y1="12" x2="22" y2="12"></line>
-                    </svg>
+                    <img src="{% static 'img/favicon.svg' %}" width="44" height="44" alt="لوگو مسکن یار" style="display: block; margin: 0 auto;">
                 </div>
                 <h2 style="font-size: 12pt; font-weight: 900; margin: 0; color: #991b1b;">ابلاغیه رسمی عدم احراز شرایط و رد درخواست</h2>
-                <h3 style="font-size: 9pt; margin: 3px 0 0 0; color: #475569;">طرح نهضت ملی مسکن (سامانه مسکن یار)</h3>
+                <h3 style="font-size: 9pt; margin: 3px 0 0 0; color: #475569;">طرح نهضت ملی مسکن (مسکن یار)</h3>
             </div>
 
             <div class="fa-num" style="width: 32%; text-align: left; font-size: 8.5pt; line-height: 1.8;">
@@ -175,7 +171,7 @@
         <!-- Final Decision -->
         <div style="text-align: justify; line-height: 1.9; font-size: 9.8pt; margin: 18px 0; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 14px 18px;">
             <strong>دستور مقام صادرکننده:</strong><br>
-            بنا به مراتب فوق، تخصیص هرگونه زمین یا واحد مسکونی به جنابعالی کان‌لم‌یکن تلقی گردیده و پرونده در سامانه جامع مسکن با وضعیت <strong>«رد صلاحیت قطعی و فاقد شرایط»</strong> مختومه و بایگانی دائم شد. واحد مسکونی مربوطه جهت تخصیص مجدد به متقاضیان واجد شرایط به بانک پروژه بازگردانده می‌شود.
+            بنا به مراتب فوق، تخصیص هرگونه زمین یا واحد مسکونی به جنابعالی کان‌لم‌یکن تلقی گردیده و پرونده در سیستم جامع مسکن با وضعیت <strong>«رد صلاحیت قطعی و فاقد شرایط»</strong> مختومه و بایگانی دائم شد. واحد مسکونی مربوطه جهت تخصیص مجدد به متقاضیان واجد شرایط به بانک پروژه بازگردانده می‌شود.
         </div>
 
         <!-- Official Signatures -->
@@ -202,7 +198,7 @@
 
         <!-- Watermark / Footer Security -->
         <div class="fa-num" style="position: absolute; bottom: 12mm; right: 20mm; left: 20mm; border-top: 1px solid #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; font-size: 7.5pt; color: #64748b;">
-            <span>سامانه جامع پایش و ثبت قرارداد مسکن (مسکن یار) • سند رسمی غیرقابل تغییر</span>
+            <span>مسکن یار • سند رسمی غیرقابل تغییر</span>
             <span>شناسه امنیتی: RED-{{ dossier.display_number }}-{{ dossier.national_id }} • تاریخ صدور: {{ today_jalali }}</span>
         </div>
     </div>

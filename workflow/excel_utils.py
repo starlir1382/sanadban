@@ -1046,6 +1046,8 @@ def clean_field_value(field_name: str, field_type: str, val: Any) -> Tuple[Optio
     else:
         # String cleaner
         s = clean_digits(val).strip()
+        if field_name == "site" and ("رئیسی" in s or "رییسی" in s):
+            return "رئیسی 560 هکتار", None
         max_len = FIELD_MAX_LENGTHS.get(field_name)
         if max_len and len(s) > max_len:
             return None, f"طول متن ({len(s)}) بیشتر از حد مجاز فیلد ({max_len} کاراکتر) است."

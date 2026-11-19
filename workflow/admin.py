@@ -3,8 +3,8 @@ from .models import Site, Project, PreSelectedUnit, HousingDossier, DossierAttac
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "full_name", "role_title", "ui_mode", "allowed_stages", "is_housing_chief", "is_check_admin")
-    list_filter = ("ui_mode", "is_housing_chief", "is_check_admin")
+    list_display = ("user", "full_name", "role_title", "ui_mode", "can_change_ui_mode", "allowed_stages", "is_housing_chief", "is_check_admin")
+    list_filter = ("ui_mode", "can_change_ui_mode", "is_housing_chief", "is_check_admin")
     search_fields = ("user__username", "full_name", "role_title")
 
 @admin.register(Site)

@@ -13,8 +13,8 @@ const SECTION_STAGE_MAP = {
   "section-docs-installment": [7, 8, 9, 21, 22],
   "section-notary": [20, 21, 22],
   "section-lease-contract": [21, 22],
-  "section-valuation": [16, 19],
-  "section-valuation-rent": [16, 19],
+  "section-valuation": [16, 17, 18, 19],
+  "section-valuation-rent": [16, 17, 18, 19],
   "section-checks": [17, 18],
   "scans-album-section": [1, 7, 11, 13, 17, 18, 20, 21],
 };
@@ -72,7 +72,7 @@ const FIELD_STAGE_MAP = {
   separated_plaque: [8, 9, 12],
   sub_plaque: [8, 9, 12],
   plot_number: [8, 9, 12],
-  renovation_code: [8, 9, 12],
+  renovation_code: [1, 2, 8, 9, 12],
   base_cost_without_loan: [8, 9, 19],
   form_j_registration_type: [3, 10, 11],
   form_j_questionnaire_number: [1, 3, 7, 8, 11],
@@ -85,7 +85,7 @@ const FIELD_STAGE_MAP = {
   spouse_form_j_red_description: [1, 3, 8, 11],
   fund_loan_amount: [4, 19],
   contractor_letter_amount: [4, 19],
-  decile_loan_amount: [4, 19],
+  decile_loan_amount: [4, 17, 18, 19],
   applicant_equity: [5],
   is_sms_sent: [5],
   sms_sent_at: [5],
@@ -119,6 +119,13 @@ const FIELD_STAGE_MAP = {
   total_check_amount: [17],
   commitment_number: [17, 18],
   commitment_date: [17, 18],
+  loan_has_promissory_note: [17, 18],
+  loan_promissory_number: [17, 18],
+  loan_promissory_amount: [17, 18],
+  loan_promissory_date: [17, 18],
+  loan_has_commitment_letter: [17, 18],
+  loan_promissory_installments: [17, 18],
+  loan_promissory_installments_json: [17, 18],
   check_entries_json: [17, 18],
   is_decile_loan_confirmed: [17, 18],
   tenant_price: [17, 18],
@@ -130,6 +137,15 @@ const FIELD_STAGE_MAP = {
   preparation_service_fee: [17, 18],
   preparation_check_count: [17, 18],
   total_preparation_check_amount: [17, 18],
+  prep_has_promissory_note: [17, 18],
+  prep_promissory_number: [17, 18],
+  prep_promissory_amount: [17, 18],
+  prep_promissory_date: [17, 18],
+  prep_commitment_number: [17, 18],
+  prep_commitment_date: [17, 18],
+  prep_has_commitment_letter: [17, 18],
+  prep_promissory_installments: [17, 18],
+  prep_promissory_installments_json: [17, 18],
   preparation_check_entries_json: [17, 18],
   is_preparation_checks_confirmed: [17, 18],
   visit_date: [17, 18],
@@ -979,6 +995,12 @@ document.addEventListener("alpine:init", () => {
       total_check_amount: 0,
       commitment_number: "",
       commitment_date: "",
+      loan_has_promissory_note: false,
+      loan_promissory_number: "",
+      loan_promissory_amount: 0,
+      loan_promissory_date: "",
+      loan_has_commitment_letter: false,
+      loan_promissory_installments: [],
       check_entries: [],
 
       // TashilatCheck: Rent & 20%/80% Preparation
@@ -990,6 +1012,14 @@ document.addEventListener("alpine:init", () => {
       preparation_service_fee: 0,
       preparation_check_count: 0,
       total_preparation_check_amount: 0,
+      prep_has_promissory_note: false,
+      prep_promissory_number: "",
+      prep_promissory_amount: 0,
+      prep_promissory_date: "",
+      prep_commitment_number: "",
+      prep_commitment_date: "",
+      prep_has_commitment_letter: false,
+      prep_promissory_installments: [],
       preparation_check_entries: [],
       rah_letter: "",
       rah_letter_date: "",
@@ -1255,6 +1285,20 @@ document.addEventListener("alpine:init", () => {
       this.recalculateEquity();
 
       this.$watch("form.site", (val) => {
+        const normVal = this.normalizeCatalogText(val);
+        if (
+          normVal === "رئیسی" ||
+          normVal === "رییسی" ||
+          normVal === "شهید رئیسی" ||
+          normVal === "شهید رییسی" ||
+          normVal === "سایت رئیسی" ||
+          normVal === "سایت رییسی" ||
+          normVal === "آیت الله رئیسی" ||
+          normVal === "سایت شهید رئیسی"
+        ) {
+          this.form.site = "رئیسی 560 هکتار";
+          return;
+        }
         this.syncConstructionTypeBySite(val);
         this.syncUnitDirectionByConstruction();
       });
@@ -2876,6 +2920,10 @@ document.addEventListener("alpine:init", () => {
       // Locked/archived dossiers have no active action stage
       if (this.isLocked || Number(this.currentStage) >= 22) return false;
       const stg = Number(this.currentStage);
+      // Stages 17 and 18 have read-only view of section-valuation; their active card is section-checks
+      if ((sectionId === "section-valuation" || sectionId === "section-valuation-rent") && [17, 18].includes(stg)) {
+        return false;
+      }
       const mapping = SECTION_STAGE_MAP;
       return mapping[sectionId] ? mapping[sectionId].includes(stg) : false;
     },
@@ -2914,28 +2962,28 @@ document.addEventListener("alpine:init", () => {
     isApartmentSite(siteName) {
       const s = this.normalizeCatalogText(siteName);
       if (!s) return null;
-      return s.includes("560") || s.includes("27");
+      return s.includes("560") || s.includes("27") || s.includes("رئیسی") || s.includes("رییسی");
     },
 
     isVillaConstruction() {
+      const ct = String((this.form && this.form.construction_type) || "").trim();
+      if (ct) {
+        return ct.includes("ویلایی");
+      }
       const bySite = this.isApartmentSite(this.form && this.form.site);
       if (bySite === true) return false;
       if (bySite === false) return true;
-      const ct = String((this.form && this.form.construction_type) || "").trim();
-      return ct.includes("ویلایی");
+      return false;
     },
 
     syncConstructionTypeBySite(siteName = null) {
       if (!this.form || !this.isFieldEditable("construction_type")) return;
       const targetSite = siteName !== null ? siteName : this.form.site;
       const isApt = this.isApartmentSite(targetSite);
-      if (isApt === true) {
-        if (this.form.construction_type !== "آپارتمانی") {
+      if (!this.form.construction_type) {
+        if (isApt === true) {
           this.form.construction_type = "آپارتمانی";
-        }
-      } else if (isApt === false) {
-        const cur = String(this.form.construction_type || "").trim();
-        if (!cur.includes("ویلایی")) {
+        } else if (isApt === false) {
           this.form.construction_type = "ویلایی";
         }
       }
@@ -2947,7 +2995,7 @@ document.addEventListener("alpine:init", () => {
       if (this.isVillaConstruction()) {
         if (
           this.isFieldEditable("unit_direction") &&
-          this.form.unit_direction !== "شمالی"
+          !this.form.unit_direction
         ) {
           this.form.unit_direction = "شمالی";
         }
@@ -2973,7 +3021,12 @@ document.addEventListener("alpine:init", () => {
               !q ||
               norm(s.value).includes(q) ||
               norm(s.csv_label).includes(q) ||
-              norm(s.city).includes(q),
+              norm(s.city).includes(q) ||
+              (s.value === "رئیسی 560 هکتار" &&
+                (q.includes("رئیسی") ||
+                  q.includes("رییسی") ||
+                  "رئیسی".includes(q) ||
+                  "رییسی".includes(q))),
           )
           .map((s) => ({
             key: `site-${s.value}`,
@@ -2981,7 +3034,13 @@ document.addEventListener("alpine:init", () => {
             primary: s.value,
             secondary: s.csv_label && s.csv_label !== s.value ? s.csv_label : "",
             badge: "",
-            aliases: [s.value, s.csv_label],
+            aliases: [
+              s.value,
+              s.csv_label,
+              ...(s.value === "رئیسی 560 هکتار"
+                ? ["رئیسی", "رییسی", "شهید رئیسی", "شهید رییسی", "سایت رئیسی", "سایت رییسی", "560 هکتاری", "560 هکتار"]
+                : []),
+            ],
             raw: s,
           }));
       }
@@ -3090,6 +3149,22 @@ document.addEventListener("alpine:init", () => {
     findExactCatalogItem(kind, rawVal) {
       const target = this.normalizeCatalogText(rawVal);
       if (!target) return null;
+      if (
+        kind === "site" &&
+        (target === "رئیسی" ||
+          target === "رییسی" ||
+          target === "شهید رئیسی" ||
+          target === "شهید رییسی" ||
+          target === "سایت رئیسی" ||
+          target === "سایت رییسی" ||
+          target === "آیت الله رئیسی" ||
+          target.includes("رئیسی") ||
+          target.includes("رییسی"))
+      ) {
+        const items = this.getCatalogItems("site", "", false);
+        const match = items.find((it) => it.value === "رئیسی 560 هکتار");
+        if (match) return match;
+      }
       const items = this.getCatalogItems(kind, "", false);
       return (
         items.find((it) => {
@@ -3146,6 +3221,16 @@ document.addEventListener("alpine:init", () => {
       if (!cur) {
         this.form[fieldName] = "";
         return "";
+      }
+      if (
+        kind === "site" &&
+        (cur === "رئیسی" ||
+          cur === "رییسی" ||
+          this.normalizeCatalogText(cur) === "رئیسی" ||
+          this.normalizeCatalogText(cur) === "رییسی")
+      ) {
+        this.form[fieldName] = "رئیسی 560 هکتار";
+        return "رئیسی 560 هکتار";
       }
       const exact = this.findExactCatalogItem(kind, cur);
       if (exact) {
@@ -3473,6 +3558,237 @@ document.addEventListener("alpine:init", () => {
       } else {
         event.target.value = "";
       }
+    },
+
+    toggleLoanPromissory() {
+      if (this.form.loan_has_promissory_note) {
+        // Clear / delete checks when promissory note is used
+        this.form.check_entries = [];
+        this.form.check_count = 0;
+        this.form.check_amount = 0;
+        this.form.last_check_amount = 0;
+        this.form.total_check_amount = 0;
+
+        if (!this.form.loan_promissory_amount || Number(this.form.loan_promissory_amount) === 0) {
+          const decileVal = Number(this.form.decile_loan_amount) || Number(this.form.total_check_amount) || 0;
+          if (decileVal > 0) {
+            this.form.loan_promissory_amount = decileVal;
+          }
+        }
+        if (this.form.loan_promissory_amount && (!this.form.decile_loan_amount || Number(this.form.decile_loan_amount) === 0)) {
+          this.form.decile_loan_amount = this.form.loan_promissory_amount;
+        }
+        if (!this.form.loan_promissory_date) {
+          this.form.loan_promissory_date = this.getTodayJalali();
+        }
+        if (!this.form.commitment_date) {
+          this.form.commitment_date = this.getTodayJalali();
+        }
+        if (this.form.loan_promissory_amount > 0) {
+          this.generateLoanPromissoryInstallmentsAuto(false);
+        } else {
+          this.form.loan_promissory_installments = [];
+        }
+        this.triggerToast("روش پرداخت به سفته تضمین تغییر یافت و چک‌های صیادی حذف گردیدند.", "info");
+      }
+    },
+
+    togglePrepPromissory() {
+      if (this.form.prep_has_promissory_note) {
+        // Clear / delete checks when promissory note is used
+        this.form.preparation_check_entries = [];
+        this.form.preparation_check_count = 0;
+        this.form.total_preparation_check_amount = 0;
+
+        if (!this.form.prep_promissory_amount || Number(this.form.prep_promissory_amount) === 0) {
+          const prepVal = Number(this.form.non_cash_preparation_amount) ||
+                          Number(this.form.total_preparation_check_amount) ||
+                          this.getAppraisalInstallment() ||
+                          Math.round((Number(this.form.preparation_cost) || 0) * 0.8) || 0;
+          if (prepVal > 0) {
+            this.form.prep_promissory_amount = prepVal;
+          }
+        }
+        if (this.form.prep_promissory_amount && (!this.form.non_cash_preparation_amount || Number(this.form.non_cash_preparation_amount) === 0)) {
+          this.form.non_cash_preparation_amount = this.form.prep_promissory_amount;
+        }
+        if (!this.form.prep_promissory_date) {
+          this.form.prep_promissory_date = this.getTodayJalali();
+        }
+        if (!this.form.prep_commitment_date) {
+          this.form.prep_commitment_date = this.getTodayJalali();
+        }
+        this.generatePrepPromissoryInstallmentsAuto(false);
+        this.triggerToast("روش پرداخت آماده‌سازی به سفته تضمین تغییر یافت و چک‌ها حذف گردیدند.", "info");
+      }
+    },
+
+    generateLoanPromissoryInstallmentsAuto(notify = true) {
+      const count = Math.max(1, Math.min(12, Number(this.checkGenerator.count) || 4));
+      let totalAmount = Number(this.form.loan_promissory_amount) || Number(this.form.decile_loan_amount) || 0;
+      if (!totalAmount && this.form.loan_promissory_installments && this.form.loan_promissory_installments.length) {
+        totalAmount = this.form.loan_promissory_installments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      }
+      if (totalAmount <= 0) {
+        this.form.loan_promissory_installments = [];
+        if (notify) {
+          this.triggerToast("لطفاً ابتدا مبلغ سفته یا وام دهک را وارد نمایید.", "warning");
+        }
+        return;
+      }
+      if (totalAmount > 0) {
+        if (!this.form.loan_promissory_amount) this.form.loan_promissory_amount = totalAmount;
+        if (!this.form.decile_loan_amount) this.form.decile_loan_amount = totalAmount;
+      }
+      let startDate = this.checkGenerator.startDate;
+      if (!startDate) {
+        startDate = this.addYearsToJalali(this.getTodayJalali(), 1);
+        this.checkGenerator.startDate = startDate;
+      }
+      const { baseCheck, lastCheck } = this.calculateCheckInstallments(totalAmount, count);
+      const rows = [];
+      for (let i = 0; i < count; i++) {
+        const dueDate = this.advanceJalaliDate(startDate, i, this.checkGenerator.interval || 1);
+        const amt = i === count - 1 ? lastCheck : baseCheck;
+        rows.push({
+          row_number: i + 1,
+          due_date: dueDate,
+          amount: amt,
+        });
+      }
+      this.form.loan_promissory_installments = rows;
+      if (notify) {
+        this.triggerToast(`تعداد ${count} قسط تعهدنامه تسهیلات بر اساس تقسیط خودکار ایجاد گردید.`, "success");
+      }
+    },
+
+    generatePrepPromissoryInstallmentsAuto(notify = true) {
+      const count = Math.max(1, Math.min(10, Number(this.prepCheckGenerator.count) || 3));
+      let totalAmount = Number(this.form.prep_promissory_amount) ||
+                        Number(this.form.non_cash_preparation_amount) ||
+                        this.getAppraisalInstallment() ||
+                        Math.round((Number(this.form.preparation_cost) || 0) * 0.8) || 0;
+      if (totalAmount > 0) {
+        if (!this.form.prep_promissory_amount) this.form.prep_promissory_amount = totalAmount;
+        if (!this.form.non_cash_preparation_amount) this.form.non_cash_preparation_amount = totalAmount;
+      }
+      let startDate = this.prepCheckGenerator.startDate;
+      if (!startDate) {
+        startDate = this.addSixMonthsCustomJalali(this.getTodayJalali());
+        this.prepCheckGenerator.startDate = startDate;
+      }
+      const { baseCheck, lastCheck } = this.calculateCheckInstallments(totalAmount, count);
+      const rows = [];
+      let curDate = startDate;
+      for (let i = 0; i < count; i++) {
+        const dueDate = i === 0 ? startDate : this.addSixMonthsCustomJalali(curDate);
+        curDate = dueDate;
+        const amt = i === count - 1 ? lastCheck : baseCheck;
+        rows.push({
+          row_number: i + 1,
+          due_date: dueDate,
+          amount: amt,
+        });
+      }
+      this.form.prep_promissory_installments = rows;
+      if (notify) {
+        this.triggerToast(`تعداد ${count} قسط تعهدنامه آماده‌سازی بر اساس تقسیط خودکار ۶ ماهه ایجاد گردید.`, "success");
+      }
+    },
+
+    async printPromissoryCommitment(type = "loan") {
+      const pk = this.archiveNumber || this.dossierId;
+      if (!pk) return;
+
+      // Ensure installments are generated before print
+      if (type === "prep") {
+        const total = this.getPromissoryInstallmentsTotal("prep");
+        if (!this.form.prep_promissory_installments || this.form.prep_promissory_installments.length === 0 || total === 0) {
+          this.generatePrepPromissoryInstallmentsAuto(false);
+        }
+      } else {
+        const total = this.getPromissoryInstallmentsTotal("loan");
+        if (!this.form.loan_promissory_installments || this.form.loan_promissory_installments.length === 0 || total === 0) {
+          this.generateLoanPromissoryInstallmentsAuto(false);
+        }
+      }
+
+      // Auto-save draft before opening print preview so DB has latest promissory note info and installments
+      if (!this.isViewOnly && !this.isLocked) {
+        try {
+          this.triggerToast("در حال ذخیره اطلاعات و آماده‌سازی برگه تعهدنامه...", "info");
+          await this.saveDossierDraft(false);
+        } catch (err) {
+          console.error("Auto-save failed before print:", err);
+        }
+      }
+
+      window.open(`/dossier/${pk}/print/promissory-commitment/?type=${type}&auto_print=1`, "_blank");
+    },
+
+    async handlePromissoryScanUpload(event, type = "loan", docType = "COMMITMENT_LETTER") {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const pk = this.archiveNumber || this.dossierId;
+      const title = docType === "COMMITMENT_LETTER"
+        ? `تعهدنامه امضا شده متقاضی (${type === "prep" ? "آماده‌سازی" : "تسهیلات"})`
+        : `اسکن سفته تضمین (${type === "prep" ? "آماده‌سازی" : "تسهیلات"})`;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("doc_type", docType);
+      formData.append("stage", type === "prep" ? 18 : 17);
+      formData.append("title", title);
+      formData.append("upload_token", this._makeUploadToken());
+
+      this.isUploadingInlineScan = true;
+      this.triggerToast(`در حال بارگذاری ${title}...`, "info");
+      try {
+        const { ok, data } = await this._postFormDataWithProgress(`/dossier/${pk}/upload-scan/`, formData, {
+          onProgress: ({ percent }) => { this.inlineUploadProgress = percent; },
+        });
+        if (ok && data.status === "success") {
+          if (data.attachment) {
+            this._upsertAttachments([data.attachment]);
+          }
+          if (docType === "COMMITMENT_LETTER") {
+            if (type === "prep") {
+              this.form.prep_has_commitment_letter = true;
+            } else {
+              this.form.loan_has_commitment_letter = true;
+            }
+          }
+          this.triggerToast(`${title} با موفقیت بارگذاری و ذخیره شد ✓`, "success");
+        } else {
+          this.triggerToast(data.message || "خطا در بارگذاری مدرک.", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        this.triggerToast("خطا در ارتباط با سرور.", "error");
+      } finally {
+        this.isUploadingInlineScan = false;
+        this.inlineUploadProgress = 0;
+        if (event.target) event.target.value = "";
+      }
+    },
+
+    getPromissoryScans(type = "loan") {
+      const stageNum = type === "prep" ? 18 : 17;
+      return (this.attachments || []).filter((a) => {
+        const isDocMatch = a.doc_type === "COMMITMENT_LETTER" || a.doc_type === "PROMISSORY_NOTE";
+        if (!isDocMatch) return false;
+        const ttl = (a.title || "").toLowerCase();
+        if (type === "loan" && (ttl.includes("آماده‌سازی") || ttl.includes("اجاره"))) return false;
+        if (type === "prep" && (ttl.includes("تسهیلات") || ttl.includes("وام"))) return false;
+        if (Number(a.stage) === stageNum) return true;
+        return type === "prep" ? ttl.includes("آماده‌سازی") : (ttl.includes("تسهیلات") || ttl.includes("وام"));
+      });
+    },
+
+    getPromissoryInstallmentsTotal(type = "loan") {
+      const list = type === "prep" ? this.form.prep_promissory_installments : this.form.loan_promissory_installments;
+      if (!Array.isArray(list)) return 0;
+      return list.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     },
 
     generateChecksAuto() {
@@ -4494,13 +4810,13 @@ document.addEventListener("alpine:init", () => {
             rent_to_date_per_m2: Number(d.rent_to_date_per_m2 || 0),
             prep_per_m2: Number(d.prep_per_m2 || 0),
           };
-          if (!this.form.renovation_code && d.renovation_code) {
+          if (!this.form.renovation_code && d.renovation_code && d.match_tier === "project_plot_block") {
             this.form.renovation_code = d.renovation_code;
           }
-          if (!this.form.plot_number && d.plot_number) {
+          if (!this.form.plot_number && d.plot_number && d.match_tier === "code") {
             this.form.plot_number = d.plot_number;
           }
-          if (!this.form.block_name && d.block_name) {
+          if (!this.form.block_name && d.block_name && d.match_tier === "code") {
             this.form.block_name = d.block_name;
           }
           this.triggerToast("ارقام بخش ۹ بر اساس نرخ مصوب با موفقیت محاسبه شدند.", "success");
@@ -4976,6 +5292,13 @@ if (document.readyState === "loading") {
 // UI Mode Manager: حالت ساده / حالت پیشرفته (saved on the user's profile)
 // =========================================================================
 window.SanadbanUiMode = {
+  canChange() {
+    if (typeof window.SB_CAN_CHANGE_UI_MODE === "boolean") {
+      return window.SB_CAN_CHANGE_UI_MODE;
+    }
+    return true;
+  },
+
   get() {
     const attr = document.documentElement.getAttribute("data-ui-mode");
     if (attr === "simple" || attr === "advanced") return attr;
@@ -4987,12 +5310,20 @@ window.SanadbanUiMode = {
   },
 
   set(mode, persist = true) {
+    if (!this.canChange()) {
+      console.warn("UI mode change is locked by administrator.");
+      return;
+    }
     if (mode !== "simple" && mode !== "advanced") mode = "advanced";
     this._apply(mode);
     if (persist) this.save(mode);
   },
 
   toggle() {
+    if (!this.canChange()) {
+      console.warn("UI mode change is locked by administrator.");
+      return this.get();
+    }
     const next = this.get() === "simple" ? "advanced" : "simple";
     this.set(next);
     return next;
@@ -5058,4 +5389,124 @@ if (document.readyState === "loading") {
   );
 } else {
   window.SanadbanUiMode.syncUI();
+}
+
+
+// ==========================================================================
+// Telegram-Style Click-to-Copy System (National ID, Project, Site, etc.)
+// ==========================================================================
+window.initTelegramCopySystem = function () {
+  let tgToastTimeout = null;
+
+  function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.top = "0";
+    ta.style.left = "-9999px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (err) {
+      console.warn("Fallback copy failed:", err);
+    }
+    document.body.removeChild(ta);
+  }
+
+  function showTelegramTooltip(el, label) {
+    const rect = el.getBoundingClientRect();
+    const pill = document.createElement("div");
+    pill.className = "tg-copied-pill fa-num";
+    pill.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>${label ? label + " " : ""}کپی شد</span>
+    `;
+
+    // Position centered above element
+    const x = rect.left + rect.width / 2;
+    const y = rect.top - 6;
+    pill.style.left = `${Math.max(60, Math.min(window.innerWidth - 60, x))}px`;
+    pill.style.top = `${Math.max(10, y)}px`;
+
+    document.body.appendChild(pill);
+    setTimeout(() => {
+      pill.remove();
+    }, 1200);
+  }
+
+  function showTelegramBottomToast(label, text) {
+    let toast = document.getElementById("tg-bottom-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "tg-bottom-toast";
+      toast.className = "tg-bottom-toast fa-num";
+      document.body.appendChild(toast);
+    }
+
+    const displayVal = text.length > 28 ? text.substring(0, 28) + "…" : text;
+    toast.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span>${label ? label + " " : ""}در کلیپ‌بورد کپی شد: <b style="color: #38bdf8;">${displayVal}</b></span>
+    `;
+
+    toast.classList.add("show");
+    if (tgToastTimeout) clearTimeout(tgToastTimeout);
+    tgToastTimeout = setTimeout(() => {
+      toast.classList.remove("show");
+    }, 2200);
+  }
+
+  document.addEventListener("click", function (e) {
+    const el = e.target.closest(".tg-copyable");
+    if (!el) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    let text = el.getAttribute("data-copy");
+    if (!text && el.querySelector("b")) {
+      text = el.querySelector("b").innerText || el.querySelector("b").textContent;
+    }
+    if (text === null || text === undefined || text === "") {
+      text = el.innerText || el.textContent;
+    }
+    text = (text || "").trim();
+    if (!text) return;
+
+    const label = el.getAttribute("data-copy-label") || "";
+
+    // 1. Copy to clipboard
+    copyTextToClipboard(text);
+
+    // 2. Ripple flash animation on the element
+    el.classList.add("tg-copied-flash");
+    setTimeout(() => el.classList.remove("tg-copied-flash"), 450);
+
+    // 3. Floating Telegram badge over element
+    showTelegramTooltip(el, label);
+
+    // 4. Telegram-style bottom toast
+    showTelegramBottomToast(label, text);
+  });
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", window.initTelegramCopySystem);
+} else {
+  window.initTelegramCopySystem();
 }

@@ -74,11 +74,9 @@
 
             <div class="letterhead-center">
                 <div style="font-size: 10pt; font-weight: bold; margin-bottom: 5px;">«بسمه تعالی»</div>
-                <svg class="emblem" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                </svg>
+                <div style="margin: 4px auto 6px; display: flex; justify-content: center;">
+                    <img src="{% static 'img/favicon.svg' %}" width="48" height="48" alt="لوگو مسکن یار" class="emblem" style="display: block;">
+                </div>
                 <h2 style="font-size: 12pt; font-weight: bold;">معرفی‌نامه انتقال قطعی واحد مسکونی</h2>
                 <h3 style="font-size: 9.5pt;">طرح نهضت ملی مسکن (مرحله ۲۰)</h3>
             </div>
@@ -108,7 +106,7 @@
             <strong>جناب آقای / سرکار خانم {{ dossier.full_name|default:'علیرضا رضایی پور' }}</strong>،
             فرزند <strong>{{ dossier.father_name|default:'محمدرضا' }}</strong> 
             به شماره ملی <strong class="fa-num">{{ dossier.national_id|default:'0012345678' }}</strong>
-            که کلیه مراحل قانونی، استعلامات ثبتی، فرم (ج) و تسویه‌حساب‌های مالی آماده‌سازی، اجاره عرصه و تسهیلات متعلقه را در سامانه جامع مسکن یار با موفقیت به پایان رسانده و به تایید ارکان نظارتی این اداره کل و کارگزاری رسیده است، جهت تنظیم و ثبت سند رسمی انتقال عرصه و اعیان واحد مسکونی به شرح جدول ذیل معرفی می‌گردد:
+            که کلیه مراحل قانونی، استعلامات ثبتی، فرم (ج) و تسویه‌حساب‌های مالی آماده‌سازی، اجاره عرصه و تسهیلات متعلقه را در مسکن یار با موفقیت به پایان رسانده و به تایید ارکان نظارتی این اداره کل و کارگزاری رسیده است، جهت تنظیم و ثبت سند رسمی انتقال عرصه و اعیان واحد مسکونی به شرح جدول ذیل معرفی می‌گردد:
         </div>
 
         <!-- Official Specs Table -->
@@ -154,7 +152,7 @@
 
         <!-- Legal Statement & Instructions -->
         <div style="text-align: justify; line-height: 1.8; font-size: 9.5pt; margin-top: 15px;">
-            خواهشمند است دستور فرمایید با رعایت کلیه قوانین و مقررات موضوعه ثبتی، نسبت به تنظیم سند رسمی انتقال مطابق ضوابط سازمان ملی زمین و مسکن اقدام و پس از ثبت، نسخه‌ای از خلاصه معامله را به این اداره کل ارسال فرمایند. ضمناً استعلام برخط این نامه از طریق سامانه مسکن یار با کد اصالت زیر معتبر می‌باشد.
+            خواهشمند است دستور فرمایید با رعایت کلیه قوانین و مقررات موضوعه ثبتی، نسبت به تنظیم سند رسمی انتقال مطابق ضوابط سازمان ملی زمین و مسکن اقدام و پس از ثبت، نسخه‌ای از خلاصه معامله را به این اداره کل ارسال فرمایند. ضمناً استعلام برخط این نامه از طریق سیستم مسکن یار با کد اصالت زیر معتبر می‌باشد.
         </div>
 
         <!-- Official Signatures Row -->
@@ -178,7 +176,7 @@
 
         <!-- QR Code & Anti-Tamper Verification Footer -->
         <div class="qr-verification-zone fa-num">
-            <div style="font-size: 9pt; font-weight: bold; margin-bottom: 4px;">سامانه جامع مسکن یار - شناسه یکتای اعتبارسنجی سند: MSK-100001-{{ dossier.national_id|default:'0012345678' }}</div>
+            <div style="font-size: 9pt; font-weight: bold; margin-bottom: 4px;">مسکن یار - شناسه یکتای اعتبارسنجی سند: MSK-100001-{{ dossier.national_id|default:'0012345678' }}</div>
             <div>این نامه دارای امضای الکترونیکی معتبر و غیرقابل جعل می‌باشد و هرگونه دستکاری در مفاد آن پیگرد قانونی دارد.</div>
         </div>
     </div>

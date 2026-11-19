@@ -717,6 +717,37 @@ class HousingDossier(models.Model):
     prep_checks_confirmed_by = models.CharField(max_length=150, blank=True, default="", verbose_name="تاییدکننده چک‌های اقساط آماده‌سازی")
     prep_checks_confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name="زمان تایید چک‌های اقساط آماده‌سازی")
 
+    # Promissory notes & Commitment letters (Stages 17 & 18 alternatives to checks)
+    loan_has_promissory_note = models.BooleanField(default=False, verbose_name="دریافت سفته به جای چک (تسهیلات دهک)")
+    loan_promissory_number = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره سفته تسهیلات")
+    loan_promissory_amount = models.BigIntegerField(default=0, blank=True, verbose_name="مبلغ سفته تسهیلات (ریال)")
+    loan_promissory_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ سفته تسهیلات (شمسی)")
+    loan_has_commitment_letter = models.BooleanField(default=False, verbose_name="اخذ تعهدنامه اقساط تسهیلات")
+    loan_promissory_installments_json = models.TextField(blank=True, default="[]", verbose_name="اقساط تعهدنامه سفته تسهیلات (JSON)")
+
+    prep_has_promissory_note = models.BooleanField(default=False, verbose_name="دریافت سفته به جای چک (آماده‌سازی)")
+    prep_promissory_number = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره سفته آماده‌سازی")
+    prep_promissory_amount = models.BigIntegerField(default=0, blank=True, verbose_name="مبلغ سفته آماده‌سازی (ریال)")
+    prep_promissory_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ سفته آماده‌سازی (شمسی)")
+    prep_has_commitment_letter = models.BooleanField(default=False, verbose_name="اخذ تعهدنامه اقساط آماده‌سازی")
+    prep_commitment_number = models.CharField(max_length=50, blank=True, default="", verbose_name="شماره تعهدنامه آماده‌سازی")
+    prep_commitment_date = models.CharField(max_length=20, blank=True, default="", verbose_name="تاریخ تعهدنامه آماده‌سازی (شمسی)")
+    prep_promissory_installments_json = models.TextField(blank=True, default="[]", verbose_name="اقساط تعهدنامه سفته آماده‌سازی (JSON)")
+
+    def get_loan_promissory_installments(self) -> list:
+        import json
+        try:
+            return json.loads(self.loan_promissory_installments_json or "[]")
+        except Exception:
+            return []
+
+    def get_prep_promissory_installments(self) -> list:
+        import json
+        try:
+            return json.loads(self.prep_promissory_installments_json or "[]")
+        except Exception:
+            return []
+
     # Stages 17 & 18: تاریخ مراجعه و ارسال به راه و شهرسازی
     is_visited = models.BooleanField(default=False, verbose_name="مراجعه متقاضی (مراحل ۱۷ و ۱۸)")
     visit_date = models.CharField(max_length=30, blank=True, default="", verbose_name="تاریخ مراجعه (شمسی)")
@@ -930,6 +961,15 @@ class HousingDossier(models.Model):
             pass
 
         return ""
+
+    @property
+    def clean_notary_office_number(self) -> str:
+        """Returns notary office number without redundant prefixes like 'دفترخانه'."""
+        val = (self.notary_office_number or "").strip()
+        for pfx in ("دفترخانه اسناد رسمی", "دفترخانه اسناد", "دفترخانه شماره", "دفترخانه", "شماره", ":"):
+            if val.startswith(pfx):
+                val = val[len(pfx):].strip().lstrip(":").strip()
+        return val or self.notary_office_number
 
     class Meta:
 
@@ -1387,6 +1427,8 @@ class DossierAttachment(models.Model):
 
         ("COMMITMENT_LETTER", "تعهدنامه محضری / ثبتی"),
 
+        ("PROMISSORY_NOTE", "سفته تضمین و تعهدنامه"),
+
         ("NOTARY_LETTER", "اسکن معرفی‌نامه دفتر اسناد رسمی (محضر)"),
 
         ("LEASE_CONTRACT", "اسکن سند قرارداد اجاره عرصه"),
@@ -1748,6 +1790,20 @@ class UserProfile(models.Model):
         default="simple",
         verbose_name="حالت نمایش صفحه پرونده",
     )
+    can_change_ui_mode = models.BooleanField(
+        default=False,
+        verbose_name="مجوز تغییر حالت نمایش (ساده / پیشرفته)",
+        help_text="در صورت عدم انتخاب، کاربر موظف به استفاده از حالت تعیین‌شده در مدیریت کاربران است."
+    )
+
+    @property
+    def allowed_to_change_ui_mode(self):
+        """Returns True if the user has permission to change their UI mode."""
+        if not self.user_id:
+            return False
+        if self.user.is_superuser or self.user.is_staff or self.is_housing_chief:
+            return True
+        return bool(self.can_change_ui_mode)
 
     @property
     def date_joined_jalali(self):
